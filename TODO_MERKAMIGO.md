@@ -11,12 +11,12 @@
 
 Antes de analizar, planear o implementar cualquier tarea del proyecto:
 
-- [ ] Revisar la carpeta `.github` del repositorio.
-- [ ] Localizar todos los archivos `SKILL.md` o archivos equivalentes de habilidades dentro de `.github` y sus subcarpetas.
-- [ ] Leer completamente las habilidades aplicables antes de modificar código, arquitectura, interfaz, documentación, pruebas o infraestructura.
-- [ ] Revisar también las instrucciones generales del repositorio, como `AGENTS.md`, cuando existan.
-- [ ] Aplicar conjuntamente las habilidades pertinentes cuando una tarea involucre más de un dominio.
-- [ ] Informar en el resumen del trabajo cuáles habilidades del proyecto se revisaron y cómo condicionaron la implementación.
+- [x] Revisar la carpeta `.github` del repositorio.
+- [x] Localizar todos los archivos `SKILL.md` o archivos equivalentes de habilidades dentro de `.github` y sus subcarpetas.
+- [x] Leer completamente las habilidades aplicables antes de modificar código, arquitectura, interfaz, documentación, pruebas o infraestructura.
+- [x] Revisar también las instrucciones generales del repositorio, como `AGENTS.md`, cuando existan.
+- [x] Aplicar conjuntamente las habilidades pertinentes cuando una tarea involucre más de un dominio.
+- [x] Informar en el resumen del trabajo cuáles habilidades del proyecto se revisaron y cómo condicionaron la implementación.
 - [ ] Volver a consultar las habilidades cuando cambie la fase, el módulo o el tipo de tarea.
 - [ ] No asumir que una recomendación previa reemplaza una instrucción más reciente incluida en el repositorio.
 
@@ -241,12 +241,12 @@ El MVP completo se entrega de forma incremental:
 
 ## 0.1 Producto, alcance y medición
 
-- [ ] Confirmar propuesta de valor: “Descubre lo local, conecta con tu comunidad”.
-- [ ] Definir municipios piloto: iniciar con Cajicá y Zipaquirá.
-- [ ] Definir categorías iniciales y criterios de alta de nuevas categorías.
-- [ ] Aprobar qué datos mínimos hacen publicable una vitrina.
+- [x] Confirmar propuesta de valor: “Descubre lo local, conecta con tu comunidad”.
+- [x] Definir municipios piloto: iniciar con Cajicá y Zipaquirá.
+- [x] Definir categorías iniciales y criterios de alta de nuevas categorías.
+- [x] Aprobar qué datos mínimos hacen publicable una vitrina.
 - [ ] Definir proceso semi-asistido de soporte para emprendedores que no logren crearla solos.
-- [ ] Validar esquema comercial inicial sin activarlo todavía:
+- [x] Validar esquema comercial inicial sin activarlo todavía:
   - Perfil gratuito.
   - Vitrina Pro: referencia previa de **$49.900 COP pago único**.
   - Plan Emprendedor: referencia previa de **$19.900 COP/mes**.
@@ -254,7 +254,7 @@ El MVP completo se entrega de forma incremental:
   - Destacado semanal: referencia previa de **$9.900 COP**.
   - Oferta de lanzamiento: referencia previa de **$39.900 COP por vitrina lista para vender por WhatsApp**.
 - [ ] Marcar precios anteriores como hipótesis y validarlos con usuarios antes de automatizar cobros.
-- [ ] Definir indicadores del piloto:
+- [x] Definir indicadores del piloto:
   - Emprendedores registrados.
   - Vitrinas publicadas.
   - Tiempo promedio hasta publicar.
@@ -272,7 +272,7 @@ El MVP completo se entrega de forma incremental:
 
 ## 0.2 Experiencia, sitemap y diseño
 
-- [ ] Diseñar el sitemap separando expresamente:
+- [x] Diseñar el sitemap separando expresamente:
   - Experiencia pública general.
   - Front de Clientes.
   - Front de Emprendedores.
@@ -280,7 +280,7 @@ El MVP completo se entrega de forma incremental:
 - [ ] Crear un acceso inicial con dos caminos visibles: “Quiero comprar/encontrar” y “Quiero vender/mostrar mi negocio”.
 - [ ] Definir navegación propia para Clientes y para Emprendedores.
 - [ ] Permitir cambiar de experiencia desde la cuenta cuando el usuario tenga ambos perfiles.
-- [ ] Mantener una sola identidad y sesión; no duplicar usuarios por experiencia.
+- [x] Mantener una sola identidad y sesión; no duplicar usuarios por experiencia.
 - [ ] Diseñar flujos desktop y móvil para:
   - Registro e ingreso con selección de intención.
   - Inicio, exploración y panel del Cliente.
@@ -405,18 +405,18 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 0.3 Repositorio y stack
 
-- [ ] Inventariar y revisar todos los `SKILL.md` existentes en `.github` antes de crear o configurar el proyecto.
-- [ ] Documentar en el `README.md` el flujo para seleccionar y aplicar las habilidades del repositorio.
-- [ ] Validar versiones oficiales compatibles antes de instalar.
-- [ ] Crear proyecto Laravel y configurar PHP, Composer, Node.js y Vite.
-- [ ] Instalar y configurar Filament 5, Livewire 4, Tailwind 4 y Sanctum.
+- [x] Inventariar y revisar todos los `SKILL.md` existentes en `.github` antes de crear o configurar el proyecto.
+- [x] Documentar en el `README.md` el flujo para seleccionar y aplicar las habilidades del repositorio.
+- [x] Validar versiones oficiales compatibles antes de instalar.
+- [x] Crear proyecto Laravel y configurar PHP, Composer, Node.js y Vite.
+- [x] Instalar y configurar Filament 5, Livewire 4, Tailwind 4 y Sanctum.
 - [ ] Configurar MySQL/MariaDB, Redis, correo y almacenamiento S3 compatible.
 - [ ] Crear ambientes local, pruebas, staging y producción.
-- [ ] Configurar `.env.example` sin secretos.
+- [x] Configurar `.env.example` sin secretos.
 - [ ] Configurar formateo, análisis estático, linting y hooks de calidad.
 - [ ] Definir estrategia de ramas, versionado y releases.
-- [ ] Configurar CI para pruebas, análisis y compilación.
-- [ ] Preparar health checks de aplicación, base de datos, Redis, colas y almacenamiento.
+- [x] Configurar CI para pruebas, análisis y compilación.
+- [x] Preparar health checks de aplicación, base de datos, Redis, colas y almacenamiento.
 
 **Criterios de aceptación**
 
@@ -426,11 +426,11 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 0.4 Arquitectura modular
 
-- [ ] Definir módulos: Identity, Businesses, Storefronts, Discovery, Needs, Trust, WhatsApp, Analytics, Billing, Moderation y Platform.
+- [x] Definir módulos: Identity, Businesses, Storefronts, Discovery, Needs, Trust, WhatsApp, Analytics, Billing, Moderation y Platform.
 - [ ] Definir convenciones para Actions, Services, Policies, Events, Jobs, Notifications y API Resources.
-- [ ] Implementar las acciones de dominio sin acoplarlas a Livewire o Filament.
-- [ ] Crear `/api/v1` desde el comienzo, aunque la cobertura inicial sea mínima.
-- [ ] Definir formato estándar de respuestas y errores JSON.
+- [x] Implementar las acciones de dominio sin acoplarlas a Livewire o Filament.
+- [x] Crear `/api/v1` desde el comienzo, aunque la cobertura inicial sea mínima.
+- [x] Definir formato estándar de respuestas y errores JSON.
 - [ ] Definir política de versionado y deprecación de API.
 - [ ] Preparar documentación OpenAPI o equivalente.
 
@@ -441,17 +441,17 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 0.5 Autenticación, multinegocio y permisos
 
-- [ ] Registro por correo y/o teléfono según decisión de producto.
-- [ ] Inicio y cierre de sesión.
-- [ ] Recuperación de acceso.
-- [ ] Verificación de correo o teléfono.
-- [ ] Perfil básico del usuario.
-- [ ] Organizaciones, negocios y membresías.
-- [ ] Roles y permisos por negocio.
-- [ ] Policies y scopes de aislamiento.
-- [ ] Tokens Sanctum revocables y preparados para identificar dispositivo.
-- [ ] Pruebas que demuestren aislamiento entre negocios.
-- [ ] Auditoría de ingreso, cambio de permisos y acciones sensibles.
+- [x] Registro por correo y/o teléfono según decisión de producto.
+- [x] Inicio y cierre de sesión.
+- [x] Recuperación de acceso.
+- [x] Verificación de correo o teléfono.
+- [x] Perfil básico del usuario.
+- [x] Organizaciones, negocios y membresías.
+- [x] Roles y permisos por negocio.
+- [x] Policies y scopes de aislamiento.
+- [x] Tokens Sanctum revocables y preparados para identificar dispositivo.
+- [x] Pruebas que demuestren aislamiento entre negocios.
+- [x] Auditoría de ingreso, cambio de permisos y acciones sensibles.
 
 **Criterios de aceptación**
 
@@ -465,9 +465,9 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Registrar aceptación y versión de documentos legales.
 - [ ] Validar y limitar archivos por tipo, tamaño y cantidad.
 - [ ] Analizar archivos y remover metadatos sensibles cuando corresponda.
-- [ ] Implementar rate limiting, protección CSRF, validación, sanitización y encabezados seguros.
-- [ ] Evitar exposición de datos personales en logs y URLs.
-- [ ] Cifrar datos sensibles y proteger secretos.
+- [x] Implementar rate limiting, protección CSRF, validación, sanitización y encabezados seguros.
+- [x] Evitar exposición de datos personales en logs y URLs.
+- [x] Cifrar datos sensibles y proteger secretos.
 - [ ] Definir backups automáticos de base de datos y archivos.
 - [ ] Probar restauración en ambiente aislado.
 - [ ] Configurar logs centralizados, alertas y seguimiento de errores.
