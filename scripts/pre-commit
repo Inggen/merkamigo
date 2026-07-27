@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Hook de calidad (0.3 del TODO). Instalar con: composer hooks:install
+# Git ejecuta los hooks con el cwd en la raíz del repositorio, así que no
+# hace falta resolver rutas relativas al copiar este archivo a .git/hooks.
+
+echo "Running Pint..."
+./vendor/bin/pint --test

@@ -5,6 +5,7 @@ namespace App\Domain\Identity\Actions;
 use App\Domain\Identity\Concerns\PasswordValidationRules;
 use App\Domain\Identity\Concerns\ProfileValidationRules;
 use App\Models\User;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
@@ -29,11 +30,17 @@ class RegisterUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
+        // Si el invitado ya eligió "comprar/encontrar" o "vender/mostrar mi
+        // negocio" desde la landing (0.2 del TODO), la nueva cuenta arranca
+        // en esa experiencia en vez de quedar sin definir.
+        $intendedExperience = Cookie::get('experience');
+
         return User::create([
             'name' => $validated['name'],
             'email' => $validated['email'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'password' => $validated['password'],
+            'experience' => in_array($intendedExperience, ['cliente', 'emprendedor'], true) ? $intendedExperience : null,
         ]);
     }
 }

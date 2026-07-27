@@ -17,7 +17,9 @@ Se revalidará esta matriz antes de cada cambio mayor de versión.
 
 ## Alcance de este pase de Fase 0
 
-Se acordó con el usuario limitar el primer pase de Fase 0 a la fundación técnica (0.3, 0.4, 0.5 y una porción mínima de 0.6). 0.1 y 0.2 se documentaron en versión breve (`docs/product/alcance-fase0.md`, `docs/product/sitemap.md`) reutilizando las decisiones ya escritas en `TODO_MERKAMIGO.md`, sin producir prototipos visuales todavía.
+El primer pase se limitó a la fundación técnica (0.3, 0.4, 0.5 y una porción mínima de 0.6). 0.1 y 0.2 se documentaron en versión breve (`docs/product/alcance-fase0.md`, `docs/product/sitemap.md`) reutilizando las decisiones ya escritas en `TODO_MERKAMIGO.md`, sin producir prototipos visuales todavía.
+
+Un segundo pase cerró la mayor parte de lo restante de Fase 0: tokens de marca y logo aplicados (`resources/css/app.css`, `resources/views/components/app-logo-icon.blade.php`, `public/favicon.svg` y demás íconos), componentes de estado reutilizables (`resources/views/components/states/*`), navegación y layouts diferenciados para Cliente y Emprendedor con selector de experiencia (`App\Domain\Identity\Actions\SwitchExperience`), borrador de textos legales, estrategia de ramas, hook de calidad, stub de OpenAPI y política de versionado de API. El límite explícito de este segundo pase: no se construyó el contenido completo de las pantallas de Fase 1 (C01-C06, E01-E06) — solo la arquitectura (navegación, layouts, rutas placeholder) que esas pantallas usarán.
 
 ## Módulos del monolito modular
 
@@ -44,14 +46,19 @@ Regla del TODO: nunca guardar fotos/audios/documentos de usuarios en disco local
 
 ## Verificación de teléfono
 
-Se implementa el esquema de datos y el flujo de generación de OTP en cola, pero como no hay proveedor de SMS contratado, en el entorno local el código se escribe a un canal de log en vez de enviarse. Esto es intencional y sigue el principio de la Fase 5 ("contratos internos para IA/SMS sin acoplarse a un proveedor"): se define la interfaz ahora y se conecta un proveedor real más adelante.
+Se implementó el esquema de datos (`phone_verified_at`, `hasVerifiedPhone()`, `markPhoneAsVerified()`), pero **no** el flujo real de envío/validación de OTP: no hay proveedor de SMS contratado. Construir ese flujo (generar código, enviarlo por un proveedor, pantalla para ingresarlo) queda pendiente para cuando se elija un proveedor (Fase 5.4: "contratos internos para SMS sin acoplarse a un proveedor").
+
+## Textos legales
+
+`docs/legal/terminos.md`, `docs/legal/privacidad.md` y `docs/legal/reglas-comunidad.md` son un **borrador razonable, no revisado por un abogado**. Cubren tratamiento de datos personales (Ley 1581 de 2012 y Decreto 1377 de 2013 de Colombia), uso de WhatsApp, verificación y moderación. Antes de publicarlos como definitivos falta: revisión legal real, designar formalmente un responsable del tratamiento, y decidir cómo se registra la aceptación y versión de estos documentos por usuario (checkbox de registro, tabla de auditoría, etc. — todavía no implementado).
 
 ## Explícitamente diferido a una sesión posterior
 
-- Textos legales definitivos (términos, privacidad) — hoy son placeholders.
+- Revisión legal real de los textos de `docs/legal/`.
+- Registro de aceptación y versión de los documentos legales por usuario.
 - Simulacro real de backup/restore.
 - Entorno de staging/producción con hosting real (requiere que el usuario decida proveedor de hosting).
 - Proveedor real de SMS/OTP y de almacenamiento S3 compatible.
-- Documentación OpenAPI completa (solo se documentan los endpoints construidos en este pase).
-- Ejecución de CI en la nube (el workflow de GitHub Actions queda listo, pero no hay remoto configurado todavía).
-- Prototipos visuales y design system completo de 0.2.
+- Logs centralizados y alertas (requiere un servicio externo tipo Sentry/Papertrail).
+- Validación de precios e indicadores con usuarios reales del piloto.
+- Prototipos visuales completos y design system con todos los componentes de Fase 1 — el logo, tokens de marca, tipografías (Poppins/Inter vía Bunny Fonts) y componentes de estado ya están aplicados, pero el contenido completo de cada pantalla de Fase 1 no se ha construido.

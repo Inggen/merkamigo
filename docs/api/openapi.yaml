@@ -1,0 +1,124 @@
+openapi: 3.0.3
+info:
+  title: Merkamigo API
+  version: "1.0"
+  description: >
+    API pública de Merkamigo, versionada desde /api/v1 (0.4 del TODO).
+    Este documento cubre únicamente los endpoints construidos en la
+    fundación técnica de Fase 0; se amplía en cada fase siguiente
+    (ver docs/architecture/versionado-api.md).
+servers:
+  - url: https://merkamigo.test/api/v1
+paths:
+  /health:
+    get:
+      summary: Estado de la aplicación, base de datos, Redis, cola y almacenamiento
+      tags: [Platform]
+      responses:
+        "200":
+          description: Todo saludable
+        "503":
+          description: Al menos un chequeo falló
+
+  /auth/register:
+    post:
+      summary: Registrar un usuario (correo y/o teléfono)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                email: { type: string, nullable: true }
+                phone: { type: string, nullable: true }
+                password: { type: string }
+                password_confirmation: { type: string }
+      responses:
+        "201":
+          description: Usuario creado, incluye token Sanctum
+        "422":
+          description: Error de validación (ver formato estándar de error)
+
+  /auth/login:
+    post:
+      summary: Iniciar sesión con correo o teléfono
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login: { type: string, description: "Correo o teléfono" }
+                password: { type: string }
+      responses:
+        "200":
+          description: Autenticado, incluye token Sanctum
+        "401":
+          description: Credenciales inválidas
+
+  /auth/logout:
+    post:
+      summary: Revocar el token actual
+      tags: [Auth]
+      security: [{ sanctum: [] }]
+      responses:
+        "200":
+          description: Sesión cerrada
+
+  /auth/me:
+    get:
+      summary: Usuario autenticado actual
+      tags: [Auth]
+      security: [{ sanctum: [] }]
+      responses:
+        "200":
+          description: Datos básicos del usuario
+
+  /businesses:
+    post:
+      summary: Crear negocio y vitrina en borrador (CreateStorefront)
+      tags: [Businesses]
+      security: [{ sanctum: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                whatsapp_number: { type: string, nullable: true }
+                municipality_id: { type: integer, nullable: true }
+                category_id: { type: integer, nullable: true }
+                headline: { type: string, nullable: true }
+                description: { type: string, nullable: true }
+      responses:
+        "201":
+          description: Negocio y vitrina creados
+
+  /businesses/{business}:
+    get:
+      summary: Consultar un negocio (solo miembros del negocio)
+      tags: [Businesses]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Datos del negocio
+        "403":
+          description: El usuario no pertenece a este negocio
+
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer

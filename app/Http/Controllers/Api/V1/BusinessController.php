@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BusinessResource;
+use App\Http\Resources\StorefrontResource;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,10 +22,7 @@ class BusinessController extends Controller
     {
         $this->authorize('view', $business);
 
-        return ApiResponse::response(
-            $business->load('storefront')->only(['id', 'name', 'slug', 'status'])
-                + ['storefront' => $business->storefront?->only(['id', 'headline', 'status'])],
-        );
+        return ApiResponse::response(new BusinessResource($business->load('storefront')));
     }
 
     /**
@@ -45,8 +44,8 @@ class BusinessController extends Controller
         $storefront = $createStorefront->handle($request->user(), $data);
 
         return ApiResponse::response([
-            'storefront' => $storefront->only(['id', 'headline', 'description', 'status']),
-            'business' => $storefront->business->only(['id', 'name', 'slug', 'status']),
+            'storefront' => new StorefrontResource($storefront),
+            'business' => new BusinessResource($storefront->business),
         ], status: 201);
     }
 }

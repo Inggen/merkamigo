@@ -25,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->throttleApi();
+
+        // Preferencia de UI (Cliente/Emprendedor), no un dato sensible: sin
+        // cifrar para que sobreviva sin fricción entre invitado y registro
+        // (App\Domain\Identity\Actions\SwitchExperience).
+        $middleware->encryptCookies(except: ['experience']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

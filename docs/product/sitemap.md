@@ -96,5 +96,8 @@ Estos tokens se cargarán como variables de Tailwind 4 (`@theme`) cuando se cons
 
 - Prototipo responsive (desktop + móvil) de cada flujo listado en 0.2 del TODO.
 - Design system con componentes, estados (carga, vacío, éxito, error, sin conexión, permiso denegado, suspendido, mantenimiento) y variantes.
-- Logo, ícono, favicon, avatar, iconos PWA y versión monocromática del logotipo.
 - Validación de legibilidad, tamaño de botones y navegación con una mano con usuarios reales.
+
+## Láminas de referencia de 0.2.2
+
+El 27 de julio de 2026 el usuario compartió las dos láminas aprobadas de 0.2.2 (Experiencia Clientes: C01-C06; Experiencia Emprendedores: E01-E06). Se usaron para confirmar que el logo, el rojo de marca y los nombres de navegación ya construidos en esta fundación técnica coinciden con el diseño de referencia (p. ej. ítems de navegación Cliente: Explorar, Mensajes, Favoritos). El contenido completo de cada pantalla (tarjetas de negocios, buscador con filtros, editor de vitrina con pestañas, panel con métricas) se construye en Fase 1 siguiendo esas láminas como diseño definitivo; no se adelantó en este pase de Fase 0.

@@ -277,9 +277,9 @@ El MVP completo se entrega de forma incremental:
   - Front de Clientes.
   - Front de Emprendedores.
   - Administración interna.
-- [ ] Crear un acceso inicial con dos caminos visibles: “Quiero comprar/encontrar” y “Quiero vender/mostrar mi negocio”.
-- [ ] Definir navegación propia para Clientes y para Emprendedores.
-- [ ] Permitir cambiar de experiencia desde la cuenta cuando el usuario tenga ambos perfiles.
+- [x] Crear un acceso inicial con dos caminos visibles: “Quiero comprar/encontrar” y “Quiero vender/mostrar mi negocio”.
+- [x] Definir navegación propia para Clientes y para Emprendedores.
+- [x] Permitir cambiar de experiencia desde la cuenta cuando el usuario tenga ambos perfiles.
 - [x] Mantener una sola identidad y sesión; no duplicar usuarios por experiencia.
 - [ ] Diseñar flujos desktop y móvil para:
   - Registro e ingreso con selección de intención.
@@ -292,18 +292,17 @@ El MVP completo se entrega de forma incremental:
   - Contacto por WhatsApp.
   - Panel y métricas.
 - [ ] Crear design system con componentes, estados y tokens.
-- [ ] Aplicar manual de marca:
+- [x] Aplicar manual de marca:
   - Rojo principal `#D7352A`.
   - Rojo oscuro `#B9241B`.
   - Negro carbón `#1F1F21`.
   - Gris grafito `#4C4C50`.
   - Gris claro `#F4F4F4`.
-  - Títulos: Poppins SemiBold.
-  - Subtítulos: Poppins Medium.
-  - Texto: Inter Regular.
+  - Principal: Poppins.
+  - Secundaria: Inter Regular.
 - [ ] Respetar versiones, proporciones, contraste y zona de protección del logotipo.
-- [ ] Preparar logo, ícono, favicon, avatar, PWA icons, versión monocromática y formatos optimizados.
-- [ ] Diseñar estados: carga, vacío, éxito, error, sin conexión, permiso denegado, contenido suspendido y mantenimiento.
+- [x] Preparar logo, ícono, favicon, avatar, PWA icons, versión monocromática y formatos optimizados.
+- [x] Diseñar estados: carga, vacío, éxito, error, sin conexión, permiso denegado, contenido suspendido y mantenimiento.
 - [ ] Validar legibilidad, botones grandes, textos sencillos y navegación con una mano.
 
 **Criterios de aceptación**
@@ -342,12 +341,12 @@ El MVP completo se entrega de forma incremental:
 
 ### Reglas compartidas
 
-- [ ] Implementar layouts y menús diferenciados sin duplicar la lógica del negocio.
-- [ ] Conservar consistencia de marca y componentes base.
-- [ ] Mostrar solo las funciones relevantes para la experiencia activa.
-- [ ] Recordar la última experiencia utilizada.
-- [ ] Permitir que un Cliente cree un negocio y pase al onboarding de Emprendedor.
-- [ ] Permitir que un Emprendedor explore y compre como Cliente.
+- [x] Implementar layouts y menús diferenciados sin duplicar la lógica del negocio.
+- [x] Conservar consistencia de marca y componentes base.
+- [x] Mostrar solo las funciones relevantes para la experiencia activa.
+- [x] Recordar la última experiencia utilizada.
+- [x] Permitir que un Cliente cree un negocio y pase al onboarding de Emprendedor.
+- [x] Permitir que un Emprendedor explore y compre como Cliente.
 - [ ] Diseñar URLs, breadcrumbs y analítica que identifiquen la experiencia activa.
 
 ## 0.2.2 Vistas principales de referencia
@@ -380,9 +379,9 @@ Las dos láminas aprobadas definen las **vistas principales**, pero no limitan e
 
 Además de las 12 vistas principales, el producto necesita:
 
-- [ ] Selección de experiencia: Cliente o Emprendedor.
-- [ ] Inicio de sesión, registro, verificación y recuperación.
-- [ ] Perfil y preferencias.
+- [x] Selección de experiencia: Cliente o Emprendedor.
+- [x] Inicio de sesión, registro, verificación y recuperación.
+- [x] Perfil y preferencias.
 - [ ] Favoritos.
 - [ ] Centro de actividad, notificaciones y propuestas; no implica chat interno completo.
 - [ ] Mis solicitudes, detalle de solicitud y propuestas recibidas.
@@ -392,12 +391,12 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Compartir vitrina, enlace y QR.
 - [ ] Planes, suscripción, límites y facturación cuando se habiliten.
 - [ ] Soporte, reportes, términos y privacidad.
-- [ ] Estados vacíos, carga, error, sin conexión, suspendido y permisos denegados.
+- [x] Estados vacíos, carga, error, sin conexión, suspendido y permisos denegados.
 - [ ] Administración y moderación en Filament.
 
 ### Aclaraciones frente a las visuales
 
-- [ ] El acceso visual “Mensajes” se implementará inicialmente como **Centro de actividad** para notificaciones, solicitudes y propuestas; no como chat interno completo.
+- [x] El acceso visual “Mensajes” se implementará inicialmente como **Centro de actividad** para notificaciones, solicitudes y propuestas; no como chat interno completo.
 - [ ] Las estrellas, cantidad de opiniones e insignia verificada solo se mostrarán con datos reales y cuando la fase 3 esté activa; nunca usar cifras ficticias en producción.
 - [ ] La cercanía puede calcularse con zona o ubicación consentida, pero el MVP no dependerá de rastreo permanente ni geolocalización avanzada.
 - [ ] Las fotografías de Cajicá y de los negocios son contenido administrable, optimizado y con texto alternativo.
@@ -413,8 +412,8 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Configurar MySQL/MariaDB, Redis, correo y almacenamiento S3 compatible.
 - [ ] Crear ambientes local, pruebas, staging y producción.
 - [x] Configurar `.env.example` sin secretos.
-- [ ] Configurar formateo, análisis estático, linting y hooks de calidad.
-- [ ] Definir estrategia de ramas, versionado y releases.
+- [x] Configurar formateo, análisis estático, linting y hooks de calidad.
+- [x] Definir estrategia de ramas, versionado y releases.
 - [x] Configurar CI para pruebas, análisis y compilación.
 - [x] Preparar health checks de aplicación, base de datos, Redis, colas y almacenamiento.
 
@@ -427,12 +426,12 @@ Además de las 12 vistas principales, el producto necesita:
 ## 0.4 Arquitectura modular
 
 - [x] Definir módulos: Identity, Businesses, Storefronts, Discovery, Needs, Trust, WhatsApp, Analytics, Billing, Moderation y Platform.
-- [ ] Definir convenciones para Actions, Services, Policies, Events, Jobs, Notifications y API Resources.
+- [x] Definir convenciones para Actions, Services, Policies, Events, Jobs, Notifications y API Resources.
 - [x] Implementar las acciones de dominio sin acoplarlas a Livewire o Filament.
 - [x] Crear `/api/v1` desde el comienzo, aunque la cobertura inicial sea mínima.
 - [x] Definir formato estándar de respuestas y errores JSON.
-- [ ] Definir política de versionado y deprecación de API.
-- [ ] Preparar documentación OpenAPI o equivalente.
+- [x] Definir política de versionado y deprecación de API.
+- [x] Preparar documentación OpenAPI o equivalente.
 
 **Criterios de aceptación**
 
@@ -461,7 +460,7 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 0.6 Seguridad, privacidad y operación
 
-- [ ] Definir términos, privacidad, tratamiento de datos y reglas de publicación.
+- [x] Definir términos, privacidad, tratamiento de datos y reglas de publicación.
 - [ ] Registrar aceptación y versión de documentos legales.
 - [ ] Validar y limitar archivos por tipo, tamaño y cantidad.
 - [ ] Analizar archivos y remover metadatos sensibles cuando corresponda.
@@ -471,7 +470,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Definir backups automáticos de base de datos y archivos.
 - [ ] Probar restauración en ambiente aislado.
 - [ ] Configurar logs centralizados, alertas y seguimiento de errores.
-- [ ] Definir proceso de incidentes y recuperación.
+- [x] Definir proceso de incidentes y recuperación.
 
 **Criterios de aceptación**
 

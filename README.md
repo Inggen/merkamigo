@@ -69,9 +69,14 @@ php artisan migrate --seed
 npm run build   # o `npm run dev` durante desarrollo
 
 php artisan app:make-superadmin admin@merkamigo.test
+
+# Hook de calidad local (corre Pint antes de cada commit)
+composer hooks:install
 ```
 
 Si usas [Laravel Herd](https://herd.laravel.com), el proyecto se sirve automáticamente en `https://merkamigo.test` al estar en `~/Herd/merkamigo`.
+
+Estrategia de ramas, versionado y releases: [`docs/architecture/estrategia-ramas.md`](docs/architecture/estrategia-ramas.md).
 
 ## Variables de entorno
 

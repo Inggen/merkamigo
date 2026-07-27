@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Identity\Actions\RegisterUser;
 use App\Domain\Identity\Actions\ResolveUserByLogin;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Support\Api\ApiError;
 use App\Support\Api\ApiResponse;
@@ -20,7 +21,7 @@ class AuthController extends Controller
         $token = $user->createToken($request->userAgent() ?: 'api')->plainTextToken;
 
         return ApiResponse::response([
-            'user' => $user->only(['id', 'name', 'email', 'phone']),
+            'user' => new UserResource($user),
             'token' => $token,
         ], status: 201);
     }
@@ -44,7 +45,7 @@ class AuthController extends Controller
         $token = $user->createToken($request->userAgent() ?: 'api')->plainTextToken;
 
         return ApiResponse::response([
-            'user' => $user->only(['id', 'name', 'email', 'phone']),
+            'user' => new UserResource($user),
             'token' => $token,
         ]);
     }
@@ -61,6 +62,6 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        return ApiResponse::response($user->only(['id', 'name', 'email', 'phone']));
+        return ApiResponse::response(new UserResource($user));
     }
 }
