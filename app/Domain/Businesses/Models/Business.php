@@ -4,13 +4,16 @@ namespace App\Domain\Businesses\Models;
 
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\Storefront;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Business extends Model
 {
@@ -22,9 +25,25 @@ class Business extends Model
         'category_id',
         'name',
         'slug',
+        'zone',
+        'address',
         'whatsapp_number',
+        'logo_path',
+        'hours',
+        'social_links',
+        'payment_info',
+        'attributes',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'hours' => 'array',
+            'social_links' => 'array',
+            'attributes' => 'array',
+        ];
+    }
 
     /**
      * @return BelongsTo<Organization, $this>
@@ -56,6 +75,24 @@ class Business extends Model
     public function storefront(): HasOne
     {
         return $this->hasOne(Storefront::class);
+    }
+
+    /**
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class)->orderBy('position');
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->status === 'publicado';
+    }
+
+    public function logoUrl(): ?string
+    {
+        return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
     }
 
     /**

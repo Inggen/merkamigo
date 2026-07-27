@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Businesses\Models\Business;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -26,5 +27,27 @@ class EmprendedoresController extends Controller
     public function bienvenida(): View
     {
         return view('emprendedores.bienvenida');
+    }
+
+    /**
+     * E03: vista previa asistida (también accesible tras publicar).
+     */
+    public function vistaPrevia(Business $business): View
+    {
+        $this->authorize('view', $business);
+
+        $business->load(['storefront', 'municipality', 'category']);
+
+        return view('emprendedores.negocios.vista-previa', ['business' => $business]);
+    }
+
+    /**
+     * Compartir vitrina: enlace público y QR (1.3/1.6 del TODO).
+     */
+    public function compartir(Business $business): View
+    {
+        $this->authorize('view', $business);
+
+        return view('emprendedores.negocios.compartir', ['business' => $business]);
     }
 }

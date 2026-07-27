@@ -17,12 +17,34 @@
         @else
             <div class="grid gap-4 sm:grid-cols-2">
                 @foreach ($businesses as $business)
-                    <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                        <flux:heading>{{ $business->name }}</flux:heading>
-                        <flux:badge class="mt-1" size="sm">{{ $business->status }}</flux:badge>
+                    <div class="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                        <div class="flex items-start justify-between">
+                            <flux:heading>{{ $business->name }}</flux:heading>
+                            <flux:badge size="sm" :color="$business->isPublished() ? 'green' : 'zinc'">
+                                {{ ucfirst($business->status) }}
+                            </flux:badge>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <flux:button size="sm" variant="ghost" :href="route('emprendedores.negocios.vitrina', $business)" wire:navigate>
+                                {{ __('Editar vitrina') }}
+                            </flux:button>
+                            <flux:button size="sm" variant="ghost" :href="route('emprendedores.negocios.productos', $business)" wire:navigate>
+                                {{ __('Productos') }}
+                            </flux:button>
+                            @if ($business->isPublished())
+                                <flux:button size="sm" variant="ghost" :href="route('emprendedores.negocios.compartir', $business)" wire:navigate>
+                                    {{ __('Compartir') }}
+                                </flux:button>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>
+
+            <flux:button variant="ghost" class="self-start" :href="route('emprendedores.crear-vitrina')" wire:navigate>
+                {{ __('+ Crear otra vitrina') }}
+            </flux:button>
         @endif
     </div>
 </x-layouts::app>

@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // WhatsApp de soporte de Merkamigo (1.1 del TODO). Pendiente: número real.
+    'merkamigo' => [
+        'support_whatsapp' => env('MERKAMIGO_SUPPORT_WHATSAPP'),
+    ],
+
 ];

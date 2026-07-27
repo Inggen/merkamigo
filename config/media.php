@@ -13,6 +13,12 @@ return [
         'max_files' => 1,
     ],
 
+    'business_logo' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 2048,
+        'max_files' => 1,
+    ],
+
     'product_photo' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,

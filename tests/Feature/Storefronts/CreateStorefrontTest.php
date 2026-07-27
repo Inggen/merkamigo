@@ -62,7 +62,7 @@ class CreateStorefrontTest extends TestCase
         Livewire::test('pages::emprendedores.crear-vitrina')
             ->set('name', 'Frutas y Verduras El Sol')
             ->set('whatsapp_number', '+573004445566')
-            ->call('create')
+            ->call('goToStep2')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('businesses', [

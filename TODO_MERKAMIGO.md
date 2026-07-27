@@ -487,16 +487,16 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.1 Sitio público y adquisición
 
-- [ ] Landing de Merkamigo con propuesta de valor para emprendedor y comprador.
-- [ ] Entrada destacada “Soy Cliente”.
-- [ ] Entrada destacada “Soy Emprendedor”.
-- [ ] CTA de Clientes: “Descubre negocios cerca de ti”.
-- [ ] CTA de Emprendedores: “Crea tu Merkamigo”.
-- [ ] Explicación del proceso en pasos simples.
-- [ ] Categorías y municipios activos.
+- [x] Landing de Merkamigo con propuesta de valor para emprendedor y comprador.
+- [x] Entrada destacada “Soy Cliente”.
+- [x] Entrada destacada “Soy Emprendedor”.
+- [x] CTA de Clientes: “Descubre negocios cerca de ti”.
+- [x] CTA de Emprendedores: “Crea tu Merkamigo”.
+- [x] Explicación del proceso en pasos simples.
+- [x] Categorías y municipios activos.
 - [ ] Preguntas frecuentes.
-- [ ] Contacto y soporte por WhatsApp.
-- [ ] Términos, privacidad y reglas de comunidad.
+- [x] Contacto y soporte por WhatsApp.
+- [x] Términos, privacidad y reglas de comunidad.
 - [ ] SEO técnico, metadatos sociales, sitemap XML y datos estructurados básicos.
 
 **Pantallas/rutas**
@@ -521,11 +521,11 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Mostrar negocios cercanos usando municipio/zona y distancia solo cuando exista permiso y dato confiable.
 - [ ] Navegación desktop: municipio, Explorar, Actividad, Favoritos y Cuenta.
 - [ ] Navegación móvil: Explorar, Actividad, Publicar/Pídelo, Favoritos y Perfil.
-- [ ] Explorar como visitante sin registro obligatorio.
+- [x] Explorar como visitante sin registro obligatorio.
 - [ ] Solicitar registro únicamente para acciones que deban guardarse.
 - [ ] Guardar y quitar negocios o productos favoritos.
-- [ ] Compartir negocios y productos.
-- [ ] Contactar por WhatsApp con mensaje contextual.
+- [x] Compartir negocios y productos.
+- [x] Contactar por WhatsApp con mensaje contextual.
 - [ ] Guardar municipio preferido.
 - [ ] Mostrar historial básico de negocios vistos solo con consentimiento.
 - [ ] Preparar accesos a “Pídelo” y “Mis solicitudes” aunque se activen en fase 2.
@@ -547,13 +547,13 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.2 “Mi Merkamigo en cinco minutos”
 
-- [ ] Crear onboarding con barra de progreso y cinco pasos:
+- [x] Crear onboarding con barra de progreso y cinco pasos:
   1. Información básica.
   2. Cuéntanos sobre tu negocio mediante audio, texto o fotos.
   3. Agrega fotografías.
   4. Revisa la vista previa.
   5. Publicación y siguientes acciones.
-- [ ] Permitir iniciar mediante texto, audio o fotografías.
+- [x] Permitir iniciar mediante texto, audio o fotografías.
 - [ ] Solicitar datos mínimos:
   - Nombre del negocio.
   - Descripción.
@@ -563,15 +563,15 @@ Además de las 12 vistas principales, el producto necesita:
   - Logo o foto principal.
   - Productos o servicios iniciales.
   - Horario.
-- [ ] Guardar automáticamente el borrador.
-- [ ] Permitir omitir campos no obligatorios y completarlos después.
+- [x] Guardar automáticamente el borrador.
+- [x] Permitir omitir campos no obligatorios y completarlos después.
 - [ ] Transcribir audio mediante proceso en cola.
 - [ ] Proponer texto asistido y exigir revisión del emprendedor antes de publicar.
 - [ ] Optimizar, comprimir y generar variantes de imágenes.
-- [ ] Mostrar vista previa antes de publicar.
-- [ ] Diferenciar claramente “Revisar y publicar” de “Editar información”.
-- [ ] Mostrar lista clara de información faltante.
-- [ ] Medir tiempo real hasta primera publicación.
+- [x] Mostrar vista previa antes de publicar.
+- [x] Diferenciar claramente “Revisar y publicar” de “Editar información”.
+- [x] Mostrar lista clara de información faltante.
+- [x] Medir tiempo real hasta primera publicación.
 - [ ] Ofrecer salida semi-asistida: “Ayúdame a terminar mi vitrina”.
 
 **Entidades y acciones**
@@ -590,23 +590,23 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.3 Vitrina del negocio
 
-- [ ] Nombre, logo/foto y descripción.
-- [ ] Categorías, municipio y zona.
-- [ ] Portada y avatar/logo independientes.
-- [ ] Productos y servicios.
-- [ ] Precio exacto, “desde”, “consultar” o sin precio según configuración.
+- [x] Nombre, logo/foto y descripción.
+- [x] Categorías, municipio y zona.
+- [x] Portada y avatar/logo independientes.
+- [x] Productos y servicios.
+- [x] Precio exacto, “desde”, “consultar” o sin precio según configuración.
 - [ ] Galería.
-- [ ] Botón de WhatsApp con mensaje contextual.
-- [ ] Enlace o información de pago externa opcional.
-- [ ] Redes sociales.
+- [x] Botón de WhatsApp con mensaje contextual.
+- [x] Enlace o información de pago externa opcional.
+- [x] Redes sociales.
 - [ ] Horario y estado “abierto/cerrado” cuando sea calculable.
-- [ ] QR descargable y enlace para compartir.
+- [x] QR descargable y enlace para compartir.
 - [ ] Estado de verificación cuando exista.
 - [ ] Guardar o quitar de favoritos.
-- [ ] Compartir.
+- [x] Compartir.
 - [ ] Atributos administrables como “Producto artesanal”, “Hecho en Cajicá”, “Ingredientes frescos” o “Atención cercana”, sujetos a moderación.
-- [ ] Organizar la información pública en pestañas: Inicio, Productos, Opiniones e Información.
-- [ ] Ocultar Opiniones o mostrar estado vacío hasta habilitar recomendaciones reales en fase 3.
+- [x] Organizar la información pública en pestañas: Inicio, Productos, Opiniones e Información.
+- [x] Ocultar Opiniones o mostrar estado vacío hasta habilitar recomendaciones reales en fase 3.
 - [ ] Recomendaciones cuando se habiliten en fase 3.
 - [ ] Reportar contenido.
 
@@ -626,17 +626,17 @@ Además de las 12 vistas principales, el producto necesita:
 ## 1.4 Gestión de productos y servicios
 
 - [ ] Crear, editar, duplicar, archivar y reordenar.
-- [ ] Diferenciar producto y servicio.
-- [ ] Pestañas de gestión: Todos, Productos y Servicios.
+- [x] Diferenciar producto y servicio.
+- [x] Pestañas de gestión: Todos, Productos y Servicios.
 - [ ] Campos: nombre, descripción breve, precio, unidad, disponibilidad, categoría e imágenes.
 - [ ] Opciones o variantes simples: porción, tamaño, presentación o unidad.
 - [ ] Precio promocional, etiqueta y vigencia opcionales para ofertas locales.
 - [ ] Carga múltiple de fotos con límites por plan.
-- [ ] Publicación/despublicación inmediata.
+- [x] Publicación/despublicación inmediata.
 - [ ] Estados agotado/no disponible.
-- [ ] Mensaje de WhatsApp específico por producto.
+- [x] Mensaje de WhatsApp específico por producto.
 - [ ] Compartir y guardar producto desde su detalle público.
-- [ ] Presentar creación/edición en panel o drawer responsive sin abandonar el listado.
+- [x] Presentar creación/edición en panel o drawer responsive sin abandonar el listado.
 - [ ] Validación de contenido prohibido.
 
 **Criterios de aceptación**
@@ -651,13 +651,13 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Buscador por nombre, producto, servicio y categoría.
 - [ ] Filtros simples por categoría, municipio, cercanía, zona y disponibilidad.
 - [ ] Secciones: ofertas locales, negocios cercanos, nuevos, destacados y recomendados cuando haya datos.
-- [ ] Listado de negocios con información mínima y CTA.
+- [x] Listado de negocios con información mínima y CTA.
 - [ ] Listado de productos/servicios.
 - [ ] Reservar sección “Solicitudes actuales” para activarla con la fase 2.
-- [ ] Estado vacío útil para categorías sin oferta.
+- [x] Estado vacío útil para categorías sin oferta.
 - [ ] Selector y persistencia del municipio.
 - [ ] Preparar geolocalización opcional sin depender de ella.
-- [ ] Evitar geolocalización avanzada en el MVP.
+- [x] Evitar geolocalización avanzada en el MVP.
 
 **Pantallas/rutas**
 
@@ -674,19 +674,19 @@ Además de las 12 vistas principales, el producto necesita:
 ## 1.6 Panel sencillo del emprendedor
 
 - [ ] Vista de bienvenida específica con propuesta de valor, beneficios e imagen local administrable.
-- [ ] CTA “Crear mi vitrina” e inicio de sesión.
-- [ ] Inicio exclusivo de la experiencia Emprendedores.
-- [ ] Navegación: Inicio, Mi vitrina, Productos/servicios, Oportunidades, Promocionar y Cuenta.
+- [x] CTA “Crear mi vitrina” e inicio de sesión.
+- [x] Inicio exclusivo de la experiencia Emprendedores.
+- [x] Navegación: Inicio, Mi vitrina, Productos/servicios, Oportunidades, Promocionar y Cuenta.
 - [ ] Inicio con guía “qué te falta para vender”.
-- [ ] Resumen del negocio y estado de publicación.
+- [x] Resumen del negocio y estado de publicación.
 - [ ] Accesos grandes a vitrina, productos, WhatsApp, QR y métricas.
-- [ ] Perfil/configuración del negocio.
-- [ ] Editor lateral o seccionado para portada, información, horarios, ubicación, WhatsApp y estado de publicación.
+- [x] Perfil/configuración del negocio.
+- [x] Editor lateral o seccionado para portada, información, horarios, ubicación, WhatsApp y estado de publicación.
 - [ ] Vista previa y guardado automático durante la edición.
-- [ ] Horarios, redes y métodos/información de pago.
+- [x] Horarios, redes y métodos/información de pago.
 - [ ] Gestión de colaboradores básica.
 - [ ] Ayuda contextual y contacto de soporte.
-- [ ] Evitar que el emprendedor dependa del panel Filament.
+- [x] Evitar que el emprendedor dependa del panel Filament.
 
 **Pantallas**
 
