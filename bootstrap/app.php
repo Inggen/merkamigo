@@ -26,6 +26,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->throttleApi();
 
+        // Beacon de analítica pública sin sesión (1.8 del TODO: registrar
+        // clic en compartir desde `navigator.sendBeacon`/`fetch`, sin poder
+        // adjuntar un token CSRF). No muta datos sensibles ni de sesión;
+        // `RegisterAnalyticsEvent` ya deduplica por visitante y hay
+        // throttling en la ruta.
+        $middleware->validateCsrfTokens(except: [
+            'm/*/compartir',
+        ]);
+
         // Preferencias de UI (Cliente/Emprendedor, municipio elegido), no
         // datos sensibles: sin cifrar para que sobrevivan sin fricción entre
         // invitado y registro (App\Domain\Identity\Actions\SwitchExperience,

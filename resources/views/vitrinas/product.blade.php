@@ -41,7 +41,7 @@
 
                     <flux:button
                         type="button"
-                        x-on:click="navigator.clipboard.writeText(window.location.href); $flux.toast('{{ __('Enlace copiado') }}')"
+                        x-on:click="navigator.clipboard.writeText(window.location.href); fetch('{{ route('vitrinas.compartir.product', [$business, $product]) }}', { method: 'POST' }); $flux.toast('{{ __('Enlace copiado') }}')"
                         variant="ghost"
                         icon="share"
                     >
@@ -51,7 +51,7 @@
 
                 @if ($business->whatsapp_number)
                     <flux:button
-                        href="https://wa.me/{{ preg_replace('/\D/', '', $business->whatsapp_number) }}?text={{ urlencode(__('Hola, me interesa ":product" que vi en Merkamigo.', ['product' => $product->name])) }}"
+                        href="{{ route('vitrinas.whatsapp.product', [$business, $product]) }}"
                         target="_blank"
                         variant="primary"
                         icon="chat-bubble-left-right"

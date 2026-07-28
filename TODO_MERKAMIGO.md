@@ -679,7 +679,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Navegación: Inicio, Mi vitrina, Productos/servicios, Oportunidades, Promocionar y Cuenta.
 - [x] Inicio con guía “qué te falta para vender”.
 - [x] Resumen del negocio y estado de publicación.
-- [ ] Accesos grandes a vitrina, productos, WhatsApp, QR y métricas.
+- [x] Accesos grandes a vitrina, productos, WhatsApp, QR y métricas.
 - [x] Perfil/configuración del negocio.
 - [x] Editor lateral o seccionado para portada, información, horarios, ubicación, WhatsApp y estado de publicación.
 - [ ] Vista previa y guardado automático durante la edición.
@@ -732,16 +732,16 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.8 Métricas comprensibles
 
-- [ ] Registrar visita a vitrina y producto.
-- [ ] Registrar clic a WhatsApp.
-- [ ] Registrar copia/descarga de enlace o QR.
-- [ ] Evitar duplicación evidente de eventos y tráfico automatizado.
-- [ ] Agregar métricas diarias.
-- [ ] Mostrar resumen semanal en lenguaje humano.
-- [ ] Mostrar gráfico sencillo de visitas y clics a WhatsApp por día.
-- [ ] Tarjetas de total de visitas y contactos.
-- [ ] Mostrar comparación sencilla con periodo anterior cuando haya datos.
-- [ ] Explicar qué significa cada cifra.
+- [x] Registrar visita a vitrina y producto.
+- [x] Registrar clic a WhatsApp.
+- [x] Registrar copia/descarga de enlace o QR.
+- [x] Evitar duplicación evidente de eventos y tráfico automatizado.
+- [x] Agregar métricas diarias.
+- [x] Mostrar resumen semanal en lenguaje humano.
+- [x] Mostrar gráfico sencillo de visitas y clics a WhatsApp por día.
+- [x] Tarjetas de total de visitas y contactos.
+- [x] Mostrar comparación sencilla con periodo anterior cuando haya datos.
+- [x] Explicar qué significa cada cifra.
 
 **Entidades y acciones**
 

@@ -37,6 +37,14 @@ Route::get('plaza/{municipio:slug}/categorias/{categoria:slug}', [PlazaControlle
 Route::get('m/{business:slug}', [VitrinaController::class, 'show'])->name('vitrinas.show');
 Route::get('m/{business:slug}/productos/{product:slug}', [VitrinaController::class, 'product'])->name('vitrinas.product');
 Route::get('m/{business:slug}/qr', [VitrinaController::class, 'qr'])->name('vitrinas.qr');
+Route::get('m/{business:slug}/whatsapp', [VitrinaController::class, 'whatsapp'])->name('vitrinas.whatsapp');
+Route::get('m/{business:slug}/productos/{product:slug}/whatsapp', [VitrinaController::class, 'whatsappProduct'])->name('vitrinas.whatsapp.product');
+Route::post('m/{business:slug}/compartir', [VitrinaController::class, 'compartir'])
+    ->middleware('throttle:60,1')
+    ->name('vitrinas.compartir');
+Route::post('m/{business:slug}/productos/{product:slug}/compartir', [VitrinaController::class, 'compartirProduct'])
+    ->middleware('throttle:60,1')
+    ->name('vitrinas.compartir.product');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
@@ -54,6 +62,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('vitrina', 'pages::emprendedores.negocios.vitrina')->name('vitrina');
         Route::livewire('productos', 'pages::emprendedores.negocios.productos')->name('productos');
         Route::livewire('colaboradores', 'pages::emprendedores.negocios.colaboradores')->name('colaboradores');
+        Route::livewire('metricas', 'pages::emprendedores.negocios.metricas')->name('metricas');
         Route::get('vista-previa', [EmprendedoresController::class, 'vistaPrevia'])->name('vista-previa');
         Route::get('compartir', [EmprendedoresController::class, 'compartir'])->name('compartir');
     });

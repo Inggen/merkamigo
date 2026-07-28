@@ -52,10 +52,18 @@ Se implementó el esquema de datos (`phone_verified_at`, `hasVerifiedPhone()`, `
 
 `docs/legal/terminos.md`, `docs/legal/privacidad.md` y `docs/legal/reglas-comunidad.md` son un **borrador razonable, no revisado por un abogado**. Cubren tratamiento de datos personales (Ley 1581 de 2012 y Decreto 1377 de 2013 de Colombia), uso de WhatsApp, verificación y moderación. Antes de publicarlos como definitivos falta: revisión legal real, designar formalmente un responsable del tratamiento, y decidir cómo se registra la aceptación y versión de estos documentos por usuario (checkbox de registro, tabla de auditoría, etc. — todavía no implementado).
 
+## Métricas comprensibles
+
+El TODO pide `analytics_events` y `daily_business_metrics` como entidades separadas, con un job en cola para precalcular la segunda. Simplificaciones de este pase:
+
+- No existe tabla `daily_business_metrics`: `CalculateReadableMetrics` agrupa `analytics_events` por día en el momento de la consulta (`GROUP BY DATE(created_at)`). Al volumen del piloto (dos municipios) es igual de rápido que leer una tabla precalculada y siempre queda conciliable con los eventos reales sin depender de que un job en cola haya corrido. Si el volumen crece, se puede introducir la tabla y un job sin cambiar la firma pública de la acción.
+- El filtro de tráfico automatizado (`RegisterAnalyticsEvent`) es una heurística simple por substring de user-agent (googlebot, curl, python-requests, etc.), no un detector de bots real. Suficiente para el piloto; no debe presentarse como protección contra abuso deliberado.
+- La deduplicación es por hash de IP+user-agent dentro de una ventana de 30 minutos, sin guardar la IP ni el user-agent en crudo (0.6 del TODO: no guardar más datos personales de los necesarios).
+- El clic en "Compartir" se registra mediante un `fetch()` sin token CSRF (`POST /m/{slug}/compartir` está excluido de la verificación CSRF): es un beacon de analítica pública sin sesión, no muta datos sensibles, y ya está protegido por la deduplicación y el throttling generales de la app.
+
 ## Explícitamente diferido a una sesión posterior
 
 - Revisión legal real de los textos de `docs/legal/`.
-- Registro de aceptación y versión de los documentos legales por usuario.
 - Simulacro real de backup/restore.
 - Entorno de staging/producción con hosting real (requiere que el usuario decida proveedor de hosting).
 - Proveedor real de SMS/OTP y de almacenamiento S3 compatible.

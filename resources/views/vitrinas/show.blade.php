@@ -67,7 +67,7 @@
                         <livewire:favorite-button :favoritable="$business" :key="'business-'.$business->id" />
 
                         <flux:button
-                            x-on:click="navigator.clipboard.writeText(window.location.href); $flux.toast('{{ __('Enlace copiado') }}')"
+                            x-on:click="navigator.clipboard.writeText(window.location.href); fetch('{{ route('vitrinas.compartir', $business) }}', { method: 'POST' }); $flux.toast('{{ __('Enlace copiado') }}')"
                             variant="ghost"
                             icon="share"
                         >
@@ -76,7 +76,7 @@
 
                         @if ($business->whatsapp_number)
                             <flux:button
-                                href="https://wa.me/{{ preg_replace('/\D/', '', $business->whatsapp_number) }}?text={{ urlencode(__('Hola :name, te escribo desde Merkamigo 👋', ['name' => $business->name])) }}"
+                                href="{{ route('vitrinas.whatsapp', $business) }}"
                                 target="_blank"
                                 variant="primary"
                                 icon="chat-bubble-left-right"

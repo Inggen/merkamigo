@@ -58,6 +58,9 @@
                                 <flux:button size="sm" variant="ghost" icon="qr-code" :href="route('emprendedores.negocios.compartir', $business)" wire:navigate>
                                     {{ __('Compartir y QR') }}
                                 </flux:button>
+                                <flux:button size="sm" variant="ghost" icon="chart-bar" :href="route('emprendedores.negocios.metricas', $business)" wire:navigate>
+                                    {{ __('Métricas') }}
+                                </flux:button>
                             @endif
                         </div>
                     </div>
