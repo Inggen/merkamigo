@@ -23,7 +23,9 @@
         {{ __('Oportunidades') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item icon="megaphone" :href="route('emprendedores.home')" badge="Pronto" wire:navigate>
-        {{ __('Promocionar') }}
-    </flux:sidebar.item>
+    @if ($primaryBusiness)
+        <flux:sidebar.item icon="megaphone" :href="route('emprendedores.negocios.copiloto', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.copiloto')" wire:navigate>
+            {{ __('Promocionar') }}
+        </flux:sidebar.item>
+    @endif
 </flux:sidebar.group>

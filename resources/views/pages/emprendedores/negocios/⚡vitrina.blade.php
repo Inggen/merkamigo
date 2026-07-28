@@ -82,7 +82,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $this->address = $business->address;
         $this->headline = $business->storefront?->headline;
         $this->description = $business->storefront?->description;
-        $this->hours_text = $business->hours['note'] ?? '';
+        $this->hours_text = $business->hoursNote() ?? '';
         $this->payment_info = $business->payment_info;
         $this->social_links = array_merge($this->social_links, $business->social_links ?? []);
     }

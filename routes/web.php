@@ -63,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('productos', 'pages::emprendedores.negocios.productos')->name('productos');
         Route::livewire('colaboradores', 'pages::emprendedores.negocios.colaboradores')->name('colaboradores');
         Route::livewire('metricas', 'pages::emprendedores.negocios.metricas')->name('metricas');
+        Route::livewire('copiloto', 'pages::emprendedores.negocios.copiloto')->name('copiloto');
         Route::get('vista-previa', [EmprendedoresController::class, 'vistaPrevia'])->name('vista-previa');
         Route::get('compartir', [EmprendedoresController::class, 'compartir'])->name('compartir');
     });

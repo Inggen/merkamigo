@@ -131,10 +131,10 @@
                 </div>
 
                 <div x-show="tab === 'informacion'" x-cloak class="space-y-4">
-                    @if ($business->hours['note'] ?? null)
+                    @if ($business->hoursNote())
                         <div>
                             <flux:subheading>{{ __('Horario') }}</flux:subheading>
-                            <flux:text>{{ $business->hours['note'] }}</flux:text>
+                            <flux:text>{{ $business->hoursNote() }}</flux:text>
                         </div>
                     @endif
 

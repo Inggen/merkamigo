@@ -709,14 +709,14 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.7 Copiloto de WhatsApp inicial
 
-- [ ] Plantillas para promoción, estado, respuesta y presentación del negocio.
+- [x] Plantillas para promoción, estado, respuesta y presentación del negocio.
 - [ ] Sugerir respuestas editables a preguntas frecuentes como productos disponibles, horarios y domicilio.
-- [ ] Generar texto a partir de producto, precio y tono.
-- [ ] Permitir editar, copiar y abrir WhatsApp.
-- [ ] Guardar borradores e historial limitado.
-- [ ] Incluir enlace a vitrina o producto.
-- [ ] Evitar envío automático y respuestas automáticas en esta fase.
-- [ ] No presentar el Copiloto como chat en vivo ni conectarlo a conversaciones privadas.
+- [x] Generar texto a partir de producto, precio y tono.
+- [x] Permitir editar, copiar y abrir WhatsApp.
+- [x] Guardar borradores e historial limitado.
+- [x] Incluir enlace a vitrina o producto.
+- [x] Evitar envío automático y respuestas automáticas en esta fase.
+- [x] No presentar el Copiloto como chat en vivo ni conectarlo a conversaciones privadas.
 - [ ] Moderar contenido generado y mostrar advertencia de revisión.
 
 **Entidades y acciones**

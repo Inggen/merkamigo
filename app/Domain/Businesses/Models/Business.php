@@ -16,6 +16,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * @property array<string, mixed>|null $hours
+ * @property array<string, string>|null $social_links
+ * @property array<string, mixed>|null $attributes
+ */
 class Business extends Model
 {
     use Favoritable, SoftDeletes;
@@ -94,6 +99,15 @@ class Business extends Model
     public function logoUrl(): ?string
     {
         return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
+    }
+
+    /**
+     * Texto libre de horario guardado en `hours` (0.6/1.3 del TODO: sin un
+     * horario estructurado por día todavía, solo una nota editable).
+     */
+    public function hoursNote(): ?string
+    {
+        return $this->hours['note'] ?? null;
     }
 
     /**
