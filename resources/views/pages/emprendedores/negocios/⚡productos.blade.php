@@ -38,12 +38,26 @@ new #[Title('Productos y servicios')] class extends Component {
     /** @var array<int, mixed> */
     public array $photos = [];
 
+    /**
+     * El middleware `business.team` solo corre en la carga inicial de la
+     * página: las peticiones AJAX de Livewire (crear/editar/archivar
+     * producto...) van al endpoint genérico `/livewire/update`, que no pasa
+     * por esa ruta ni por ese middleware. `boot()` sí se ejecuta en cada
+     * petición (inicial y subsecuentes), así que es el único lugar donde
+     * fijar el team de forma confiable en todo el ciclo de vida del
+     * componente — sin esto, cualquier acción después del primer render
+     * pierde el contexto de equipo y falla con 403.
+     */
+    public function boot(): void
+    {
+        if (isset($this->businessId)) {
+            setPermissionsTeamId($this->businessId);
+            Auth::user()?->unsetRelation('roles');
+        }
+    }
+
     public function mount(Business $business): void
     {
-        // El middleware `business.team` ya fija el team de
-        // spatie/permission en peticiones HTTP reales; se repite aquí para
-        // que la autorización sea correcta también quien invoque este
-        // componente sin pasar por esa ruta (p. ej. pruebas de Livewire).
         setPermissionsTeamId($business->id);
         Auth::user()->unsetRelation('roles');
 
