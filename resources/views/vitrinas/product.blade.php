@@ -60,6 +60,10 @@
                         {{ __('Preguntar por WhatsApp') }}
                     </flux:button>
                 @endif
+
+                <a href="{{ route('reportes.crear.producto', [$business, $product]) }}" class="block text-sm text-zinc-400 hover:text-zinc-600" wire:navigate>
+                    {{ __('Reportar este producto') }}
+                </a>
             </div>
         </div>
     </div>

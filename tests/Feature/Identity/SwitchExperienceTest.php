@@ -57,7 +57,7 @@ class SwitchExperienceTest extends TestCase
     {
         $response = $this->post(route('experience.update'), ['experience' => 'emprendedor']);
 
-        $response->assertRedirect(route('register'));
+        $response->assertRedirect(route('emprendedores.bienvenida'));
 
         $cookie = collect($response->headers->getCookies())
             ->first(fn ($cookie) => $cookie->getName() === 'experience');

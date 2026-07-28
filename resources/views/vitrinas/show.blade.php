@@ -162,6 +162,10 @@
                             <flux:text class="whitespace-pre-line">{{ $business->payment_info }}</flux:text>
                         </div>
                     @endif
+
+                    <a href="{{ route('reportes.crear.negocio', $business) }}" class="text-sm text-zinc-400 hover:text-zinc-600" wire:navigate>
+                        {{ __('Reportar este negocio') }}
+                    </a>
                 </div>
             </div>
         </div>

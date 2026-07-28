@@ -608,7 +608,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Organizar la información pública en pestañas: Inicio, Productos, Opiniones e Información.
 - [x] Ocultar Opiniones o mostrar estado vacío hasta habilitar recomendaciones reales en fase 3.
 - [ ] Recomendaciones cuando se habiliten en fase 3.
-- [ ] Reportar contenido.
+- [x] Reportar contenido.
 
 **Pantallas/rutas**
 
@@ -756,14 +756,14 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.9 Administración y moderación mínima
 
-- [ ] Dashboard operativo en Filament.
-- [ ] Usuarios, negocios, municipios y categorías.
+- [x] Dashboard operativo en Filament.
+- [x] Usuarios, negocios, municipios y categorías.
 - [ ] Revisión, publicación, suspensión y restauración de vitrinas.
 - [ ] Moderación de productos, imágenes y reportes.
-- [ ] Configuración de destacados manuales.
-- [ ] Consulta de auditoría.
+- [x] Configuración de destacados manuales.
+- [x] Consulta de auditoría.
 - [ ] Gestión de solicitudes de soporte.
-- [ ] Motivos estandarizados y notificación al afectado.
+- [x] Motivos estandarizados y notificación al afectado.
 
 **Criterios de aceptación**
 
@@ -773,19 +773,19 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.10 PWA, QA y lanzamiento piloto
 
-- [ ] Manifest, íconos, nombre, color y modo de visualización.
-- [ ] Instalación PWA donde el navegador lo permita.
-- [ ] Página offline informativa; no prometer operación offline completa.
+- [x] Manifest, íconos, nombre, color y modo de visualización.
+- [x] Instalación PWA donde el navegador lo permita.
+- [x] Página offline informativa; no prometer operación offline completa.
 - [ ] Pruebas responsive en Android, iPhone, tablet y escritorio.
 - [ ] Pruebas de navegadores soportados.
 - [ ] Pruebas de accesibilidad, teclado, foco, etiquetas y contraste.
-- [ ] Pruebas de permisos, aislamiento y archivos.
+- [x] Pruebas de permisos, aislamiento y archivos.
 - [ ] Pruebas de SEO y rendimiento.
 - [ ] Pruebas de colas, reintentos y trabajos fallidos.
 - [ ] Prueba de carga inicial de plazas y vitrinas.
-- [ ] Seed de Cajicá, Zipaquirá y categorías piloto.
+- [x] Seed de Cajicá, Zipaquirá y categorías piloto.
 - [ ] Capacitación operativa para moderación y soporte.
-- [ ] Checklist de despliegue, rollback y verificación posproducción.
+- [x] Checklist de despliegue, rollback y verificación posproducción.
 - [ ] Piloto controlado con emprendedores reales.
 
 **Gate para cerrar fase 1**

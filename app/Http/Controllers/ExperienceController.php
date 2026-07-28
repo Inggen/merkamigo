@@ -17,10 +17,11 @@ class ExperienceController extends Controller
         $switchExperience->handle($request->user(), $data['experience']);
 
         if (! $request->user()) {
-            // Un invitado todavía no tiene dónde navegar en esa experiencia
-            // (Explorar sin registro es Fase 1); la cookie ya quedó lista
-            // para que, al registrarse, arranque en la experiencia elegida.
-            return redirect()->route('register');
+            return redirect()->to(
+                $data['experience'] === 'cliente'
+                    ? route('clientes.home')
+                    : route('emprendedores.bienvenida'),
+            );
         }
 
         return redirect()->to(

@@ -61,12 +61,32 @@ El TODO pide `analytics_events` y `daily_business_metrics` como entidades separa
 - La deduplicación es por hash de IP+user-agent dentro de una ventana de 30 minutos, sin guardar la IP ni el user-agent en crudo (0.6 del TODO: no guardar más datos personales de los necesarios).
 - El clic en "Compartir" se registra mediante un `fetch()` sin token CSRF (`POST /m/{slug}/compartir` está excluido de la verificación CSRF): es un beacon de analítica pública sin sesión, no muta datos sensibles, y ya está protegido por la deduplicación y el throttling generales de la app.
 
+## Administración y moderación (Filament)
+
+El TODO pide "motivos estandarizados y notificación al afectado" al suspender contenido, y "gestión de solicitudes de soporte". Simplificaciones de este pase:
+
+- Los motivos de suspensión son un `Select` con opciones fijas (contenido inapropiado, información falsa, incumple reglas, solicitud del propietario, otro) — no texto libre, para mantenerlos comparables en auditoría.
+- La "notificación al afectado" es un banner visible en el panel del Emprendedor (Inicio y editor de vitrina) con el motivo exacto de la suspensión, no un correo/SMS real: no hay proveedor de notificaciones contratado todavía (ver "Verificación de teléfono" arriba). Cuando se elija uno, `SuspendBusiness`/`SuspendProduct` son el punto único donde añadir el disparo de notificación real.
+- Un negocio suspendido no puede auto-restaurarse: `PublishStorefront` lanza `BusinessSuspendedException` si el negocio está suspendido, y el editor de vitrina oculta el botón "Publicar" en ese estado. Solo un moderador/administrador puede restaurarlo desde Filament.
+- No se construyó un sistema de solicitudes de soporte (modelo, bandeja, flujo de tickets): el contacto de soporte sigue siendo el enlace directo a WhatsApp de `/soporte`. Construir una bandeja real de tickets queda para cuando el volumen del piloto lo justifique.
+- Tampoco existe una moderación de "imágenes" independiente de la del negocio/producto que las contiene — moderar una imagen individual implica suspender el producto o negocio completo, no hay un recurso `product_media` separado en Filament.
+- El estado `pendiente_revision` existe en el enum de `businesses.status` desde la Fase 0, pero ningún flujo lo asigna todavía: el emprendedor se autopublica sin revisión previa (`PublishStorefront`), y la moderación actual es reactiva (suspender después de publicado), no una cola de aprobación previa.
+
+## PWA y QA (1.10)
+
+- Service worker mínimo (`public/sw.js`) registrado desde `resources/js/app.js`: solo cachea `offline.html` y sirve esa página cuando falla una navegación sin red. No cachea vitrinas, plaza ni el panel — no promete operación offline real, tal como pide el criterio de aceptación de 1.10.
+- El manifest (`public/site.webmanifest`) y los íconos ya existían desde la Fase 0; con el service worker registrado, la app ahora cumple los criterios mínimos de instalabilidad de Chrome/Edge (manifest válido + service worker con `fetch`).
+- "Pruebas de permisos, aislamiento y archivos" se consideran cubiertas por la suite automatizada existente (aislamiento multi-negocio en cada módulo, autorización por rol de plataforma, validación de tipo/tamaño de archivos en `MediaUploader`) — no por una ronda de pruebas manual adicional.
+
 ## Explícitamente diferido a una sesión posterior
 
 - Revisión legal real de los textos de `docs/legal/`.
 - Simulacro real de backup/restore.
 - Entorno de staging/producción con hosting real (requiere que el usuario decida proveedor de hosting).
-- Proveedor real de SMS/OTP y de almacenamiento S3 compatible.
+- Proveedor real de SMS/OTP, notificaciones (correo/SMS reales de moderación) y de almacenamiento S3 compatible.
 - Logs centralizados y alertas (requiere un servicio externo tipo Sentry/Papertrail).
 - Validación de precios e indicadores con usuarios reales del piloto.
 - Prototipos visuales completos y design system con todos los componentes de Fase 1 — el logo, tokens de marca, tipografías (Poppins/Inter vía Bunny Fonts) y componentes de estado ya están aplicados, pero el contenido completo de cada pantalla de Fase 1 no se ha construido.
+- Sistema de solicitudes de soporte (bandeja de tickets) y cola de aprobación previa a publicación (`pendiente_revision`).
+- Pruebas manuales de responsive en dispositivos reales, matriz de navegadores soportados, accesibilidad con lector de pantalla, rendimiento (Lighthouse) y carga (k6/Apache Bench): requieren herramientas de QA y dispositivos que no están disponibles en este flujo de trabajo basado en agente de código; quedan como checklist manual para antes del piloto.
+- Pruebas de colas, reintentos y trabajos fallidos: no aplican todavía — la aplicación no tiene jobs en cola reales (todo el procesamiento es síncrono).

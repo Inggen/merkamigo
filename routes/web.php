@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\PlazaController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\VitrinaController;
 use Illuminate\Support\Facades\Route;
@@ -46,12 +47,22 @@ Route::post('m/{business:slug}/productos/{product:slug}/compartir', [VitrinaCont
     ->middleware('throttle:60,1')
     ->name('vitrinas.compartir.product');
 
+Route::get('m/{business:slug}/reportar', [ReportController::class, 'createBusiness'])->name('reportes.crear.negocio');
+Route::post('m/{business:slug}/reportar', [ReportController::class, 'storeBusiness'])
+    ->middleware('throttle:10,1')
+    ->name('reportes.guardar.negocio');
+Route::get('m/{business:slug}/productos/{product:slug}/reportar', [ReportController::class, 'createProduct'])->name('reportes.crear.producto');
+Route::post('m/{business:slug}/productos/{product:slug}/reportar', [ReportController::class, 'storeProduct'])
+    ->middleware('throttle:10,1')
+    ->name('reportes.guardar.producto');
+
+Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
+Route::post('clientes/municipio', [ClientesController::class, 'setMunicipio'])->name('clientes.municipio');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-    Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
     Route::get('clientes/favoritos', [ClientesController::class, 'favoritos'])->name('clientes.favoritos');
-    Route::post('clientes/municipio', [ClientesController::class, 'setMunicipio'])->name('clientes.municipio');
 
     Route::get('emprendedores', [EmprendedoresController::class, 'home'])->name('emprendedores.home');
 

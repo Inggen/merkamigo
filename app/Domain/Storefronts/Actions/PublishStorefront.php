@@ -4,6 +4,7 @@ namespace App\Domain\Storefronts\Actions;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Storefronts\Exceptions\BusinessSuspendedException;
 use App\Domain\Storefronts\Exceptions\IncompleteStorefrontException;
 use App\Domain\Storefronts\Models\Storefront;
 use App\Models\User;
@@ -19,6 +20,10 @@ class PublishStorefront
 {
     public function handle(Business $business, User $actor): Storefront
     {
+        if ($business->isSuspended()) {
+            throw new BusinessSuspendedException;
+        }
+
         $storefront = $business->storefront;
 
         $missing = $this->missingFields($business, $storefront);

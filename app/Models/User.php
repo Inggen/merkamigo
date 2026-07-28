@@ -69,17 +69,54 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
+        return $this->hasAnyPlatformRole(['moderator', 'admin', 'superadmin']);
+    }
+
+    /**
+     * Verifica roles de plataforma (sin team, spatie/permission) fijando
+     * explícitamente el contexto de equipo antes y restaurándolo después.
+     *
+     * Reutilizable desde cualquier punto (Filament Resources, políticas,
+     * `canAccessPanel()`...): cada llamada de Filament vía Livewire puede
+     * llegar como una petición AJAX separada de la carga inicial de la
+     * página, donde `setPermissionsTeamId()` ya no tiene el valor fijado
+     * por un middleware — el mismo problema corregido para los paneles de
+     * negocio (ver el commit del fix del 403 en el editor de vitrina).
+     *
+     * @param  array<int, string>  $roles
+     */
+    public function hasAnyPlatformRole(array $roles): bool
+    {
         $previousTeamId = getPermissionsTeamId();
 
         setPermissionsTeamId(self::PLATFORM_TEAM_ID);
         $this->unsetRelation('roles');
 
-        $canAccess = $this->hasAnyRole(['moderator', 'admin', 'superadmin']);
+        $result = $this->hasAnyRole($roles);
 
         setPermissionsTeamId($previousTeamId);
         $this->unsetRelation('roles');
 
-        return $canAccess;
+        return $result;
+    }
+
+    /**
+     * Nombre del rol de plataforma actual (moderator/admin/superadmin), o
+     * null si no tiene ninguno. Usado por el panel Filament (1.9 del TODO).
+     */
+    public function platformRoleName(): ?string
+    {
+        $previousTeamId = getPermissionsTeamId();
+
+        setPermissionsTeamId(self::PLATFORM_TEAM_ID);
+        $this->unsetRelation('roles');
+
+        $role = $this->getRoleNames()->first();
+
+        setPermissionsTeamId($previousTeamId);
+        $this->unsetRelation('roles');
+
+        return $role;
     }
 
     public function hasVerifiedPhone(): bool

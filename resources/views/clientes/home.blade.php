@@ -1,6 +1,19 @@
-<x-layouts::app :title="__('Inicio')">
+@php
+    $layout = auth()->check() ? 'layouts::app' : 'layouts::public';
+@endphp
+
+<x-dynamic-component :component="$layout" :title="__('Inicio')">
     <div class="flex h-full w-full flex-1 flex-col gap-4">
-        <flux:heading size="xl">{{ __('Hola, :name', ['name' => auth()->user()->name]) }}</flux:heading>
+        @auth
+            <flux:heading size="xl">{{ __('Hola, :name', ['name' => auth()->user()->name]) }}</flux:heading>
+        @else
+            <div class="space-y-2">
+                <flux:heading size="xl">{{ __('Comprar y encontrar en tu municipio') }}</flux:heading>
+                <flux:text class="max-w-3xl text-zinc-500 dark:text-zinc-400">
+                    {{ __('Explora negocios, descubre productos cercanos y contacta por WhatsApp sin crear cuenta. Solo te pediremos iniciar sesión cuando quieras guardar algo.') }}
+                </flux:text>
+            </div>
+        @endauth
 
         @if (! $municipality)
             <flux:text class="text-zinc-500 dark:text-zinc-400">
@@ -71,4 +84,4 @@
             @endif
         @endif
     </div>
-</x-layouts::app>
+</x-dynamic-component>

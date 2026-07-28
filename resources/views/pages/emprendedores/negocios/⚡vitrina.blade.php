@@ -6,6 +6,7 @@ use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use App\Domain\Storefronts\Actions\UnpublishStorefront;
 use App\Domain\Storefronts\Actions\UpdateStorefront;
+use App\Domain\Storefronts\Exceptions\BusinessSuspendedException;
 use App\Domain\Storefronts\Exceptions\IncompleteStorefrontException;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -173,6 +174,8 @@ new #[Title('Editar mi vitrina')] class extends Component {
             Flux::toast(variant: 'success', text: __('¡Tu vitrina está publicada!'));
         } catch (IncompleteStorefrontException $e) {
             $this->missing = $e->missing;
+        } catch (BusinessSuspendedException $e) {
+            Flux::toast(variant: 'danger', text: $e->getMessage());
         }
     }
 
@@ -204,6 +207,8 @@ new #[Title('Editar mi vitrina')] class extends Component {
         <div class="flex items-center gap-3">
             @if ($this->business->isPublished())
                 <flux:badge color="green">{{ __('Publicado') }}</flux:badge>
+            @elseif ($this->business->isSuspended())
+                <flux:badge color="red">{{ __('Suspendido') }}</flux:badge>
             @else
                 <flux:badge>{{ ucfirst($this->business->status) }}</flux:badge>
             @endif
@@ -213,6 +218,16 @@ new #[Title('Editar mi vitrina')] class extends Component {
             </flux:button>
         </div>
     </div>
+
+    @if ($this->business->isSuspended())
+        <div class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+            <flux:text class="font-medium">{{ __('Esta vitrina está suspendida y no se puede volver a publicar desde aquí.') }}</flux:text>
+            <flux:text class="mt-1">{{ $this->business->suspension_reason }}</flux:text>
+            <flux:text class="mt-2 text-sm text-zinc-500">
+                {{ __('Si crees que es un error, contáctanos por soporte.') }}
+            </flux:text>
+        </div>
+    @endif
 
     @if ($missing !== [])
         <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
@@ -299,7 +314,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:button variant="ghost" wire:click="unpublish" wire:confirm="{{ __('¿Volver esta vitrina a borrador?') }}">
                     {{ __('Volver a borrador') }}
                 </flux:button>
-            @else
+            @elseif (! $this->business->isSuspended())
                 <flux:button variant="primary" wire:click="publish">{{ __('Publicar') }}</flux:button>
             @endif
         </div>

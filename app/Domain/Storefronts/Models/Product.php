@@ -27,6 +27,8 @@ class Product extends Model
         'is_available',
         'status',
         'position',
+        'suspension_reason',
+        'suspended_at',
     ];
 
     protected function casts(): array
@@ -35,6 +37,7 @@ class Product extends Model
             'price' => 'decimal:2',
             'promo_price' => 'decimal:2',
             'is_available' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -57,5 +60,10 @@ class Product extends Model
     public function isPublished(): bool
     {
         return $this->status === 'publicado';
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 }

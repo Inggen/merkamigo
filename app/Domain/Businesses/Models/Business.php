@@ -14,12 +14,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 /**
  * @property array<string, mixed>|null $hours
  * @property array<string, string>|null $social_links
  * @property array<string, mixed>|null $attributes
+ * @property Carbon|null $suspended_at
+ * @property Carbon|null $featured_until
  */
 class Business extends Model
 {
@@ -40,6 +43,9 @@ class Business extends Model
         'payment_info',
         'attributes',
         'status',
+        'suspension_reason',
+        'suspended_at',
+        'featured_until',
     ];
 
     protected function casts(): array
@@ -48,6 +54,8 @@ class Business extends Model
             'hours' => 'array',
             'social_links' => 'array',
             'attributes' => 'array',
+            'suspended_at' => 'datetime',
+            'featured_until' => 'datetime',
         ];
     }
 
@@ -94,6 +102,16 @@ class Business extends Model
     public function isPublished(): bool
     {
         return $this->status === 'publicado';
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === 'suspendido';
+    }
+
+    public function isFeatured(): bool
+    {
+        return $this->featured_until !== null && $this->featured_until->isFuture();
     }
 
     public function logoUrl(): ?string

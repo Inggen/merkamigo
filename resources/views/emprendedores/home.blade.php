@@ -20,10 +20,21 @@
                     <div class="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
                         <div class="flex items-start justify-between">
                             <flux:heading>{{ $business->name }}</flux:heading>
-                            <flux:badge size="sm" :color="$business->isPublished() ? 'green' : 'zinc'">
+                            <flux:badge size="sm" :color="$business->isPublished() ? 'green' : ($business->isSuspended() ? 'red' : 'zinc')">
                                 {{ ucfirst($business->status) }}
                             </flux:badge>
                         </div>
+
+                        @if ($business->isSuspended())
+                            <div class="rounded-lg border border-red-300 bg-red-50 p-3 text-sm dark:border-red-800 dark:bg-red-950">
+                                <div class="font-medium">{{ __('Tu vitrina fue suspendida.') }}</div>
+                                <div class="mt-1">{{ $business->suspension_reason }}</div>
+                                <div class="mt-1 text-xs text-zinc-500">
+                                    {{ __('Si crees que es un error, contáctanos por soporte.') }}
+                                    <a href="{{ route('soporte') }}" class="underline" wire:navigate>{{ __('Ir a soporte') }}</a>
+                                </div>
+                            </div>
+                        @endif
 
                         @if (! $business->isPublished() && ($missingByBusiness[$business->id] ?? []) !== [])
                             <div class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
