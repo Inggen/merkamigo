@@ -1,71 +1,39 @@
-@php
-    $layout = auth()->check() ? 'layouts::app' : 'layouts::public';
-@endphp
-
-<x-dynamic-component :component="$layout" :title="__('Inicio')">
-    <div class="flex h-full w-full flex-1 flex-col gap-4">
-        @auth
-            <flux:heading size="xl">{{ __('Hola, :name', ['name' => auth()->user()->name]) }}</flux:heading>
-        @else
-            <div class="space-y-2">
-                <flux:heading size="xl">{{ __('Comprar y encontrar en tu municipio') }}</flux:heading>
-                <flux:text class="max-w-3xl text-zinc-500 dark:text-zinc-400">
-                    {{ __('Explora negocios, descubre productos cercanos y contacta por WhatsApp sin crear cuenta. Solo te pediremos iniciar sesión cuando quieras guardar algo.') }}
-                </flux:text>
-            </div>
-        @endauth
-
-        @if (! $municipality)
-            <flux:text class="text-zinc-500 dark:text-zinc-400">
+<x-layouts::cliente :title="__('Inicio')">
+    @if (! $municipality)
+        <div class="mx-auto max-w-3xl px-6 py-16 text-center">
+            <flux:heading size="xl">{{ __('Descubre lo local, conecta con tu comunidad') }}</flux:heading>
+            <flux:text class="mt-2 mb-8 text-zinc-500 dark:text-zinc-400">
                 {{ __('Elige tu municipio para ver negocios cercanos.') }}
             </flux:text>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap justify-center gap-2">
                 @foreach ($municipalities as $option)
                     <form method="POST" action="{{ route('clientes.municipio') }}">
                         @csrf
                         <input type="hidden" name="municipality_id" value="{{ $option->id }}">
-                        <flux:button type="submit" variant="ghost">{{ $option->name }}</flux:button>
+                        <flux:button type="submit" variant="primary">{{ $option->name }}</flux:button>
                     </form>
                 @endforeach
             </div>
-        @else
-            <div class="flex flex-wrap items-center justify-between gap-3">
+        </div>
+    @else
+        <div class="mx-auto max-w-6xl px-6 py-8">
+            <div class="mb-6">
+                <flux:heading size="xl">{{ __('Descubre lo local, conecta con tu comunidad') }}</flux:heading>
                 <flux:text class="text-zinc-500 dark:text-zinc-400">
-                    {{ __('Mostrando :municipio.', ['municipio' => $municipality->name]) }}
+                    {{ __('Mostrando :municipio. Apoya negocios de tu área y encuentra lo que necesitas, cerca de ti.', ['municipio' => $municipality->name]) }}
                 </flux:text>
-
-                <flux:dropdown>
-                    <flux:button size="sm" variant="ghost" icon-trailing="chevron-down">{{ __('Cambiar municipio') }}</flux:button>
-                    <flux:menu>
-                        @foreach ($municipalities as $option)
-                            <form method="POST" action="{{ route('clientes.municipio') }}">
-                                @csrf
-                                <input type="hidden" name="municipality_id" value="{{ $option->id }}">
-                                <flux:menu.item as="button" type="submit">{{ $option->name }}</flux:menu.item>
-                            </form>
-                        @endforeach
-                    </flux:menu>
-                </flux:dropdown>
             </div>
 
-            <form method="GET" action="{{ route('buscar') }}" class="flex gap-2">
-                <input type="hidden" name="municipio" value="{{ $municipality->id }}">
-                <flux:input name="q" placeholder="{{ __('Buscar negocios o productos...') }}" class="flex-1" />
-                <flux:button type="submit" variant="primary">{{ __('Buscar') }}</flux:button>
-            </form>
+            <div class="mb-8">
+                <x-category-icons
+                    :categories="$categories"
+                    :all-url="route('plaza.show', $municipality)"
+                    :url-for="fn ($category) => route('plaza.category', [$municipality, $category])"
+                />
+            </div>
 
-            @if ($categories->isNotEmpty())
-                <div class="flex flex-wrap gap-2">
-                    @foreach ($categories as $category)
-                        <flux:button size="sm" variant="ghost" :href="route('plaza.category', [$municipality, $category])" wire:navigate>
-                            {{ $category->name }}
-                        </flux:button>
-                    @endforeach
-                </div>
-            @endif
-
-            <div class="mt-2 flex items-center justify-between">
+            <div class="mb-4 flex items-center justify-between">
                 <flux:heading size="lg">{{ __('Negocios destacados') }}</flux:heading>
                 <flux:link :href="route('plaza.show', $municipality)" wire:navigate>{{ __('Ver toda la plaza →') }}</flux:link>
             </div>
@@ -78,10 +46,23 @@
             @else
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($businesses as $business)
-                        @include('plaza.partials.business-card')
+                        <x-business-card :business="$business" />
                     @endforeach
                 </div>
             @endif
-        @endif
-    </div>
-</x-dynamic-component>
+
+            <div class="mt-10 flex items-center gap-4 rounded-2xl border border-brand-100 bg-brand-50 p-6 dark:border-brand-900 dark:bg-brand-950">
+                <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+                    <flux:icon.user-group class="size-6" variant="outline" />
+                </div>
+                <div class="flex-1">
+                    <flux:heading size="lg">{{ __('Juntos construimos comunidad') }}</flux:heading>
+                    <flux:text class="text-zinc-500 dark:text-zinc-400">
+                        {{ __('Merkamigo es más que una plataforma: es un punto de encuentro para apoyar, recomendar y crecer juntos.') }}
+                    </flux:text>
+                </div>
+                <flux:button variant="ghost" :href="route('como-funciona')" wire:navigate>{{ __('Conoce cómo funciona') }}</flux:button>
+            </div>
+        </div>
+    @endif
+</x-layouts::cliente>

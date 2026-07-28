@@ -648,7 +648,7 @@ Además de las 12 vistas principales, el producto necesita:
 ## 1.5 Plaza de mi municipio
 
 - [ ] Portada por municipio.
-- [ ] Buscador por nombre, producto, servicio y categoría.
+- [x] Buscador por nombre, producto, servicio y categoría.
 - [ ] Filtros simples por categoría, municipio, cercanía, zona y disponibilidad.
 - [ ] Secciones: ofertas locales, negocios cercanos, nuevos, destacados y recomendados cuando haya datos.
 - [x] Listado de negocios con información mínima y CTA.

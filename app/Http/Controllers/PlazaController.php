@@ -59,11 +59,21 @@ class PlazaController extends Controller
     {
         $query = trim((string) $request->string('q'));
         $municipalityId = $request->integer('municipio') ?: null;
+        $categoryId = $request->integer('categoria') ?: null;
 
         $businesses = Business::query()
             ->where('status', 'publicado')
-            ->when($query !== '', fn ($q) => $q->where('name', 'like', "%{$query}%"))
+            ->when(
+                $query !== '',
+                fn ($q) => $q->where(function ($q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                        ->orWhereHas('products', fn ($p) => $p
+                            ->where('status', 'publicado')
+                            ->where('name', 'like', "%{$query}%"));
+                }),
+            )
             ->when($municipalityId, fn ($q) => $q->where('municipality_id', $municipalityId))
+            ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
             ->with(['category', 'municipality', 'storefront'])
             ->orderByDesc('created_at')
             ->paginate(12)
@@ -72,6 +82,7 @@ class PlazaController extends Controller
         return view('plaza.buscar', [
             'query' => $query,
             'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
+            'categories' => Category::where('is_active', true)->orderBy('name')->get(),
             'businesses' => $businesses,
         ]);
     }

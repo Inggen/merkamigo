@@ -1,70 +1,93 @@
-<x-layouts::public :title="$product->name.' · '.$business->name">
-    <div class="mx-auto max-w-3xl px-6 py-10">
-        <a href="{{ route('vitrinas.show', $business) }}" class="text-sm text-zinc-500 hover:text-brand-600" wire:navigate>
-            ← {{ $business->name }}
-        </a>
+<x-layouts::cliente :title="$product->name.' · '.$business->name">
+    <div class="mx-auto max-w-4xl px-6 py-6">
+        <nav class="mb-4 flex flex-wrap items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>
+            <span>/</span>
+            <a href="{{ route('vitrinas.show', $business) }}" class="hover:text-brand-600" wire:navigate>{{ $business->name }}</a>
+            <span>/</span>
+            <span class="truncate text-zinc-700 dark:text-zinc-200">{{ $product->name }}</span>
+        </nav>
 
-        <div class="mt-4 grid gap-8 sm:grid-cols-2">
-            <div class="aspect-square overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800">
-                @if ($product->media->isNotEmpty())
-                    <img src="{{ $product->media->first()->url() }}" class="h-full w-full object-cover" alt="{{ $product->name }}">
-                @endif
-            </div>
+        <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="grid gap-8 sm:grid-cols-2">
+                <div>
+                    <div class="aspect-square overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+                        @if ($product->media->isNotEmpty())
+                            <img src="{{ $product->media->first()->url() }}" class="h-full w-full object-cover" alt="{{ $product->name }}">
+                        @endif
+                    </div>
 
-            <div class="space-y-4">
-                <flux:heading size="xl">{{ $product->name }}</flux:heading>
-
-                <div class="text-lg font-medium">
-                    @if ($product->price_type === 'exacto' && $product->price)
-                        ${{ number_format((float) $product->price, 0, ',', '.') }}
-                    @elseif ($product->price_type === 'desde' && $product->price)
-                        {{ __('Desde') }} ${{ number_format((float) $product->price, 0, ',', '.') }}
-                    @elseif ($product->price_type === 'consultar')
-                        {{ __('Consultar precio') }}
-                    @endif
-
-                    @if ($product->unit)
-                        <span class="text-sm font-normal text-zinc-500"> / {{ $product->unit }}</span>
+                    @if ($product->media->count() > 1)
+                        <div class="mt-3 grid grid-cols-4 gap-2">
+                            @foreach ($product->media->skip(1)->take(4) as $media)
+                                <div class="aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                    <img src="{{ $media->url() }}" class="h-full w-full object-cover" alt="{{ $product->name }}">
+                                </div>
+                            @endforeach
+                        </div>
                     @endif
                 </div>
 
-                @if (! $product->is_available)
-                    <flux:badge color="zinc">{{ __('No disponible') }}</flux:badge>
-                @endif
+                <div class="space-y-4">
+                    <div>
+                        <flux:heading size="xl">{{ $product->name }}</flux:heading>
+                        <a href="{{ route('vitrinas.show', $business) }}" class="text-sm text-zinc-500 hover:text-brand-600" wire:navigate>
+                            {{ $business->name }}
+                        </a>
+                    </div>
 
-                @if ($product->description)
-                    <flux:text class="whitespace-pre-line text-zinc-600 dark:text-zinc-300">{{ $product->description }}</flux:text>
-                @endif
+                    <div class="text-lg font-medium">
+                        @if ($product->price_type === 'exacto' && $product->price)
+                            ${{ number_format((float) $product->price, 0, ',', '.') }}
+                        @elseif ($product->price_type === 'desde' && $product->price)
+                            {{ __('Desde') }} ${{ number_format((float) $product->price, 0, ',', '.') }}
+                        @elseif ($product->price_type === 'consultar')
+                            {{ __('Consultar precio') }}
+                        @endif
 
-                <div x-data class="flex gap-2">
-                    <livewire:favorite-button :favoritable="$product" :key="'product-'.$product->id" />
+                        @if ($product->unit)
+                            <span class="text-sm font-normal text-zinc-500"> / {{ $product->unit }}</span>
+                        @endif
+                    </div>
 
-                    <flux:button
-                        type="button"
-                        x-on:click="navigator.clipboard.writeText(window.location.href); fetch('{{ route('vitrinas.compartir.product', [$business, $product]) }}', { method: 'POST' }); $flux.toast('{{ __('Enlace copiado') }}')"
-                        variant="ghost"
-                        icon="share"
-                    >
-                        {{ __('Compartir') }}
-                    </flux:button>
+                    <flux:badge :color="$product->is_available ? 'green' : 'zinc'">
+                        {{ $product->is_available ? __('Disponible') : __('No disponible') }}
+                    </flux:badge>
+
+                    @if ($product->description)
+                        <flux:text class="whitespace-pre-line text-zinc-600 dark:text-zinc-300">{{ $product->description }}</flux:text>
+                    @endif
+
+                    <div x-data class="flex gap-2">
+                        <livewire:favorite-button :favoritable="$product" :key="'product-'.$product->id" />
+
+                        <flux:button
+                            type="button"
+                            x-on:click="navigator.clipboard.writeText(window.location.href); fetch('{{ route('vitrinas.compartir.product', [$business, $product]) }}', { method: 'POST' }); $flux.toast('{{ __('Enlace copiado') }}')"
+                            variant="ghost"
+                            icon="share"
+                        >
+                            {{ __('Compartir') }}
+                        </flux:button>
+                    </div>
+
+                    @if ($business->whatsapp_number)
+                        <flux:button
+                            href="{{ route('vitrinas.whatsapp.product', [$business, $product]) }}"
+                            target="_blank"
+                            variant="primary"
+                            icon="chat-bubble-left-right"
+                            class="w-full"
+                        >
+                            {{ __('Preguntar por WhatsApp') }}
+                        </flux:button>
+                    @endif
+
+                    <a href="{{ route('reportes.crear.producto', [$business, $product]) }}" class="block text-sm text-zinc-400 hover:text-zinc-600" wire:navigate>
+                        {{ __('Reportar este producto') }}
+                    </a>
                 </div>
-
-                @if ($business->whatsapp_number)
-                    <flux:button
-                        href="{{ route('vitrinas.whatsapp.product', [$business, $product]) }}"
-                        target="_blank"
-                        variant="primary"
-                        icon="chat-bubble-left-right"
-                        class="w-full"
-                    >
-                        {{ __('Preguntar por WhatsApp') }}
-                    </flux:button>
-                @endif
-
-                <a href="{{ route('reportes.crear.producto', [$business, $product]) }}" class="block text-sm text-zinc-400 hover:text-zinc-600" wire:navigate>
-                    {{ __('Reportar este producto') }}
-                </a>
             </div>
         </div>
     </div>
-</x-layouts::public>
+</x-layouts::cliente>

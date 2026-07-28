@@ -8,27 +8,29 @@ use Illuminate\Support\Str;
 
 /**
  * Categorías iniciales provisionales (0.1 del TODO); se ajustarán con datos
- * reales del piloto (ver docs/product/alcance-fase0.md).
+ * reales del piloto (ver docs/product/alcance-fase0.md). El ícono es un
+ * nombre de icono Heroicon (outline) de los que trae Flux en
+ * vendor/livewire/flux/stubs/resources/views/flux/icon.
  */
 class CategorySeeder extends Seeder
 {
     public function run(): void
     {
         $categories = [
-            'Alimentos y bebidas',
-            'Moda y accesorios',
-            'Hogar y decoración',
-            'Belleza y cuidado personal',
-            'Servicios profesionales',
-            'Servicios para el hogar',
-            'Salud y bienestar',
-            'Otros',
+            'Alimentos y bebidas' => 'cake',
+            'Moda y accesorios' => 'shopping-bag',
+            'Hogar y decoración' => 'home',
+            'Belleza y cuidado personal' => 'sparkles',
+            'Servicios profesionales' => 'briefcase',
+            'Servicios para el hogar' => 'wrench-screwdriver',
+            'Salud y bienestar' => 'heart',
+            'Otros' => 'tag',
         ];
 
-        foreach ($categories as $name) {
-            Category::query()->firstOrCreate(
+        foreach ($categories as $name => $icon) {
+            Category::query()->updateOrCreate(
                 ['slug' => Str::slug($name)],
-                ['name' => $name, 'is_active' => true],
+                ['name' => $name, 'icon' => $icon, 'is_active' => true],
             );
         }
     }

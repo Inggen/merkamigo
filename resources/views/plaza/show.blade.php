@@ -1,22 +1,15 @@
-<x-layouts::public :title="__('Plaza de :municipio', ['municipio' => $municipio->name])">
-    <div class="mx-auto max-w-5xl px-6 py-10">
+<x-layouts::cliente :title="__('Plaza de :municipio', ['municipio' => $municipio->name])">
+    <div class="mx-auto max-w-6xl px-6 py-8">
         <flux:heading size="xl">{{ __('Plaza de :municipio', ['municipio' => $municipio->name]) }}</flux:heading>
         <flux:subheading class="mb-6">{{ __('Apoya lo local, impulsa tu comunidad.') }}</flux:subheading>
 
-        <div class="mb-6 flex flex-wrap gap-2">
-            <flux:button size="sm" :variant="$category ? 'ghost' : 'primary'" :href="route('plaza.show', $municipio)" wire:navigate>
-                {{ __('Todas') }}
-            </flux:button>
-            @foreach ($categories as $cat)
-                <flux:button
-                    size="sm"
-                    :variant="$category?->id === $cat->id ? 'primary' : 'ghost'"
-                    :href="route('plaza.category', [$municipio, $cat])"
-                    wire:navigate
-                >
-                    {{ $cat->name }}
-                </flux:button>
-            @endforeach
+        <div class="mb-8">
+            <x-category-icons
+                :categories="$categories"
+                :active-category="$category"
+                :all-url="route('plaza.show', $municipio)"
+                :url-for="fn ($cat) => route('plaza.category', [$municipio, $cat])"
+            />
         </div>
 
         @if ($businesses->isEmpty())
@@ -27,7 +20,7 @@
         @else
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($businesses as $business)
-                    @include('plaza.partials.business-card')
+                    <x-business-card :business="$business" />
                 @endforeach
             </div>
 
@@ -36,4 +29,4 @@
             </div>
         @endif
     </div>
-</x-layouts::public>
+</x-layouts::cliente>

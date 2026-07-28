@@ -24,11 +24,18 @@ class FavoriteButton extends Component
 
     public bool $favorited = false;
 
-    public function mount(Business|Product $favoritable): void
+    /**
+     * Variante compacta (solo ícono, sin texto ni fondo) para superponer
+     * en la esquina de una tarjeta de negocio/producto.
+     */
+    public bool $compact = false;
+
+    public function mount(Business|Product $favoritable, bool $compact = false): void
     {
         $this->favoritableType = $favoritable->getMorphClass();
         $this->favoritableId = (int) $favoritable->getKey();
         $this->favorited = $favoritable->isFavoritedBy(Auth::user());
+        $this->compact = $compact;
     }
 
     public function toggle(): void

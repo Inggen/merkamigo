@@ -94,6 +94,24 @@ class PublicDiscoveryTest extends TestCase
         $this->assertSame('image/png', $response->headers->get('Content-Type'));
     }
 
+    public function test_filtering_the_plaza_by_category_does_not_error(): void
+    {
+        // Regresión: la ruta plaza.category tiene dos parámetros de modelo
+        // ({municipio}/categorias/{categoria}) y Laravel intentaba aplicar
+        // scoping anidado automático buscando un método
+        // Municipality::categorias(), que no existe — la ruta debe declarar
+        // withoutScopedBindings() ya que una categoría no es un recurso hijo
+        // de un municipio.
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $business = $this->publishedBusiness($municipality, $category);
+
+        $this->get(route('plaza.category', [$municipality, $category]))
+            ->assertOk()
+            ->assertSee($business->name);
+    }
+
     public function test_search_only_returns_published_businesses_matching_the_name(): void
     {
         $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);

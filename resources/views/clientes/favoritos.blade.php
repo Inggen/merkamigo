@@ -13,7 +13,7 @@
                     <flux:subheading class="mb-3">{{ __('Negocios') }}</flux:subheading>
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach ($businesses as $business)
-                            @include('plaza.partials.business-card')
+                            <x-business-card :business="$business" />
                         @endforeach
                     </div>
                 </div>

@@ -66,7 +66,7 @@ class ClientesController extends Controller
 
         $setPreferredMunicipality->handle($municipality);
 
-        return redirect()->route('clientes.home');
+        return redirect()->back(fallback: route('clientes.home'));
     }
 
     private function preferredMunicipality(Request $request): ?Municipality

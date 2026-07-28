@@ -33,7 +33,9 @@ Route::get('municipios', [PlazaController::class, 'municipios'])->name('municipi
 Route::get('categorias', [PlazaController::class, 'categorias'])->name('categorias');
 Route::get('buscar', [PlazaController::class, 'buscar'])->name('buscar');
 Route::get('plaza/{municipio:slug}', [PlazaController::class, 'show'])->name('plaza.show');
-Route::get('plaza/{municipio:slug}/categorias/{categoria:slug}', [PlazaController::class, 'category'])->name('plaza.category');
+Route::get('plaza/{municipio:slug}/categorias/{categoria:slug}', [PlazaController::class, 'category'])
+    ->name('plaza.category')
+    ->withoutScopedBindings();
 
 Route::get('m/{business:slug}', [VitrinaController::class, 'show'])->name('vitrinas.show');
 Route::get('m/{business:slug}/productos/{product:slug}', [VitrinaController::class, 'product'])->name('vitrinas.product');

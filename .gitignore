@@ -4,6 +4,9 @@
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+# Referencias de diseño (mockups) usadas para comparar el frontend — no son
+# assets de la aplicación, no se comitean.
+/public/images/mockups
 /storage/*.key
 /storage/pail
 /vendor
