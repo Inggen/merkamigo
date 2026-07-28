@@ -1,8 +1,42 @@
-<x-layouts::public :title="$business->name">
+@php
+    $seoDescription = $business->storefront?->description
+        ? \Illuminate\Support\Str::limit(strip_tags($business->storefront->description), 160)
+        : __(':name en :municipio, con Merkamigo.', ['name' => $business->name, 'municipio' => $business->municipality?->name ?? '']);
+@endphp
+
+<x-layouts::public :title="$business->name" :description="$seoDescription" :image="$business->logoUrl()">
+    @php
+        $jsonLd = [
+            '@context' => 'https://schema.org',
+            '@type' => 'LocalBusiness',
+            'name' => $business->name,
+            'description' => $seoDescription,
+            'url' => route('vitrinas.show', $business),
+        ];
+
+        if ($business->logoUrl()) {
+            $jsonLd['image'] = $business->logoUrl();
+        }
+
+        if ($business->whatsapp_number) {
+            $jsonLd['telephone'] = $business->whatsapp_number;
+        }
+
+        if ($business->municipality) {
+            $jsonLd['address'] = [
+                '@type' => 'PostalAddress',
+                'addressLocality' => $business->municipality->name,
+                'addressCountry' => 'CO',
+            ];
+        }
+    @endphp
+
+    <script type="application/ld+json">{!! json_encode($jsonLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+
     <div x-data="{ tab: 'inicio' }">
         <div class="h-40 bg-zinc-100 sm:h-56 dark:bg-zinc-800">
             @if ($business->storefront?->coverUrl())
-                <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="">
+                <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ __('Portada de :name', ['name' => $business->name]) }}">
             @endif
         </div>
 
@@ -30,6 +64,8 @@
                     </div>
 
                     <div class="flex gap-2">
+                        <livewire:favorite-button :favoritable="$business" :key="'business-'.$business->id" />
+
                         <flux:button
                             x-on:click="navigator.clipboard.writeText(window.location.href); $flux.toast('{{ __('Enlace copiado') }}')"
                             variant="ghost"

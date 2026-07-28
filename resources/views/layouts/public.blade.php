@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
-        @include('partials.head', ['title' => $title ?? null])
+        @include('partials.head', ['title' => $title ?? null, 'description' => $description ?? null, 'image' => $image ?? null])
     </head>
     <body class="min-h-screen bg-mist dark:bg-zinc-900 dark:text-white">
         <header class="border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
@@ -36,6 +36,7 @@
             <div class="mx-auto flex max-w-5xl flex-col items-center gap-2 px-6">
                 <span>&copy; {{ now()->year }} Merkamigo</span>
                 <div class="flex gap-4">
+                    <a href="{{ route('preguntas-frecuentes') }}" class="hover:text-brand-600" wire:navigate>{{ __('Preguntas frecuentes') }}</a>
                     <a href="{{ route('terminos') }}" class="hover:text-brand-600" wire:navigate>{{ __('Términos') }}</a>
                     <a href="{{ route('privacidad') }}" class="hover:text-brand-600" wire:navigate>{{ __('Privacidad') }}</a>
                 </div>

@@ -126,11 +126,11 @@ El MVP completo se entrega de forma incremental:
 
 ### Reglas de autorización
 
-- [ ] Un usuario puede pertenecer a más de un negocio mediante membresías.
-- [ ] Cada membresía tiene rol y estado propios.
-- [ ] Solo propietario o administrador autorizado puede gestionar plan, miembros y datos sensibles.
-- [ ] Ningún negocio puede consultar o modificar información privada de otro.
-- [ ] El contenido público se consulta sin revelar datos privados, internos o de facturación.
+- [x] Un usuario puede pertenecer a más de un negocio mediante membresías.
+- [x] Cada membresía tiene rol y estado propios.
+- [x] Solo propietario o administrador autorizado puede gestionar plan, miembros y datos sensibles.
+- [x] Ningún negocio puede consultar o modificar información privada de otro.
+- [x] El contenido público se consulta sin revelar datos privados, internos o de facturación.
 - [ ] Toda acción de moderación, verificación, suspensión o cambio de plan queda auditada.
 
 ---
@@ -226,11 +226,11 @@ El MVP completo se entrega de forma incremental:
 ### Reglas de datos
 
 - [ ] Usar UUID/ULID cuando facilite exposición segura en API; no depender de IDs secuenciales públicos.
-- [ ] Definir slugs únicos y estables para municipio, negocio y producto.
-- [ ] Aplicar borrado lógico donde exista moderación, auditoría o posibilidad de restauración.
+- [x] Definir slugs únicos y estables para municipio, negocio y producto.
+- [x] Aplicar borrado lógico donde exista moderación, auditoría o posibilidad de restauración.
 - [ ] Definir retención y eliminación de audios, documentos y eventos analíticos.
-- [ ] Evitar almacenar información de pago sensible; permitir solo instrucciones o enlaces externos aprobados.
-- [ ] Mantener consentimiento y fecha de aceptación de términos y privacidad.
+- [x] Evitar almacenar información de pago sensible; permitir solo instrucciones o enlaces externos aprobados.
+- [x] Mantener consentimiento y fecha de aceptación de términos y privacidad.
 
 ---
 
@@ -253,7 +253,7 @@ El MVP completo se entrega de forma incremental:
   - Kit Arranca Bonito: referencia previa de **$99.900 COP**.
   - Destacado semanal: referencia previa de **$9.900 COP**.
   - Oferta de lanzamiento: referencia previa de **$39.900 COP por vitrina lista para vender por WhatsApp**.
-- [ ] Marcar precios anteriores como hipótesis y validarlos con usuarios antes de automatizar cobros.
+- [x] Marcar precios anteriores como hipótesis y validarlos con usuarios antes de automatizar cobros.
 - [x] Definir indicadores del piloto:
   - Emprendedores registrados.
   - Vitrinas publicadas.
@@ -382,13 +382,13 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Selección de experiencia: Cliente o Emprendedor.
 - [x] Inicio de sesión, registro, verificación y recuperación.
 - [x] Perfil y preferencias.
-- [ ] Favoritos.
+- [x] Favoritos.
 - [ ] Centro de actividad, notificaciones y propuestas; no implica chat interno completo.
 - [ ] Mis solicitudes, detalle de solicitud y propuestas recibidas.
 - [ ] Necesidades cercanas y propuestas enviadas para Emprendedores.
 - [ ] Confirmación de pedido e historial.
 - [ ] Pasaporte de confianza, verificación y recomendaciones.
-- [ ] Compartir vitrina, enlace y QR.
+- [x] Compartir vitrina, enlace y QR.
 - [ ] Planes, suscripción, límites y facturación cuando se habiliten.
 - [ ] Soporte, reportes, términos y privacidad.
 - [x] Estados vacíos, carga, error, sin conexión, suspendido y permisos denegados.
@@ -397,8 +397,8 @@ Además de las 12 vistas principales, el producto necesita:
 ### Aclaraciones frente a las visuales
 
 - [x] El acceso visual “Mensajes” se implementará inicialmente como **Centro de actividad** para notificaciones, solicitudes y propuestas; no como chat interno completo.
-- [ ] Las estrellas, cantidad de opiniones e insignia verificada solo se mostrarán con datos reales y cuando la fase 3 esté activa; nunca usar cifras ficticias en producción.
-- [ ] La cercanía puede calcularse con zona o ubicación consentida, pero el MVP no dependerá de rastreo permanente ni geolocalización avanzada.
+- [x] Las estrellas, cantidad de opiniones e insignia verificada solo se mostrarán con datos reales y cuando la fase 3 esté activa; nunca usar cifras ficticias en producción.
+- [x] La cercanía puede calcularse con zona o ubicación consentida, pero el MVP no dependerá de rastreo permanente ni geolocalización avanzada.
 - [ ] Las fotografías de Cajicá y de los negocios son contenido administrable, optimizado y con texto alternativo.
 - [ ] La navegación móvil podrá usar barra inferior y menú compacto; la navegación de escritorio usará encabezado y menús visibles.
 
@@ -461,7 +461,7 @@ Además de las 12 vistas principales, el producto necesita:
 ## 0.6 Seguridad, privacidad y operación
 
 - [x] Definir términos, privacidad, tratamiento de datos y reglas de publicación.
-- [ ] Registrar aceptación y versión de documentos legales.
+- [x] Registrar aceptación y versión de documentos legales.
 - [ ] Validar y limitar archivos por tipo, tamaño y cantidad.
 - [ ] Analizar archivos y remover metadatos sensibles cuando corresponda.
 - [x] Implementar rate limiting, protección CSRF, validación, sanitización y encabezados seguros.
@@ -494,10 +494,10 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] CTA de Emprendedores: “Crea tu Merkamigo”.
 - [x] Explicación del proceso en pasos simples.
 - [x] Categorías y municipios activos.
-- [ ] Preguntas frecuentes.
+- [x] Preguntas frecuentes.
 - [x] Contacto y soporte por WhatsApp.
 - [x] Términos, privacidad y reglas de comunidad.
-- [ ] SEO técnico, metadatos sociales, sitemap XML y datos estructurados básicos.
+- [x] SEO técnico, metadatos sociales, sitemap XML y datos estructurados básicos.
 
 **Pantallas/rutas**
 
@@ -517,16 +517,16 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.1.1 Experiencia Clientes - MVP comercial
 
-- [ ] Inicio de Clientes con municipio, buscador, categorías y negocios destacados.
+- [x] Inicio de Clientes con municipio, buscador, categorías y negocios destacados.
 - [ ] Mostrar negocios cercanos usando municipio/zona y distancia solo cuando exista permiso y dato confiable.
-- [ ] Navegación desktop: municipio, Explorar, Actividad, Favoritos y Cuenta.
+- [x] Navegación desktop: municipio, Explorar, Actividad, Favoritos y Cuenta.
 - [ ] Navegación móvil: Explorar, Actividad, Publicar/Pídelo, Favoritos y Perfil.
 - [x] Explorar como visitante sin registro obligatorio.
-- [ ] Solicitar registro únicamente para acciones que deban guardarse.
-- [ ] Guardar y quitar negocios o productos favoritos.
+- [x] Solicitar registro únicamente para acciones que deban guardarse.
+- [x] Guardar y quitar negocios o productos favoritos.
 - [x] Compartir negocios y productos.
 - [x] Contactar por WhatsApp con mensaje contextual.
-- [ ] Guardar municipio preferido.
+- [x] Guardar municipio preferido.
 - [ ] Mostrar historial básico de negocios vistos solo con consentimiento.
 - [ ] Preparar accesos a “Pídelo” y “Mis solicitudes” aunque se activen en fase 2.
 
@@ -602,7 +602,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Horario y estado “abierto/cerrado” cuando sea calculable.
 - [x] QR descargable y enlace para compartir.
 - [ ] Estado de verificación cuando exista.
-- [ ] Guardar o quitar de favoritos.
+- [x] Guardar o quitar de favoritos.
 - [x] Compartir.
 - [ ] Atributos administrables como “Producto artesanal”, “Hecho en Cajicá”, “Ingredientes frescos” o “Atención cercana”, sujetos a moderación.
 - [x] Organizar la información pública en pestañas: Inicio, Productos, Opiniones e Información.
@@ -635,7 +635,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Publicación/despublicación inmediata.
 - [ ] Estados agotado/no disponible.
 - [x] Mensaje de WhatsApp específico por producto.
-- [ ] Compartir y guardar producto desde su detalle público.
+- [x] Compartir y guardar producto desde su detalle público.
 - [x] Presentar creación/edición en panel o drawer responsive sin abandonar el listado.
 - [ ] Validación de contenido prohibido.
 
@@ -655,7 +655,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Listado de productos/servicios.
 - [ ] Reservar sección “Solicitudes actuales” para activarla con la fase 2.
 - [x] Estado vacío útil para categorías sin oferta.
-- [ ] Selector y persistencia del municipio.
+- [x] Selector y persistencia del municipio.
 - [ ] Preparar geolocalización opcional sin depender de ella.
 - [x] Evitar geolocalización avanzada en el MVP.
 
@@ -677,14 +677,14 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] CTA “Crear mi vitrina” e inicio de sesión.
 - [x] Inicio exclusivo de la experiencia Emprendedores.
 - [x] Navegación: Inicio, Mi vitrina, Productos/servicios, Oportunidades, Promocionar y Cuenta.
-- [ ] Inicio con guía “qué te falta para vender”.
+- [x] Inicio con guía “qué te falta para vender”.
 - [x] Resumen del negocio y estado de publicación.
 - [ ] Accesos grandes a vitrina, productos, WhatsApp, QR y métricas.
 - [x] Perfil/configuración del negocio.
 - [x] Editor lateral o seccionado para portada, información, horarios, ubicación, WhatsApp y estado de publicación.
 - [ ] Vista previa y guardado automático durante la edición.
 - [x] Horarios, redes y métodos/información de pago.
-- [ ] Gestión de colaboradores básica.
+- [x] Gestión de colaboradores básica.
 - [ ] Ayuda contextual y contacto de soporte.
 - [x] Evitar que el emprendedor dependa del panel Filament.
 

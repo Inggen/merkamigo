@@ -36,6 +36,19 @@
                     <flux:text class="whitespace-pre-line text-zinc-600 dark:text-zinc-300">{{ $product->description }}</flux:text>
                 @endif
 
+                <div x-data class="flex gap-2">
+                    <livewire:favorite-button :favoritable="$product" :key="'product-'.$product->id" />
+
+                    <flux:button
+                        type="button"
+                        x-on:click="navigator.clipboard.writeText(window.location.href); $flux.toast('{{ __('Enlace copiado') }}')"
+                        variant="ghost"
+                        icon="share"
+                    >
+                        {{ __('Compartir') }}
+                    </flux:button>
+                </div>
+
                 @if ($business->whatsapp_number)
                     <flux:button
                         href="https://wa.me/{{ preg_replace('/\D/', '', $business->whatsapp_number) }}?text={{ urlencode(__('Hola, me interesa ":product" que vi en Merkamigo.', ['product' => $product->name])) }}"

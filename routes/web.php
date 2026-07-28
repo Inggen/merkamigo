@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\PlazaController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\VitrinaController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,9 @@ Route::view('privacidad', 'legal.privacidad')->name('privacidad');
 Route::view('reglas-comunidad', 'legal.reglas-comunidad')->name('reglas-comunidad');
 Route::view('como-funciona', 'public.como-funciona')->name('como-funciona');
 Route::view('soporte', 'public.soporte')->name('soporte');
+Route::view('preguntas-frecuentes', 'public.preguntas-frecuentes', ['faqs' => config('faq.preguntas')])
+    ->name('preguntas-frecuentes');
+Route::get('sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 Route::get('emprendedores/bienvenida', [EmprendedoresController::class, 'bienvenida'])
     ->name('emprendedores.bienvenida');
@@ -38,6 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
+    Route::get('clientes/favoritos', [ClientesController::class, 'favoritos'])->name('clientes.favoritos');
+    Route::post('clientes/municipio', [ClientesController::class, 'setMunicipio'])->name('clientes.municipio');
 
     Route::get('emprendedores', [EmprendedoresController::class, 'home'])->name('emprendedores.home');
 
@@ -47,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('business.team')->prefix('emprendedores/negocios/{business}')->name('emprendedores.negocios.')->group(function () {
         Route::livewire('vitrina', 'pages::emprendedores.negocios.vitrina')->name('vitrina');
         Route::livewire('productos', 'pages::emprendedores.negocios.productos')->name('productos');
+        Route::livewire('colaboradores', 'pages::emprendedores.negocios.colaboradores')->name('colaboradores');
         Route::get('vista-previa', [EmprendedoresController::class, 'vistaPrevia'])->name('vista-previa');
         Route::get('compartir', [EmprendedoresController::class, 'compartir'])->name('compartir');
     });

@@ -2,7 +2,7 @@
     <div class="flex items-center gap-3 p-4">
         <div class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
             @if ($business->logoUrl())
-                <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="">
+                <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->name }}">
             @else
                 <flux:icon.building-storefront class="size-5 text-zinc-400" variant="outline" />
             @endif

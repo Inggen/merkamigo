@@ -42,6 +42,18 @@ class PublishStorefront
     }
 
     /**
+     * Qué le falta a un negocio para poder publicarse, sin publicarlo. La
+     * usa el Inicio del Emprendedor (1.6 del TODO: guía "qué te falta para
+     * vender") para no duplicar las reglas de `handle()`.
+     *
+     * @return array<int, string>
+     */
+    public function missingFieldsFor(Business $business): array
+    {
+        return $this->missingFields($business, $business->storefront);
+    }
+
+    /**
      * @return array<int, string>
      */
     private function missingFields(Business $business, Storefront $storefront): array

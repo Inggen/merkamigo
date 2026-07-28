@@ -3,7 +3,7 @@
         {{ __('Inicio') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item icon="magnifying-glass" :href="route('clientes.home')" badge="Pronto" wire:navigate>
+    <flux:sidebar.item icon="magnifying-glass" :href="route('buscar')" :current="request()->routeIs('buscar')" wire:navigate>
         {{ __('Explorar') }}
     </flux:sidebar.item>
 
@@ -11,7 +11,7 @@
         {{ __('Mensajes') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item icon="heart" :href="route('clientes.home')" badge="Pronto" wire:navigate>
+    <flux:sidebar.item icon="heart" :href="route('clientes.favoritos')" :current="request()->routeIs('clientes.favoritos')" wire:navigate>
         {{ __('Favoritos') }}
     </flux:sidebar.item>
 </flux:sidebar.group>

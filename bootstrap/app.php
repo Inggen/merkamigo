@@ -26,10 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->throttleApi();
 
-        // Preferencia de UI (Cliente/Emprendedor), no un dato sensible: sin
-        // cifrar para que sobreviva sin fricción entre invitado y registro
-        // (App\Domain\Identity\Actions\SwitchExperience).
-        $middleware->encryptCookies(except: ['experience']);
+        // Preferencias de UI (Cliente/Emprendedor, municipio elegido), no
+        // datos sensibles: sin cifrar para que sobrevivan sin fricción entre
+        // invitado y registro (App\Domain\Identity\Actions\SwitchExperience,
+        // App\Domain\Discovery\Actions\SetPreferredMunicipality).
+        $middleware->encryptCookies(except: ['experience', 'municipio']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

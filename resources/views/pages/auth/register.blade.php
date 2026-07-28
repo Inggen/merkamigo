@@ -63,6 +63,16 @@
                 viewable
             />
 
+            <!-- Terms -->
+            <flux:checkbox name="terms" value="1" :checked="old('terms')" required>
+                <x-slot:label>
+                    {{ __('Acepto los') }}
+                    <a href="{{ route('terminos') }}" target="_blank" class="text-brand-600 underline">{{ __('términos de uso') }}</a>
+                    {{ __('y la') }}
+                    <a href="{{ route('privacidad') }}" target="_blank" class="text-brand-600 underline">{{ __('política de privacidad') }}</a>
+                </x-slot:label>
+            </flux:checkbox>
+
             <div class="flex items-center justify-end">
                 <flux:button type="submit" variant="primary" class="w-full" data-test="register-user-button">
                     {{ __('Create account') }}

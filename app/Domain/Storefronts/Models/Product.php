@@ -3,6 +3,7 @@
 namespace App\Domain\Storefronts\Models;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Discovery\Concerns\Favoritable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    use Favoritable, SoftDeletes;
 
     protected $fillable = [
         'business_id',

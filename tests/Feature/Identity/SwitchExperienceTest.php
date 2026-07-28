@@ -70,6 +70,7 @@ class SwitchExperienceTest extends TestCase
                 'email' => 'nueva@example.com',
                 'password' => 'password',
                 'password_confirmation' => 'password',
+                'terms' => '1',
             ]);
 
         $this->assertDatabaseHas('users', [

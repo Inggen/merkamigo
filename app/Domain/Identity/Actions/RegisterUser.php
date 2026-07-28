@@ -28,6 +28,7 @@ class RegisterUser implements CreatesNewUsers
         $validated = Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'terms' => ['accepted'],
         ])->validate();
 
         // Si el invitado ya eligió "comprar/encontrar" o "vender/mostrar mi
@@ -41,6 +42,10 @@ class RegisterUser implements CreatesNewUsers
             'phone' => $validated['phone'] ?? null,
             'password' => $validated['password'],
             'experience' => in_array($intendedExperience, ['cliente', 'emprendedor'], true) ? $intendedExperience : null,
+            // 0.6 del TODO: registrar aceptación y versión de los documentos
+            // legales vigentes en el momento del registro.
+            'terms_accepted_at' => now(),
+            'terms_version' => config('legal.terms_version'),
         ]);
     }
 }

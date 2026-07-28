@@ -25,16 +25,38 @@
                             </flux:badge>
                         </div>
 
+                        @if (! $business->isPublished() && ($missingByBusiness[$business->id] ?? []) !== [])
+                            <div class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
+                                <div class="font-medium">{{ __('Te falta para vender:') }}</div>
+                                <ul class="mt-1 list-inside list-disc">
+                                    @foreach ($missingByBusiness[$business->id] as $item)
+                                        <li>{{ $item }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
                         <div class="flex flex-wrap gap-2">
-                            <flux:button size="sm" variant="ghost" :href="route('emprendedores.negocios.vitrina', $business)" wire:navigate>
+                            <flux:button size="sm" variant="primary" :href="route('emprendedores.negocios.vitrina', $business)" wire:navigate>
                                 {{ __('Editar vitrina') }}
                             </flux:button>
                             <flux:button size="sm" variant="ghost" :href="route('emprendedores.negocios.productos', $business)" wire:navigate>
                                 {{ __('Productos') }}
                             </flux:button>
                             @if ($business->isPublished())
-                                <flux:button size="sm" variant="ghost" :href="route('emprendedores.negocios.compartir', $business)" wire:navigate>
-                                    {{ __('Compartir') }}
+                                @if ($business->whatsapp_number)
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="chat-bubble-left-right"
+                                        href="https://wa.me/{{ preg_replace('/\D/', '', $business->whatsapp_number) }}"
+                                        target="_blank"
+                                    >
+                                        {{ __('WhatsApp') }}
+                                    </flux:button>
+                                @endif
+                                <flux:button size="sm" variant="ghost" icon="qr-code" :href="route('emprendedores.negocios.compartir', $business)" wire:navigate>
+                                    {{ __('Compartir y QR') }}
                                 </flux:button>
                             @endif
                         </div>

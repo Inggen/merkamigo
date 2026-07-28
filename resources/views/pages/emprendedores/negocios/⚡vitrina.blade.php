@@ -9,6 +9,7 @@ use App\Domain\Storefronts\Actions\UpdateStorefront;
 use App\Domain\Storefronts\Exceptions\IncompleteStorefrontException;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -45,6 +46,8 @@ new #[Title('Editar mi vitrina')] class extends Component {
     /** @var array<int, string> */
     public array $missing = [];
 
+    public ?string $savedAt = null;
+
     public function mount(Business $business): void
     {
         // Repetido aquí (además del middleware `business.team`) para que la
@@ -75,11 +78,12 @@ new #[Title('Editar mi vitrina')] class extends Component {
         return Business::with('storefront')->findOrFail($this->businessId);
     }
 
-    public function save(): void
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function rules(): array
     {
-        $this->authorize('update', $this->business);
-
-        $data = $this->validate([
+        return [
             'name' => ['required', 'string', 'max:255'],
             'whatsapp_number' => ['nullable', 'string', 'max:20'],
             'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
@@ -89,7 +93,14 @@ new #[Title('Editar mi vitrina')] class extends Component {
             'headline' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'payment_info' => ['nullable', 'string'],
-        ]);
+        ];
+    }
+
+    public function save(): void
+    {
+        $this->authorize('update', $this->business);
+
+        $data = $this->validate($this->rules());
 
         $data['hours'] = ['note' => $this->hours_text];
         $data['social_links'] = $this->social_links;
@@ -104,8 +115,37 @@ new #[Title('Editar mi vitrina')] class extends Component {
 
         app(UpdateStorefront::class)->handle($this->business, $data, Auth::user());
         $this->reset(['logo', 'cover']);
+        $this->savedAt = now()->format('H:i');
 
         Flux::toast(variant: 'success', text: __('Cambios guardados.'));
+    }
+
+    /**
+     * Autoguardado silencioso mientras el emprendedor edita (1.6 del TODO):
+     * mismas reglas y acción que `save()`, pero sin bloquear con errores de
+     * validación en cada tecla — un campo a medio llenar simplemente espera
+     * a la siguiente edición para guardarse.
+     */
+    public function updated(string $property): void
+    {
+        if (in_array($property, ['logo', 'cover'], true)) {
+            return;
+        }
+
+        $this->authorize('update', $this->business);
+
+        $validator = Validator::make($this->only(array_keys($this->rules())), $this->rules());
+
+        if ($validator->fails()) {
+            return;
+        }
+
+        $data = $validator->validated();
+        $data['hours'] = ['note' => $this->hours_text];
+        $data['social_links'] = $this->social_links;
+
+        app(UpdateStorefront::class)->handle($this->business, $data, Auth::user());
+        $this->savedAt = now()->format('H:i');
     }
 
     public function publish(): void
@@ -146,11 +186,17 @@ new #[Title('Editar mi vitrina')] class extends Component {
     <div class="flex items-center justify-between">
         <flux:heading size="xl">{{ __('Editar mi vitrina') }}</flux:heading>
 
-        @if ($this->business->isPublished())
-            <flux:badge color="green">{{ __('Publicado') }}</flux:badge>
-        @else
-            <flux:badge>{{ ucfirst($this->business->status) }}</flux:badge>
-        @endif
+        <div class="flex items-center gap-3">
+            @if ($this->business->isPublished())
+                <flux:badge color="green">{{ __('Publicado') }}</flux:badge>
+            @else
+                <flux:badge>{{ ucfirst($this->business->status) }}</flux:badge>
+            @endif
+
+            <flux:button size="sm" variant="ghost" icon="users" :href="route('emprendedores.negocios.colaboradores', $this->business)" wire:navigate>
+                {{ __('Colaboradores') }}
+            </flux:button>
+        </div>
     </div>
 
     @if ($missing !== [])
@@ -172,7 +218,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:text class="mb-2">{{ __('Logo o foto principal') }}</flux:text>
                 <input type="file" wire:model="logo" accept="image/*" class="block w-full text-sm">
                 @if ($this->business->logoUrl() && ! $logo)
-                    <img src="{{ $this->business->logoUrl() }}" class="mt-2 size-16 rounded-lg object-cover" alt="">
+                    <img src="{{ $this->business->logoUrl() }}" class="mt-2 size-16 rounded-lg object-cover" alt="{{ $this->business->name }}">
                 @endif
             </div>
 
@@ -180,7 +226,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:text class="mb-2">{{ __('Portada de la vitrina') }}</flux:text>
                 <input type="file" wire:model="cover" accept="image/*" class="block w-full text-sm">
                 @if ($this->business->storefront?->coverUrl() && ! $cover)
-                    <img src="{{ $this->business->storefront->coverUrl() }}" class="mt-2 h-24 w-full rounded-lg object-cover" alt="">
+                    <img src="{{ $this->business->storefront->coverUrl() }}" class="mt-2 h-24 w-full rounded-lg object-cover" alt="{{ __('Portada actual') }}">
                 @endif
             </div>
         </div>
@@ -188,45 +234,51 @@ new #[Title('Editar mi vitrina')] class extends Component {
         <div class="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
             <flux:heading size="lg">{{ __('Información') }}</flux:heading>
 
-            <flux:input wire:model="name" :label="__('Nombre del negocio')" required />
-            <flux:input wire:model="headline" :label="__('Frase corta')" />
-            <flux:textarea wire:model="description" :label="__('Descripción')" rows="4" />
+            <flux:input wire:model.live.debounce.900ms="name" :label="__('Nombre del negocio')" required />
+            <flux:input wire:model.live.debounce.900ms="headline" :label="__('Frase corta')" />
+            <flux:textarea wire:model.live.debounce.900ms="description" :label="__('Descripción')" rows="4" />
 
-            <flux:select wire:model="municipality_id" :label="__('Municipio')">
+            <flux:select wire:model.live="municipality_id" :label="__('Municipio')">
                 <flux:select.option value="">{{ __('Selecciona un municipio') }}</flux:select.option>
                 @foreach ($this->municipalities as $municipality)
                     <flux:select.option value="{{ $municipality->id }}">{{ $municipality->name }}</flux:select.option>
                 @endforeach
             </flux:select>
 
-            <flux:select wire:model="category_id" :label="__('Categoría')">
+            <flux:select wire:model.live="category_id" :label="__('Categoría')">
                 <flux:select.option value="">{{ __('Selecciona una categoría') }}</flux:select.option>
                 @foreach ($this->categories as $category)
                     <flux:select.option value="{{ $category->id }}">{{ $category->name }}</flux:select.option>
                 @endforeach
             </flux:select>
 
-            <flux:input wire:model="zone" :label="__('Zona o barrio')" />
-            <flux:input wire:model="address" :label="__('Dirección (opcional)')" />
+            <flux:input wire:model.live.debounce.900ms="zone" :label="__('Zona o barrio')" />
+            <flux:input wire:model.live.debounce.900ms="address" :label="__('Dirección (opcional)')" />
         </div>
 
         <div class="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
             <flux:heading size="lg">{{ __('Horarios') }}</flux:heading>
-            <flux:textarea wire:model="hours_text" rows="2" placeholder="{{ __('Ej: Lun-Sáb 8:00am - 6:00pm') }}" />
+            <flux:textarea wire:model.live.debounce.900ms="hours_text" rows="2" placeholder="{{ __('Ej: Lun-Sáb 8:00am - 6:00pm') }}" />
         </div>
 
         <div class="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
             <flux:heading size="lg">{{ __('WhatsApp y redes') }}</flux:heading>
 
-            <flux:input wire:model="whatsapp_number" :label="__('WhatsApp')" type="tel" placeholder="+57 300 000 0000" />
-            <flux:input wire:model="social_links.instagram" label="Instagram" placeholder="https://instagram.com/..." />
-            <flux:input wire:model="social_links.facebook" label="Facebook" placeholder="https://facebook.com/..." />
-            <flux:input wire:model="social_links.tiktok" label="TikTok" placeholder="https://tiktok.com/@..." />
-            <flux:textarea wire:model="payment_info" :label="__('Información de pago (opcional)')" rows="2" placeholder="{{ __('Ej: Nequi 300 000 0000, o enlace de pago') }}" />
+            <flux:input wire:model.live.debounce.900ms="whatsapp_number" :label="__('WhatsApp')" type="tel" placeholder="+57 300 000 0000" />
+            <flux:input wire:model.live.debounce.900ms="social_links.instagram" label="Instagram" placeholder="https://instagram.com/..." />
+            <flux:input wire:model.live.debounce.900ms="social_links.facebook" label="Facebook" placeholder="https://facebook.com/..." />
+            <flux:input wire:model.live.debounce.900ms="social_links.tiktok" label="TikTok" placeholder="https://tiktok.com/@..." />
+            <flux:textarea wire:model.live.debounce.900ms="payment_info" :label="__('Información de pago (opcional)')" rows="2" placeholder="{{ __('Ej: Nequi 300 000 0000, o enlace de pago') }}" />
         </div>
 
         <div class="flex items-center gap-3">
             <flux:button type="submit" variant="primary">{{ __('Guardar cambios') }}</flux:button>
+
+            @if ($savedAt)
+                <flux:text class="text-sm text-zinc-400" wire:loading.remove wire:target="save">
+                    {{ __('Guardado automáticamente a las :hora', ['hora' => $savedAt]) }}
+                </flux:text>
+            @endif
 
             @if ($this->business->isPublished())
                 <flux:button variant="ghost" wire:click="unpublish" wire:confirm="{{ __('¿Volver esta vitrina a borrador?') }}">

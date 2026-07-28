@@ -20,6 +20,7 @@ class PhoneRegistrationTest extends TestCase
             'phone' => '+573001234567',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => '1',
         ]);
 
         $response->assertSessionHasNoErrors();

@@ -203,7 +203,7 @@ new #[Title('Crea tu vitrina')] class extends Component {
                 <flux:text class="mb-2">{{ __('Logo o foto principal') }}</flux:text>
                 <input type="file" wire:model="logo" accept="image/*" class="block w-full text-sm">
                 @if ($business?->logo_path && ! $logo)
-                    <img src="{{ $business->logoUrl() }}" class="mt-2 size-16 rounded-lg object-cover" alt="">
+                    <img src="{{ $business->logoUrl() }}" class="mt-2 size-16 rounded-lg object-cover" alt="{{ $business->name }}">
                 @endif
                 @error('logo') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
             </div>
@@ -212,7 +212,7 @@ new #[Title('Crea tu vitrina')] class extends Component {
                 <flux:text class="mb-2">{{ __('Portada de tu vitrina') }}</flux:text>
                 <input type="file" wire:model="cover" accept="image/*" class="block w-full text-sm">
                 @if ($business?->storefront?->cover_path && ! $cover)
-                    <img src="{{ $business->storefront->coverUrl() }}" class="mt-2 h-24 w-full rounded-lg object-cover" alt="">
+                    <img src="{{ $business->storefront->coverUrl() }}" class="mt-2 h-24 w-full rounded-lg object-cover" alt="{{ __('Portada actual') }}">
                 @endif
                 @error('cover') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
             </div>

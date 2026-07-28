@@ -2,6 +2,7 @@
 
 namespace App\Domain\Businesses\Models;
 
+use App\Domain\Discovery\Concerns\Favoritable;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Models\Product;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Business extends Model
 {
-    use SoftDeletes;
+    use Favoritable, SoftDeletes;
 
     protected $fillable = [
         'organization_id',

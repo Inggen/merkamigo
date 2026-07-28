@@ -46,6 +46,23 @@ class StorefrontEditorTest extends TestCase
         $component->assertSet('missing', fn ($missing) => count($missing) > 0);
     }
 
+    public function test_editing_a_field_autosaves_without_an_explicit_save_call(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Autoguardado',
+            'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('headline', 'Frase corta autoguardada')
+            ->assertSet('savedAt', fn ($savedAt) => $savedAt !== null);
+
+        $this->assertSame('Frase corta autoguardada', $business->fresh()->storefront->headline);
+    }
+
     public function test_a_collaborator_of_another_business_cannot_open_the_editor(): void
     {
         $ownerA = User::factory()->create();

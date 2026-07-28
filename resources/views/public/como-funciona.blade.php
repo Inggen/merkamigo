@@ -25,6 +25,10 @@
             <flux:text class="text-sm text-zinc-500">
                 {{ __('Merkamigo no procesa pagos ni domicilios: conecta compradores y negocios, el acuerdo lo hacen directamente por WhatsApp.') }}
             </flux:text>
+
+            <flux:link :href="route('preguntas-frecuentes')" wire:navigate>
+                {{ __('Ver preguntas frecuentes →') }}
+            </flux:link>
         </div>
     </div>
 </x-layouts::public>

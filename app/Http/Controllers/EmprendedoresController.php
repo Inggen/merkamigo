@@ -3,22 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Storefronts\Actions\PublishStorefront;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class EmprendedoresController extends Controller
 {
     /**
-     * Inicio placeholder de la experiencia Emprendedor (E06). El panel
-     * completo (métricas, Copiloto de WhatsApp) es de la Fase 1; aquí se
-     * prueba la navegación diferenciada y el estado vacío real cuando el
-     * usuario todavía no tiene negocios (0.2 del TODO).
+     * Inicio de la experiencia Emprendedor (E06, 1.6 del TODO): resumen del
+     * negocio, estado de publicación y guía de "qué te falta para vender"
+     * cuando todavía está en borrador. El panel completo (métricas, Copiloto
+     * de WhatsApp) queda para una próxima fase.
      */
-    public function home(Request $request): View
+    public function home(Request $request, PublishStorefront $publishStorefront): View
     {
-        $businesses = $request->user()->businesses;
+        $businesses = $request->user()->businesses()->with('storefront')->get();
 
-        return view('emprendedores.home', ['businesses' => $businesses]);
+        $missingByBusiness = $businesses
+            ->reject(fn (Business $business) => $business->isPublished())
+            ->mapWithKeys(fn (Business $business) => [$business->id => $publishStorefront->missingFieldsFor($business)]);
+
+        return view('emprendedores.home', [
+            'businesses' => $businesses,
+            'missingByBusiness' => $missingByBusiness,
+        ]);
     }
 
     /**
