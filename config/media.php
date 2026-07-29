@@ -31,6 +31,12 @@ return [
         'max_files' => 1,
     ],
 
+    'municipality_cover' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
     'verification_document' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'pdf'],
         'max_kb' => 8192,

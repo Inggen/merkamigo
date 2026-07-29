@@ -87,6 +87,15 @@ El TODO pide "motivos estandarizados y notificación al afectado" al suspender c
 - **Validación de contenido prohibido:** se implementó como rechazo de enlaces (`http://`, `https://`, `www.`) en nombre y descripción del producto (`App\Support\Validation\Rules\NoLinks`), el riesgo de spam más concreto y verificable. No se construyó un listado de palabras prohibidas — un listado así requeriría criterio editorial/legal que no corresponde inventar en código.
 - **Duplicar producto:** `DuplicateProduct` copia campos, variantes y archivos de fotos (vía `Storage::copy`, sin re-subir ni re-validar); el duplicado nace en `borrador`.
 
+## Plaza del municipio: cierre de 1.5
+
+- **Portada por municipio:** primer uso de `Filament\Forms\Components\FileUpload` en todo el panel (hasta ahora, los campos tipo imagen en Filament eran `TextInput` de una ruta en texto — ver `BusinessForm::logo_path`). Se sigue la misma convención de disco público + columna con ruta relativa que ya usa el resto de la app (`Municipality::coverUrl()` es igual a `Business::logoUrl()`), con la imagen genérica existente como respaldo si el municipio no tiene foto propia.
+- **Destacados:** usa `featured_until`/`Business::isFeatured()`, que ya existían (editables desde Filament desde la Fase 1.9) pero no se leían en ningún lugar público — la Plaza es el primer consumidor real. Un negocio destacado no se duplica en la sección "Nuevos".
+- **Nuevos:** es el mismo listado ordenado por fecha que ya existía (antes bajo el heading, inexacto, de "Negocios destacados"); ahora excluye a los negocios destacados y su nombre refleja lo que realmente hace.
+- **Zona:** filtro construido a partir de los valores de `zone` que ya existen entre los negocios publicados de ese municipio (`distinct()`), no una lista fija — `zone` sigue siendo texto libre en todo el resto de la app (formulario del emprendedor, Filament), no se introdujo aquí una taxonomía de zonas.
+- **Disponibilidad:** filtro "Solo disponibles" aplicado a la sección de productos de la Plaza (reutiliza `Product.is_available` de la Fase 1.4); no aplica a negocios, que no tienen ese concepto.
+- **Ofertas locales y recomendados** siguen fuera de este pase: ofertas locales necesitaría más volumen real de productos en promoción para ser una sección útil, y recomendados depende de datos de la Fase 3 (reseñas/recomendaciones) que no existen todavía.
+
 ## Explícitamente diferido a una sesión posterior
 
 - Revisión legal real de los textos de `docs/legal/`.

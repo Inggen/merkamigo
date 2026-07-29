@@ -647,12 +647,12 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.5 Plaza de mi municipio
 
-- [ ] Portada por municipio.
+- [x] Portada por municipio.
 - [x] Buscador por nombre, producto, servicio y categoría.
-- [ ] Filtros simples por categoría, municipio, cercanía, zona y disponibilidad.
-- [ ] Secciones: ofertas locales, negocios cercanos, nuevos, destacados y recomendados cuando haya datos.
+- [ ] Filtros simples por categoría, municipio, cercanía, zona y disponibilidad. (categoría, municipio, zona y disponibilidad ya funcionan; falta cercanía, que depende de la geolocalización opcional todavía sin construir — ver más abajo)
+- [ ] Secciones: ofertas locales, negocios cercanos, nuevos, destacados y recomendados cuando haya datos. (nuevos y destacados ya funcionan, usando `featured_until`; ofertas locales, negocios cercanos y recomendados quedan fuera — ver `docs/architecture/decisiones.md`)
 - [x] Listado de negocios con información mínima y CTA.
-- [ ] Listado de productos/servicios.
+- [x] Listado de productos/servicios.
 - [ ] Reservar sección “Solicitudes actuales” para activarla con la fase 2.
 - [x] Estado vacío útil para categorías sin oferta.
 - [x] Selector y persistencia del municipio.
