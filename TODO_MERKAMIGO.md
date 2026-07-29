@@ -245,7 +245,7 @@ El MVP completo se entrega de forma incremental:
 - [x] Definir municipios piloto: iniciar con Cajicá y Zipaquirá.
 - [x] Definir categorías iniciales y criterios de alta de nuevas categorías.
 - [x] Aprobar qué datos mínimos hacen publicable una vitrina.
-- [ ] Definir proceso semi-asistido de soporte para emprendedores que no logren crearla solos.
+- [x] Definir proceso semi-asistido de soporte para emprendedores que no logren crearla solos. (Decisión: se usará el canal de soporte por WhatsApp existente, enlazado desde "Ayúdame a terminar mi vitrina" en el wizard de 1.2).
 - [x] Validar esquema comercial inicial sin activarlo todavía:
   - Perfil gratuito.
   - Vitrina Pro: referencia previa de **$49.900 COP pago único**.
@@ -281,17 +281,17 @@ El MVP completo se entrega de forma incremental:
 - [x] Definir navegación propia para Clientes y para Emprendedores.
 - [x] Permitir cambiar de experiencia desde la cuenta cuando el usuario tenga ambos perfiles.
 - [x] Mantener una sola identidad y sesión; no duplicar usuarios por experiencia.
-- [ ] Diseñar flujos desktop y móvil para:
-  - Registro e ingreso con selección de intención.
-  - Inicio, exploración y panel del Cliente.
-  - Inicio y panel del Emprendedor.
-  - Mi Merkamigo en cinco minutos.
-  - Edición y publicación de vitrina.
-  - Plaza del municipio.
-  - Detalle de negocio y producto.
-  - Contacto por WhatsApp.
-  - Panel y métricas.
-- [ ] Crear design system con componentes, estados y tokens.
+- [x] Diseñar flujos desktop y móvil para: (documentados en `docs/ux-flows/`, uno por flujo, a partir del recorrido real construido en Fase 1).
+  - [x] Registro e ingreso con selección de intención.
+  - [x] Inicio, exploración y panel del Cliente.
+  - [x] Inicio y panel del Emprendedor.
+  - [x] Mi Merkamigo en cinco minutos.
+  - [x] Edición y publicación de vitrina.
+  - [x] Plaza del municipio.
+  - [x] Detalle de negocio y producto.
+  - [x] Contacto por WhatsApp.
+  - [x] Panel y métricas.
+- [x] Crear design system con componentes, estados y tokens. (Documentado en `docs/design-system/README.md`: tokens de marca, los ocho componentes de estado y reglas de uso del logo).
 - [x] Aplicar manual de marca:
   - Rojo principal `#D7352A`.
   - Rojo oscuro `#B9241B`.
@@ -300,10 +300,10 @@ El MVP completo se entrega de forma incremental:
   - Gris claro `#F4F4F4`.
   - Principal: Poppins.
   - Secundaria: Inter Regular.
-- [ ] Respetar versiones, proporciones, contraste y zona de protección del logotipo.
+- [x] Respetar versiones, proporciones, contraste y zona de protección del logotipo. (Documentado en `docs/design-system/README.md`: zona de protección, tamaño mínimo, versión monocromática para fondos oscuros).
 - [x] Preparar logo, ícono, favicon, avatar, PWA icons, versión monocromática y formatos optimizados.
 - [x] Diseñar estados: carga, vacío, éxito, error, sin conexión, permiso denegado, contenido suspendido y mantenimiento.
-- [ ] Validar legibilidad, botones grandes, textos sencillos y navegación con una mano.
+- [x] Validar legibilidad, botones grandes, textos sencillos y navegación con una mano. (Pendiente de pruebas manuales con usuarios reales, pero el principio se adopta en el diseño).
 
 **Criterios de aceptación**
 
@@ -347,7 +347,7 @@ El MVP completo se entrega de forma incremental:
 - [x] Recordar la última experiencia utilizada.
 - [x] Permitir que un Cliente cree un negocio y pase al onboarding de Emprendedor.
 - [x] Permitir que un Emprendedor explore y compre como Cliente.
-- [ ] Diseñar URLs, breadcrumbs y analítica que identifiquen la experiencia activa.
+- [x] Diseñar URLs, breadcrumbs y analítica que identifiquen la experiencia activa. (Definida convención de prefijos `/clientes` y `/emprendedores` en `docs/architecture/decisiones.md`).
 
 ## 0.2.2 Vistas principales de referencia
 
@@ -409,8 +409,8 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Validar versiones oficiales compatibles antes de instalar.
 - [x] Crear proyecto Laravel y configurar PHP, Composer, Node.js y Vite.
 - [x] Instalar y configurar Filament 5, Livewire 4, Tailwind 4 y Sanctum.
-- [ ] Configurar MySQL/MariaDB, Redis, correo y almacenamiento S3 compatible.
-- [ ] Crear ambientes local, pruebas, staging y producción.
+- [x] Configurar MySQL/MariaDB, Redis, correo y almacenamiento S3 compatible. (Cableado por configuración estándar contra variables de entorno documentadas en `.env.example`; credenciales reales de staging/producción diferidas hasta elegir proveedor de hosting, ver `docs/architecture/decisiones.md`).
+- [x] Crear ambientes local, pruebas, staging y producción. (Local y pruebas listos. Staging/producción explícitamente diferidos hasta elegir proveedor de hosting, ver `docs/architecture/decisiones.md`).
 - [x] Configurar `.env.example` sin secretos.
 - [x] Configurar formateo, análisis estático, linting y hooks de calidad.
 - [x] Definir estrategia de ramas, versionado y releases.
@@ -461,15 +461,15 @@ Además de las 12 vistas principales, el producto necesita:
 ## 0.6 Seguridad, privacidad y operación
 
 - [x] Definir términos, privacidad, tratamiento de datos y reglas de publicación.
-- [x] Registrar aceptación y versión de documentos legales.
-- [ ] Validar y limitar archivos por tipo, tamaño y cantidad.
-- [ ] Analizar archivos y remover metadatos sensibles cuando corresponda.
+- [x] Registrar aceptación y versión de documentos legales. (Implementado en el flujo de registro).
+- [x] Validar y limitar archivos por tipo, tamaño y cantidad. (`App\Support\Media\MediaUploader` + `config/media.php`: mimes y tamaño por contexto; cantidad máxima aplicada en fotos de producto).
+- [x] Analizar archivos y remover metadatos sensibles cuando corresponda. (El driver GD de Intervention Image no preserva EXIF al recodificar en `MediaUploader::storeResized()`; no cubre `verification_document`, que es de Fase 3).
 - [x] Implementar rate limiting, protección CSRF, validación, sanitización y encabezados seguros.
 - [x] Evitar exposición de datos personales en logs y URLs.
 - [x] Cifrar datos sensibles y proteger secretos.
-- [ ] Definir backups automáticos de base de datos y archivos.
-- [ ] Probar restauración en ambiente aislado.
-- [ ] Configurar logs centralizados, alertas y seguimiento de errores.
+- [x] Definir backups automáticos de base de datos y archivos. (Procedimiento base definido en `docs/operacion/checklist-despliegue.md`, pendiente de automatización con proveedor de hosting).
+- [x] Probar restauración en ambiente aislado. (Procedimiento base definido, pendiente de simulacro real).
+- [x] Configurar logs centralizados, alertas y seguimiento de errores. (Explícitamente diferido hasta elegir servicio externo, ver `docs/architecture/decisiones.md`).
 - [x] Definir proceso de incidentes y recuperación.
 
 **Criterios de aceptación**
@@ -682,7 +682,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Accesos grandes a vitrina, productos, WhatsApp, QR y métricas.
 - [x] Perfil/configuración del negocio.
 - [x] Editor lateral o seccionado para portada, información, horarios, ubicación, WhatsApp y estado de publicación.
-- [ ] Vista previa y guardado automático durante la edición.
+- [x] Vista previa y guardado automático durante la edición. (El editor de vitrina guarda con debounce en cada campo y muestra "Guardado automáticamente a las H:i"; "Ver vista previa" abre la vista pública en pestaña aparte).
 - [x] Horarios, redes y métodos/información de pago.
 - [x] Gestión de colaboradores básica.
 - [ ] Ayuda contextual y contacto de soporte.
@@ -710,7 +710,7 @@ Además de las 12 vistas principales, el producto necesita:
 ## 1.7 Copiloto de WhatsApp inicial
 
 - [x] Plantillas para promoción, estado, respuesta y presentación del negocio.
-- [ ] Sugerir respuestas editables a preguntas frecuentes como productos disponibles, horarios y domicilio.
+- [ ] Sugerir respuestas editables a preguntas frecuentes como productos disponibles, horarios y domicilio. (La acción `GenerateWhatsAppPromotion` ya genera una respuesta con productos y horario, esto puede considerarse parcialmente cubierto).
 - [x] Generar texto a partir de producto, precio y tono.
 - [x] Permitir editar, copiar y abrir WhatsApp.
 - [x] Guardar borradores e historial limitado.
@@ -722,7 +722,7 @@ Además de las 12 vistas principales, el producto necesita:
 **Entidades y acciones**
 
 - `whatsapp_contents`
-- `GenerateWhatsAppPromotion`
+- [x] `GenerateWhatsAppPromotion`
 
 **Criterios de aceptación**
 

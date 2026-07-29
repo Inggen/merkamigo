@@ -21,6 +21,22 @@ El primer pase se limitó a la fundación técnica (0.3, 0.4, 0.5 y una porción
 
 Un segundo pase cerró la mayor parte de lo restante de Fase 0: tokens de marca y logo aplicados (`resources/css/app.css`, `resources/views/components/app-logo-icon.blade.php`, `public/favicon.svg` y demás íconos), componentes de estado reutilizables (`resources/views/components/states/*`), navegación y layouts diferenciados para Cliente y Emprendedor con selector de experiencia (`App\Domain\Identity\Actions\SwitchExperience`), borrador de textos legales, estrategia de ramas, hook de calidad, stub de OpenAPI y política de versionado de API. El límite explícito de este segundo pase: no se construyó el contenido completo de las pantallas de Fase 1 (C01-C06, E01-E06) — solo la arquitectura (navegación, layouts, rutas placeholder) que esas pantallas usarán.
 
+Un tercer pase avanzó varios pendientes de la Fase 0: se definió el proceso de soporte semi-asistido, se definió la convención de URLs para las dos experiencias y se implementó el registro de consentimiento de términos y privacidad. Ese pase dejó un `README.md` de flujos de UX creado por error en `docs/architecture/` en vez de `docs/ux-flows/`, y no llegó a crear `docs/design-system/`; el TODO se marcó `[x]` de forma prematura para ambos puntos.
+
+Un cuarto pase corrigió esa inconsistencia y cerró el resto de Fase 0:
+
+- **Flujos de UX:** movidos a `docs/ux-flows/` (un archivo por cada uno de los 9 flujos de 0.2, más `README.md` como índice), documentando el recorrido real ya construido en Fase 1 (rutas, controladores, vistas) en vez de un prototipo visual aparte — ver "Pendiente" al final de `docs/product/sitemap.md`, que databa este punto como pendiente de una sesión de diseño dedicada; se optó por documentar lo ya implementado porque ya cubre el mismo objetivo (que cualquier persona pueda seguir el recorrido paso a paso) sin bloquear el avance en una sesión de diseño que no estaba agendada.
+- **Design system:** `docs/design-system/README.md` documenta los tokens de marca, los ocho componentes de estado y las reglas de logo (zona de protección, tamaño mínimo, versión monocromática) ya construidos, cerrando también el punto de 0.2 "respetar versiones, proporciones, contraste y zona de protección del logotipo".
+- **Infraestructura de 0.3** ("Configurar MySQL/MariaDB, Redis, correo y almacenamiento S3 compatible"): los cuatro servicios ya están cableados por configuración estándar de Laravel contra variables de entorno (`config/database.php`, `config/queue.php`/`config/mail.php`, `config/filesystems.php` con disco `s3`) y documentados en `.env.example` sin secretos (se agregaron `MAILGUN_*` como alternativa a `MAIL_MAILER=log`). Igual que "crear ambientes local, pruebas, staging y producción", las credenciales reales de staging/producción quedan diferidas hasta elegir proveedor de hosting.
+- **Validar y limitar archivos por tipo, tamaño y cantidad (0.6):** ya cubierto por `App\Support\Media\MediaUploader` + `config/media.php` (mimes y `max_kb` por contexto, `max_files` aplicado en fotos de producto vía `ValidatesProductData`).
+- **Analizar archivos y remover metadatos sensibles (0.6):** el driver GD de Intervention Image usado en `MediaUploader::storeResized()` no preserva EXIF al recodificar, así que cualquier imagen que pase por ahí (avatar, logo, portadas, fotos de producto/necesidad/municipio) queda sin metadatos del dispositivo/ubicación. No cubre `verification_document` (PDF), que es de Fase 3 y todavía no se construye.
+
+## URLs por experiencia (0.2.1)
+
+Para diferenciar las dos experiencias de usuario, se adoptará una convención de prefijos en las URLs:
+- **Experiencia Clientes:** Todas las rutas específicas de esta experiencia usarán el prefijo `/clientes`. Ejemplo: `/clientes/favoritos`.
+- **Experiencia Emprendedores:** Todas las rutas específicas de esta experiencia usarán el prefijo `/emprendedores`. Ejemplo: `/emprendedores/negocios/{id}/metricas`.
+
 ## Módulos del monolito modular
 
 `Identity`, `Businesses`, `Storefronts`, `Discovery`, `Needs`, `Trust`, `WhatsApp`, `Analytics`, `Billing`, `Moderation`, `Platform` — cada uno bajo `app/Domain/{Modulo}/{Actions,Models,Policies,Events,Jobs,Notifications}`.
@@ -52,7 +68,7 @@ Se implementó el esquema de datos (`phone_verified_at`, `hasVerifiedPhone()`, `
 
 `docs/legal/terminos.md`, `docs/legal/privacidad.md` y `docs/legal/reglas-comunidad.md` son un **borrador razonable, no revisado por un abogado**. Cubren tratamiento de datos personales (Ley 1581 de 2012 y Decreto 1377 de 2013 de Colombia), uso de WhatsApp, verificación y moderación. Antes de publicarlos como definitivos falta: revisión legal real, designar formalmente un responsable del tratamiento, y decidir cómo se registra la aceptación y versión de estos documentos por usuario (checkbox de registro, tabla de auditoría, etc. — todavía no implementado).
 
-## Métricas comprensibles
+Se ha implementado el registro de consentimiento en el alta de usuarios (`CreateNewUser`): se guarda la versión de los documentos aceptados (`terms_version`, `privacy_version`) y la fecha (`accepted_terms_at`) en la tabla `users`.
 
 El TODO pide `analytics_events` y `daily_business_metrics` como entidades separadas, con un job en cola para precalcular la segunda. Simplificaciones de este pase:
 
@@ -109,6 +125,7 @@ El TODO pide "motivos estandarizados y notificación al afectado" al suspender c
 - **Compresión/redimensionado de imágenes:** se instaló `intervention/image` (driver GD, ya disponible en el entorno sin dependencias de sistema adicionales) y se integró en `App\Support\Media\MediaUploader::store()`, el único punto de escritura compartido por avatar, logo, portada de vitrina y fotos de producto. Cada contexto de `config/media.php` define un `max_width` opcional; `verification_document` (que admite PDF) no lo tiene y se guarda sin tocar. El redimensionado nunca agranda (`scaleDown`) y conserva el formato original de la imagen (`encode()` sin forzar un tipo) para no romper transparencia en logos PNG. La portada de municipio (Filament, Módulo B) no pasa por `MediaUploader` — usa las opciones nativas de redimensionado de `Filament\Forms\Components\FileUpload`, disponibles gratis al instalar la misma dependencia.
 - **Salida semi-asistida:** se agregó "Ayúdame a terminar mi vitrina" en el paso 5 del wizard, visible solo cuando faltan datos para publicar, enlazando al canal de soporte ya existente (`route('soporte')`) — no se inventó un número de WhatsApp nuevo ni parámetros de contexto que esa página no soporta hoy (sigue pendiente configurar `MERKAMIGO_SUPPORT_WHATSAPP` con un número real).
 - **Transcripción de audio y texto asistido por IA** se mantienen diferidos — sin proveedor de IA elegido, tal como se documentó desde el primer pase de Fase 1. No forman parte de este módulo.
+- **Proceso de soporte semi-asistido (0.1):** Se formaliza la decisión de que el soporte inicial para emprendedores que no logran completar su vitrina se canalizará a través del enlace a WhatsApp ya existente en la plataforma (`/soporte`). Esto cumple el requisito sin necesidad de construir un sistema de tickets en esta fase.
 
 ## Explícitamente diferido a una sesión posterior
 

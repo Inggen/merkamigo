@@ -21,6 +21,14 @@ use RuntimeException;
  * Intervention Image antes de guardarse — nunca se agranda, y se
  * conserva el formato original (importante para no romper la
  * transparencia de logos en PNG).
+ *
+ * El mismo paso de `storeResized()` cubre además "analizar archivos y
+ * remover metadatos sensibles" (0.6 del TODO): el driver GD de
+ * Intervention Image no lee ni conserva EXIF al recodificar, así que
+ * cualquier ubicación GPS o dato del dispositivo embebido en la foto
+ * original se descarta. Esto aplica a avatar, logo, portadas y fotos de
+ * producto/necesidad/municipio; `verification_document` (PDF, Fase 3) no
+ * pasa por aquí todavía.
  */
 class MediaUploader
 {

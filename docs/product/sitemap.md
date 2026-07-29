@@ -92,11 +92,10 @@ Regla compartida: una sola identidad/sesión. El selector "Quiero comprar/encont
 
 Estos tokens se cargarán como variables de Tailwind 4 (`@theme`) cuando se construyan las primeras pantallas de Fase 1; en esta fundación técnica solo queda documentado el valor, no aplicado a componentes visuales todavía.
 
-## Pendiente (fuera de esta ficha, requiere sesión de diseño dedicada)
+## Pendiente
 
-- Prototipo responsive (desktop + móvil) de cada flujo listado en 0.2 del TODO.
-- Design system con componentes, estados (carga, vacío, éxito, error, sin conexión, permiso denegado, suspendido, mantenimiento) y variantes.
-- Validación de legibilidad, tamaño de botones y navegación con una mano con usuarios reales.
+- Los flujos de 0.2 y el design system con componentes/estados ya están documentados en [`docs/ux-flows/`](../ux-flows/README.md) y [`docs/design-system/README.md`](../design-system/README.md), a partir de lo realmente construido en Fase 1 — no como un prototipo visual aparte.
+- Sigue pendiente: validación de legibilidad, tamaño de botones y navegación con una mano con usuarios reales (requiere una sesión con usuarios, no solo documentación).
 
 ## Láminas de referencia de 0.2.2
 
