@@ -80,7 +80,7 @@ class PlazaController extends Controller
         return [
             'municipio' => $municipio,
             'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
-            'categories' => Category::where('is_active', true)->orderBy('name')->get(),
+            'categories' => Category::where('is_active', true)->orderBy('position')->get(),
             'category' => $categoria,
             'zones' => $zones,
             'zone' => $zone,
@@ -118,7 +118,7 @@ class PlazaController extends Controller
         return view('plaza.buscar', [
             'query' => $query,
             'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
-            'categories' => Category::where('is_active', true)->orderBy('name')->get(),
+            'categories' => Category::where('is_active', true)->orderBy('position')->get(),
             'businesses' => $businesses,
         ]);
     }
@@ -133,7 +133,7 @@ class PlazaController extends Controller
     public function categorias(): View
     {
         return view('public.categorias', [
-            'categories' => Category::where('is_active', true)->orderBy('name')->get(),
+            'categories' => Category::where('is_active', true)->orderBy('position')->get(),
         ]);
     }
 }

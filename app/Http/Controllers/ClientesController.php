@@ -10,6 +10,7 @@ use App\Domain\Storefronts\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 
 /**
  * Inicio de la experiencia Cliente (C01, 1.1.1 del TODO): municipio,
@@ -27,6 +28,11 @@ class ClientesController extends Controller
             return view('clientes.home', [
                 'municipality' => null,
                 'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
+                'autoDetectMunicipalities' => Municipality::where('is_active', true)
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'slug', 'latitude', 'longitude']),
                 'categories' => collect(),
                 'businesses' => collect(),
             ]);
@@ -35,7 +41,8 @@ class ClientesController extends Controller
         return view('clientes.home', [
             'municipality' => $municipality,
             'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
-            'categories' => Category::where('is_active', true)->orderBy('name')->get(),
+            'autoDetectMunicipalities' => collect(),
+            'categories' => Category::where('is_active', true)->orderBy('position')->get(),
             'businesses' => Business::query()
                 ->where('municipality_id', $municipality->id)
                 ->where('status', 'publicado')
@@ -59,8 +66,14 @@ class ClientesController extends Controller
     public function setMunicipio(Request $request, SetPreferredMunicipality $setPreferredMunicipality): RedirectResponse
     {
         $data = $request->validate([
-            'municipality_id' => ['required', 'integer', 'exists:municipalities,id'],
+            'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
         ]);
+
+        if (blank($data['municipality_id'] ?? null)) {
+            Cookie::queue(Cookie::forget('municipio'));
+
+            return redirect()->route('clientes.home');
+        }
 
         $municipality = Municipality::where('id', $data['municipality_id'])->firstOrFail();
 

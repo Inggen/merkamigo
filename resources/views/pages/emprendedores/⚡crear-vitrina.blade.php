@@ -142,7 +142,7 @@ new #[Title('Crea tu vitrina')] class extends Component {
     #[Computed]
     public function categories()
     {
-        return Category::where('is_active', true)->orderBy('name')->get();
+        return Category::where('is_active', true)->orderBy('position')->get();
     }
 }; ?>
 

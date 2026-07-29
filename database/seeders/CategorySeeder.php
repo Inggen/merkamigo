@@ -28,10 +28,10 @@ class CategorySeeder extends Seeder
             'Otros' => 'tag',
         ];
 
-        foreach ($categories as $name => $icon) {
+        foreach (array_keys($categories) as $position => $name) {
             Category::query()->updateOrCreate(
                 ['slug' => Str::slug($name)],
-                ['name' => $name, 'icon' => $icon, 'is_active' => true],
+                ['name' => $name, 'icon' => $categories[$name], 'position' => $position, 'is_active' => true],
             );
         }
     }
