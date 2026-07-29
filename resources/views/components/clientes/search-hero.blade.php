@@ -58,15 +58,29 @@
                     <span x-text="selectedMunicipalityName"></span>
                 </flux:button>
                 <flux:menu>
+                    <flux:menu.item
+                        as="button"
+                        type="button"
+                        x-on:click="selectedMunicipalityId = ''; selectedMunicipalityName = '{{ e(__('Todos')) }}'"
+                        class="w-full cursor-pointer"
+                    >
+                        <span class="flex w-full items-center justify-between gap-2">
+                            {{ __('Todos') }}
+                            <flux:icon.check x-show="selectedMunicipalityId === ''" x-cloak class="size-4" variant="outline" />
+                        </span>
+                    </flux:menu.item>
+
                     @foreach ($municipalities as $option)
                         <flux:menu.item
                             as="button"
                             type="button"
                             x-on:click="selectedMunicipalityId = '{{ $option->id }}'; selectedMunicipalityName = '{{ e($option->name) }}'"
-                            :icon="$municipality->id === $option->id ? 'check' : null"
                             class="w-full cursor-pointer"
                         >
-                            {{ $option->name }}
+                            <span class="flex w-full items-center justify-between gap-2">
+                                {{ $option->name }}
+                                <flux:icon.check x-show="selectedMunicipalityId === '{{ $option->id }}'" x-cloak class="size-4" variant="outline" />
+                            </span>
                         </flux:menu.item>
                     @endforeach
                 </flux:menu>
