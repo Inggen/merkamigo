@@ -1,23 +1,23 @@
 @props(['categories', 'activeCategory' => null, 'allUrl', 'urlFor'])
 
-<div class="flex gap-3 overflow-x-auto pb-1">
-    <a
-        href="{{ $allUrl }}"
-        wire:navigate
-        class="flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition {{ ! $activeCategory ? 'bg-brand-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700' }}"
-    >
-        <x-dynamic-component component="flux::icon.squares-2x2" class="size-5" variant="outline" />
-        {{ __('Todas') }}
+<div class="flex gap-4 overflow-x-auto pb-2">
+    <a href="{{ $allUrl }}" wire:navigate class="flex w-20 shrink-0 flex-col items-center gap-1.5 text-center">
+        <span class="flex size-14 items-center justify-center rounded-full border transition {{ ! $activeCategory ? 'border-brand-600 bg-brand-600 text-white' : 'border-zinc-200 bg-white text-zinc-500 hover:border-brand-300 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400' }}">
+            <x-dynamic-component component="flux::icon.squares-2x2" class="size-6" variant="outline" />
+        </span>
+        <span class="text-xs leading-tight font-medium {{ ! $activeCategory ? 'text-brand-600' : 'text-zinc-600 dark:text-zinc-300' }}">
+            {{ __('Todas') }}
+        </span>
     </a>
 
     @foreach ($categories as $category)
-        <a
-            href="{{ $urlFor($category) }}"
-            wire:navigate
-            class="flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition {{ $activeCategory?->id === $category->id ? 'bg-brand-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700' }}"
-        >
-            <x-dynamic-component :component="'flux::icon.'.$category->icon" class="size-5" variant="outline" />
-            <span class="max-w-20 truncate">{{ $category->name }}</span>
+        <a href="{{ $urlFor($category) }}" wire:navigate class="flex w-20 shrink-0 flex-col items-center gap-1.5 text-center">
+            <span class="flex size-14 items-center justify-center rounded-full border transition {{ $activeCategory?->id === $category->id ? 'border-brand-600 bg-brand-600 text-white' : 'border-zinc-200 bg-white text-zinc-500 hover:border-brand-300 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400' }}">
+                <x-dynamic-component :component="'flux::icon.'.$category->icon" class="size-6" variant="outline" />
+            </span>
+            <span class="text-xs leading-tight font-medium {{ $activeCategory?->id === $category->id ? 'text-brand-600' : 'text-zinc-600 dark:text-zinc-300' }}">
+                {{ $category->name }}
+            </span>
         </a>
     @endforeach
 </div>

@@ -31,22 +31,16 @@
             </flux:menu>
         </flux:dropdown>
 
-        <form method="GET" action="{{ route('buscar') }}" class="order-last w-full sm:order-none sm:w-auto sm:flex-1">
-            <flux:input
-                name="q"
-                :value="request()->get('q')"
-                placeholder="{{ __('Buscar negocios, productos o servicios...') }}"
-                icon="magnifying-glass"
-            />
-            @if ($currentMunicipio)
-                <input type="hidden" name="municipio" value="{{ $currentMunicipio->id }}">
-            @endif
-        </form>
-
         <nav class="ml-auto flex shrink-0 items-center gap-1">
             <flux:button size="sm" variant="ghost" icon="magnifying-glass" :href="route('buscar')" wire:navigate>
                 <span class="hidden md:inline">{{ __('Explorar') }}</span>
             </flux:button>
+
+            <span class="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 md:inline-flex dark:text-zinc-500">
+                <flux:icon.chat-bubble-left-right class="size-4" variant="outline" />
+                {{ __('Mensajes') }}
+                <flux:badge size="sm" color="zinc">{{ __('Pronto') }}</flux:badge>
+            </span>
 
             @auth
                 <flux:button size="sm" variant="ghost" icon="heart" :href="route('clientes.favoritos')" wire:navigate>

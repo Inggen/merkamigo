@@ -10,7 +10,7 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\VitrinaController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+Route::get('/', [ClientesController::class, 'home'])->name('home');
 
 Route::view('terminos', 'legal.terminos')->name('terminos');
 Route::view('privacidad', 'legal.privacidad')->name('privacidad');
