@@ -1,9 +1,11 @@
 <?php
 
 // Límites de archivos por contexto (0.6 del TODO: "validar y limitar
-// archivos por tipo, tamaño y cantidad"). Todavía no hay una funcionalidad
-// de subida construida (llega en Fase 1/3); estas reglas quedan listas
-// para cuando se implemente, evitando decidir los límites bajo presión.
+// archivos por tipo, tamaño y cantidad"). `max_width` (1.2 del TODO:
+// "optimizar, comprimir y generar variantes de imágenes") se aplica en
+// `App\Support\Media\MediaUploader`: reduce el ancho si lo excede, nunca
+// agranda, y conserva el formato original. No aplica a
+// `verification_document`, que admite PDF.
 
 return [
 
@@ -11,30 +13,35 @@ return [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 2048,
         'max_files' => 1,
+        'max_width' => 512,
     ],
 
     'business_logo' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 2048,
         'max_files' => 1,
+        'max_width' => 512,
     ],
 
     'product_photo' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
         'max_files' => 8,
+        'max_width' => 1600,
     ],
 
     'storefront_cover' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
         'max_files' => 1,
+        'max_width' => 1920,
     ],
 
     'municipality_cover' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
         'max_files' => 1,
+        'max_width' => 1920,
     ],
 
     'verification_document' => [
@@ -47,6 +54,7 @@ return [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
         'max_files' => 4,
+        'max_width' => 1600,
     ],
 
 ];

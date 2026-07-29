@@ -25,7 +25,10 @@ class MunicipalityForm
                     ->image()
                     ->disk('public')
                     ->directory('municipalities')
-                    ->maxSize(config('media.municipality_cover.max_kb')),
+                    ->maxSize(config('media.municipality_cover.max_kb'))
+                    ->imageResizeMode('contain')
+                    ->imageResizeTargetWidth((string) config('media.municipality_cover.max_width'))
+                    ->imageResizeTargetHeight((string) config('media.municipality_cover.max_width')),
                 Toggle::make('is_active')
                     ->required(),
             ]);

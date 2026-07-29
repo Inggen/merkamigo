@@ -5,6 +5,8 @@ namespace App\Support\Media;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 use RuntimeException;
 
 /**
@@ -12,8 +14,13 @@ use RuntimeException;
  * `config/media.php` (0.6 del TODO: "validar y limitar archivos por tipo,
  * tamaño y cantidad"). Usa el disco `public` en desarrollo; en
  * producción este disco debe apuntar a almacenamiento S3-compatible (ver
- * docs/architecture/decisiones.md) — no se redimensiona ni se generan
- * variantes todavía (no hay librería de imágenes instalada).
+ * docs/architecture/decisiones.md).
+ *
+ * Cuando el contexto define `max_width` (1.2 del TODO: "optimizar,
+ * comprimir y generar variantes de imágenes"), la imagen se reduce con
+ * Intervention Image antes de guardarse — nunca se agranda, y se
+ * conserva el formato original (importante para no romper la
+ * transparencia de logos en PNG).
  */
 class MediaUploader
 {
@@ -29,6 +36,10 @@ class MediaUploader
                 'max:'.$rules['max_kb'],
             ],
         ])->validate();
+
+        if (isset($rules['max_width'])) {
+            return $this->storeResized($file, $directory, $rules['max_width']);
+        }
 
         $path = $file->store($directory, 'public');
 
@@ -49,5 +60,17 @@ class MediaUploader
     public function url(?string $path): ?string
     {
         return $path ? Storage::disk('public')->url($path) : null;
+    }
+
+    private function storeResized(UploadedFile $file, string $directory, int $maxWidth): string
+    {
+        $image = (new ImageManager(Driver::class))->decode($file);
+        $image->scaleDown(width: $maxWidth);
+
+        $path = $file->hashName($directory);
+
+        Storage::disk('public')->put($path, (string) $image->encode());
+
+        return $path;
     }
 }

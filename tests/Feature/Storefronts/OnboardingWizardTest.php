@@ -68,4 +68,22 @@ class OnboardingWizardTest extends TestCase
         $this->assertSame('publicado', $business->fresh()->status);
         $this->assertNotNull($business->fresh()->storefront->published_at);
     }
+
+    public function test_step_five_offers_a_semi_assisted_exit_when_fields_are_missing(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $component = Livewire::test('pages::emprendedores.crear-vitrina')
+            ->set('name', 'Negocio incompleto')
+            ->call('goToStep2')
+            ->call('goToStep3')
+            ->call('goToStep4')
+            ->call('goToStep5')
+            ->call('publish');
+
+        $component->assertSet('missing', fn ($missing) => $missing !== [])
+            ->assertSee(__('Ayúdame a terminar mi vitrina'))
+            ->assertSeeHtml(route('soporte'));
+    }
 }

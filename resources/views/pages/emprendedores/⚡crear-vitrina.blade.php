@@ -270,6 +270,17 @@ new #[Title('Crea tu vitrina')] class extends Component {
                             <li>{{ $item }}</li>
                         @endforeach
                     </ul>
+
+                    <flux:button
+                        variant="ghost"
+                        size="sm"
+                        icon="lifebuoy"
+                        class="mt-3"
+                        :href="route('soporte')"
+                        wire:navigate
+                    >
+                        {{ __('Ayúdame a terminar mi vitrina') }}
+                    </flux:button>
                 </div>
             @endif
 

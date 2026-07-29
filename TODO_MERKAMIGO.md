@@ -567,12 +567,12 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Permitir omitir campos no obligatorios y completarlos después.
 - [ ] Transcribir audio mediante proceso en cola.
 - [ ] Proponer texto asistido y exigir revisión del emprendedor antes de publicar.
-- [ ] Optimizar, comprimir y generar variantes de imágenes.
+- [ ] Optimizar, comprimir y generar variantes de imágenes. (optimizar/comprimir ya funciona en todas las subidas vía `MediaUploader` — avatar, logo, portada, fotos de producto; falta "generar variantes", es decir, más de un tamaño por imagen — hoy se guarda una sola versión ya redimensionada)
 - [x] Mostrar vista previa antes de publicar.
 - [x] Diferenciar claramente “Revisar y publicar” de “Editar información”.
 - [x] Mostrar lista clara de información faltante.
 - [x] Medir tiempo real hasta primera publicación.
-- [ ] Ofrecer salida semi-asistida: “Ayúdame a terminar mi vitrina”.
+- [x] Ofrecer salida semi-asistida: “Ayúdame a terminar mi vitrina”.
 
 **Entidades y acciones**
 

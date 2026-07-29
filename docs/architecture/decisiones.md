@@ -104,6 +104,12 @@ El TODO pide "motivos estandarizados y notificación al afectado" al suspender c
 - **Galería:** agrega TODAS las fotos de los productos publicados del negocio (no una por producto, a diferencia de las tarjetas de "Productos destacados"), tope de 12. Se corrigió de paso un N+1 preexistente en `VitrinaController::show()` (`products` no traía `media` precargada).
 - **Estado de verificación y recomendaciones** siguen fuera — dependen de la Fase 3 (verificación de negocio, reseñas), que no existe todavía.
 
+## Onboarding: cierre parcial de 1.2
+
+- **Compresión/redimensionado de imágenes:** se instaló `intervention/image` (driver GD, ya disponible en el entorno sin dependencias de sistema adicionales) y se integró en `App\Support\Media\MediaUploader::store()`, el único punto de escritura compartido por avatar, logo, portada de vitrina y fotos de producto. Cada contexto de `config/media.php` define un `max_width` opcional; `verification_document` (que admite PDF) no lo tiene y se guarda sin tocar. El redimensionado nunca agranda (`scaleDown`) y conserva el formato original de la imagen (`encode()` sin forzar un tipo) para no romper transparencia en logos PNG. La portada de municipio (Filament, Módulo B) no pasa por `MediaUploader` — usa las opciones nativas de redimensionado de `Filament\Forms\Components\FileUpload`, disponibles gratis al instalar la misma dependencia.
+- **Salida semi-asistida:** se agregó "Ayúdame a terminar mi vitrina" en el paso 5 del wizard, visible solo cuando faltan datos para publicar, enlazando al canal de soporte ya existente (`route('soporte')`) — no se inventó un número de WhatsApp nuevo ni parámetros de contexto que esa página no soporta hoy (sigue pendiente configurar `MERKAMIGO_SUPPORT_WHATSAPP` con un número real).
+- **Transcripción de audio y texto asistido por IA** se mantienen diferidos — sin proveedor de IA elegido, tal como se documentó desde el primer pase de Fase 1. No forman parte de este módulo.
+
 ## Explícitamente diferido a una sesión posterior
 
 - Revisión legal real de los textos de `docs/legal/`.
