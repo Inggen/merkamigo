@@ -71,6 +71,11 @@
                                 @if ($business->municipality)
                                     <flux:badge size="sm">{{ $business->municipality->name }}{{ $business->zone ? ' · '.$business->zone : '' }}</flux:badge>
                                 @endif
+                                @if (($isOpenNow = $business->isOpenNow()) !== null)
+                                    <flux:badge size="sm" :color="$isOpenNow ? 'green' : 'red'">
+                                        {{ $isOpenNow ? __('Abierto ahora') : __('Cerrado ahora') }}
+                                    </flux:badge>
+                                @endif
                             </div>
                         </div>
 
@@ -112,6 +117,30 @@
                             <flux:text class="whitespace-pre-line text-zinc-600 dark:text-zinc-300">{{ $business->storefront->description }}</flux:text>
                         @endif
 
+                        @php
+                            $businessAttributes = $business->activeAttributes();
+                            $galleryPhotos = $products->flatMap(fn ($product) => $product->media)->take(12);
+                        @endphp
+
+                        @if ($businessAttributes->isNotEmpty())
+                            <div class="mt-3 flex flex-wrap gap-1.5">
+                                @foreach ($businessAttributes as $attribute)
+                                    <flux:badge size="sm" color="zinc">{{ $attribute->name }}</flux:badge>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if ($galleryPhotos->isNotEmpty())
+                            <flux:subheading class="mt-6 mb-3">{{ __('Galería') }}</flux:subheading>
+                            <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                @foreach ($galleryPhotos as $photo)
+                                    <div class="aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                        <img src="{{ $photo->url() }}" class="h-full w-full object-cover" alt="{{ $business->name }}">
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
                         @if ($products->isNotEmpty())
                             <flux:subheading class="mt-6 mb-3">{{ __('Productos destacados') }}</flux:subheading>
                             <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -146,6 +175,20 @@
                             <div>
                                 <flux:subheading>{{ __('Horario') }}</flux:subheading>
                                 <flux:text>{{ $business->hoursNote() }}</flux:text>
+                            </div>
+                        @endif
+
+                        @if ($business->hasStructuredSchedule())
+                            <div>
+                                <flux:subheading>{{ __('Horario por día') }}</flux:subheading>
+                                <div class="mt-1 space-y-0.5 text-sm">
+                                    @foreach ($business->scheduleForDisplay() as $day => $state)
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-zinc-500 dark:text-zinc-400">{{ $day }}</span>
+                                            <span>{{ $state }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
                         @endif
 

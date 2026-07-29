@@ -96,6 +96,14 @@ El TODO pide "motivos estandarizados y notificación al afectado" al suspender c
 - **Disponibilidad:** filtro "Solo disponibles" aplicado a la sección de productos de la Plaza (reutiliza `Product.is_available` de la Fase 1.4); no aplica a negocios, que no tienen ese concepto.
 - **Ofertas locales y recomendados** siguen fuera de este pase: ofertas locales necesitaría más volumen real de productos en promoción para ser una sección útil, y recomendados depende de datos de la Fase 3 (reseñas/recomendaciones) que no existen todavía.
 
+## Vitrina pública: cierre de 1.3
+
+- **Horario estructurado:** `businesses.hours` conserva su forma anterior (`note`, texto libre) y agrega una clave `schedule` con un array por día (`monday`...`sunday`, en inglés para que coincidan con `now()->format('l')`, que nunca se traduce) con `closed`/`open`/`close`. `Business::isOpenNow()` devuelve `null` cuando no hay `schedule` en absoluto (no calculable, tal como pide el criterio de aceptación), no asume abierto ni cerrado por defecto.
+- **Gotcha real encontrado y corregido:** dentro de la propia clase `Business`, `$this->attributes` NO es la columna JSON `attributes` — es la propiedad interna de Eloquent con el array crudo de *todos* los atributos del modelo (colisión de nombre con el framework). Hay que usar `$this->getAttribute('attributes')` explícitamente para obtener el valor casteado. `Business::activeAttributes()` es el único método afectado (los demás campos usados en este módulo, como `hours`, no colisionan con ninguna propiedad interna de Eloquent).
+- **Vocabulario de atributos:** tabla `business_attributes` sembrada (`BusinessAttributeSeeder`) + recurso propio de Filament, igual que `categories`/`municipalities` — decisión explícita del usuario de seguir ese patrón en vez de un archivo de config, aunque sea una lista pequeña. Si un moderador desactiva una etiqueta, los negocios que la tenían seleccionada simplemente dejan de mostrarla (`activeAttributes()` filtra por `is_active`), sin necesidad de limpieza.
+- **Galería:** agrega TODAS las fotos de los productos publicados del negocio (no una por producto, a diferencia de las tarjetas de "Productos destacados"), tope de 12. Se corrigió de paso un N+1 preexistente en `VitrinaController::show()` (`products` no traía `media` precargada).
+- **Estado de verificación y recomendaciones** siguen fuera — dependen de la Fase 3 (verificación de negocio, reseñas), que no existe todavía.
+
 ## Explícitamente diferido a una sesión posterior
 
 - Revisión legal real de los textos de `docs/legal/`.

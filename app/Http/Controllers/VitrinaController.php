@@ -32,7 +32,7 @@ class VitrinaController extends Controller
 
         return view('vitrinas.show', [
             'business' => $business,
-            'products' => $business->products()->where('status', 'publicado')->get(),
+            'products' => $business->products()->where('status', 'publicado')->with('media')->get(),
         ]);
     }
 

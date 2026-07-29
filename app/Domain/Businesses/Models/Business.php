@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -27,6 +28,24 @@ use Illuminate\Support\Facades\Storage;
 class Business extends Model
 {
     use Favoritable, SoftDeletes;
+
+    /**
+     * Días de la semana en español, en claves compatibles con
+     * `now()->format('l')` (que siempre devuelve el nombre en inglés sin
+     * traducir). Compartido por el editor del emprendedor y la vitrina
+     * pública para no duplicar el mapeo de días (1.3 del TODO).
+     *
+     * @var array<string, string>
+     */
+    public const DAY_LABELS = [
+        'monday' => 'Lunes',
+        'tuesday' => 'Martes',
+        'wednesday' => 'Miércoles',
+        'thursday' => 'Jueves',
+        'friday' => 'Viernes',
+        'saturday' => 'Sábado',
+        'sunday' => 'Domingo',
+    ];
 
     protected $fillable = [
         'organization_id',
@@ -126,6 +145,86 @@ class Business extends Model
     public function hoursNote(): ?string
     {
         return $this->hours['note'] ?? null;
+    }
+
+    public function hasStructuredSchedule(): bool
+    {
+        return ! empty($this->hours['schedule'] ?? []);
+    }
+
+    /**
+     * Horario por día listo para mostrar (1.3 del TODO). No decide nada de
+     * presentación en la vista — solo arma el texto por día.
+     *
+     * @return array<string, string>
+     */
+    public function scheduleForDisplay(): array
+    {
+        $schedule = $this->hours['schedule'] ?? [];
+        $result = [];
+
+        foreach (self::DAY_LABELS as $key => $label) {
+            $day = $schedule[$key] ?? null;
+
+            $result[$label] = match (true) {
+                ! $day || ($day['closed'] ?? false) => __('Cerrado'),
+                empty($day['open']) || empty($day['close']) => __('Sin definir'),
+                default => "{$day['open']} - {$day['close']}",
+            };
+        }
+
+        return $result;
+    }
+
+    /**
+     * "Abierto ahora"/"Cerrado" calculado (1.3 del TODO). `null` cuando no
+     * hay horario estructurado en absoluto — no es calculable, no se debe
+     * asumir ni abierto ni cerrado.
+     */
+    public function isOpenNow(): ?bool
+    {
+        if (! $this->hasStructuredSchedule()) {
+            return null;
+        }
+
+        $today = $this->hours['schedule'][strtolower(now()->format('l'))] ?? null;
+
+        if (! $today || ($today['closed'] ?? false)) {
+            return false;
+        }
+
+        if (empty($today['open']) || empty($today['close'])) {
+            return null;
+        }
+
+        $now = now()->format('H:i');
+
+        return $now >= $today['open'] && $now <= $today['close'];
+    }
+
+    /**
+     * Etiquetas activas seleccionadas por el negocio (1.3 del TODO). Si un
+     * moderador desactiva una etiqueta desde Filament, los negocios que la
+     * tenían simplemente dejan de mostrarla, sin limpieza adicional.
+     *
+     * @return Collection<int, BusinessAttribute>
+     */
+    public function activeAttributes(): Collection
+    {
+        // $this->attributes (sin getAttribute()) es la propiedad interna de
+        // Eloquent con el array crudo de TODOS los atributos del modelo, no
+        // el valor casteado de la columna JSON `attributes` — hay que pasar
+        // por el accessor explícitamente para evitar la colisión de nombre.
+        $slugs = $this->getAttribute('attributes') ?? [];
+
+        if ($slugs === []) {
+            return collect();
+        }
+
+        return BusinessAttribute::where('is_active', true)
+            ->whereIn('slug', $slugs)
+            ->orderBy('name')
+            ->get();
     }
 
     /**

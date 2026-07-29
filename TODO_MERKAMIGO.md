@@ -595,16 +595,16 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Portada y avatar/logo independientes.
 - [x] Productos y servicios.
 - [x] Precio exacto, “desde”, “consultar” o sin precio según configuración.
-- [ ] Galería.
+- [x] Galería.
 - [x] Botón de WhatsApp con mensaje contextual.
 - [x] Enlace o información de pago externa opcional.
 - [x] Redes sociales.
-- [ ] Horario y estado “abierto/cerrado” cuando sea calculable.
+- [x] Horario y estado “abierto/cerrado” cuando sea calculable.
 - [x] QR descargable y enlace para compartir.
 - [ ] Estado de verificación cuando exista.
 - [x] Guardar o quitar de favoritos.
 - [x] Compartir.
-- [ ] Atributos administrables como “Producto artesanal”, “Hecho en Cajicá”, “Ingredientes frescos” o “Atención cercana”, sujetos a moderación.
+- [x] Atributos administrables como “Producto artesanal”, “Hecho en Cajicá”, “Ingredientes frescos” o “Atención cercana”, sujetos a moderación.
 - [x] Organizar la información pública en pestañas: Inicio, Productos, Opiniones e Información.
 - [x] Ocultar Opiniones o mostrar estado vacío hasta habilitar recomendaciones reales en fase 3.
 - [ ] Recomendaciones cuando se habiliten en fase 3.

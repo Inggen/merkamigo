@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Businesses\Schemas;
 
+use App\Domain\Businesses\Models\BusinessAttribute;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -33,7 +35,8 @@ class BusinessForm
                 TextInput::make('social_links'),
                 Textarea::make('payment_info')
                     ->columnSpanFull(),
-                TextInput::make('attributes'),
+                CheckboxList::make('attributes')
+                    ->options(fn () => BusinessAttribute::where('is_active', true)->orderBy('name')->pluck('name', 'slug')),
                 Select::make('status')
                     ->options([
                         'borrador' => 'Borrador',

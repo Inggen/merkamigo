@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Businesses\Models\BusinessAttribute;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
@@ -89,6 +90,32 @@ class StorefrontEditorTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame('Sobrevive sin contexto de equipo', $business->fresh()->storefront->headline);
+    }
+
+    public function test_owner_can_save_a_structured_schedule_and_attributes_from_the_editor(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Horario Editor', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $attribute = BusinessAttribute::create(['name' => 'Producto artesanal', 'slug' => 'producto-artesanal', 'is_active' => true]);
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('schedule.monday.closed', false)
+            ->set('schedule.monday.open', '08:00')
+            ->set('schedule.monday.close', '18:00')
+            ->set('business_attributes', [$attribute->slug])
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $fresh = $business->fresh();
+
+        $this->assertSame('08:00', $fresh->hours['schedule']['monday']['open']);
+        $this->assertSame('18:00', $fresh->hours['schedule']['monday']['close']);
+        $this->assertSame([$attribute->slug], $fresh->attributes);
     }
 
     public function test_a_collaborator_of_another_business_cannot_open_the_editor(): void

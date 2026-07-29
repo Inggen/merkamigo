@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Businesses\Models\BusinessAttribute;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\PublishStorefront;
@@ -38,8 +39,15 @@ new #[Title('Editar mi vitrina')] class extends Component {
     public ?string $headline = '';
     public ?string $description = '';
     public ?string $hours_text = '';
+
+    /** @var array<string, array{closed: bool, open: ?string, close: ?string}> */
+    public array $schedule = [];
+
     public ?string $payment_info = '';
     public array $social_links = ['instagram' => '', 'facebook' => '', 'tiktok' => ''];
+
+    /** @var array<int, string> */
+    public array $business_attributes = [];
 
     public $logo;
     public $cover;
@@ -86,6 +94,13 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $this->hours_text = $business->hoursNote() ?? '';
         $this->payment_info = $business->payment_info;
         $this->social_links = array_merge($this->social_links, $business->social_links ?? []);
+        $this->business_attributes = $business->attributes ?? [];
+
+        $defaultSchedule = [];
+        foreach (Business::DAY_LABELS as $day => $label) {
+            $defaultSchedule[$day] = ['closed' => false, 'open' => null, 'close' => null];
+        }
+        $this->schedule = array_replace_recursive($defaultSchedule, $business->hours['schedule'] ?? []);
     }
 
     #[Computed]
@@ -118,8 +133,9 @@ new #[Title('Editar mi vitrina')] class extends Component {
 
         $data = $this->validate($this->rules());
 
-        $data['hours'] = ['note' => $this->hours_text];
+        $data['hours'] = ['note' => $this->hours_text, 'schedule' => $this->schedule];
         $data['social_links'] = $this->social_links;
+        $data['attributes'] = $this->business_attributes;
 
         if ($this->logo) {
             $data['logo'] = $this->logo;
@@ -157,8 +173,9 @@ new #[Title('Editar mi vitrina')] class extends Component {
         }
 
         $data = $validator->validated();
-        $data['hours'] = ['note' => $this->hours_text];
+        $data['hours'] = ['note' => $this->hours_text, 'schedule' => $this->schedule];
         $data['social_links'] = $this->social_links;
+        $data['attributes'] = $this->business_attributes;
 
         app(UpdateStorefront::class)->handle($this->business, $data, Auth::user());
         $this->savedAt = now()->format('H:i');
@@ -197,6 +214,12 @@ new #[Title('Editar mi vitrina')] class extends Component {
     public function categories()
     {
         return Category::where('is_active', true)->orderBy('name')->get();
+    }
+
+    #[Computed]
+    public function attributeOptions()
+    {
+        return BusinessAttribute::where('is_active', true)->orderBy('name')->get();
     }
 }; ?>
 
@@ -302,11 +325,37 @@ new #[Title('Editar mi vitrina')] class extends Component {
                         <flux:select.option value="{{ $category->id }}">{{ $category->name }}</flux:select.option>
                     @endforeach
                 </flux:select>
+
+                @if ($this->attributeOptions->isNotEmpty())
+                    <flux:checkbox.group wire:model.live="attributes" :label="__('Atributos')">
+                        @foreach ($this->attributeOptions as $option)
+                            <flux:checkbox value="{{ $option->slug }}" :label="$option->name" />
+                        @endforeach
+                    </flux:checkbox.group>
+                @endif
             </div>
 
             <div x-show="section === 'horarios'" x-cloak class="space-y-4">
                 <flux:heading size="lg">{{ __('Horarios') }}</flux:heading>
                 <flux:textarea wire:model.live.debounce.900ms="hours_text" rows="2" placeholder="{{ __('Ej: Lun-Sáb 8:00am - 6:00pm') }}" />
+
+                <div class="space-y-2">
+                    <flux:text class="font-medium">{{ __('Horario por día (opcional, permite mostrar "Abierto ahora" en tu vitrina)') }}</flux:text>
+
+                    @foreach (\App\Domain\Businesses\Models\Business::DAY_LABELS as $day => $label)
+                        <div class="flex flex-wrap items-center gap-3 border-b border-zinc-100 pb-2 dark:border-zinc-800">
+                            <span class="w-24 shrink-0 text-sm font-medium">{{ $label }}</span>
+
+                            <flux:checkbox wire:model.live="schedule.{{ $day }}.closed" :label="__('Cerrado')" />
+
+                            @if (! ($schedule[$day]['closed'] ?? false))
+                                <input type="time" wire:model.live.debounce.900ms="schedule.{{ $day }}.open" class="rounded-lg border-zinc-300 text-sm dark:border-zinc-700 dark:bg-zinc-800">
+                                <span class="text-sm text-zinc-400">{{ __('a') }}</span>
+                                <input type="time" wire:model.live.debounce.900ms="schedule.{{ $day }}.close" class="rounded-lg border-zinc-300 text-sm dark:border-zinc-700 dark:bg-zinc-800">
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
             </div>
 
             <div x-show="section === 'ubicacion'" x-cloak class="space-y-4">

@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             MunicipalitySeeder::class,
             CategorySeeder::class,
+            BusinessAttributeSeeder::class,
         ]);
 
         if (app()->isLocal()) {

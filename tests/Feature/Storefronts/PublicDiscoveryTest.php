@@ -3,6 +3,7 @@
 namespace Tests\Feature\Storefronts;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Businesses\Models\BusinessAttribute;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\CreateProduct;
@@ -154,5 +155,26 @@ class PublicDiscoveryTest extends TestCase
             ->assertOk()
             ->assertSee(__('Agotado'))
             ->assertSee(__('Consultar disponibilidad'));
+    }
+
+    public function test_the_vitrina_shows_active_attributes_and_an_aggregated_photo_gallery(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $business = $this->publishedBusiness($municipality, $category);
+        $attribute = BusinessAttribute::create(['name' => 'Producto artesanal', 'slug' => 'producto-artesanal', 'is_active' => true]);
+        $business->update(['attributes' => [$attribute->slug]]);
+
+        $product = $business->products()->firstOrFail();
+        $product->media()->createMany([
+            ['path' => 'products/1/a.jpg', 'position' => 0],
+            ['path' => 'products/1/b.jpg', 'position' => 1],
+        ]);
+
+        $this->get(route('vitrinas.show', $business))
+            ->assertOk()
+            ->assertSee('Producto artesanal')
+            ->assertSee(__('Galería'));
     }
 }
