@@ -24,6 +24,7 @@ class CategorySeeder extends Seeder
             'Servicios profesionales' => 'briefcase',
             'Servicios para el hogar' => 'wrench-screwdriver',
             'Salud y bienestar' => 'heart',
+            'Hoteles y renta de inmuebles' => 'building-office-2',
             'Otros' => 'tag',
         ];
 
