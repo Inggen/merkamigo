@@ -1,7 +1,12 @@
 <x-layouts::cliente :title="__('Inicio')">
     @if (! $municipality)
-        <div class="bg-gradient-to-br from-brand-700 to-brand-900 px-6 py-16 text-white">
-            <div class="mx-auto max-w-3xl text-center">
+        <div
+            class="relative overflow-hidden bg-cover bg-center px-6 py-16 text-white"
+            style="background-image: url('{{ asset('images/backgrounds/fondo-buscador-principal.webp') }}')"
+        >
+            <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
+
+            <div class="relative mx-auto max-w-3xl text-center">
                 <flux:heading size="xl" class="text-3xl text-white sm:text-4xl">{{ __('Descubre lo local, conecta con tu comunidad') }}</flux:heading>
                 <flux:text class="mt-2 mb-8 text-brand-100">
                     {{ __('Elige tu municipio para ver negocios cercanos.') }}
@@ -21,48 +26,11 @@
             </div>
         </div>
     @else
-        <div class="bg-gradient-to-br from-brand-700 to-brand-900 px-6 py-12 text-white sm:py-14">
-            <div class="mx-auto max-w-6xl">
-                <flux:heading size="xl" class="text-3xl text-white sm:text-4xl">{{ __('Descubre lo local, conecta con tu comunidad') }}</flux:heading>
-                <flux:text class="mt-2 max-w-xl text-brand-100">
-                    {{ __('Mostrando :municipio. Apoya negocios de tu área y encuentra lo que necesitas, cerca de ti.', ['municipio' => $municipality->name]) }}
-                </flux:text>
-
-                <div class="mt-6 flex flex-col gap-2 rounded-2xl bg-white p-2 shadow-lg sm:flex-row sm:items-center dark:bg-zinc-800">
-                    <form method="GET" action="{{ route('buscar') }}" class="flex flex-1 items-center gap-2 px-2">
-                        <flux:icon.magnifying-glass class="size-5 shrink-0 text-zinc-400" variant="outline" />
-                        <input
-                            type="text"
-                            name="q"
-                            value="{{ request('q') }}"
-                            placeholder="{{ __('Buscar negocios, productos o servicios...') }}"
-                            class="w-full border-0 bg-transparent py-2.5 text-sm text-carbon placeholder:text-zinc-400 focus:outline-none dark:text-white"
-                        >
-                        <input type="hidden" name="municipio" value="{{ $municipality->id }}">
-                        <button type="submit" class="shrink-0 rounded-xl bg-brand-600 p-2.5 text-white transition hover:bg-brand-700">
-                            <flux:icon.magnifying-glass class="size-4" variant="outline" />
-                        </button>
-                    </form>
-
-                    <flux:dropdown class="shrink-0 border-t border-zinc-100 pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-2 dark:border-zinc-700">
-                        <flux:button variant="ghost" icon="map-pin" icon-trailing="chevron-down" class="w-full justify-start sm:w-auto">
-                            {{ $municipality->name }}
-                        </flux:button>
-                        <flux:menu>
-                            @foreach ($municipalities as $option)
-                                <form method="POST" action="{{ route('clientes.municipio') }}">
-                                    @csrf
-                                    <input type="hidden" name="municipality_id" value="{{ $option->id }}">
-                                    <flux:menu.item as="button" type="submit" :icon="$municipality->id === $option->id ? 'check' : null" class="w-full cursor-pointer">
-                                        {{ $option->name }}
-                                    </flux:menu.item>
-                                </form>
-                            @endforeach
-                        </flux:menu>
-                    </flux:dropdown>
-                </div>
-            </div>
-        </div>
+        <x-clientes.search-hero
+            :municipality="$municipality"
+            :municipalities="$municipalities"
+            :query="request('q', '')"
+        />
 
         <div class="mx-auto max-w-6xl px-6 py-8">
             <div class="mb-8">

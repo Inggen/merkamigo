@@ -48,7 +48,12 @@
                 </flux:button>
 
                 <flux:dropdown position="bottom" align="end">
-                    <flux:profile :initials="auth()->user()->initials()" icon-trailing="chevron-down" />
+                    <flux:profile
+                        :avatar="auth()->user()->avatarUrl()"
+                        :initials="auth()->user()->initials()"
+                        circle
+                        :chevron="false"
+                    />
                     <flux:menu>
                         <flux:menu.item :href="route('dashboard')" icon="squares-2x2" wire:navigate>{{ __('Mi cuenta') }}</flux:menu.item>
                         <flux:menu.separator />

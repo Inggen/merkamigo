@@ -1,7 +1,9 @@
 <flux:dropdown position="bottom" align="start">
     <flux:sidebar.profile
+        :avatar="auth()->user()->avatarUrl()"
         :name="auth()->user()->name"
         :initials="auth()->user()->initials()"
+        circle
         icon:trailing="chevrons-up-down"
         data-test="sidebar-menu-button"
     />
@@ -9,8 +11,10 @@
     <flux:menu>
         <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
             <flux:avatar
+                :src="auth()->user()->avatarUrl()"
                 :name="auth()->user()->name"
                 :initials="auth()->user()->initials()"
+                circle
             />
             <div class="grid flex-1 text-start text-sm leading-tight">
                 <flux:heading class="truncate">{{ auth()->user()->name }}</flux:heading>
