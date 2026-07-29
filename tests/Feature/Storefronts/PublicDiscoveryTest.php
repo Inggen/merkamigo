@@ -127,4 +127,32 @@ class PublicDiscoveryTest extends TestCase
             ->assertOk()
             ->assertDontSee($business->name);
     }
+
+    public function test_the_public_product_page_reflects_promo_price_variants_and_sold_out(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $business = $this->publishedBusiness($municipality, $category);
+        $product = $business->products()->firstOrFail();
+
+        $product->update([
+            'promo_price' => 1500,
+            'promo_label' => 'Oferta del día',
+        ]);
+        $product->variants()->create(['label' => 'Porción grande', 'price' => 3000, 'position' => 0]);
+
+        $this->get(route('vitrinas.product', [$business, $product]))
+            ->assertOk()
+            ->assertSee('Oferta del día')
+            ->assertSee('Porción grande')
+            ->assertSee(__('Disponible'));
+
+        $product->update(['is_available' => false]);
+
+        $this->get(route('vitrinas.product', [$business, $product]))
+            ->assertOk()
+            ->assertSee(__('Agotado'))
+            ->assertSee(__('Consultar disponibilidad'));
+    }
 }

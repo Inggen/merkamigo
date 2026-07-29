@@ -2,6 +2,7 @@
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateProduct;
+use App\Domain\Storefronts\Actions\DuplicateProduct;
 use App\Domain\Storefronts\Actions\UpdateProduct;
 use App\Domain\Storefronts\Models\Product;
 use Flux\Flux;
@@ -15,7 +16,7 @@ use Livewire\WithFileUploads;
 /**
  * Gestión de productos y servicios (E05, 1.4 del TODO): pestañas
  * Todos/Productos/Servicios, crear/editar en drawer sin abandonar el
- * listado, reordenar.
+ * listado, reordenar, duplicar, variantes y precio promocional.
  */
 new #[Title('Productos y servicios')] class extends Component {
     use WithFileUploads;
@@ -34,6 +35,15 @@ new #[Title('Productos y servicios')] class extends Component {
     public string $price_type = 'exacto';
     public ?string $unit = '';
     public bool $is_available = true;
+
+    public bool $has_promo = false;
+    public ?float $promo_price = null;
+    public ?string $promo_label = '';
+    public ?string $promo_starts_at = null;
+    public ?string $promo_ends_at = null;
+
+    /** @var array<int, array{label: string, price: ?float}> */
+    public array $variants = [];
 
     /** @var array<int, mixed> */
     public array $photos = [];
@@ -84,7 +94,7 @@ new #[Title('Productos y servicios')] class extends Component {
     {
         $this->authorize('update', $this->business);
 
-        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos']);
+        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants']);
         $this->type = 'producto';
         $this->price_type = 'exacto';
         $this->is_available = true;
@@ -95,7 +105,7 @@ new #[Title('Productos y servicios')] class extends Component {
     {
         $this->authorize('update', $this->business);
 
-        $product = $this->business->products()->findOrFail($productId);
+        $product = $this->business->products()->with('variants')->findOrFail($productId);
 
         $this->editingId = $product->id;
         $this->name = $product->name;
@@ -106,7 +116,30 @@ new #[Title('Productos y servicios')] class extends Component {
         $this->unit = $product->unit;
         $this->is_available = $product->is_available;
         $this->photos = [];
+
+        $this->has_promo = (bool) $product->promo_price;
+        $this->promo_price = $product->promo_price ? (float) $product->promo_price : null;
+        $this->promo_label = $product->promo_label;
+        $this->promo_starts_at = $product->promo_starts_at?->format('Y-m-d');
+        $this->promo_ends_at = $product->promo_ends_at?->format('Y-m-d');
+
+        $this->variants = $product->variants->map(fn ($variant) => [
+            'label' => $variant->label,
+            'price' => $variant->price ? (float) $variant->price : null,
+        ])->all();
+
         $this->resetValidation();
+    }
+
+    public function addVariant(): void
+    {
+        $this->variants[] = ['label' => '', 'price' => null];
+    }
+
+    public function removeVariant(int $index): void
+    {
+        unset($this->variants[$index]);
+        $this->variants = array_values($this->variants);
     }
 
     public function save(): void
@@ -121,6 +154,14 @@ new #[Title('Productos y servicios')] class extends Component {
             'price_type' => $this->price_type,
             'unit' => $this->unit,
             'is_available' => $this->is_available,
+            'promo_price' => $this->has_promo ? $this->promo_price : null,
+            'promo_label' => $this->has_promo ? $this->promo_label : null,
+            'promo_starts_at' => $this->has_promo ? $this->promo_starts_at : null,
+            'promo_ends_at' => $this->has_promo ? $this->promo_ends_at : null,
+            'variants' => array_values(array_filter(
+                $this->variants,
+                fn (array $variant) => trim($variant['label'] ?? '') !== '',
+            )),
         ];
 
         if ($this->editingId) {
@@ -133,6 +174,17 @@ new #[Title('Productos y servicios')] class extends Component {
         unset($this->products);
         Flux::modal('product-form')->close();
         Flux::toast(variant: 'success', text: __('Producto guardado.'));
+    }
+
+    public function duplicate(int $productId): void
+    {
+        $this->authorize('update', $this->business);
+
+        $product = $this->business->products()->findOrFail($productId);
+        app(DuplicateProduct::class)->handle($product, Auth::user());
+
+        unset($this->products);
+        Flux::toast(variant: 'success', text: __('Producto duplicado como borrador.'));
     }
 
     public function archive(int $productId): void
@@ -213,16 +265,23 @@ new #[Title('Productos y servicios')] class extends Component {
                             </div>
                         @endif
 
-                        <flux:badge size="sm" class="absolute top-2 right-2" :color="$product->status === 'publicado' ? 'green' : 'zinc'">
-                            {{ ucfirst($product->status) }}
-                        </flux:badge>
+                        <div class="absolute top-2 right-2 flex flex-col items-end gap-1">
+                            <flux:badge size="sm" :color="$product->status === 'publicado' ? 'green' : 'zinc'">
+                                {{ ucfirst($product->status) }}
+                            </flux:badge>
+                            @if ($product->isSoldOut())
+                                <flux:badge size="sm" color="red">{{ __('Agotado') }}</flux:badge>
+                            @endif
+                        </div>
                     </div>
 
                     <div class="p-3">
                         <div class="truncate font-medium">{{ $product->name }}</div>
                         <div class="text-sm text-zinc-500">
                             {{ $product->type === 'producto' ? __('Producto') : __('Servicio') }}
-                            @if ($product->price)
+                            @if ($product->hasActivePromo())
+                                · <span class="text-red-600 dark:text-red-400">${{ number_format((float) $product->promo_price, 0, ',', '.') }}</span>
+                            @elseif ($product->price)
                                 · ${{ number_format((float) $product->price, 0, ',', '.') }}
                             @endif
                         </div>
@@ -241,6 +300,8 @@ new #[Title('Productos y servicios')] class extends Component {
                                 @if ($product->status !== 'publicado')
                                     <flux:button size="sm" variant="ghost" wire:click="publish({{ $product->id }})">{{ __('Publicar') }}</flux:button>
                                 @endif
+
+                                <flux:button size="sm" variant="ghost" icon="document-duplicate" wire:click="duplicate({{ $product->id }})" />
 
                                 @if ($product->status !== 'archivado')
                                     <flux:button size="sm" variant="ghost" icon="archive-box" wire:click="archive({{ $product->id }})" wire:confirm="{{ __('¿Archivar este producto?') }}" />
@@ -279,6 +340,34 @@ new #[Title('Productos y servicios')] class extends Component {
             <flux:input wire:model="unit" :label="__('Unidad (opcional)')" placeholder="{{ __('Ej: porción, unidad, hora') }}" />
 
             <flux:checkbox wire:model="is_available" :label="__('Disponible')" />
+
+            <div class="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                <flux:checkbox wire:model.live="has_promo" :label="__('Tiene promoción')" />
+
+                @if ($has_promo)
+                    <flux:input wire:model="promo_price" :label="__('Precio promocional')" type="number" step="0.01" min="0" />
+                    <flux:input wire:model="promo_label" :label="__('Etiqueta (opcional)')" placeholder="{{ __('Ej: Oferta de la semana') }}" />
+                    <div class="grid grid-cols-2 gap-2">
+                        <flux:input wire:model="promo_starts_at" :label="__('Desde')" type="date" />
+                        <flux:input wire:model="promo_ends_at" :label="__('Hasta')" type="date" />
+                    </div>
+                @endif
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <flux:text class="font-medium">{{ __('Variantes (opcional)') }}</flux:text>
+                    <flux:button type="button" size="sm" variant="ghost" icon="plus" wire:click="addVariant">{{ __('Agregar') }}</flux:button>
+                </div>
+
+                @foreach ($variants as $index => $variant)
+                    <div class="flex items-end gap-2">
+                        <flux:input wire:model="variants.{{ $index }}.label" placeholder="{{ __('Ej: Porción individual') }}" class="flex-1" />
+                        <flux:input wire:model="variants.{{ $index }}.price" type="number" step="0.01" min="0" placeholder="{{ __('Precio') }}" class="w-28" />
+                        <flux:button type="button" size="sm" variant="ghost" icon="trash" wire:click="removeVariant({{ $index }})" />
+                    </div>
+                @endforeach
+            </div>
 
             <div>
                 <flux:text class="mb-2">{{ __('Fotos') }}</flux:text>

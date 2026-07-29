@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 
 class UpdateProduct
 {
-    use StoresProductMedia, ValidatesProductData;
+    use StoresProductMedia, SyncsProductVariants, ValidatesProductData;
 
     /**
      * @param  array<string, mixed>  $data
@@ -32,8 +32,15 @@ class UpdateProduct
         $remaining = $product->media()->count() - count($removeMediaIds);
         $this->validatePhotoCount($remaining, count($newPhotos));
 
-        return DB::transaction(function () use ($product, $validated, $newPhotos, $removeMediaIds, $actor) {
+        $variants = $validated['variants'] ?? null;
+        unset($validated['variants']);
+
+        return DB::transaction(function () use ($product, $validated, $variants, $newPhotos, $removeMediaIds, $actor) {
             $product->update($validated);
+
+            if ($variants !== null) {
+                $this->syncVariants($product, $variants);
+            }
 
             if ($removeMediaIds !== []) {
                 $product->media()->whereIn('id', $removeMediaIds)->get()->each(function (ProductMedia $media) {
@@ -46,7 +53,7 @@ class UpdateProduct
 
             app(RecordAuditLog::class)->handle($actor, 'product.updated', $product);
 
-            $product->refresh()->load('media');
+            $product->refresh()->load(['media', 'variants']);
 
             return $product;
         });

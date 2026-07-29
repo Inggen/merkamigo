@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 
 class CreateProduct
 {
-    use StoresProductMedia, ValidatesProductData;
+    use StoresProductMedia, SyncsProductVariants, ValidatesProductData;
 
     /**
      * @param  array<string, mixed>  $data
@@ -25,18 +25,25 @@ class CreateProduct
 
         $this->validatePhotoCount(0, count($photos));
 
-        return DB::transaction(function () use ($business, $validated, $photos, $actor) {
+        $variants = $validated['variants'] ?? null;
+        unset($validated['variants']);
+
+        return DB::transaction(function () use ($business, $validated, $variants, $photos, $actor) {
             $product = $business->products()->create([
                 ...$validated,
                 'slug' => $this->uniqueSlug($business, $validated['name']),
                 'position' => $business->products()->max('position') + 1,
             ]);
 
+            if ($variants !== null) {
+                $this->syncVariants($product, $variants);
+            }
+
             $this->storePhotos($product, $photos);
 
             app(RecordAuditLog::class)->handle($actor, 'product.created', $product);
 
-            return $product->load('media');
+            return $product->load(['media', 'variants']);
         });
     }
 

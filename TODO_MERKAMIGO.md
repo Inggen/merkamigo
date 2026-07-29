@@ -625,19 +625,19 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.4 Gestión de productos y servicios
 
-- [ ] Crear, editar, duplicar, archivar y reordenar.
+- [x] Crear, editar, duplicar, archivar y reordenar.
 - [x] Diferenciar producto y servicio.
 - [x] Pestañas de gestión: Todos, Productos y Servicios.
-- [ ] Campos: nombre, descripción breve, precio, unidad, disponibilidad, categoría e imágenes.
-- [ ] Opciones o variantes simples: porción, tamaño, presentación o unidad.
-- [ ] Precio promocional, etiqueta y vigencia opcionales para ofertas locales.
-- [ ] Carga múltiple de fotos con límites por plan.
+- [ ] Campos: nombre, descripción breve, precio, unidad, disponibilidad, categoría e imágenes. (falta categoría propia del producto — se documentó como simplificación en `docs/architecture/decisiones.md`: el tipo producto/servicio + la categoría del negocio ya cubren el descubrimiento)
+- [x] Opciones o variantes simples: porción, tamaño, presentación o unidad.
+- [x] Precio promocional, etiqueta y vigencia opcionales para ofertas locales.
+- [ ] Carga múltiple de fotos con límites por plan. (el límite de 8 fotos ya existe pero es fijo, no "por plan" — no hay planes reales todavía, ver Fase 4)
 - [x] Publicación/despublicación inmediata.
-- [ ] Estados agotado/no disponible.
+- [x] Estados agotado/no disponible.
 - [x] Mensaje de WhatsApp específico por producto.
 - [x] Compartir y guardar producto desde su detalle público.
 - [x] Presentar creación/edición en panel o drawer responsive sin abandonar el listado.
-- [ ] Validación de contenido prohibido.
+- [x] Validación de contenido prohibido.
 
 **Criterios de aceptación**
 

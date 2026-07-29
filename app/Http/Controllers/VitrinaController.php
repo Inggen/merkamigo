@@ -49,7 +49,7 @@ class VitrinaController extends Controller
 
         return view('vitrinas.product', [
             'business' => $business,
-            'product' => $product->load('media'),
+            'product' => $product->load(['media', 'variants']),
         ]);
     }
 

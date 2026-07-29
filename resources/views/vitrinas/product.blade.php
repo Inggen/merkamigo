@@ -37,7 +37,13 @@
                     </div>
 
                     <div class="text-lg font-medium">
-                        @if ($product->price_type === 'exacto' && $product->price)
+                        @if ($product->hasActivePromo())
+                            <span class="text-zinc-400 line-through">${{ number_format((float) $product->price, 0, ',', '.') }}</span>
+                            <span class="text-red-600 dark:text-red-400">${{ number_format((float) $product->promo_price, 0, ',', '.') }}</span>
+                            @if ($product->promo_label)
+                                <flux:badge size="sm" color="red">{{ $product->promo_label }}</flux:badge>
+                            @endif
+                        @elseif ($product->price_type === 'exacto' && $product->price)
                             ${{ number_format((float) $product->price, 0, ',', '.') }}
                         @elseif ($product->price_type === 'desde' && $product->price)
                             {{ __('Desde') }} ${{ number_format((float) $product->price, 0, ',', '.') }}
@@ -50,9 +56,26 @@
                         @endif
                     </div>
 
-                    <flux:badge :color="$product->is_available ? 'green' : 'zinc'">
-                        {{ $product->is_available ? __('Disponible') : __('No disponible') }}
+                    <flux:badge :color="$product->isSoldOut() ? 'red' : 'green'">
+                        {{ $product->isSoldOut() ? __('Agotado') : __('Disponible') }}
                     </flux:badge>
+
+                    @if ($product->variants->isNotEmpty())
+                        <div class="space-y-1 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-700">
+                            @foreach ($product->variants as $variant)
+                                <div class="flex items-center justify-between">
+                                    <span>{{ $variant->label }}</span>
+                                    <span class="font-medium">
+                                        @if ($variant->price)
+                                            ${{ number_format((float) $variant->price, 0, ',', '.') }}
+                                        @else
+                                            ${{ number_format((float) $product->price, 0, ',', '.') }}
+                                        @endif
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     @if ($product->description)
                         <flux:text class="whitespace-pre-line text-zinc-600 dark:text-zinc-300">{{ $product->description }}</flux:text>
@@ -79,7 +102,7 @@
                             icon="chat-bubble-left-right"
                             class="w-full"
                         >
-                            {{ __('Preguntar por WhatsApp') }}
+                            {{ $product->isSoldOut() ? __('Consultar disponibilidad') : __('Preguntar por WhatsApp') }}
                         </flux:button>
                     @endif
 

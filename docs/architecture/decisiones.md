@@ -78,6 +78,15 @@ El TODO pide "motivos estandarizados y notificación al afectado" al suspender c
 - El manifest (`public/site.webmanifest`) y los íconos ya existían desde la Fase 0; con el service worker registrado, la app ahora cumple los criterios mínimos de instalabilidad de Chrome/Edge (manifest válido + service worker con `fetch`).
 - "Pruebas de permisos, aislamiento y archivos" se consideran cubiertas por la suite automatizada existente (aislamiento multi-negocio en cada módulo, autorización por rol de plataforma, validación de tipo/tamaño de archivos en `MediaUploader`) — no por una ronda de pruebas manual adicional.
 
+## Gestión de productos: cierre de 1.4
+
+- **Categoría por producto:** no se construyó una taxonomía propia por producto (solo existe `type` producto/servicio). El tipo más la categoría del negocio ya cubren el descubrimiento; una taxonomía adicional por producto sería sobre-construir para el volumen del piloto.
+- **Límites de fotos "por plan":** el límite de 8 fotos por producto (`config('media.product_photo.max_files')`, aplicado en `ValidatesProductData::validatePhotoCount()`) es fijo para todos los negocios. "Por plan" no aplica todavía porque no existen planes reales — llegan en la Fase 4 (Billing). Cuando existan, este mismo punto es donde leer el límite desde el plan del negocio en vez de la config global.
+- **Variantes:** tabla `product_variants` (`label` + `price` opcional, hereda el precio base si no tiene uno propio) en vez de un campo JSON embebido, siguiendo el modelo de datos original del TODO.
+- **Agotado/disponible:** se reutiliza el campo `is_available` (booleano) ya existente como único mecanismo — el enum `status` también tiene un valor `agotado` desde la migración original, pero no se usa como una segunda fuente de verdad para evitar dos conceptos solapados. `Product::isSoldOut()` es simplemente `! is_available`.
+- **Validación de contenido prohibido:** se implementó como rechazo de enlaces (`http://`, `https://`, `www.`) en nombre y descripción del producto (`App\Support\Validation\Rules\NoLinks`), el riesgo de spam más concreto y verificable. No se construyó un listado de palabras prohibidas — un listado así requeriría criterio editorial/legal que no corresponde inventar en código.
+- **Duplicar producto:** `DuplicateProduct` copia campos, variantes y archivos de fotos (vía `Storage::copy`, sin re-subir ni re-validar); el duplicado nace en `borrador`.
+
 ## Explícitamente diferido a una sesión posterior
 
 - Revisión legal real de los textos de `docs/legal/`.
