@@ -1,8 +1,8 @@
 <x-layouts::app :title="__('Inicio')">
     <div class="flex h-full w-full flex-1 flex-col gap-4">
-        <flux:heading size="xl">{{ __('Hola, :name', ['name' => auth()->user()->name]) }}</flux:heading>
+        <flux:heading size="xl">{{ __('Hola, :name', ['name' => auth()->user()->name]) }} 👋</flux:heading>
         <flux:text class="text-zinc-500 dark:text-zinc-400">
-            {{ __('Esta es tu experiencia como Emprendedor en Merkamigo.') }}
+            {{ __('Así va tu negocio hoy.') }}
         </flux:text>
 
         @if ($businesses->isEmpty())
@@ -17,7 +17,7 @@
         @else
             <div class="grid gap-4 sm:grid-cols-2">
                 @foreach ($businesses as $business)
-                    <div class="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                         <div class="flex items-start justify-between">
                             <flux:heading>{{ $business->name }}</flux:heading>
                             <flux:badge size="sm" :color="$business->isPublished() ? 'green' : ($business->isSuspended() ? 'red' : 'zinc')">
@@ -47,6 +47,19 @@
                             </div>
                         @endif
 
+                        @if ($business->isPublished() && ($metrics = $metricsByBusiness[$business->id] ?? null))
+                            <div class="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
+                                <div>
+                                    <div class="text-xl font-semibold">{{ $metrics['total_views'] }}</div>
+                                    <div class="text-xs text-zinc-500">{{ __('Visitas esta semana') }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xl font-semibold">{{ $metrics['total_whatsapp_clicks'] }}</div>
+                                    <div class="text-xs text-zinc-500">{{ __('Mensajes esta semana') }}</div>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="flex flex-wrap gap-2">
                             <flux:button size="sm" variant="primary" :href="route('emprendedores.negocios.vitrina', $business)" wire:navigate>
                                 {{ __('Editar vitrina') }}
@@ -71,6 +84,9 @@
                                 </flux:button>
                                 <flux:button size="sm" variant="ghost" icon="chart-bar" :href="route('emprendedores.negocios.metricas', $business)" wire:navigate>
                                     {{ __('Métricas') }}
+                                </flux:button>
+                                <flux:button size="sm" variant="ghost" icon="megaphone" :href="route('emprendedores.negocios.copiloto', $business)" wire:navigate>
+                                    {{ __('Copiloto de WhatsApp') }}
                                 </flux:button>
                             @endif
                         </div>

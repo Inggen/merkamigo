@@ -201,16 +201,24 @@ new #[Title('Productos y servicios')] class extends Component {
             description="{{ __('Agrega tu primer producto o servicio para poder publicar tu vitrina.') }}"
         />
     @else
-        <div class="space-y-3">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($this->products as $product)
-                <div class="flex items-center gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
-                    <div class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="relative aspect-square bg-zinc-100 dark:bg-zinc-800">
                         @if ($product->media->isNotEmpty())
-                            <img src="{{ $product->media->first()->url() }}" class="size-full object-cover" alt="">
+                            <img src="{{ $product->media->first()->url() }}" class="h-full w-full object-cover" alt="{{ $product->name }}">
+                        @else
+                            <div class="flex h-full w-full items-center justify-center">
+                                <flux:icon.photo class="size-8 text-zinc-300 dark:text-zinc-600" variant="outline" />
+                            </div>
                         @endif
+
+                        <flux:badge size="sm" class="absolute top-2 right-2" :color="$product->status === 'publicado' ? 'green' : 'zinc'">
+                            {{ ucfirst($product->status) }}
+                        </flux:badge>
                     </div>
 
-                    <div class="min-w-0 flex-1">
+                    <div class="p-3">
                         <div class="truncate font-medium">{{ $product->name }}</div>
                         <div class="text-sm text-zinc-500">
                             {{ $product->type === 'producto' ? __('Producto') : __('Servicio') }}
@@ -218,29 +226,27 @@ new #[Title('Productos y servicios')] class extends Component {
                                 · ${{ number_format((float) $product->price, 0, ',', '.') }}
                             @endif
                         </div>
-                    </div>
 
-                    <flux:badge size="sm" :color="$product->status === 'publicado' ? 'green' : 'zinc'">
-                        {{ ucfirst($product->status) }}
-                    </flux:badge>
+                        <div class="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2 dark:border-zinc-800">
+                            <div class="flex items-center">
+                                <flux:button size="sm" variant="ghost" icon="chevron-up" wire:click="move({{ $product->id }}, -1)" />
+                                <flux:button size="sm" variant="ghost" icon="chevron-down" wire:click="move({{ $product->id }}, 1)" />
+                            </div>
 
-                    <div class="flex items-center gap-1">
-                        <flux:button size="sm" variant="ghost" icon="chevron-up" wire:click="move({{ $product->id }}, -1)" />
-                        <flux:button size="sm" variant="ghost" icon="chevron-down" wire:click="move({{ $product->id }}, 1)" />
+                            <div class="flex items-center gap-1">
+                                <flux:modal.trigger name="product-form">
+                                    <flux:button size="sm" variant="ghost" wire:click="openEdit({{ $product->id }})">{{ __('Editar') }}</flux:button>
+                                </flux:modal.trigger>
 
-                        <flux:modal.trigger name="product-form">
-                            <flux:button size="sm" variant="ghost" wire:click="openEdit({{ $product->id }})">{{ __('Editar') }}</flux:button>
-                        </flux:modal.trigger>
+                                @if ($product->status !== 'publicado')
+                                    <flux:button size="sm" variant="ghost" wire:click="publish({{ $product->id }})">{{ __('Publicar') }}</flux:button>
+                                @endif
 
-                        @if ($product->status !== 'publicado')
-                            <flux:button size="sm" variant="ghost" wire:click="publish({{ $product->id }})">{{ __('Publicar') }}</flux:button>
-                        @endif
-
-                        @if ($product->status !== 'archivado')
-                            <flux:button size="sm" variant="ghost" wire:click="archive({{ $product->id }})" wire:confirm="{{ __('¿Archivar este producto?') }}">
-                                {{ __('Archivar') }}
-                            </flux:button>
-                        @endif
+                                @if ($product->status !== 'archivado')
+                                    <flux:button size="sm" variant="ghost" icon="archive-box" wire:click="archive({{ $product->id }})" wire:confirm="{{ __('¿Archivar este producto?') }}" />
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             @endforeach

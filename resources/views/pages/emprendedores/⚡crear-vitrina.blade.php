@@ -152,9 +152,34 @@ new #[Title('Crea tu vitrina')] class extends Component {
         {{ __('Publica tu vitrina en borrador y complétala a tu ritmo. Puedes salir y volver: tu progreso queda guardado.') }}
     </flux:subheading>
 
-    <div class="mb-8 flex items-center gap-2">
-        @foreach ([1, 2, 3, 4, 5] as $i)
-            <div class="h-1.5 flex-1 rounded-full {{ $i <= $step ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700' }}"></div>
+    @php
+        $stepLabels = [
+            1 => __('Información'),
+            2 => __('Tu negocio'),
+            3 => __('Fotografías'),
+            4 => __('Vista previa'),
+            5 => __('¡Listo!'),
+        ];
+    @endphp
+
+    <div class="mb-8 flex items-start">
+        @foreach ($stepLabels as $i => $label)
+            <div class="flex flex-1 flex-col items-center">
+                <div class="flex w-full items-center">
+                    <div class="h-0.5 flex-1 {{ $i > 1 ? ($step >= $i ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700') : 'bg-transparent' }}"></div>
+                    <div class="flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold {{ $step > $i ? 'bg-brand-600 text-white' : ($step === $i ? 'border-2 border-brand-600 text-brand-600' : 'border-2 border-zinc-200 text-zinc-400 dark:border-zinc-700') }}">
+                        @if ($step > $i)
+                            <flux:icon.check class="size-4" variant="outline" />
+                        @else
+                            {{ $i }}
+                        @endif
+                    </div>
+                    <div class="h-0.5 flex-1 {{ $i < 5 ? ($step > $i ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700') : 'bg-transparent' }}"></div>
+                </div>
+                <flux:text class="mt-1.5 text-center text-xs {{ $step === $i ? 'font-medium text-brand-600' : 'text-zinc-400' }}">
+                    {{ $label }}
+                </flux:text>
+            </div>
         @endforeach
     </div>
 
