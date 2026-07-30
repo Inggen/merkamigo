@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Analytics\Actions\CalculateReadableMetrics;
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -36,11 +37,20 @@ class EmprendedoresController extends Controller
     }
 
     /**
-     * E01: bienvenida pública para quien todavía no tiene cuenta.
+     * E01: bienvenida pública para quien todavía no tiene cuenta. Reutiliza
+     * el mismo mecanismo de "municipio preferido" que ya usa el Cliente
+     * (cookie `municipio`, ver `ClientesController::preferredMunicipality()`)
+     * para mostrar una portada local cuando exista (1.6 del TODO).
      */
-    public function bienvenida(): View
+    public function bienvenida(Request $request): View
     {
-        return view('emprendedores.bienvenida');
+        $slug = $request->cookie('municipio');
+
+        $municipality = $slug
+            ? Municipality::where('slug', $slug)->where('is_active', true)->first()
+            : null;
+
+        return view('emprendedores.bienvenida', ['municipality' => $municipality]);
     }
 
     /**

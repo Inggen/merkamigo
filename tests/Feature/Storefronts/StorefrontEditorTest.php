@@ -118,6 +118,19 @@ class StorefrontEditorTest extends TestCase
         $this->assertSame([$attribute->slug], $fresh->attributes);
     }
 
+    public function test_the_editor_links_to_the_preview_page(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Vista Previa', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->assertSeeHtml(route('emprendedores.negocios.vista-previa', $business));
+    }
+
     public function test_a_collaborator_of_another_business_cannot_open_the_editor(): void
     {
         $ownerA = User::factory()->create();

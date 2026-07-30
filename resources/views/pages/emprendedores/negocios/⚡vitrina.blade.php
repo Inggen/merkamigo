@@ -239,6 +239,10 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:badge>{{ ucfirst($this->business->status) }}</flux:badge>
             @endif
 
+            <flux:button size="sm" variant="ghost" icon="eye" :href="route('emprendedores.negocios.vista-previa', $this->business)" wire:navigate>
+                {{ __('Ver vista previa') }}
+            </flux:button>
+
             <flux:button size="sm" variant="ghost" icon="users" :href="route('emprendedores.negocios.colaboradores', $this->business)" wire:navigate>
                 {{ __('Colaboradores') }}
             </flux:button>

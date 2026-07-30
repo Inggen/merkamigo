@@ -1,20 +1,33 @@
 <x-layouts::public :title="__('Crea tu Merkamigo')">
-    <div class="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center">
-        <flux:heading size="xl">{{ __('Crea tu vitrina digital en cinco minutos') }}</flux:heading>
-        <flux:text class="max-w-xl text-lg text-zinc-500 dark:text-zinc-400">
-            {{ __('Muestra tu negocio, sé encontrado por compradores cerca de ti y recibe contactos directo por WhatsApp.') }}
-        </flux:text>
+    @php
+        $heroBackground = $municipality?->coverUrl() ?? asset('images/backgrounds/fondo-buscador-principal.webp');
+    @endphp
 
-        <flux:button variant="primary" :href="route('register')" wire:navigate>
-            {{ __('Crear mi vitrina') }}
-        </flux:button>
+    <div
+        class="relative overflow-hidden bg-cover bg-center px-6 py-16 text-white"
+        style="background-image: url('{{ $heroBackground }}')"
+    >
+        <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
 
-        <flux:text class="text-sm text-zinc-400">
-            {{ __('¿Ya tienes cuenta?') }}
-            <a href="{{ route('login') }}" class="font-medium text-brand-600" wire:navigate>{{ __('Inicia sesión') }}</a>
-        </flux:text>
+        <div class="relative mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
+            <flux:heading size="xl" class="text-3xl text-white sm:text-4xl">{{ __('Crea tu vitrina digital en cinco minutos') }}</flux:heading>
+            <flux:text class="max-w-xl text-lg text-brand-100">
+                {{ __('Muestra tu negocio, sé encontrado por compradores cerca de ti y recibe contactos directo por WhatsApp.') }}
+            </flux:text>
 
-        <div class="mt-6 grid w-full gap-6 border-t border-zinc-200 pt-10 text-left sm:grid-cols-3 dark:border-zinc-700">
+            <flux:button variant="primary" :href="route('register')" wire:navigate>
+                {{ __('Crear mi vitrina') }}
+            </flux:button>
+
+            <flux:text class="text-sm text-brand-100">
+                {{ __('¿Ya tienes cuenta?') }}
+                <a href="{{ route('login') }}" class="font-medium text-white underline" wire:navigate>{{ __('Inicia sesión') }}</a>
+            </flux:text>
+        </div>
+    </div>
+
+    <div class="mx-auto max-w-3xl px-6 py-10">
+        <div class="grid w-full gap-6 text-left sm:grid-cols-3">
             <div class="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
                 <div class="flex size-11 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-950">
                     <flux:icon.map-pin class="size-5" variant="outline" />

@@ -58,4 +58,16 @@ class EmprendedorHomeTest extends TestCase
         $response->assertSee(__('WhatsApp'));
         $response->assertSee(__('Compartir y QR'));
     }
+
+    public function test_the_sidebar_offers_a_persistent_help_link(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio a medias']);
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.home'))
+            ->assertOk()
+            ->assertSee(__('Ayuda'))
+            ->assertSeeHtml(route('soporte'));
+    }
 }

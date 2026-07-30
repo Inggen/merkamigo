@@ -28,4 +28,8 @@
             {{ __('Promocionar') }}
         </flux:sidebar.item>
     @endif
+
+    <flux:sidebar.item icon="lifebuoy" :href="route('soporte')" :current="request()->routeIs('soporte')" wire:navigate>
+        {{ __('Ayuda') }}
+    </flux:sidebar.item>
 </flux:sidebar.group>
