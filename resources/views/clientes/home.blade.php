@@ -1,4 +1,40 @@
-<x-layouts::cliente :title="__('Inicio')" :show-municipality-selector="! $municipality">
+@php
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio')],
+        ]),
+    ];
+
+    if ($municipality) {
+        $schemaGraph[] = \App\Support\Seo\SchemaBuilder::itemList(
+            $businesses->take(12)->map(fn ($business) => [
+                'name' => $business->name,
+                'url' => route('vitrinas.show', $business),
+                'image' => $business->storefront?->coverUrl() ?? $business->logoUrl(),
+            ])->all(),
+            __('Negocios destacados en :municipio', ['municipio' => $municipality->name]),
+        );
+    } else {
+        $schemaGraph[] = \App\Support\Seo\SchemaBuilder::itemList(
+            $municipalities->map(fn ($option) => [
+                'name' => $option->name,
+                'url' => route('plaza.show', $option),
+            ])->all(),
+            __('Municipios activos'),
+        );
+    }
+@endphp
+
+<x-layouts::cliente
+    :title="__('Inicio')"
+    :description="$municipality
+        ? __('Explora negocios, productos y servicios locales en :municipio con Merkamigo.', ['municipio' => $municipality->name])
+        : __('Descubre negocios, productos y servicios locales en Bogotá y Sabana Norte con Merkamigo.')"
+    :canonical="route('home')"
+    :page-schema-type="$municipality ? 'CollectionPage' : 'WebPage'"
+    :schema-graph="$schemaGraph"
+    :show-municipality-selector="! $municipality"
+>
     @if (! $municipality)
         <div
             x-data="clienteMunicipalityAutodetect({{ \Illuminate\Support\Js::from($autoDetectMunicipalities) }})"

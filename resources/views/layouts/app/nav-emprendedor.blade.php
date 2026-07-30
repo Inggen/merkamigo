@@ -19,9 +19,11 @@
         </flux:sidebar.item>
     @endif
 
-    <flux:sidebar.item icon="hand-raised" :href="route('emprendedores.home')" badge="Pronto" wire:navigate>
-        {{ __('Oportunidades') }}
-    </flux:sidebar.item>
+    @if ($primaryBusiness)
+        <flux:sidebar.item icon="hand-raised" :href="route('emprendedores.negocios.oportunidades', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.oportunidades')" wire:navigate>
+            {{ __('Oportunidades') }}
+        </flux:sidebar.item>
+    @endif
 
     @if ($primaryBusiness)
         <flux:sidebar.item icon="megaphone" :href="route('emprendedores.negocios.copiloto', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.copiloto')" wire:navigate>

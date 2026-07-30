@@ -5,6 +5,10 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Favorite;
+use App\Domain\Needs\Models\Need;
+use App\Domain\Trust\Models\BusinessVerification;
+use App\Domain\Trust\Models\OrderConfirmation;
+use App\Domain\Trust\Models\Recommendation;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -149,6 +153,49 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    /**
+     * Necesidades publicadas por este comprador ("Pídelo en Merkamigo",
+     * Fase 2 del TODO).
+     *
+     * @return HasMany<Need, $this>
+     */
+    public function needs(): HasMany
+    {
+        return $this->hasMany(Need::class)->latest();
+    }
+
+    /**
+     * @return HasMany<BusinessVerification, $this>
+     */
+    public function requestedBusinessVerifications(): HasMany
+    {
+        return $this->hasMany(BusinessVerification::class, 'requested_by');
+    }
+
+    /**
+     * @return HasMany<OrderConfirmation, $this>
+     */
+    public function customerOrderConfirmations(): HasMany
+    {
+        return $this->hasMany(OrderConfirmation::class, 'customer_user_id');
+    }
+
+    /**
+     * @return HasMany<OrderConfirmation, $this>
+     */
+    public function businessOrderConfirmations(): HasMany
+    {
+        return $this->hasMany(OrderConfirmation::class, 'business_user_id');
+    }
+
+    /**
+     * @return HasMany<Recommendation, $this>
+     */
+    public function recommendationsAuthored(): HasMany
+    {
+        return $this->hasMany(Recommendation::class, 'author_user_id');
     }
 
     public function avatarUrl(): ?string

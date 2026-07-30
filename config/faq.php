@@ -25,7 +25,7 @@ return [
         ],
         [
             'pregunta' => '¿En qué municipios está disponible Merkamigo?',
-            'respuesta' => 'Empezamos en Cajicá y Zipaquirá. Iremos sumando más municipios a medida que crezca la comunidad de emprendedores y compradores.',
+            'respuesta' => 'Actualmente está disponible en Bogotá y en municipios activos de Sabana Norte, como Cajicá, Zipaquirá, Chía, Cota, Sopó, Tocancipá, Gachancipá, Cogua, Nemocón, Tabio y Tenjo.',
         ],
         [
             'pregunta' => '¿Qué pasa si no logro terminar de crear mi vitrina solo?',

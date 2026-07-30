@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Policies\BusinessPolicy;
+use App\Domain\Needs\Models\Need;
+use App\Domain\Needs\Policies\NeedPolicy;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
@@ -41,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
     protected function configureAuthorization(): void
     {
         Gate::policy(Business::class, BusinessPolicy::class);
+        Gate::policy(Need::class, NeedPolicy::class);
     }
 
     protected function configureAuditing(): void

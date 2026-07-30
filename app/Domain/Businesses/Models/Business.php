@@ -5,8 +5,12 @@ namespace App\Domain\Businesses\Models;
 use App\Domain\Discovery\Concerns\Favoritable;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Needs\Models\Offer;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\Storefront;
+use App\Domain\Trust\Models\BusinessVerification;
+use App\Domain\Trust\Models\OrderConfirmation;
+use App\Domain\Trust\Models\Recommendation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
  * @property array<string, mixed>|null $attributes
  * @property Carbon|null $suspended_at
  * @property Carbon|null $featured_until
+ * @property float|null $distance_km Distancia calculada en tiempo de ejecución (no persistida) cuando la Plaza ordena por cercanía, ver `PlazaController`.
  */
 class Business extends Model
 {
@@ -55,6 +60,8 @@ class Business extends Model
         'slug',
         'zone',
         'address',
+        'latitude',
+        'longitude',
         'whatsapp_number',
         'logo_path',
         'hours',
@@ -75,6 +82,8 @@ class Business extends Model
             'attributes' => 'array',
             'suspended_at' => 'datetime',
             'featured_until' => 'datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 
@@ -118,6 +127,38 @@ class Business extends Model
         return $this->hasMany(Product::class)->orderBy('position');
     }
 
+    /**
+     * @return HasMany<Offer, $this>
+     */
+    public function offers(): HasMany
+    {
+        return $this->hasMany(Offer::class)->latest();
+    }
+
+    /**
+     * @return HasMany<BusinessVerification, $this>
+     */
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(BusinessVerification::class)->latest();
+    }
+
+    /**
+     * @return HasMany<OrderConfirmation, $this>
+     */
+    public function orderConfirmations(): HasMany
+    {
+        return $this->hasMany(OrderConfirmation::class)->latest();
+    }
+
+    /**
+     * @return HasMany<Recommendation, $this>
+     */
+    public function recommendations(): HasMany
+    {
+        return $this->hasMany(Recommendation::class)->latest();
+    }
+
     public function isPublished(): bool
     {
         return $this->status === 'publicado';
@@ -131,6 +172,69 @@ class Business extends Model
     public function isFeatured(): bool
     {
         return $this->featured_until !== null && $this->featured_until->isFuture();
+    }
+
+    public function currentVerification(): ?BusinessVerification
+    {
+        if ($this->relationLoaded('verifications')) {
+            return $this->verifications->first();
+        }
+
+        return $this->verifications()->first();
+    }
+
+    public function hasVerifiedBadge(): bool
+    {
+        return $this->currentVerification()?->isCurrentlyVerified() ?? false;
+    }
+
+    public function verifiedBadgeLabel(): ?string
+    {
+        $verification = $this->currentVerification();
+
+        if (! $verification?->isCurrentlyVerified()) {
+            return null;
+        }
+
+        return match ($verification->level) {
+            'avanzada' => __('Verificación avanzada'),
+            default => __('Verificación básica'),
+        };
+    }
+
+    public function confirmedOrdersCount(): int
+    {
+        if ($this->relationLoaded('orderConfirmations')) {
+            return $this->orderConfirmations
+                ->where('is_reputation_eligible', true)
+                ->where('status', OrderConfirmation::COMPLETADO)
+                ->count();
+        }
+
+        return $this->orderConfirmations()
+            ->where('is_reputation_eligible', true)
+            ->where('status', OrderConfirmation::COMPLETADO)
+            ->count();
+    }
+
+    public function publishedRecommendations()
+    {
+        if ($this->relationLoaded('recommendations')) {
+            return $this->recommendations->where('status', Recommendation::PUBLICADA)->values();
+        }
+
+        return $this->recommendations()->where('status', Recommendation::PUBLICADA)->get();
+    }
+
+    /**
+     * `latitude`/`longitude` son opcionales: el emprendedor los comparte
+     * desde el editor con "Usar mi ubicación actual" (1.1.1/1.5 del TODO,
+     * cercanía sin depender de geolocalización avanzada). Sin ellos, el
+     * negocio sigue apareciendo en la Plaza, solo sin orden por distancia.
+     */
+    public function hasCoordinates(): bool
+    {
+        return filled($this->latitude) && filled($this->longitude);
     }
 
     public function logoUrl(): ?string

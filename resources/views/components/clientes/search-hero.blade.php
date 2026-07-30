@@ -32,7 +32,7 @@
     <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
 
     <div class="relative mx-auto max-w-6xl">
-        <flux:heading size="xl" class="text-3xl text-white sm:text-4xl">{{ $title }}</flux:heading>
+        <h1 class="font-heading text-3xl font-semibold text-white sm:text-4xl">{{ $title }}</h1>
         <flux:text class="mt-2 max-w-xl text-brand-100">
             {{ $description }}
         </flux:text>

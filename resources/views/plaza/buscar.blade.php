@@ -1,4 +1,34 @@
-<x-layouts::cliente :title="__('Buscar')" :show-municipality-selector="false">
+@php
+    $pageTitle = __('Buscar');
+    $pageDescription = $query !== ''
+        ? __('Resultados de búsqueda en Merkamigo para ":query".', ['query' => $query])
+        : __('Busca negocios, productos y servicios por municipio o categoría.');
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Buscar')],
+        ]),
+        \App\Support\Seo\SchemaBuilder::itemList(
+            $businesses->getCollection()->take(18)->map(fn ($business) => [
+                'name' => $business->name,
+                'url' => route('vitrinas.show', $business),
+                'image' => $business->storefront?->coverUrl() ?? $business->logoUrl(),
+            ])->all(),
+            __('Resultados de búsqueda'),
+        ),
+    ];
+@endphp
+
+<x-layouts::cliente
+    :title="$pageTitle"
+    :description="$pageDescription"
+    :canonical="route('buscar')"
+    robots="noindex,follow"
+    page-schema-type="SearchResultsPage"
+    :page-schema-data="['query' => $query]"
+    :schema-graph="$schemaGraph"
+    :show-municipality-selector="false"
+>
     <div class="mx-auto max-w-6xl px-6 py-8">
         <flux:heading size="xl" class="mb-1">{{ __('Resultados de búsqueda') }}</flux:heading>
         <flux:subheading class="mb-6">
@@ -33,6 +63,8 @@
                     </flux:select>
 
                     <flux:button type="submit" variant="primary" class="w-full">{{ __('Aplicar filtros') }}</flux:button>
+
+                    <x-clientes.near-me-toggle :near="$near" />
                 </form>
             </aside>
 

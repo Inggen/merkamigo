@@ -1,4 +1,28 @@
-<x-layouts::cliente :title="$product->name.' · '.$business->name">
+@php
+    $seoDescription = $product->description
+        ? \Illuminate\Support\Str::limit(strip_tags($product->description), 160)
+        : __(':product en :business, disponible en Merkamigo.', ['product' => $product->name, 'business' => $business->name]);
+    $pageImage = $product->media->first()?->url() ?? $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('icons/icon-512.png');
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => $business->name, 'url' => route('vitrinas.show', $business)],
+            ['name' => $product->name],
+        ]),
+        \App\Support\Seo\SchemaBuilder::localBusiness($business, collect([$product])),
+        \App\Support\Seo\SchemaBuilder::commerceEntity($product, $business),
+    ];
+@endphp
+
+<x-layouts::cliente
+    :title="$product->name.' · '.$business->name"
+    :description="$seoDescription"
+    :image="$pageImage"
+    :canonical="route('vitrinas.product', [$business, $product])"
+    page-schema-type="ItemPage"
+    :schema-graph="$schemaGraph"
+    og-type="product"
+>
     <div class="mx-auto max-w-4xl px-6 py-6">
         <nav class="mb-4 flex flex-wrap items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
             <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>

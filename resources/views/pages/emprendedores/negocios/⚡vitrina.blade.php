@@ -36,6 +36,8 @@ new #[Title('Editar mi vitrina')] class extends Component {
     public ?int $category_id = null;
     public ?string $zone = '';
     public ?string $address = '';
+    public ?float $latitude = null;
+    public ?float $longitude = null;
     public ?string $headline = '';
     public ?string $description = '';
     public ?string $hours_text = '';
@@ -89,6 +91,8 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $this->category_id = $business->category_id;
         $this->zone = $business->zone;
         $this->address = $business->address;
+        $this->latitude = $business->latitude;
+        $this->longitude = $business->longitude;
         $this->headline = $business->storefront?->headline;
         $this->description = $business->storefront?->description;
         $this->hours_text = $business->hoursNote() ?? '';
@@ -178,6 +182,44 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $data['attributes'] = $this->business_attributes;
 
         app(UpdateStorefront::class)->handle($this->business, $data, Auth::user());
+        $this->savedAt = now()->format('H:i');
+    }
+
+    /**
+     * Guarda la ubicación capturada por el navegador del emprendedor con
+     * "Usar mi ubicación actual" (1.1.1/1.5 del TODO: cercanía sin
+     * geolocalización avanzada). No pasa por `rules()`/`updated()` porque
+     * no es un campo de texto editable por tecla, sino un valor que llega
+     * completo desde JS en una sola llamada.
+     */
+    public function setLocation(float $latitude, float $longitude): void
+    {
+        $this->authorize('update', $this->business);
+
+        $this->latitude = $latitude;
+        $this->longitude = $longitude;
+
+        app(UpdateStorefront::class)->handle($this->business, [
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+        ], Auth::user());
+
+        $this->savedAt = now()->format('H:i');
+        Flux::toast(variant: 'success', text: __('Ubicación guardada.'));
+    }
+
+    public function clearLocation(): void
+    {
+        $this->authorize('update', $this->business);
+
+        $this->latitude = null;
+        $this->longitude = null;
+
+        app(UpdateStorefront::class)->handle($this->business, [
+            'latitude' => null,
+            'longitude' => null,
+        ], Auth::user());
+
         $this->savedAt = now()->format('H:i');
     }
 
@@ -366,7 +408,69 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:heading size="lg">{{ __('Ubicación') }}</flux:heading>
                 <flux:input wire:model.live.debounce.900ms="zone" :label="__('Zona o barrio')" />
                 <flux:input wire:model.live.debounce.900ms="address" :label="__('Dirección (opcional)')" />
+
+                <div x-data="vitrinaLocationCapture()" class="space-y-2 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <flux:text class="text-sm font-medium">{{ __('Ubicación para mostrar cercanía') }}</flux:text>
+                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ __('Opcional. Compartida solo si tú la activas — ayuda a que compradores cercanos te encuentren primero en la Plaza.') }}
+                    </flux:text>
+
+                    <div class="flex flex-wrap items-center gap-3 pt-1">
+                        <flux:button type="button" size="sm" variant="ghost" icon="map-pin" x-on:click="capture()" x-bind:disabled="loading">
+                            <span x-show="!loading">{{ __('Usar mi ubicación actual') }}</span>
+                            <span x-show="loading" x-cloak>{{ __('Ubicando...') }}</span>
+                        </flux:button>
+
+                        @if ($latitude !== null && $longitude !== null)
+                            <flux:button type="button" size="sm" variant="ghost" wire:click="clearLocation">
+                                {{ __('Quitar ubicación') }}
+                            </flux:button>
+                        @endif
+                    </div>
+
+                    @if ($latitude !== null && $longitude !== null)
+                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                            {{ __('Ubicación guardada.') }}
+                        </flux:text>
+                    @endif
+
+                    <flux:text x-show="error" x-cloak class="text-sm text-red-600 dark:text-red-400">
+                        {{ __('No pudimos acceder a tu ubicación. Revisa los permisos del navegador e intenta de nuevo.') }}
+                    </flux:text>
+                </div>
             </div>
+
+            @push('scripts')
+                <script>
+                    window.vitrinaLocationCapture = function () {
+                        return {
+                            loading: false,
+                            error: false,
+                            capture() {
+                                if (! window.isSecureContext || ! ('geolocation' in navigator)) {
+                                    this.error = true;
+                                    return;
+                                }
+
+                                this.loading = true;
+                                this.error = false;
+
+                                navigator.geolocation.getCurrentPosition(
+                                    (position) => {
+                                        this.loading = false;
+                                        this.$wire.setLocation(position.coords.latitude, position.coords.longitude);
+                                    },
+                                    () => {
+                                        this.loading = false;
+                                        this.error = true;
+                                    },
+                                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+                                );
+                            },
+                        };
+                    };
+                </script>
+            @endpush
 
             <div x-show="section === 'whatsapp'" x-cloak class="space-y-4">
                 <flux:heading size="lg">{{ __('WhatsApp y redes') }}</flux:heading>

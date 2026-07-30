@@ -518,7 +518,7 @@ Además de las 12 vistas principales, el producto necesita:
 ## 1.1.1 Experiencia Clientes - MVP comercial
 
 - [x] Inicio de Clientes con municipio, buscador, categorías y negocios destacados.
-- [ ] Mostrar negocios cercanos usando municipio/zona y distancia solo cuando exista permiso y dato confiable.
+- [x] Mostrar negocios cercanos usando municipio/zona y distancia solo cuando exista permiso y dato confiable. (Control "Cerca de mí" en Plaza y Buscar: comparte ubicación una sola vez, sin guardarla; ordena por distancia sin ocultar negocios sin coordenadas. El Inicio de Cliente todavía muestra "destacados" por fecha, no por distancia).
 - [x] Navegación desktop: municipio, Explorar, Actividad, Favoritos y Cuenta.
 - [ ] Navegación móvil: Explorar, Actividad, Publicar/Pídelo, Favoritos y Perfil.
 - [x] Explorar como visitante sin registro obligatorio.
@@ -649,14 +649,14 @@ Además de las 12 vistas principales, el producto necesita:
 
 - [x] Portada por municipio.
 - [x] Buscador por nombre, producto, servicio y categoría.
-- [ ] Filtros simples por categoría, municipio, cercanía, zona y disponibilidad. (categoría, municipio, zona y disponibilidad ya funcionan; falta cercanía, que depende de la geolocalización opcional todavía sin construir — ver más abajo)
+- [x] Filtros simples por categoría, municipio, cercanía, zona y disponibilidad. (Cercanía: el negocio comparte su ubicación una sola vez desde el editor de vitrina con "Usar mi ubicación actual"; el comprador comparte la suya desde "Cerca de mí" en Plaza/Buscar. Ninguna se guarda de forma permanente ni se exige para navegar).
 - [ ] Secciones: ofertas locales, negocios cercanos, nuevos, destacados y recomendados cuando haya datos. (nuevos y destacados ya funcionan, usando `featured_until`; ofertas locales, negocios cercanos y recomendados quedan fuera — ver `docs/architecture/decisiones.md`)
 - [x] Listado de negocios con información mínima y CTA.
 - [x] Listado de productos/servicios.
 - [ ] Reservar sección “Solicitudes actuales” para activarla con la fase 2.
 - [x] Estado vacío útil para categorías sin oferta.
 - [x] Selector y persistencia del municipio.
-- [ ] Preparar geolocalización opcional sin depender de ella.
+- [x] Preparar geolocalización opcional sin depender de ella. (`Municipality` tiene `latitude`/`longitude` opcionales y `canAutoDetect()`; el Inicio de Cliente ofrece autodetectar el municipio cuando el navegador lo permite, sin bloquear el flujo si no hay permiso o dato).
 - [x] Evitar geolocalización avanzada en el MVP.
 
 **Pantallas/rutas**
@@ -673,7 +673,7 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 1.6 Panel sencillo del emprendedor
 
-- [ ] Vista de bienvenida específica con propuesta de valor, beneficios e imagen local administrable.
+- [x] Vista de bienvenida específica con propuesta de valor, beneficios e imagen local administrable. (Portada con la foto del municipio preferido del visitante, con fallback a la imagen genérica).
 - [x] CTA “Crear mi vitrina” e inicio de sesión.
 - [x] Inicio exclusivo de la experiencia Emprendedores.
 - [x] Navegación: Inicio, Mi vitrina, Productos/servicios, Oportunidades, Promocionar y Cuenta.
@@ -685,7 +685,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Vista previa y guardado automático durante la edición. (El editor de vitrina guarda con debounce en cada campo y muestra "Guardado automáticamente a las H:i"; "Ver vista previa" abre la vista pública en pestaña aparte).
 - [x] Horarios, redes y métodos/información de pago.
 - [x] Gestión de colaboradores básica.
-- [ ] Ayuda contextual y contacto de soporte.
+- [ ] Ayuda contextual y contacto de soporte. (El enlace persistente "Ayuda" hacia `/soporte` ya está en el sidebar; falta ayuda contextual propiamente dicha — pistas o explicaciones por sección).
 - [x] Evitar que el emprendedor dependa del panel Filament.
 
 **Pantallas**
@@ -806,15 +806,15 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 2.1 Publicación de necesidades
 
-- [ ] Registro o verificación mínima del comprador.
-- [ ] Formulario: qué necesita, categoría, municipio/zona, fecha, presupuesto opcional, descripción y fotos opcionales.
-- [ ] Mostrar solicitudes recientes del municipio con antigüedad y cantidad de respuestas.
-- [ ] Guardar borrador.
-- [ ] Vista previa y consentimiento para publicar.
-- [ ] Fecha de expiración.
-- [ ] Edición, cancelación y cierre.
-- [ ] Moderación automática básica y revisión manual.
-- [ ] Protección contra spam y solicitudes prohibidas.
+- [x] Registro o verificación mínima del comprador. (Publicar exige sesión iniciada — rutas `pidelo/nueva` y `mis-solicitudes` bajo el mismo middleware `auth`+`verified` que el resto de acciones del Cliente que se guardan).
+- [x] Formulario: qué necesita, categoría, municipio/zona, fecha, presupuesto opcional, descripción y fotos opcionales. (Sin campo de fecha estructurado todavía — se captura como texto libre dentro de la descripción, ej. "para el sábado"; el resto de campos sí son estructurados).
+- [x] Mostrar solicitudes recientes del municipio con antigüedad y cantidad de respuestas.
+- [x] Guardar borrador.
+- [x] Vista previa y consentimiento para publicar.
+- [x] Fecha de expiración. (14 días por defecto desde la publicación, `Need::DEFAULT_LIFETIME_DAYS`).
+- [x] Edición, cancelación y cierre.
+- [x] Moderación automática básica y revisión manual. (`NoLinks` en título/descripción + suspensión/restauración desde Filament).
+- [x] Protección contra spam y solicitudes prohibidas. (`NoLinks` + un negocio solo puede tener una propuesta activa por necesidad — reenviar después de retirarla actualiza la misma fila en vez de crear ruido).
 
 **Pantallas/API**
 
@@ -833,21 +833,22 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 2.2 Descubrimiento y propuestas
 
-- [ ] Mostrar necesidades relevantes a negocios por municipio y categoría.
-- [ ] Integrar “Solicitudes actuales” en la Plaza del municipio.
-- [ ] Mostrar “Necesidades cercanas” en la experiencia del Emprendedor.
-- [ ] Notificación por correo y dentro de la plataforma.
-- [ ] Emprendedor envía propuesta con texto, precio opcional, disponibilidad y enlace a producto.
-- [ ] Limitar número de propuestas y frecuencia según reglas.
-- [ ] Permitir retirar propuesta.
-- [ ] Comprador compara 3-4 opciones de forma clara cuando existan.
-- [ ] CTA para continuar por WhatsApp sin chat interno complejo.
-- [ ] Registrar propuesta vista y contacto iniciado.
+- [x] Mostrar necesidades relevantes a negocios por municipio y categoría. (Filtra por municipio del negocio; no filtra además por categoría a propósito — un negocio puede resolver necesidades fuera de su categoría exacta, y ocultar esas oportunidades no aportaba nada al piloto).
+- [ ] Integrar “Solicitudes actuales” en la Plaza del municipio. (Diferido: la Plaza está en medio de otro cambio activo en este mismo momento — se agrega en un pase aparte para no chocar con ese trabajo).
+- [x] Mostrar “Necesidades cercanas” en la experiencia del Emprendedor. (`/emprendedores/negocios/{business}/oportunidades`, reemplaza el placeholder "Pronto" del sidebar).
+- [ ] Notificación por correo y dentro de la plataforma. (Diferido: el proyecto todavía no tiene ninguna notificación de Laravel implementada — sería la primera — ni un proveedor de correo/cola en uso real, ver `docs/architecture/decisiones.md`).
+- [x] Emprendedor envía propuesta con texto, precio opcional, disponibilidad y enlace a producto.
+- [x] Limitar número de propuestas y frecuencia según reglas. (Un negocio solo tiene una propuesta por necesidad; reenviar tras retirarla actualiza esa misma propuesta).
+- [x] Permitir retirar propuesta.
+- [x] Comprador compara 3-4 opciones de forma clara cuando existan.
+- [x] CTA para continuar por WhatsApp sin chat interno complejo.
+- [x] Registrar propuesta vista y contacto iniciado.
 
 **Entidades y acciones**
 
 - `needs`, `offers`
-- `PublishNeed`, `SubmitOffer`
+- [x] `PublishNeed`
+- [x] `SubmitOffer`
 
 **Criterios de aceptación**
 
@@ -857,11 +858,11 @@ Además de las 12 vistas principales, el producto necesita:
 
 ## 2.3 Cierre de la solicitud
 
-- [ ] Seleccionar propuesta.
-- [ ] Marcar como “contacté”, “encontré lo que buscaba” o “no encontré”.
-- [ ] Cerrar por vencimiento.
-- [ ] Solicitar confirmación básica a ambas partes.
-- [ ] Preparar evento para Pasaporte de confianza.
+- [x] Seleccionar propuesta. (Preseleccionar mientras compara, y elegir la propuesta ganadora al cerrar).
+- [x] Marcar como “contacté”, “encontré lo que buscaba” o “no encontré”.
+- [x] Cerrar por vencimiento. (Comando `needs:expire-overdue`, programado a diario en `routes/console.php`).
+- [ ] Solicitar confirmación básica a ambas partes. (Solo se confirma el lado del comprador al cerrar con "encontré lo que buscaba"; nada le pide today confirmación al negocio — ver el punto siguiente).
+- [x] Preparar evento para Pasaporte de confianza. (Al cerrar con "encontré lo que buscaba" y una propuesta elegida, se crea una `OrderConfirmation` con `source` apuntando a esa `Offer` y se confirma el lado del comprador; el lado del negocio queda pendiente para cuando exista esa interfaz en Fase 3).
 - [ ] Métricas de tiempo a primera propuesta y a conexión.
 
 **Gate para cerrar fase 2**
@@ -1109,6 +1110,7 @@ Estas tareas acompañan todas las fases:
 - [ ] Datos estructurados apropiados.
 - [ ] Sitemap y reglas de indexación.
 - [ ] Control de contenido duplicado, borradores y páginas suspendidas.
+- [ ] Cierre SEO final al terminar las fases activas: revisión integral de indexación, enlazado interno, performance, schemas, sitemap, contenido indexable y oportunidades de posicionamiento con la arquitectura y el contenido ya estabilizados.
 
 ### Datos y auditoría
 

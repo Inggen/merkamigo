@@ -1,4 +1,18 @@
-<x-layouts::public :title="__('Cómo funciona')">
+@php
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Cómo funciona')],
+        ]),
+    ];
+@endphp
+
+<x-layouts::public
+    :title="__('Cómo funciona')"
+    :description="__('Descubre cómo funciona Merkamigo para emprendedores y compradores: vitrinas, productos, servicios y contacto por WhatsApp.')"
+    :canonical="route('como-funciona')"
+    :schema-graph="$schemaGraph"
+>
     <div class="mx-auto max-w-3xl px-6 py-10">
         <flux:heading size="xl" class="mb-6">{{ __('Cómo funciona Merkamigo') }}</flux:heading>
 

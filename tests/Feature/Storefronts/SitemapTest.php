@@ -32,9 +32,11 @@ class SitemapTest extends TestCase
             'description' => 'Panes frescos todos los días.',
         ])->business;
         $business->update(['logo_path' => 'businesses/1/logo.jpg']);
-        app(CreateProduct::class)->handle($business, [
+        $product = app(CreateProduct::class)->handle($business, [
             'name' => 'Pan francés', 'type' => 'producto', 'price_type' => 'exacto', 'price' => 2000,
         ], [], $owner);
+        $product->update(['status' => 'publicado']);
+        $product->media()->create(['path' => 'products/1/pan-frances.jpg', 'position' => 0]);
         app(PublishStorefront::class)->handle($business, $owner);
 
         $draftOwner = User::factory()->create();
@@ -45,8 +47,11 @@ class SitemapTest extends TestCase
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/xml');
         $response->assertSee(route('vitrinas.show', $business->fresh()), false);
+        $response->assertSee(route('vitrinas.product', [$business->fresh(), $product->fresh()]), false);
         $response->assertSee(route('home'), false);
         $response->assertSee(route('plaza.show', $municipality), false);
+        $response->assertSee(route('plaza.category', [$municipality, $category]), false);
+        $response->assertSee('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', false);
         $response->assertDontSee('negocio-borrador');
     }
 }

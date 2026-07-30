@@ -1,4 +1,20 @@
-<x-layouts::public :title="__('Soporte')">
+@php
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Soporte')],
+        ]),
+        \App\Support\Seo\SchemaBuilder::contactPage(config('services.merkamigo.support_whatsapp')),
+    ];
+@endphp
+
+<x-layouts::public
+    :title="__('Soporte')"
+    :description="__('Canal de soporte de Merkamigo para ayudarte a crear o completar tu vitrina.')"
+    :canonical="route('soporte')"
+    page-schema-type="ContactPage"
+    :schema-graph="$schemaGraph"
+>
     <div class="mx-auto max-w-2xl px-6 py-10 text-center">
         <flux:heading size="xl" class="mb-2">{{ __('¿Necesitas ayuda?') }}</flux:heading>
         <flux:subheading class="mb-6">{{ __('Escríbenos y te ayudamos a crear o completar tu vitrina.') }}</flux:subheading>

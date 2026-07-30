@@ -26,7 +26,7 @@ class VitrinaController extends Controller
     {
         abort_unless($business->isPublished(), 404);
 
-        $business->load(['storefront', 'municipality', 'category']);
+        $business->load(['storefront', 'municipality', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
 
         app(RegisterStoreView::class)->handle($business, null, $request);
 
@@ -39,6 +39,8 @@ class VitrinaController extends Controller
     public function product(Business $business, string $product, Request $request): View
     {
         abort_unless($business->isPublished(), 404);
+
+        $business->load(['storefront', 'municipality', 'category', 'verifications', 'orderConfirmations']);
 
         $product = $business->products()
             ->where('slug', $product)

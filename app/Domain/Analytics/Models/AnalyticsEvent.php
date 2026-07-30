@@ -25,6 +25,8 @@ class AnalyticsEvent extends Model
 
     public const COMPARTIR_CLICK = 'compartir_click';
 
+    public const OFERTA_VIEW = 'oferta_view';
+
     protected $fillable = ['business_id', 'type', 'subject_type', 'subject_id', 'visitor_hash'];
 
     /**

@@ -129,6 +129,22 @@ class PublicDiscoveryTest extends TestCase
             ->assertDontSee($business->name);
     }
 
+    public function test_the_public_category_page_lists_municipalities_with_offer_and_links_to_their_local_plaza(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $otherMunicipality = Municipality::create(['name' => 'Tabio', 'slug' => 'tabio', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $this->publishedBusiness($municipality, $category);
+
+        $this->get(route('categorias.show', $category))
+            ->assertOk()
+            ->assertSee($category->name)
+            ->assertSee($municipality->name)
+            ->assertDontSee($otherMunicipality->name)
+            ->assertSee(route('plaza.category', [$municipality, $category]), false);
+    }
+
     public function test_the_public_product_page_reflects_promo_price_variants_and_sold_out(): void
     {
         $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);

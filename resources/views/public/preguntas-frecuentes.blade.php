@@ -1,4 +1,20 @@
-<x-layouts::public :title="__('Preguntas frecuentes')">
+@php
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Preguntas frecuentes')],
+        ]),
+        \App\Support\Seo\SchemaBuilder::faqPage($faqs),
+    ];
+@endphp
+
+<x-layouts::public
+    :title="__('Preguntas frecuentes')"
+    :description="__('Resuelve dudas frecuentes sobre Merkamigo, vitrinas, municipios disponibles y contacto por WhatsApp.')"
+    :canonical="route('preguntas-frecuentes')"
+    page-schema-type="FAQPage"
+    :schema-graph="$schemaGraph"
+>
     <div class="mx-auto max-w-3xl px-6 py-10">
         <flux:heading size="xl" class="mb-2">{{ __('Preguntas frecuentes') }}</flux:heading>
         <flux:subheading class="mb-6">

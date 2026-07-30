@@ -111,4 +111,50 @@ class PlazaFiltersTest extends TestCase
             ->assertOk()
             ->assertSee(asset('images/backgrounds/fondo-buscador-principal.webp'), false);
     }
+
+    public function test_sharing_a_location_orders_businesses_by_distance_without_hiding_those_without_coordinates(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        // Bogotá, a ~24km del parque de Cajicá.
+        $far = $this->publishedBusiness($municipality, $category, ['latitude' => 4.7110, 'longitude' => -74.0721]);
+        // Justo en el parque de Cajicá.
+        $near = $this->publishedBusiness($municipality, $category, ['latitude' => 4.9186, 'longitude' => -74.0279]);
+        $withoutCoordinates = $this->publishedBusiness($municipality, $category);
+
+        $response = $this->get(route('plaza.show', $municipality).'?lat=4.9186&lng=-74.0279');
+
+        $response->assertOk()->assertSeeInOrder([
+            __('Cerca de ti'),
+            $near->name,
+            $far->name,
+            $withoutCoordinates->name,
+        ]);
+    }
+
+    public function test_an_out_of_range_location_is_ignored_and_the_plaza_falls_back_to_the_default_order(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $this->publishedBusiness($municipality, $category);
+
+        $this->get(route('plaza.show', $municipality).'?lat=200&lng=-74.0279')
+            ->assertOk()
+            ->assertDontSee(__('Cerca de ti'));
+    }
+
+    public function test_sharing_a_location_also_orders_search_results_by_distance(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $far = $this->publishedBusiness($municipality, $category, ['latitude' => 4.7110, 'longitude' => -74.0721]);
+        $near = $this->publishedBusiness($municipality, $category, ['latitude' => 4.9186, 'longitude' => -74.0279]);
+
+        $this->get(route('buscar', ['lat' => 4.9186, 'lng' => -74.0279]))
+            ->assertOk()
+            ->assertSeeInOrder([$near->name, $far->name]);
+    }
 }

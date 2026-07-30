@@ -2,37 +2,34 @@
     $seoDescription = $business->storefront?->description
         ? \Illuminate\Support\Str::limit(strip_tags($business->storefront->description), 160)
         : __(':name en :municipio, con Merkamigo.', ['name' => $business->name, 'municipio' => $business->municipality?->name ?? '']);
+    $pageImage = $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('icons/icon-512.png');
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb(array_values(array_filter([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            $business->municipality ? ['name' => $business->municipality->name, 'url' => route('plaza.show', $business->municipality)] : null,
+            ['name' => $business->name],
+        ]))),
+        \App\Support\Seo\SchemaBuilder::localBusiness($business, $products),
+        \App\Support\Seo\SchemaBuilder::itemList(
+            $products->take(12)->map(fn ($product) => [
+                'name' => $product->name,
+                'url' => route('vitrinas.product', [$business, $product]),
+                'image' => $product->media->first()?->url(),
+            ])->all(),
+            __('Productos de :business', ['business' => $business->name]),
+        ),
+    ];
 @endphp
 
-<x-layouts::cliente :title="$business->name" :description="$seoDescription" :image="$business->logoUrl()">
-    @php
-        $jsonLd = [
-            '@context' => 'https://schema.org',
-            '@type' => 'LocalBusiness',
-            'name' => $business->name,
-            'description' => $seoDescription,
-            'url' => route('vitrinas.show', $business),
-        ];
-
-        if ($business->logoUrl()) {
-            $jsonLd['image'] = $business->logoUrl();
-        }
-
-        if ($business->whatsapp_number) {
-            $jsonLd['telephone'] = $business->whatsapp_number;
-        }
-
-        if ($business->municipality) {
-            $jsonLd['address'] = [
-                '@type' => 'PostalAddress',
-                'addressLocality' => $business->municipality->name,
-                'addressCountry' => 'CO',
-            ];
-        }
-    @endphp
-
-    <script type="application/ld+json">{!! json_encode($jsonLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-
+<x-layouts::cliente
+    :title="$business->name"
+    :description="$seoDescription"
+    :image="$pageImage"
+    :canonical="route('vitrinas.show', $business)"
+    page-schema-type="ProfilePage"
+    :page-schema-data="['about' => $business->category?->name]"
+    :schema-graph="$schemaGraph"
+>
     <div x-data="{ tab: 'inicio' }" class="mx-auto max-w-4xl px-6 py-6">
         <nav class="mb-4 flex flex-wrap items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
             <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>
@@ -45,11 +42,11 @@
         </nav>
 
         <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <div class="h-40 bg-zinc-100 sm:h-56 dark:bg-zinc-800">
-                @if ($business->storefront?->coverUrl())
-                    <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ __('Portada de :name', ['name' => $business->name]) }}">
-                @endif
-            </div>
+                <div class="h-40 bg-zinc-100 sm:h-56 dark:bg-zinc-800">
+                    @if ($business->storefront?->coverUrl())
+                    <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ __('Portada de :name', ['name' => $business->name]) }}" loading="eager">
+                    @endif
+                </div>
 
             <div class="px-6 pb-6">
                 <div class="-mt-10 flex items-end gap-4 sm:-mt-12">
@@ -65,11 +62,21 @@
                         <div>
                             <flux:heading size="xl">{{ $business->name }}</flux:heading>
                             <div class="mt-1 flex flex-wrap gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                @if ($business->hasVerifiedBadge())
+                                    <flux:badge size="sm" color="green">
+                                        {{ $business->verifiedBadgeLabel() }}
+                                    </flux:badge>
+                                @endif
                                 @if ($business->category)
                                     <flux:badge size="sm">{{ $business->category->name }}</flux:badge>
                                 @endif
                                 @if ($business->municipality)
                                     <flux:badge size="sm">{{ $business->municipality->name }}{{ $business->zone ? ' · '.$business->zone : '' }}</flux:badge>
+                                @endif
+                                @if ($business->confirmedOrdersCount() > 0)
+                                    <flux:badge size="sm" color="zinc">
+                                        {{ trans_choice(':count pedido confirmado|:count pedidos confirmados', $business->confirmedOrdersCount(), ['count' => $business->confirmedOrdersCount()]) }}
+                                    </flux:badge>
                                 @endif
                                 @if (($isOpenNow = $business->isOpenNow()) !== null)
                                     <flux:badge size="sm" :color="$isOpenNow ? 'green' : 'red'">
@@ -164,10 +171,40 @@
                     </div>
 
                     <div x-show="tab === 'opiniones'" x-cloak>
-                        <x-states.empty
-                            title="{{ __('Todavía no hay opiniones') }}"
-                            description="{{ __('Las recomendaciones llegan más adelante, cuando haya pedidos confirmados reales.') }}"
-                        />
+                        @php($recommendations = $business->publishedRecommendations())
+
+                        @if ($recommendations->isEmpty())
+                            <x-states.empty
+                                title="{{ __('Todavía no hay opiniones') }}"
+                                description="{{ __('Las recomendaciones aparecerán cuando existan interacciones elegibles y moderadas.') }}"
+                            />
+                        @else
+                            <div class="space-y-4">
+                                @foreach ($recommendations as $recommendation)
+                                    <article class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-700">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="text-sm font-medium text-carbon dark:text-white">
+                                                {{ $recommendation->authorUser?->name ?? __('Cliente verificado') }}
+                                            </span>
+                                            @foreach ($recommendation->tags ?? [] as $tag)
+                                                <flux:badge size="sm" color="zinc">{{ $tag }}</flux:badge>
+                                            @endforeach
+                                        </div>
+
+                                        <flux:text class="mt-2 whitespace-pre-line text-zinc-600 dark:text-zinc-300">
+                                            {{ $recommendation->body }}
+                                        </flux:text>
+
+                                        @if ($recommendation->business_response)
+                                            <div class="mt-3 rounded-xl bg-zinc-50 p-3 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                                                <span class="font-medium text-carbon dark:text-white">{{ __('Respuesta del negocio:') }}</span>
+                                                {{ $recommendation->business_response }}
+                                            </div>
+                                        @endif
+                                    </article>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
 
                     <div x-show="tab === 'informacion'" x-cloak class="space-y-4">
@@ -214,6 +251,15 @@
                             <div>
                                 <flux:subheading>{{ __('Información de pago') }}</flux:subheading>
                                 <flux:text class="whitespace-pre-line">{{ $business->payment_info }}</flux:text>
+                            </div>
+                        @endif
+
+                        @if ($business->hasVerifiedBadge())
+                            <div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-100">
+                                <div class="font-medium">{{ $business->verifiedBadgeLabel() }}</div>
+                                <div class="mt-1">
+                                    {{ __('Esta insignia confirma una revisión básica de identidad o documentos del negocio. No implica garantía de calidad, pago ni entrega por parte de Merkamigo.') }}
+                                </div>
                             </div>
                         @endif
 

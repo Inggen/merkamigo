@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BusinessController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\NeedController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -22,5 +23,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('businesses/{business}', [BusinessController::class, 'show'])
             ->middleware('business.team')
             ->name('businesses.show');
+
+        Route::post('needs', [NeedController::class, 'store'])->name('needs.store');
+        Route::get('needs/{need}', [NeedController::class, 'show'])->name('needs.show');
+        Route::patch('needs/{need}', [NeedController::class, 'update'])->name('needs.update');
     });
 });

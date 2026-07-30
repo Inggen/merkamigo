@@ -131,6 +131,31 @@ class StorefrontEditorTest extends TestCase
             ->assertSeeHtml(route('emprendedores.negocios.vista-previa', $business));
     }
 
+    public function test_owner_can_share_and_clear_the_business_location(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Ubicación', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->call('setLocation', 4.9186, -74.0279)
+            ->assertHasNoErrors();
+
+        $fresh = $business->fresh();
+        $this->assertEqualsWithDelta(4.9186, $fresh->latitude, 0.0001);
+        $this->assertEqualsWithDelta(-74.0279, $fresh->longitude, 0.0001);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->call('clearLocation')
+            ->assertHasNoErrors();
+
+        $this->assertNull($business->fresh()->latitude);
+        $this->assertNull($business->fresh()->longitude);
+    }
+
     public function test_a_collaborator_of_another_business_cannot_open_the_editor(): void
     {
         $ownerA = User::factory()->create();

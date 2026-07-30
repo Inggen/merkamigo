@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Validator;
 class UpdateStorefront
 {
     private const BUSINESS_FIELDS = [
-        'name', 'zone', 'address', 'municipality_id', 'category_id',
+        'name', 'zone', 'address', 'latitude', 'longitude', 'municipality_id', 'category_id',
         'whatsapp_number', 'hours', 'social_links', 'payment_info', 'attributes',
     ];
 
@@ -36,6 +36,8 @@ class UpdateStorefront
             'name' => ['sometimes', 'string', 'max:255'],
             'zone' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
             'municipality_id' => ['sometimes', 'nullable', 'integer', 'exists:municipalities,id'],
             'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             'whatsapp_number' => ['sometimes', 'nullable', 'string', 'max:20'],

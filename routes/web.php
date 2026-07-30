@@ -4,6 +4,7 @@ use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
 use App\Http\Controllers\ExperienceController;
+use App\Http\Controllers\NeedsController;
 use App\Http\Controllers\PlazaController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SitemapController;
@@ -19,6 +20,8 @@ Route::view('como-funciona', 'public.como-funciona')->name('como-funciona');
 Route::view('soporte', 'public.soporte')->name('soporte');
 Route::view('preguntas-frecuentes', 'public.preguntas-frecuentes', ['faqs' => config('faq.preguntas')])
     ->name('preguntas-frecuentes');
+Route::view('labs/zipa-inmersiva', 'public.labs.zipa-inmersiva')->name('labs.zipa-inmersiva');
+Route::view('labs/cajica-inmersiva', 'public.labs.cajica-inmersiva')->name('labs.cajica-inmersiva');
 Route::get('sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 Route::get('emprendedores/bienvenida', [EmprendedoresController::class, 'bienvenida'])
@@ -31,6 +34,7 @@ Route::post('experience', [ExperienceController::class, 'update'])
 // Plaza y vitrina pública (1.3, 1.5 del TODO) — sin registro obligatorio.
 Route::get('municipios', [PlazaController::class, 'municipios'])->name('municipios');
 Route::get('categorias', [PlazaController::class, 'categorias'])->name('categorias');
+Route::get('categorias/{categoria:slug}', [PlazaController::class, 'categoriaPublica'])->name('categorias.show');
 Route::get('buscar', [PlazaController::class, 'buscar'])->name('buscar');
 Route::get('plaza/{municipio:slug}', [PlazaController::class, 'show'])->name('plaza.show');
 Route::get('plaza/{municipio:slug}/categorias/{categoria:slug}', [PlazaController::class, 'category'])
@@ -61,10 +65,19 @@ Route::post('m/{business:slug}/productos/{product:slug}/reportar', [ReportContro
 Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
 Route::post('clientes/municipio', [ClientesController::class, 'setMunicipio'])->name('clientes.municipio');
 
+// "Pídelo en Merkamigo" (Fase 2 del TODO) — explorar es público.
+Route::get('pidelo', [NeedsController::class, 'index'])->name('pidelo');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('clientes/favoritos', [ClientesController::class, 'favoritos'])->name('clientes.favoritos');
+
+    Route::livewire('pidelo/nueva', 'pages::pidelo.nueva')->name('pidelo.nueva');
+    Route::get('mis-solicitudes', [NeedsController::class, 'misSolicitudes'])->name('mis-solicitudes');
+    Route::livewire('mis-solicitudes/{need}', 'pages::mis-solicitudes.show')->name('mis-solicitudes.show');
+    Route::get('mis-solicitudes/{need}/propuestas/{offer}/whatsapp', [NeedsController::class, 'whatsapp'])
+        ->name('mis-solicitudes.whatsapp');
 
     Route::get('emprendedores', [EmprendedoresController::class, 'home'])->name('emprendedores.home');
 
@@ -77,6 +90,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('colaboradores', 'pages::emprendedores.negocios.colaboradores')->name('colaboradores');
         Route::livewire('metricas', 'pages::emprendedores.negocios.metricas')->name('metricas');
         Route::livewire('copiloto', 'pages::emprendedores.negocios.copiloto')->name('copiloto');
+        Route::livewire('oportunidades', 'pages::emprendedores.negocios.oportunidades')->name('oportunidades');
         Route::get('vista-previa', [EmprendedoresController::class, 'vistaPrevia'])->name('vista-previa');
         Route::get('compartir', [EmprendedoresController::class, 'compartir'])->name('compartir');
     });

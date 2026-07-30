@@ -1,7 +1,29 @@
-<x-layouts::public :title="__('Municipios')">
+@php
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Municipios')],
+        ]),
+        \App\Support\Seo\SchemaBuilder::itemList(
+            $municipalities->map(fn ($municipality) => [
+                'name' => $municipality->name,
+                'url' => route('plaza.show', $municipality),
+            ])->all(),
+            __('Municipios activos'),
+        ),
+    ];
+@endphp
+
+<x-layouts::public
+    :title="__('Municipios')"
+    :description="__('Explora los municipios activos de Merkamigo en Bogotá y Sabana Norte.')"
+    :canonical="route('municipios')"
+    page-schema-type="CollectionPage"
+    :schema-graph="$schemaGraph"
+>
     <div class="mx-auto max-w-3xl px-6 py-10">
         <flux:heading size="xl" class="mb-2">{{ __('Municipios activos') }}</flux:heading>
-        <flux:subheading class="mb-6">{{ __('Merkamigo empieza en Cajicá y Zipaquirá, y va a más municipios pronto.') }}</flux:subheading>
+        <flux:subheading class="mb-6">{{ __('Merkamigo ya está disponible en Bogotá y municipios activos de Sabana Norte.') }}</flux:subheading>
 
         <div class="grid gap-4 sm:grid-cols-2">
             @foreach ($municipalities as $municipality)
