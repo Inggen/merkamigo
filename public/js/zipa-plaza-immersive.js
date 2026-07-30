@@ -1,4 +1,5 @@
 import * as THREE from 'https://esm.sh/three@0.179.1';
+import { GLTFLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/GLTFLoader.js';
 
 const container = document.getElementById('zipa-immersive-scene');
 const lockTrigger = document.getElementById('zipa-lock-trigger');
@@ -44,6 +45,9 @@ scene.add(world);
 const collisions = [];
 const animatedActors = [];
 const clock = new THREE.Clock();
+const gltfLoader = new GLTFLoader();
+let palmModelTemplate = null;
+const pendingPalmPlacements = [];
 
 const movement = {
     forward: false,
@@ -300,6 +304,78 @@ function addRoundPlanterCollision(x, z, radius, height = 1.6) {
     addCollisionBox(x, height / 2, z, radius * 1.85, height, radius * 1.85);
 }
 
+function prepareModelShadows(root) {
+    root.traverse((child) => {
+        if (!child.isMesh) {
+            return;
+        }
+
+        child.castShadow = true;
+        child.receiveShadow = true;
+
+        if (!child.material) {
+            return;
+        }
+
+        if (Array.isArray(child.material)) {
+            child.material.forEach((materialItem) => {
+                materialItem.needsUpdate = true;
+            });
+
+            return;
+        }
+
+        child.material.needsUpdate = true;
+    });
+}
+
+function loadPalmModel() {
+    gltfLoader.load(
+        '/3D/palmera.glb',
+        (gltf) => {
+            palmModelTemplate = gltf.scene;
+            prepareModelShadows(palmModelTemplate);
+
+            pendingPalmPlacements.splice(0).forEach((placement) => {
+                placePalmModel(placement);
+            });
+        },
+        undefined,
+        (error) => {
+            console.error('No se pudo cargar public/3D/palmera.glb', error);
+        },
+    );
+}
+
+function placePalmModel({ x, z, trunk }) {
+    if (!palmModelTemplate) {
+        pendingPalmPlacements.push({ x, z, trunk });
+
+        return;
+    }
+
+    const palm = palmModelTemplate.clone(true);
+    const rawBox = new THREE.Box3().setFromObject(palm);
+    const rawSize = rawBox.getSize(new THREE.Vector3());
+    const rawCenter = rawBox.getCenter(new THREE.Vector3());
+    const targetHeight = trunk + 8;
+    const scale = targetHeight / Math.max(rawSize.y, 1);
+
+    palm.scale.setScalar(scale);
+
+    const scaledBox = new THREE.Box3().setFromObject(palm);
+    const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+
+    palm.position.set(
+        x - scaledCenter.x,
+        1.3 - scaledBox.min.y,
+        z - scaledCenter.z,
+    );
+
+    world.add(palm);
+    addCollisionBox(x, Math.max(3.8, trunk * 0.32), z, 2.2, Math.max(7.5, trunk * 0.64), 2.2);
+}
+
 function buildPlayer() {
     const avatar = new THREE.Group();
 
@@ -520,44 +596,7 @@ function buildCityBackdrop() {
 }
 
 function buildPalm({ x, z, trunk = 18 }) {
-    for (let i = 0; i < trunk; i += 1) {
-        addVoxelBox({
-            x,
-            y: i + 1,
-            z,
-            w: 1.38,
-            h: 1,
-            d: 1.38,
-            texture: i % 2 === 0 ? 'wood' : 'trim',
-            collidable: i < 6,
-        });
-    }
-
-    for (let i = 0; i < 16; i += 1) {
-        const angle = (Math.PI * 2 * i) / 16;
-        const radius = 4.6 + (i % 2) * 1.1;
-        addVoxelBox({
-            x: x + Math.cos(angle) * radius,
-            y: trunk + 2.4 + (i % 2) * 0.5,
-            z: z + Math.sin(angle) * radius,
-            w: 4.5,
-            h: 1.08,
-            d: 1.2,
-            texture: 'leaf',
-        });
-    }
-
-    for (let i = 0; i < 6; i += 1) {
-        addVoxelBox({
-            x,
-            y: trunk - 0.3 + i * 0.75,
-            z,
-            w: 3.1 - i * 0.18,
-            h: 0.85,
-            d: 3.1 - i * 0.18,
-            texture: i < 2 ? 'woodDark' : 'leaf',
-        });
-    }
+    placePalmModel({ x, z, trunk });
 }
 
 function buildTree({ x, z, height = 10 }) {
@@ -1400,131 +1439,62 @@ function buildSouthGrassBarrier() {
 }
 
 function buildCathedral() {
-    const group = new THREE.Group();
-    group.position.set(plazaLayout.cathedralX, 0, plazaLayout.cathedralZ);
-    world.add(group);
+    const anchor = new THREE.Group();
+    anchor.position.set(plazaLayout.cathedralX, 0, plazaLayout.cathedralZ);
+    world.add(anchor);
 
-    const addFacadeTier = (y, width, height, depth = 0.7, texture = 'stoneLight') => {
-        addVoxelBox({ x: 0, y, z: 25.95, w: width, h: height, d: depth, texture, group });
-    };
+    addCollisionBox(plazaLayout.cathedralX, 9, plazaLayout.cathedralZ - 1, 30, 18, 54);
+    addCollisionBox(plazaLayout.cathedralX, 12, plazaLayout.cathedralZ + 22, 46, 24, 11);
 
-    const addTower = (tx) => {
-        addVoxelBox({ x: tx, y: 12.2, z: 22.4, w: 8.4, h: 24.4, d: 8.8, texture: 'stone', group, collidable: true });
-        addVoxelBox({ x: tx, y: 1.2, z: 22.4, w: 9.8, h: 2.4, d: 10.2, texture: 'stoneLight', group, collidable: true });
-        addVoxelBox({ x: tx, y: 5.3, z: 26.75, w: 4.1, h: 6.1, d: 0.46, texture: 'stoneLight', group });
-        addVoxelBox({ x: tx, y: 8.3, z: 26.95, w: 3.3, h: 0.55, d: 0.26, texture: 'trim', group });
-        addVoxelBox({ x: tx, y: 14.6, z: 26.95, w: 2.2, h: 4.9, d: 0.28, texture: 'glass', group });
-        addVoxelBox({ x: tx, y: 18.25, z: 26.88, w: 4.1, h: 0.62, d: 0.24, texture: 'trim', group });
+    gltfLoader.load(
+        '/3D/catedral-zipa.glb',
+        (gltf) => {
+            const model = gltf.scene;
+            prepareModelShadows(model);
 
-        [-2.35, 2.35].forEach((sx) => {
-            addVoxelBox({ x: tx + sx, y: 20.6, z: 23.3, w: 0.82, h: 14.8, d: 1.05, texture: 'stoneLight', group });
-        });
+            const localBox = new THREE.Box3().setFromObject(model);
+            const size = localBox.getSize(new THREE.Vector3());
+            const center = localBox.getCenter(new THREE.Vector3());
 
-        [-1.1, 1.1].forEach((sz) => {
-            addVoxelBox({ x: tx, y: 24.65, z: 23.3 + sz, w: 2.9, h: 6.9, d: 0.36, texture: 'woodDark', group });
-        });
+            const targetWidth = 47;
+            const targetDepth = 54;
+            const targetHeight = 38;
+            const scale = Math.min(
+                targetWidth / Math.max(size.x, 1),
+                targetDepth / Math.max(size.z, 1),
+                targetHeight / Math.max(size.y, 1),
+            );
 
-        addVoxelBox({ x: tx, y: 21.15, z: 23.3, w: 4.7, h: 0.78, d: 5.1, texture: 'trim', group });
-        addVoxelBox({ x: tx, y: 28.45, z: 23.3, w: 7.2, h: 0.96, d: 7.6, texture: 'trim', group });
+            model.scale.setScalar(scale);
 
-        const roofLevels = [
-            [30.2, 6.2],
-            [31.2, 5.1],
-            [32.15, 4.2],
-            [33.05, 3.35],
-            [33.9, 2.55],
-            [34.7, 1.75],
-        ];
+            const scaledBox = new THREE.Box3().setFromObject(model);
+            const scaledSize = scaledBox.getSize(new THREE.Vector3());
+            const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
 
-        roofLevels.forEach(([y, size]) => {
-            addVoxelBox({ x: tx, y, z: 23.3, w: size, h: 0.82, d: size, texture: 'roofClay', group });
-        });
+            model.position.set(
+                -scaledCenter.x,
+                -scaledBox.min.y,
+                -scaledCenter.z + 1.5,
+            );
+            model.rotation.y = Math.PI * 2;
 
-        addVoxelBox({ x: tx, y: 36.05, z: 23.3, w: 0.55, h: 2.5, d: 0.55, texture: 'white', group });
-        addVoxelBox({ x: tx, y: 37.15, z: 23.3, w: 1.9, h: 0.42, d: 0.55, texture: 'white', group });
-        addVoxelBox({ x: tx, y: 37.15, z: 23.3, w: 0.55, h: 0.42, d: 1.9, texture: 'white', group });
-    };
+            anchor.add(model);
 
-    addVoxelBox({ x: 0, y: 7.8, z: -0.8, w: 28.4, h: 15.6, d: 50.8, texture: 'stone', group, collidable: true });
-    addVoxelBox({ x: 0, y: 12.4, z: -0.8, w: 22.6, h: 10.4, d: 46.2, texture: 'stoneLight', group, collidable: true });
-    addVoxelBox({ x: 0, y: 18.05, z: -1.8, w: 25.6, h: 0.82, d: 48.6, texture: 'trim', group });
-    addVoxelBox({ x: 0, y: 1.05, z: -0.8, w: 31.6, h: 2.1, d: 53.8, texture: 'stoneLight', group, collidable: true });
-
-    for (let z = -19.5; z <= 15.5; z += 6) {
-        addVoxelBox({ x: -12.5, y: 10.2, z, w: 1.35, h: 13.4, d: 1.7, texture: 'stoneLight', group });
-        addVoxelBox({ x: 12.5, y: 10.2, z, w: 1.35, h: 13.4, d: 1.7, texture: 'stoneLight', group });
-        addVoxelBox({ x: -9.2, y: 15.75, z, w: 0.8, h: 2.15, d: 0.9, texture: 'trim', group });
-        addVoxelBox({ x: 9.2, y: 15.75, z, w: 0.8, h: 2.15, d: 0.9, texture: 'trim', group });
-    }
-
-    [-7.8, -1.8, 4.2, 10.2].forEach((z) => {
-        addVoxelBox({ x: -10.8, y: 8.9, z, w: 1.45, h: 5.3, d: 0.26, texture: 'glass', group });
-        addVoxelBox({ x: 10.8, y: 8.9, z, w: 1.45, h: 5.3, d: 0.26, texture: 'glass', group });
-    });
-
-    for (let z = -21; z <= 15; z += 2.25) {
-        const depth = Math.max(10, 38 - Math.abs(z + 3.2) * 0.5);
-        const width = Math.max(8, 18.8 - Math.abs(z + 2.5) * 0.1);
-
-        addVoxelBox({ x: 0, y: 17.2 + ((z + 21) / 2.25) * 0.13, z, w: width, h: 0.72, d: depth, texture: 'roofClay', group });
-    }
-
-    for (let z = -18.8; z <= 12.8; z += 2.5) {
-        addVoxelBox({ x: -15.85, y: 12.05, z, w: 5.9, h: 7.3, d: 2.2, texture: 'stone', group, collidable: z > 8 });
-        addVoxelBox({ x: 15.85, y: 12.05, z, w: 5.9, h: 7.3, d: 2.2, texture: 'stone', group, collidable: z > 8 });
-        addVoxelBox({ x: -15.85, y: 15.95, z, w: 6.6, h: 0.72, d: 3, texture: 'roofClay', group });
-        addVoxelBox({ x: 15.85, y: 15.95, z, w: 6.6, h: 0.72, d: 3, texture: 'roofClay', group });
-    }
-
-    addVoxelBox({ x: 0, y: 11.5, z: 23.15, w: 46.8, h: 23, d: 8.4, texture: 'stone', group, collidable: true });
-    addVoxelBox({ x: 0, y: 1.55, z: 28.4, w: 32.4, h: 3.1, d: 4.6, texture: 'stoneLight', group, collidable: true });
-    addVoxelBox({ x: 0, y: 3.9, z: 25.9, w: 40.2, h: 0.78, d: 1.32, texture: 'trim', group });
-    addVoxelBox({ x: 0, y: 8.55, z: 25.45, w: 37.6, h: 0.7, d: 1.02, texture: 'trim', group });
-    addVoxelBox({ x: 0, y: 16.95, z: 25.05, w: 34.8, h: 0.84, d: 1.02, texture: 'trim', group });
-
-    [-12.4, 0, 12.4].forEach((x, index) => {
-        const doorWidth = index === 1 ? 4.4 : 3.5;
-        const archWidth = index === 1 ? 7.2 : 5.8;
-
-        addVoxelBox({ x, y: 7.05, z: 27.98, w: doorWidth, h: 10.05, d: 0.48, texture: 'woodDark', group });
-        addVoxelBox({ x, y: 11.55, z: 27.5, w: archWidth - 0.8, h: 0.55, d: 0.24, texture: 'trim', group });
-        addVoxelBox({ x, y: 13.25, z: 27.25, w: archWidth, h: 0.55, d: 0.24, texture: 'trim', group });
-        addVoxelBox({ x, y: 15.1, z: 27.05, w: archWidth - 1.1, h: 0.95, d: 0.28, texture: 'stoneLight', group });
-        addVoxelBox({ x, y: 16.35, z: 26.94, w: archWidth - 2.3, h: 0.9, d: 0.3, texture: 'stoneLight', group });
-    });
-
-    [-7.2, 7.2].forEach((x) => {
-        addVoxelBox({ x, y: 11.75, z: 27.2, w: 1.7, h: 3.6, d: 0.28, texture: 'glass', group });
-        addVoxelBox({ x, y: 13.95, z: 26.92, w: 2.55, h: 0.9, d: 0.28, texture: 'stoneLight', group });
-        addVoxelBox({ x, y: 15.15, z: 27.02, w: 3.1, h: 0.4, d: 0.22, texture: 'trim', group });
-    });
-
-    addFacadeTier(20.45, 15.8, 3.4);
-    addFacadeTier(22.2, 19.2, 0.55, 0.32, 'trim');
-    addFacadeTier(24.2, 12.8, 2.4);
-    addFacadeTier(25.55, 9.2, 1.2);
-    addFacadeTier(26.85, 14.8, 0.55, 0.28, 'trim');
-    addFacadeTier(28.35, 6.2, 1.8);
-    addFacadeTier(29.75, 9.8, 0.48, 0.24, 'trim');
-    addFacadeTier(31.15, 4.2, 1.4);
-    addFacadeTier(32.45, 6.6, 0.42, 0.22, 'trim');
-
-    addVoxelBox({ x: 0, y: 20.5, z: 27.05, w: 1.65, h: 3.4, d: 0.26, texture: 'glass', group });
-    addVoxelBox({ x: 0, y: 24.15, z: 26.94, w: 3.35, h: 1.08, d: 0.28, texture: 'stoneLight', group });
-    addVoxelBox({ x: 0, y: 24.9, z: 27.04, w: 4.2, h: 0.38, d: 0.2, texture: 'trim', group });
-
-    [-5.1, 5.1].forEach((x) => {
-        addVoxelBox({ x, y: 22.6, z: 26.92, w: 0.7, h: 1.8, d: 0.24, texture: 'stoneLight', group });
-        addVoxelBox({ x, y: 25.1, z: 26.85, w: 0.78, h: 1.7, d: 0.22, texture: 'stoneLight', group });
-    });
-
-    addTower(-16.8);
-    addTower(16.8);
-
-    addVoxelBox({ x: 0, y: 0.5, z: 33.7, w: 47.5, h: 1, d: 11.2, texture: 'stone', group });
-    addVoxelBox({ x: 0, y: 1.15, z: 31.9, w: 36.4, h: 0.6, d: 4, texture: 'stoneLight', group });
-    addCollisionBox(group.position.x, 1.45, group.position.z + 33.7, 47.5, 2.9, 11.2);
+            const worldBox = new THREE.Box3().setFromObject(model);
+            collisions.push(worldBox.clone());
+            collisions.push(new THREE.Box3().setFromCenterAndSize(
+                new THREE.Vector3(plazaLayout.cathedralX, worldBox.min.y + Math.max(2.5, scaledSize.y * 0.22), plazaLayout.cathedralZ + 21),
+                new THREE.Vector3(Math.max(24, scaledSize.x * 0.94), Math.max(5, scaledSize.y * 0.44), 12),
+            ));
+        },
+        undefined,
+        (error) => {
+            console.error('No se pudo cargar public/3D/catedral-zipa.glb', error);
+        },
+    );
 }
+
+loadPalmModel();
 
 function buildWhiteBuilding() {
     const group = new THREE.Group();
