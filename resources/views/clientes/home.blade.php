@@ -1,6 +1,8 @@
-<x-layouts::cliente :title="__('Inicio')">
+<x-layouts::cliente :title="__('Inicio')" :show-municipality-selector="! $municipality">
     @if (! $municipality)
         <div
+            x-data="clienteMunicipalityAutodetect({{ \Illuminate\Support\Js::from($autoDetectMunicipalities) }})"
+            x-init="init()"
             class="relative overflow-hidden bg-cover bg-center px-6 py-16 text-white"
             style="background-image: url('{{ asset('images/backgrounds/fondo-buscador-principal.webp') }}')"
         >
@@ -11,6 +13,10 @@
                 <flux:text class="mt-2 mb-8 text-brand-100">
                     {{ __('Elige tu municipio para ver negocios cercanos.') }}
                 </flux:text>
+
+                <div x-show="detecting" x-cloak class="mb-6 text-sm text-brand-100/90">
+                    {{ __('Intentando detectar tu municipio para mostrarte lo mas cercano...') }}
+                </div>
 
                 <div class="flex flex-wrap justify-center gap-2">
                     @foreach ($municipalities as $option)
@@ -23,8 +29,95 @@
                         </form>
                     @endforeach
                 </div>
+
+                <form x-ref="autodetectForm" method="POST" action="{{ route('clientes.municipio') }}" class="hidden">
+                    @csrf
+                    <input x-ref="municipalityId" type="hidden" name="municipality_id">
+                </form>
             </div>
         </div>
+
+        @push('scripts')
+            <script>
+                window.clienteMunicipalityAutodetect = function (municipalities) {
+                    return {
+                        municipalities,
+                        detecting: false,
+                        maxDistanceKm: 25,
+                        init() {
+                            if (! Array.isArray(this.municipalities) || this.municipalities.length === 0) {
+                                return;
+                            }
+
+                            if (window.localStorage?.getItem('cliente-municipality-autodetect') === 'done') {
+                                return;
+                            }
+
+                            if (! window.isSecureContext || ! ('geolocation' in navigator)) {
+                                return;
+                            }
+
+                            this.detecting = true;
+
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    this.detecting = false;
+
+                                    const nearest = this.findNearestMunicipality(
+                                        position.coords.latitude,
+                                        position.coords.longitude,
+                                    );
+
+                                    if (! nearest || nearest.distanceKm > this.maxDistanceKm) {
+                                        window.localStorage?.setItem('cliente-municipality-autodetect', 'done');
+                                        return;
+                                    }
+
+                                    window.localStorage?.setItem('cliente-municipality-autodetect', 'done');
+                                    this.$refs.municipalityId.value = nearest.id;
+                                    this.$refs.autodetectForm.submit();
+                                },
+                                () => {
+                                    this.detecting = false;
+                                    window.localStorage?.setItem('cliente-municipality-autodetect', 'done');
+                                },
+                                {
+                                    enableHighAccuracy: false,
+                                    timeout: 5000,
+                                    maximumAge: 3600000,
+                                },
+                            );
+                        },
+                        findNearestMunicipality(latitude, longitude) {
+                            return this.municipalities
+                                .map((municipality) => ({
+                                    ...municipality,
+                                    distanceKm: this.distanceBetween(
+                                        latitude,
+                                        longitude,
+                                        municipality.latitude,
+                                        municipality.longitude,
+                                    ),
+                                }))
+                                .sort((a, b) => a.distanceKm - b.distanceKm)[0] ?? null;
+                        },
+                        distanceBetween(fromLat, fromLng, toLat, toLng) {
+                            const toRadians = (degrees) => degrees * (Math.PI / 180);
+                            const earthRadiusKm = 6371;
+                            const deltaLat = toRadians(toLat - fromLat);
+                            const deltaLng = toRadians(toLng - fromLng);
+                            const a =
+                                Math.sin(deltaLat / 2) ** 2 +
+                                Math.cos(toRadians(fromLat)) *
+                                    Math.cos(toRadians(toLat)) *
+                                    Math.sin(deltaLng / 2) ** 2;
+
+                            return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        },
+                    };
+                };
+            </script>
+        @endpush
     @else
         <x-clientes.search-hero
             :municipality="$municipality"

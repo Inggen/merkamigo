@@ -1,3 +1,7 @@
+@props([
+    'showMunicipalitySelector' => true,
+])
+
 @php
     use App\Domain\Discovery\Models\Municipality;
 
@@ -14,22 +18,32 @@
             <span class="hidden font-heading text-lg font-semibold sm:inline">Merkamigo</span>
         </a>
 
-        <flux:dropdown class="shrink-0">
-            <flux:button size="sm" variant="ghost" icon="map-pin" icon-trailing="chevron-down">
-                {{ $currentMunicipio?->name ?? __('Elegir municipio') }}
-            </flux:button>
-            <flux:menu>
-                @foreach ($allMunicipios as $option)
+        @if ($showMunicipalitySelector)
+            <flux:dropdown class="shrink-0">
+                <flux:button size="sm" variant="ghost" icon="map-pin" icon-trailing="chevron-down">
+                    {{ $currentMunicipio?->name ?? __('Todos') }}
+                </flux:button>
+                <flux:menu>
                     <form method="POST" action="{{ route('clientes.municipio') }}">
                         @csrf
-                        <input type="hidden" name="municipality_id" value="{{ $option->id }}">
-                        <flux:menu.item as="button" type="submit" :icon="$currentMunicipio?->id === $option->id ? 'check' : null" class="w-full cursor-pointer">
-                            {{ $option->name }}
+                        <input type="hidden" name="municipality_id" value="">
+                        <flux:menu.item as="button" type="submit" :icon="is_null($currentMunicipio) ? 'check' : null" class="w-full cursor-pointer">
+                            {{ __('Todos') }}
                         </flux:menu.item>
                     </form>
-                @endforeach
-            </flux:menu>
-        </flux:dropdown>
+
+                    @foreach ($allMunicipios as $option)
+                        <form method="POST" action="{{ route('clientes.municipio') }}">
+                            @csrf
+                            <input type="hidden" name="municipality_id" value="{{ $option->id }}">
+                            <flux:menu.item as="button" type="submit" :icon="$currentMunicipio?->id === $option->id ? 'check' : null" class="w-full cursor-pointer">
+                                {{ $option->name }}
+                            </flux:menu.item>
+                        </form>
+                    @endforeach
+                </flux:menu>
+            </flux:dropdown>
+        @endif
 
         <nav class="ml-auto flex shrink-0 items-center gap-1">
             <flux:button size="sm" variant="ghost" icon="magnifying-glass" :href="route('buscar')" wire:navigate>

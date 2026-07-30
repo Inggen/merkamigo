@@ -21,9 +21,14 @@
 @endphp
 
 <div
-    class="relative overflow-hidden bg-cover bg-center px-6 py-12 text-white sm:py-14"
-    style="background-image: url('{{ $heroBackground }}')"
+    x-data="{ offset: 0 }"
+    x-on:scroll.window="offset = Math.min(72, Math.max(0, window.scrollY * 0.18))"
+    class="relative overflow-hidden px-6 py-12 text-white sm:py-14"
 >
+    <div
+        class="absolute inset-0 scale-110 bg-cover bg-center bg-no-repeat will-change-transform"
+        x-bind:style="`background-image: url('{{ $heroBackground }}'); background-position: center calc(50% + ${offset}px); transform: scale(1.1);`"
+    ></div>
     <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
 
     <div class="relative mx-auto max-w-6xl">

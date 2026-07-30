@@ -1,4 +1,4 @@
-<x-layouts::cliente :title="__('Plaza de :municipio', ['municipio' => $municipio->name])">
+<x-layouts::cliente :title="__('Plaza de :municipio', ['municipio' => $municipio->name])" :show-municipality-selector="false">
     <x-clientes.search-hero
         :municipality="$municipio"
         :municipalities="$municipalities"

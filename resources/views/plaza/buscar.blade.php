@@ -1,4 +1,4 @@
-<x-layouts::cliente :title="__('Buscar')">
+<x-layouts::cliente :title="__('Buscar')" :show-municipality-selector="false">
     <div class="mx-auto max-w-6xl px-6 py-8">
         <flux:heading size="xl" class="mb-1">{{ __('Resultados de búsqueda') }}</flux:heading>
         <flux:subheading class="mb-6">

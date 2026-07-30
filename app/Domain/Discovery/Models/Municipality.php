@@ -9,11 +9,15 @@ use Illuminate\Support\Facades\Storage;
 
 class Municipality extends Model
 {
-    protected $fillable = ['name', 'slug', 'department', 'cover_path', 'is_active'];
+    protected $fillable = ['name', 'slug', 'department', 'cover_path', 'latitude', 'longitude', 'is_active'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+            'latitude' => 'float',
+            'longitude' => 'float',
+        ];
     }
 
     /**
@@ -27,5 +31,10 @@ class Municipality extends Model
     public function coverUrl(): ?string
     {
         return $this->cover_path ? Storage::disk('public')->url($this->cover_path) : null;
+    }
+
+    public function canAutoDetect(): bool
+    {
+        return filled($this->latitude) && filled($this->longitude);
     }
 }
