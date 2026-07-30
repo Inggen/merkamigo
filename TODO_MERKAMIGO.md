@@ -131,7 +131,7 @@ El MVP completo se entrega de forma incremental:
 - [x] Solo propietario o administrador autorizado puede gestionar plan, miembros y datos sensibles.
 - [x] Ningún negocio puede consultar o modificar información privada de otro.
 - [x] El contenido público se consulta sin revelar datos privados, internos o de facturación.
-- [ ] Toda acción de moderación, verificación, suspensión o cambio de plan queda auditada.
+- [x] Toda acción de moderación, verificación, suspensión o cambio de plan queda auditada. (`AuditLog` + `RecordAuditLog`, invocado desde `SuspendBusiness`, `RestoreBusiness`, `SuspendProduct`, `RestoreProduct`, `SuspendNeed`, `RestoreNeed`, `ResolveReport`, `ConfirmOrder`, `ReviewBusinessVerification`, `ModerateRecommendation`, `InviteCollaborator`, visible en `AuditLogResource`).
 
 ---
 
@@ -384,13 +384,13 @@ Además de las 12 vistas principales, el producto necesita:
 - [x] Perfil y preferencias.
 - [x] Favoritos.
 - [ ] Centro de actividad, notificaciones y propuestas; no implica chat interno completo.
-- [ ] Mis solicitudes, detalle de solicitud y propuestas recibidas.
-- [ ] Necesidades cercanas y propuestas enviadas para Emprendedores.
+- [x] Mis solicitudes, detalle de solicitud y propuestas recibidas. (`/mis-solicitudes`, `/mis-solicitudes/{need}`, `NeedsController::misSolicitudes()`).
+- [x] Necesidades cercanas y propuestas enviadas para Emprendedores. (`/emprendedores/negocios/{business}/oportunidades`).
 - [ ] Confirmación de pedido e historial.
 - [ ] Pasaporte de confianza, verificación y recomendaciones.
 - [x] Compartir vitrina, enlace y QR.
 - [ ] Planes, suscripción, límites y facturación cuando se habiliten.
-- [ ] Soporte, reportes, términos y privacidad.
+- [x] Soporte, reportes, términos y privacidad. (`/soporte`, `/terminos`, `/privacidad`, flujo de reportes vía `ReportController` + `ReportResource`).
 - [x] Estados vacíos, carga, error, sin conexión, suspendido y permisos denegados.
 - [ ] Administración y moderación en Filament.
 
