@@ -5,6 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Favorite;
+use App\Domain\Discovery\Models\RecentlyViewedBusiness;
+use App\Domain\Identity\Models\UserDevice;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Trust\Models\BusinessVerification;
 use App\Domain\Trust\Models\OrderConfirmation;
@@ -43,8 +45,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property array<string, mixed>|null $notification_channel_preferences
  */
-#[Fillable(['name', 'email', 'phone', 'password', 'experience', 'terms_accepted_at', 'terms_version'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'experience', 'terms_accepted_at', 'terms_version', 'remember_recently_viewed', 'notification_channel_preferences'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, PasskeyUser
 {
@@ -64,6 +67,8 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
+            'remember_recently_viewed' => 'boolean',
+            'notification_channel_preferences' => 'array',
             'password' => 'hashed',
         ];
     }
@@ -156,6 +161,17 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
     }
 
     /**
+     * Historial básico de negocios vistos (1.1.1 del TODO), solo con
+     * consentimiento (`remember_recently_viewed`).
+     *
+     * @return HasMany<RecentlyViewedBusiness, $this>
+     */
+    public function recentlyViewedBusinesses(): HasMany
+    {
+        return $this->hasMany(RecentlyViewedBusiness::class)->latest('viewed_at');
+    }
+
+    /**
      * Necesidades publicadas por este comprador ("Pídelo en Merkamigo",
      * Fase 2 del TODO).
      *
@@ -196,6 +212,28 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
     public function recommendationsAuthored(): HasMany
     {
         return $this->hasMany(Recommendation::class, 'author_user_id');
+    }
+
+    /**
+     * Dispositivos registrados para notificaciones push (5.2 del TODO).
+     *
+     * @return HasMany<UserDevice, $this>
+     */
+    public function devices(): HasMany
+    {
+        return $this->hasMany(UserDevice::class);
+    }
+
+    /**
+     * Un usuario desactivó las notificaciones push de un tipo específico
+     * (5.2 del TODO) — `notification_channel_preferences.push_disabled` es
+     * una lista de nombres de clase de notificación (`::class`).
+     */
+    public function hasDisabledPushFor(string $notificationClass): bool
+    {
+        $disabled = $this->notification_channel_preferences['push_disabled'] ?? [];
+
+        return in_array($notificationClass, $disabled, true);
     }
 
     public function avatarUrl(): ?string

@@ -29,6 +29,12 @@ class BusinessAttributeResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Configuración';
 
+    protected static ?string $modelLabel = 'atributo del negocio';
+
+    protected static ?string $pluralModelLabel = 'atributos del negocio';
+
+    protected static ?string $navigationLabel = 'Atributos del negocio';
+
     public static function form(Schema $schema): Schema
     {
         return BusinessAttributeForm::configure($schema);

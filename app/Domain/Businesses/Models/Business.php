@@ -2,6 +2,8 @@
 
 namespace App\Domain\Businesses\Models;
 
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Billing\Models\Subscription;
 use App\Domain\Discovery\Concerns\Favoritable;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
@@ -12,6 +14,7 @@ use App\Domain\Trust\Models\BusinessVerification;
 use App\Domain\Trust\Models\OrderConfirmation;
 use App\Domain\Trust\Models\Recommendation;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -26,6 +29,7 @@ use Illuminate\Support\Facades\Storage;
  * @property array<string, mixed>|null $hours
  * @property array<string, string>|null $social_links
  * @property array<string, mixed>|null $attributes
+ * @property array<string, string>|null $whatsapp_faq_answers
  * @property Carbon|null $suspended_at
  * @property Carbon|null $featured_until
  * @property float|null $distance_km Distancia calculada en tiempo de ejecución (no persistida) cuando la Plaza ordena por cercanía, ver `PlazaController`.
@@ -64,10 +68,12 @@ class Business extends Model
         'longitude',
         'whatsapp_number',
         'logo_path',
+        'logo_alt_text',
         'hours',
         'social_links',
         'payment_info',
         'attributes',
+        'whatsapp_faq_answers',
         'status',
         'suspension_reason',
         'suspended_at',
@@ -80,6 +86,7 @@ class Business extends Model
             'hours' => 'array',
             'social_links' => 'array',
             'attributes' => 'array',
+            'whatsapp_faq_answers' => 'array',
             'suspended_at' => 'datetime',
             'featured_until' => 'datetime',
             'latitude' => 'float',
@@ -109,6 +116,67 @@ class Business extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Municipios adicionales donde también atiende este negocio, más allá
+     * del principal (`municipality_id`) — una vitrina puede operar en más
+     * de un municipio (0.2.2 del TODO). `zone` en la tabla pivote es la
+     * zona propia de ESE municipio adicional; `businesses.zone` sigue
+     * siendo la zona del municipio principal.
+     *
+     * @return BelongsToMany<Municipality, $this, BusinessMunicipality>
+     */
+    public function municipalities(): BelongsToMany
+    {
+        return $this->belongsToMany(Municipality::class, 'business_municipalities')
+            ->using(BusinessMunicipality::class)
+            ->withPivot('zone')
+            ->withTimestamps();
+    }
+
+    /**
+     * Todos los municipios donde atiende este negocio: el principal más
+     * los adicionales.
+     *
+     * @return Collection<int, int>
+     */
+    public function allMunicipalityIds(): Collection
+    {
+        return collect([$this->municipality_id])
+            ->merge($this->municipalities->pluck('id'))
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Zona del negocio para un municipio dado: la propia (`zone`) si es el
+     * principal, o la de la tabla pivote si es uno de los adicionales.
+     */
+    public function zoneFor(int $municipalityId): ?string
+    {
+        if ($this->municipality_id === $municipalityId) {
+            return $this->zone;
+        }
+
+        return BusinessMunicipality::where('business_id', $this->id)
+            ->where('municipality_id', $municipalityId)
+            ->value('zone');
+    }
+
+    /**
+     * Negocios que atienden un municipio dado, ya sea como principal o
+     * como uno de sus municipios adicionales.
+     *
+     * @param  Builder<Business>  $query
+     * @return Builder<Business>
+     */
+    public function scopeServesMunicipality(Builder $query, int $municipalityId): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where('municipality_id', $municipalityId)
+            ->orWhereHas('municipalities', fn (Builder $m) => $m->where('municipalities.id', $municipalityId)));
     }
 
     /**
@@ -157,6 +225,34 @@ class Business extends Model
     public function recommendations(): HasMany
     {
         return $this->hasMany(Recommendation::class)->latest();
+    }
+
+    /**
+     * Suscripción más reciente (4.1 del TODO). `CreateStorefront` siempre
+     * crea una al plan "Gratis", así que en la práctica nunca es null.
+     *
+     * @return HasOne<Subscription, $this>
+     */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)->latestOfMany();
+    }
+
+    /**
+     * Plan activo del negocio. Si por algún motivo no tiene una
+     * suscripción utilizable, cae al plan "Gratis" sembrado (nunca null,
+     * para que el resto del código no tenga que manejar la ausencia de
+     * plan como caso especial).
+     */
+    public function activePlan(): Plan
+    {
+        $subscription = $this->subscription;
+
+        if ($subscription && $subscription->isUsable()) {
+            return $subscription->plan;
+        }
+
+        return Plan::where('slug', 'gratis')->firstOrFail();
     }
 
     public function isPublished(): bool
@@ -217,7 +313,10 @@ class Business extends Model
             ->count();
     }
 
-    public function publishedRecommendations()
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, Recommendation>
+     */
+    public function publishedRecommendations(): \Illuminate\Database\Eloquent\Collection
     {
         if ($this->relationLoaded('recommendations')) {
             return $this->recommendations->where('status', Recommendation::PUBLICADA)->values();
@@ -249,6 +348,17 @@ class Business extends Model
     public function hoursNote(): ?string
     {
         return $this->hours['note'] ?? null;
+    }
+
+    /**
+     * Respuesta editable que el negocio dejó para una pregunta frecuente del
+     * Copiloto de WhatsApp (4.4 del TODO: "respuestas frecuentes
+     * editables"). `null` cuando no hay override — el Copiloto usa el texto
+     * generado automáticamente igual que antes.
+     */
+    public function faqAnswer(string $key): ?string
+    {
+        return $this->whatsapp_faq_answers[$key] ?? null;
     }
 
     public function hasStructuredSchedule(): bool

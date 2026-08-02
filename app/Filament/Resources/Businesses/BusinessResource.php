@@ -28,6 +28,12 @@ class BusinessResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Moderación';
 
+    protected static ?string $modelLabel = 'negocio';
+
+    protected static ?string $pluralModelLabel = 'negocios';
+
+    protected static ?string $navigationLabel = 'Negocios';
+
     public static function form(Schema $schema): Schema
     {
         return BusinessForm::configure($schema);

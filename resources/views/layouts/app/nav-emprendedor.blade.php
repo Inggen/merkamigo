@@ -5,6 +5,16 @@
         {{ __('Inicio') }}
     </flux:sidebar.item>
 
+    <flux:sidebar.item
+        icon="bell"
+        :href="route('clientes.actividad')"
+        :current="request()->routeIs('clientes.actividad')"
+        :badge="($unread = auth()->user()->unreadNotifications()->count()) > 0 ? $unread : null"
+        wire:navigate
+    >
+        {{ __('Actividad') }}
+    </flux:sidebar.item>
+
     @if ($primaryBusiness)
         <flux:sidebar.item icon="building-storefront" :href="route('emprendedores.negocios.vitrina', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.vitrina')" wire:navigate>
             {{ __('Mi vitrina') }}
@@ -28,6 +38,18 @@
     @if ($primaryBusiness)
         <flux:sidebar.item icon="megaphone" :href="route('emprendedores.negocios.copiloto', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.copiloto')" wire:navigate>
             {{ __('Promocionar') }}
+        </flux:sidebar.item>
+
+        <flux:sidebar.item icon="sparkles" :href="route('emprendedores.negocios.impulsar', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.impulsar')" wire:navigate>
+            {{ __('Impulsa tu negocio') }}
+        </flux:sidebar.item>
+
+        <flux:sidebar.item icon="shield-check" :href="route('emprendedores.negocios.verificacion', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.verificacion')" wire:navigate>
+            {{ __('Pasaporte de confianza') }}
+        </flux:sidebar.item>
+
+        <flux:sidebar.item icon="credit-card" :href="route('emprendedores.negocios.plan', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.plan')" wire:navigate>
+            {{ __('Tu plan') }}
         </flux:sidebar.item>
     @endif
 

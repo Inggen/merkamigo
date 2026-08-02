@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Needs\Models\Need;
 use App\Domain\Storefronts\Models\Product;
 use App\Support\Geo\Distance;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -27,6 +30,49 @@ use Illuminate\Support\Collection;
  */
 class PlazaController extends Controller
 {
+    public function zipaInmersiva(): View
+    {
+        $municipio = Municipality::query()
+            ->where('slug', 'zipaquira')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $immersiveBusinesses = Business::query()
+            ->servesMunicipality($municipio->id)
+            ->where('status', 'publicado')
+            ->whereHas('products', fn ($query) => $query->where('status', 'publicado'))
+            ->with([
+                'storefront',
+                'products' => fn ($query) => $query
+                    ->where('status', 'publicado')
+                    ->orderBy('position'),
+            ])
+            ->orderByDesc('featured_until')
+            ->orderByDesc('created_at')
+            ->take(4)
+            ->get()
+            ->map(function (Business $business): array {
+                return [
+                    'name' => $business->name,
+                    'slug' => $business->slug,
+                    'url' => route('vitrinas.show', $business),
+                    'headline' => $business->storefront?->headline,
+                    'products' => $business->products->take(3)->map(fn (Product $product): array => [
+                        'name' => $product->name,
+                        'price' => $product->price,
+                        'price_type' => $product->price_type,
+                        'is_available' => $product->is_available,
+                        'url' => route('vitrinas.product', [$business, $product]),
+                    ])->values()->all(),
+                ];
+            })
+            ->values();
+
+        return view('public.labs.zipa-inmersiva', [
+            'immersiveBusinesses' => $immersiveBusinesses,
+        ]);
+    }
+
     public function show(Municipality $municipio, Request $request): View
     {
         return view('plaza.show', $this->plazaData($municipio, null, $request));
@@ -35,6 +81,19 @@ class PlazaController extends Controller
     public function category(Municipality $municipio, Category $categoria, Request $request): View
     {
         return view('plaza.show', $this->plazaData($municipio, $categoria, $request));
+    }
+
+    public function legacyBuscarRedirect(Request $request, ?string $municipio = null, ?string $categoria = null): RedirectResponse
+    {
+        $selectedMunicipality = $this->resolveSearchMunicipality($request, $municipio);
+        $selectedCategory = $this->resolveSearchCategory($request, $categoria);
+
+        return $this->buildCanonicalSearchRedirect($request, $selectedMunicipality, $selectedCategory, 301);
+    }
+
+    public function legacyCategoryRedirect(Request $request, Municipality $municipio, Category $categoria): RedirectResponse
+    {
+        return $this->buildCanonicalSearchRedirect($request, $municipio, $categoria, 301);
     }
 
     /**
@@ -47,10 +106,14 @@ class PlazaController extends Controller
         $near = $this->nearMeCoordinates($request);
 
         $publishedBusinesses = Business::query()
-            ->where('municipality_id', $municipio->id)
+            ->servesMunicipality($municipio->id)
             ->where('status', 'publicado')
             ->when($categoria, fn ($q) => $q->where('category_id', $categoria->id))
-            ->when($zone, fn ($q) => $q->where('zone', $zone));
+            ->when($zone, fn ($q) => $q->where(fn ($q) => $q
+                ->where(fn ($q) => $q->where('municipality_id', $municipio->id)->where('zone', $zone))
+                ->orWhereHas('municipalities', fn ($q) => $q
+                    ->where('municipalities.id', $municipio->id)
+                    ->where('business_municipalities.zone', $zone))));
 
         $featured = (clone $publishedBusinesses)
             ->where('featured_until', '>', now())
@@ -69,20 +132,39 @@ class PlazaController extends Controller
             $businesses = $businessesQuery->orderByDesc('created_at')->paginate(12, ['*'], 'page')->withQueryString();
         }
 
-        $zones = Business::query()
+        $primaryZones = Business::query()
             ->where('municipality_id', $municipio->id)
             ->where('status', 'publicado')
             ->whereNotNull('zone')
             ->where('zone', '!=', '')
             ->distinct()
-            ->orderBy('zone')
             ->pluck('zone');
+
+        $additionalZones = Business::query()
+            ->where('status', 'publicado')
+            ->whereHas('municipalities', fn ($q) => $q->where('municipalities.id', $municipio->id))
+            ->with(['municipalities' => fn ($q) => $q->where('municipalities.id', $municipio->id)])
+            ->get()
+            ->flatMap(fn (Business $business) => $business->municipalities->pluck('pivot.zone'))
+            ->filter();
+
+        $zones = $primaryZones->merge($additionalZones)->unique()->sort()->values();
+
+        $openNeeds = Need::query()
+            ->openIn($municipio->id, $categoria?->id)
+            ->withCount('offers')
+            ->with(['category'])
+            ->latest('published_at')
+            ->take(6)
+            ->get();
 
         $products = Product::query()
             ->where('status', 'publicado')
             ->when($onlyAvailable, fn ($q) => $q->where('is_available', true))
             ->whereHas('business', fn ($q) => $q
-                ->where('municipality_id', $municipio->id)
+                ->where(fn ($b) => $b
+                    ->where('municipality_id', $municipio->id)
+                    ->orWhereHas('municipalities', fn ($m) => $m->where('municipalities.id', $municipio->id)))
                 ->where('status', 'publicado')
                 ->when($categoria, fn ($b) => $b->where('category_id', $categoria->id)))
             ->with(['business', 'media'])
@@ -99,32 +181,44 @@ class PlazaController extends Controller
             'zone' => $zone,
             'featured' => $featured,
             'businesses' => $businesses,
+            'openNeeds' => $openNeeds,
             'products' => $products,
             'onlyAvailable' => $onlyAvailable,
             'near' => $near,
         ];
     }
 
-    public function buscar(Request $request): View
+    public function buscar(Request $request, ?string $municipio = null, ?string $categoria = null): View|RedirectResponse
     {
         $query = trim((string) $request->string('q'));
-        $municipalityId = $request->integer('municipio') ?: null;
-        $categoryId = $request->integer('categoria') ?: null;
         $near = $this->nearMeCoordinates($request);
+        $selectedMunicipality = $this->resolveSearchMunicipality($request, $municipio);
+        $selectedCategory = $this->resolveSearchCategory($request, $categoria);
+
+        if ($redirect = $this->normalizeLegacySearchUrl($request, $selectedMunicipality, $selectedCategory, $municipio, $categoria)) {
+            return $redirect;
+        }
+
+        if ($selectedMunicipality && $query === '' && ! $near) {
+            return view('plaza.show', $this->plazaData($selectedMunicipality, $selectedCategory, $request));
+        }
+
+        $municipalityId = $selectedMunicipality?->id;
+        $categoryId = $selectedCategory?->id;
 
         $businessesQuery = Business::query()
             ->where('status', 'publicado')
             ->when(
                 $query !== '',
-                fn ($q) => $q->where(function ($q) use ($query) {
+                fn (Builder $q) => $q->where(function (Builder $q) use ($query) {
                     $q->where('name', 'like', "%{$query}%")
-                        ->orWhereHas('products', fn ($p) => $p
+                        ->orWhereHas('products', fn (Builder $p) => $p
                             ->where('status', 'publicado')
                             ->where('name', 'like', "%{$query}%"));
                 }),
             )
-            ->when($municipalityId, fn ($q) => $q->where('municipality_id', $municipalityId))
-            ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
+            ->when($municipalityId, fn (Builder $q) => $q->servesMunicipality($municipalityId))
+            ->when($categoryId, fn (Builder $q) => $q->where('category_id', $categoryId))
             ->with(['category', 'municipality', 'storefront']);
 
         if ($near) {
@@ -137,9 +231,113 @@ class PlazaController extends Controller
             'query' => $query,
             'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
             'categories' => Category::where('is_active', true)->orderBy('position')->get(),
+            'selectedMunicipality' => $selectedMunicipality,
+            'selectedCategory' => $selectedCategory,
             'businesses' => $businesses,
             'near' => $near,
         ]);
+    }
+
+    private function normalizeLegacySearchUrl(
+        Request $request,
+        ?Municipality $municipality,
+        ?Category $category,
+        ?string $municipioSlug,
+        ?string $categoriaSlug,
+    ): ?RedirectResponse {
+        $hasLegacyFilters = $request->filled('municipio') || $request->filled('categoria');
+
+        if (! $hasLegacyFilters) {
+            return null;
+        }
+
+        $targetUrl = $this->canonicalSearchUrl($request, $municipality, $category);
+        $currentUrl = route('buscar', array_filter([
+            'municipio' => $municipioSlug,
+            'categoria' => $categoriaSlug,
+        ], fn ($value) => filled($value)));
+        $queryParameters = collect($request->query())
+            ->except(['municipio', 'categoria'])
+            ->reject(fn ($value) => $value === null || $value === '')
+            ->all();
+        $currentUrlWithQuery = $currentUrl.($queryParameters !== [] ? '?'.http_build_query($queryParameters) : '');
+
+        if ($targetUrl === $currentUrlWithQuery) {
+            return null;
+        }
+
+        return redirect()->to($targetUrl, 301);
+    }
+
+    private function buildCanonicalSearchRedirect(
+        Request $request,
+        ?Municipality $municipality,
+        ?Category $category,
+        int $status = 301,
+    ): RedirectResponse {
+        return redirect()->to($this->canonicalSearchUrl($request, $municipality, $category), $status);
+    }
+
+    private function canonicalSearchUrl(Request $request, ?Municipality $municipality, ?Category $category): string
+    {
+        $routeParameters = [];
+
+        if ($municipality) {
+            $routeParameters['municipio'] = $municipality->slug;
+        } elseif ($category) {
+            $routeParameters['municipio'] = 'todos';
+        }
+
+        if ($category) {
+            $routeParameters['categoria'] = $category->slug;
+        }
+
+        $queryParameters = collect($request->query())
+            ->except(['municipio', 'categoria'])
+            ->reject(fn ($value) => $value === null || $value === '')
+            ->all();
+
+        return route('buscar', array_merge($routeParameters, $queryParameters));
+    }
+
+    private function resolveSearchMunicipality(Request $request, ?string $municipio): ?Municipality
+    {
+        $legacyMunicipalityId = $request->integer('municipio') ?: null;
+
+        if ($legacyMunicipalityId) {
+            return Municipality::query()
+                ->where('is_active', true)
+                ->find($legacyMunicipalityId);
+        }
+
+        if (! filled($municipio) || $municipio === 'todos') {
+            return null;
+        }
+
+        return Municipality::query()
+            ->where('is_active', true)
+            ->where('slug', $municipio)
+            ->first();
+    }
+
+    private function resolveSearchCategory(Request $request, ?string $categoria): ?Category
+    {
+        $legacyCategoryId = $request->integer('categoria') ?: null;
+
+        if ($legacyCategoryId) {
+            return Category::query()
+                ->where('is_active', true)
+                ->find($legacyCategoryId);
+        }
+
+        if (! filled($categoria)) {
+            return null;
+        }
+
+        return Category::query()
+            ->where('is_active', true)
+            ->where('slug', $categoria)
+            ->first();
     }
 
     public function municipios(): View

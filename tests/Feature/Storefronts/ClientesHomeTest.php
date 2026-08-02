@@ -29,7 +29,7 @@ class ClientesHomeTest extends TestCase
             ->get(route('clientes.home'))
             ->assertOk()
             ->assertSee('Cajicá')
-            ->assertSee(__('Elige tu municipio para ver negocios cercanos.'));
+            ->assertSee(__('Busca negocios, productos y servicios por municipio o cerca de ti.'));
     }
 
     public function test_choosing_a_municipality_persists_it_and_shows_its_published_businesses(): void

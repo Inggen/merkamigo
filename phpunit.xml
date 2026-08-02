@@ -32,5 +32,12 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="WOMPI_ENV" value="sandbox"/>
+        <env name="WOMPI_PUBLIC_KEY" value="pub_test_dummy"/>
+        <env name="WOMPI_PRIVATE_KEY" value="prv_test_dummy"/>
+        <env name="WOMPI_INTEGRITY_SECRET" value="test_integrity_secret"/>
+        <env name="WOMPI_EVENTS_SECRET" value="test_events_secret"/>
+        <env name="FCM_SERVER_KEY" value="test_fcm_dummy"/>
+        <env name="FCM_ENDPOINT" value="https://fcm.test/send"/>
     </php>
 </phpunit>

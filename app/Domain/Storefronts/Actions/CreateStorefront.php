@@ -2,12 +2,15 @@
 
 namespace App\Domain\Storefronts\Actions;
 
+use App\Domain\Billing\Exceptions\PlanLimitException;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Models\BusinessMembership;
 use App\Domain\Businesses\Models\Organization;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Storefronts\Models\Storefront;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -30,6 +33,8 @@ class CreateStorefront
      */
     public function handle(User $owner, array $data): Storefront
     {
+        $this->assertStorefrontLimitNotExceeded($owner);
+
         return DB::transaction(function () use ($owner, $data) {
             $organization = Organization::create([
                 'name' => $data['name'],
@@ -90,5 +95,41 @@ class CreateStorefront
         }
 
         return $slug;
+    }
+
+    /**
+     * A diferencia de `max_products`/`max_members` (que consulta
+     * `CheckUsageLimit` contra el plan de un negocio ya existente), la
+     * vitrina que se está creando aquí todavía no existe, así que no hay
+     * negocio del que leer el plan activo. El tope de vitrinas por dueño
+     * se evalúa contra el mejor plan que tenga en cualquiera de sus
+     * vitrinas actuales (si ninguna define límite, o el dueño no tiene
+     * ninguna todavía, cae al plan "Gratis" sembrado).
+     */
+    private function assertStorefrontLimitNotExceeded(User $owner): void
+    {
+        $currentCount = Business::whereHas('organization', fn ($query) => $query->where('owner_user_id', $owner->id))->count();
+
+        $limit = $this->storefrontLimitFor($owner);
+
+        if ($limit !== null && $currentCount >= $limit) {
+            throw new PlanLimitException("Tu plan permite hasta {$limit} vitrinas. Mejora tu plan para crear más.");
+        }
+    }
+
+    private function storefrontLimitFor(User $owner): ?int
+    {
+        $plans = Business::whereHas('organization', fn ($query) => $query->where('owner_user_id', $owner->id))
+            ->get()
+            ->map(fn (Business $business) => $business->activePlan());
+
+        /** @var Collection<int, Plan> $plans */
+        $plans = $plans->push(Plan::where('slug', 'gratis')->firstOrFail());
+
+        if ($plans->contains(fn (Plan $plan) => $plan->limit('max_storefronts') === null)) {
+            return null;
+        }
+
+        return $plans->max(fn (Plan $plan) => $plan->limit('max_storefronts'));
     }
 }

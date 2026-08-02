@@ -27,6 +27,12 @@ class NeedResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Moderación';
 
+    protected static ?string $modelLabel = 'necesidad';
+
+    protected static ?string $pluralModelLabel = 'necesidades';
+
+    protected static ?string $navigationLabel = 'Necesidades';
+
     public static function form(Schema $schema): Schema
     {
         return NeedForm::configure($schema);

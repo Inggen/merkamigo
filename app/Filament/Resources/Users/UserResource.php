@@ -29,6 +29,12 @@ class UserResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Plataforma';
 
+    protected static ?string $modelLabel = 'usuario';
+
+    protected static ?string $pluralModelLabel = 'usuarios';
+
+    protected static ?string $navigationLabel = 'Usuarios';
+
     public static function form(Schema $schema): Schema
     {
         return UserForm::configure($schema);

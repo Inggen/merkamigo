@@ -4,7 +4,6 @@ namespace Tests\Feature\Storefronts;
 
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
-use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -52,16 +51,14 @@ class OnboardingWizardTest extends TestCase
         $this->assertNotNull($business);
         $this->assertNotNull($business->logo_path);
 
-        // Sin productos todavía: publicar debe fallar con la lista de faltantes.
-        $component->call('goToStep5')->call('publish');
-        $component->assertSet('missing', fn ($missing) => in_array('Al menos un producto o servicio', $missing));
-
-        app(CreateProduct::class)->handle(
-            $business,
-            ['name' => 'Pan francés', 'type' => 'producto', 'price_type' => 'exacto', 'price' => 2000],
-            [],
-            $user,
-        );
+        // El paso "Primer producto" exige crear uno antes de avanzar.
+        $component->set('product_name', 'Pan francés')
+            ->set('product_price_type', 'exacto')
+            ->set('product_price', 2000)
+            ->call('goToStep5')
+            ->assertSet('step', 5)
+            ->call('goToStep6')
+            ->assertSet('step', 6);
 
         $component->call('publish');
 
@@ -79,7 +76,10 @@ class OnboardingWizardTest extends TestCase
             ->call('goToStep2')
             ->call('goToStep3')
             ->call('goToStep4')
+            ->set('product_name', 'Primer producto')
+            ->set('product_price_type', 'consultar')
             ->call('goToStep5')
+            ->call('goToStep6')
             ->call('publish');
 
         $component->assertSet('missing', fn ($missing) => $missing !== [])

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Businesses\Actions\SyncBusinessMunicipalities;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Models\BusinessAttribute;
 use App\Domain\Discovery\Models\Category;
@@ -33,6 +34,9 @@ new #[Title('Editar mi vitrina')] class extends Component {
     public string $name = '';
     public ?string $whatsapp_number = '';
     public ?int $municipality_id = null;
+
+    /** @var array<int, int> */
+    public array $additional_municipality_ids = [];
     public ?int $category_id = null;
     public ?string $zone = '';
     public ?string $address = '';
@@ -52,7 +56,9 @@ new #[Title('Editar mi vitrina')] class extends Component {
     public array $business_attributes = [];
 
     public $logo;
+    public ?string $logo_alt_text = '';
     public $cover;
+    public ?string $cover_alt_text = '';
 
     /** @var array<int, string> */
     public array $missing = [];
@@ -88,6 +94,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $this->name = $business->name;
         $this->whatsapp_number = $business->whatsapp_number;
         $this->municipality_id = $business->municipality_id;
+        $this->additional_municipality_ids = $business->municipalities->pluck('id')->all();
         $this->category_id = $business->category_id;
         $this->zone = $business->zone;
         $this->address = $business->address;
@@ -95,6 +102,8 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $this->longitude = $business->longitude;
         $this->headline = $business->storefront?->headline;
         $this->description = $business->storefront?->description;
+        $this->logo_alt_text = $business->logo_alt_text;
+        $this->cover_alt_text = $business->storefront?->cover_alt_text;
         $this->hours_text = $business->hoursNote() ?? '';
         $this->payment_info = $business->payment_info;
         $this->social_links = array_merge($this->social_links, $business->social_links ?? []);
@@ -128,6 +137,8 @@ new #[Title('Editar mi vitrina')] class extends Component {
             'headline' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'payment_info' => ['nullable', 'string'],
+            'logo_alt_text' => ['nullable', 'string', 'max:255'],
+            'cover_alt_text' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -164,7 +175,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
      */
     public function updated(string $property): void
     {
-        if (in_array($property, ['logo', 'cover'], true)) {
+        if (in_array($property, ['logo', 'cover', 'additional_municipality_ids'], true)) {
             return;
         }
 
@@ -182,6 +193,20 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $data['attributes'] = $this->business_attributes;
 
         app(UpdateStorefront::class)->handle($this->business, $data, Auth::user());
+        $this->savedAt = now()->format('H:i');
+    }
+
+    /**
+     * Municipios adicionales (0.2.2 del TODO: una vitrina puede estar en
+     * varios municipios) viven en una tabla pivote, no en una columna de
+     * `businesses` — no pasan por `rules()`/`updated()` genérico, se
+     * sincronizan aparte, igual que `setLocation()`.
+     */
+    public function updatedAdditionalMunicipalityIds(): void
+    {
+        $this->authorize('update', $this->business);
+
+        app(SyncBusinessMunicipalities::class)->handle($this->business, $this->additional_municipality_ids);
         $this->savedAt = now()->format('H:i');
     }
 
@@ -268,7 +293,12 @@ new #[Title('Editar mi vitrina')] class extends Component {
 <section class="mx-auto w-full max-w-5xl" x-data="{ section: 'portada' }">
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <flux:heading size="xl">{{ __('Edita tu vitrina') }}</flux:heading>
+            <div class="flex items-center gap-1.5">
+                <flux:heading size="xl">{{ __('Edita tu vitrina') }}</flux:heading>
+                <flux:tooltip :content="__('Cada sección se guarda sola mientras escribes: no necesitas un botón de «Guardar» por pestaña.')">
+                    <flux:icon.question-mark-circle class="size-4 shrink-0 text-zinc-400" variant="outline" />
+                </flux:tooltip>
+            </div>
             <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Personaliza la información de tu negocio.') }}</flux:text>
         </div>
 
@@ -335,19 +365,28 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:heading size="lg">{{ __('Portada') }}</flux:heading>
 
                 <div>
-                    <flux:text class="mb-2">{{ __('Logo o foto principal') }}</flux:text>
-                    <input type="file" wire:model="logo" accept="image/*" class="block w-full text-sm">
-                    @if ($this->business->logoUrl() && ! $logo)
-                        <img src="{{ $this->business->logoUrl() }}" class="mt-2 size-16 rounded-lg object-cover" alt="{{ $this->business->name }}">
-                    @endif
+                    <x-forms.image-upload-field
+                        wire:model="logo"
+                        accept="image/*"
+                        :title="__('Logo o foto principal')"
+                        :preview-url="$this->business->logoUrl() && ! $logo ? $this->business->logoUrl() : null"
+                        :preview-alt="$this->business->logo_alt_text ?? $this->business->name"
+                        :preview-class="'size-20 rounded-xl object-cover'"
+                        :error="$errors->first('logo')"
+                    />
+                    <flux:input wire:model.live.debounce.900ms="logo_alt_text" class="mt-2" :label="__('Texto alternativo del logo (opcional)')" />
                 </div>
 
                 <div>
-                    <flux:text class="mb-2">{{ __('Portada de la vitrina') }}</flux:text>
-                    <input type="file" wire:model="cover" accept="image/*" class="block w-full text-sm">
-                    @if ($this->business->storefront?->coverUrl() && ! $cover)
-                        <img src="{{ $this->business->storefront->coverUrl() }}" class="mt-2 h-24 w-full rounded-lg object-cover" alt="{{ __('Portada actual') }}">
-                    @endif
+                    <x-forms.image-upload-field
+                        wire:model="cover"
+                        accept="image/*"
+                        :title="__('Portada de la vitrina')"
+                        :preview-url="$this->business->storefront?->coverUrl() && ! $cover ? $this->business->storefront->coverUrl() : null"
+                        :preview-alt="$this->business->storefront->cover_alt_text ?? __('Portada actual')"
+                        :error="$errors->first('cover')"
+                    />
+                    <flux:input wire:model.live.debounce.900ms="cover_alt_text" class="mt-2" :label="__('Texto alternativo de la portada (opcional)')" />
                 </div>
             </div>
 
@@ -365,6 +404,14 @@ new #[Title('Editar mi vitrina')] class extends Component {
                     @endforeach
                 </flux:select>
 
+                <flux:checkbox.group wire:model.live="additional_municipality_ids" :label="__('¿También atiendes en otros municipios? (opcional)')">
+                    <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($this->municipalities as $municipality)
+                            <flux:checkbox value="{{ $municipality->id }}" :label="$municipality->name" />
+                        @endforeach
+                    </div>
+                </flux:checkbox.group>
+
                 <flux:select wire:model.live="category_id" :label="__('Categoría')">
                     <flux:select.option value="">{{ __('Selecciona una categoría') }}</flux:select.option>
                     @foreach ($this->categories as $category)
@@ -374,9 +421,11 @@ new #[Title('Editar mi vitrina')] class extends Component {
 
                 @if ($this->attributeOptions->isNotEmpty())
                     <flux:checkbox.group wire:model.live="attributes" :label="__('Atributos')">
-                        @foreach ($this->attributeOptions as $option)
-                            <flux:checkbox value="{{ $option->slug }}" :label="$option->name" />
-                        @endforeach
+                        <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                            @foreach ($this->attributeOptions as $option)
+                                <flux:checkbox value="{{ $option->slug }}" :label="$option->name" />
+                            @endforeach
+                        </div>
                     </flux:checkbox.group>
                 @endif
             </div>

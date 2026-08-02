@@ -4,6 +4,7 @@
 
 ## Contenido por municipio
 
+- Fondo del hero/buscador: siempre se toma de la configuración del municipio en admin (`hero_video_path` o `cover_path`). No se debe reemplazar por imágenes mock, assets de experiencias inmersivas ni fondos hardcodeados por slug, salvo el fallback genérico cuando el municipio no tenga nada configurado.
 - Negocios publicados del municipio, filtrables por categoría (ruta), zona y disponibilidad (querystring `zona`, `disponibles`).
 - Sección "Destacados": negocios con `featured_until` vigente (destacado manual desde administración).
 - Sección "Nuevos": los publicados más recientes que no están destacados.

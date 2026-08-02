@@ -4,6 +4,7 @@ namespace Tests\Feature\Storefronts;
 
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -156,6 +157,66 @@ class ProductManagementTest extends TestCase
         $product = $business->products()->firstOrFail();
 
         $this->assertTrue($product->isSoldOut());
+    }
+
+    public function test_owner_can_set_alt_text_for_an_existing_product_photo(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
+
+        $this->actingAs($owner);
+
+        $component = Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Torta de chocolate')
+            ->set('type', 'producto')
+            ->set('price_type', 'exacto')
+            ->set('price', 25000)
+            ->set('photos', [UploadedFile::fake()->image('torta.jpg')])
+            ->call('save');
+
+        $product = $business->products()->firstOrFail();
+        $media = $product->media->first();
+
+        $component->call('openEdit', $product->id)
+            ->set("photoAlts.{$media->id}", 'Torta de chocolate con fresas')
+            ->call('saveMediaAlt', $media->id)
+            ->assertHasNoErrors();
+
+        $this->assertSame('Torta de chocolate con fresas', $media->fresh()->alt_text);
+    }
+
+    public function test_a_collaborator_of_another_business_cannot_set_alt_text_for_its_photos(): void
+    {
+        Storage::fake('public');
+
+        $ownerA = User::factory()->create();
+        $businessA = app(CreateStorefront::class)->handle($ownerA, ['name' => 'Negocio A'])->business;
+
+        Livewire::actingAs($ownerA);
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $businessA->id])
+            ->call('openCreate')
+            ->set('name', 'Producto A')
+            ->set('type', 'producto')
+            ->set('photos', [UploadedFile::fake()->image('a.jpg')])
+            ->call('save');
+
+        $media = $businessA->products()->firstOrFail()->media->first();
+
+        $ownerB = User::factory()->create();
+        $businessB = app(CreateStorefront::class)->handle($ownerB, ['name' => 'Negocio B'])->business;
+
+        $this->actingAs($ownerB);
+
+        $this->expectException(ModelNotFoundException::class);
+
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $businessB->id])
+            ->set("photoAlts.{$media->id}", 'Intento ajeno')
+            ->call('saveMediaAlt', $media->id);
+
+        $this->assertNull($media->fresh()->alt_text);
     }
 
     public function test_saving_a_product_with_a_link_in_the_description_is_rejected(): void

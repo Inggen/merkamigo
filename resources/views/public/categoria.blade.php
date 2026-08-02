@@ -10,7 +10,7 @@
         \App\Support\Seo\SchemaBuilder::itemList(
             $municipalities->map(fn ($municipality) => [
                 'name' => $municipality->name,
-                'url' => route('plaza.category', [$municipality, $category]),
+                'url' => route('buscar', ['municipio' => $municipality->slug, 'categoria' => $category->slug]),
             ])->all(),
             __('Municipios con :category', ['category' => $category->name]),
         ),
@@ -50,7 +50,7 @@
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($municipalities as $municipality)
                         <a
-                            href="{{ route('plaza.category', [$municipality, $category]) }}"
+                            href="{{ route('buscar', ['municipio' => $municipality->slug, 'categoria' => $category->slug]) }}"
                             class="rounded-2xl border border-zinc-200 bg-white p-4 transition hover:border-brand-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
                             wire:navigate
                         >

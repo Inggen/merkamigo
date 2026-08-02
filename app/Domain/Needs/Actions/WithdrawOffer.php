@@ -3,6 +3,7 @@
 namespace App\Domain\Needs\Actions;
 
 use App\Domain\Needs\Models\Offer;
+use App\Domain\Needs\Notifications\OfferWithdrawn;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Models\User;
 
@@ -21,6 +22,8 @@ class WithdrawOffer
         ]);
 
         app(RecordAuditLog::class)->handle($actor, 'offer.withdrawn', $offer);
+
+        $offer->need->user->notify(new OfferWithdrawn($offer));
 
         return $offer->fresh();
     }

@@ -21,14 +21,14 @@ class SitemapController extends Controller
         $urls = $this->staticUrls();
 
         foreach (Municipality::where('is_active', true)->get() as $municipality) {
-            $urls[] = $this->url(route('plaza.show', $municipality));
+            $urls[] = $this->url(route('buscar', ['municipio' => $municipality->slug]));
 
             Category::query()
                 ->where('is_active', true)
                 ->orderBy('position')
                 ->get()
                 ->each(function (Category $category) use (&$urls, $municipality) {
-                    $urls[] = $this->url(route('plaza.category', [$municipality, $category]));
+                    $urls[] = $this->url(route('buscar', ['municipio' => $municipality->slug, 'categoria' => $category->slug]));
                 });
         }
 

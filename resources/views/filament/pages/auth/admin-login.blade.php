@@ -16,7 +16,7 @@
 
                             <div class="max-w-xl space-y-5">
                                 <h1 class="text-6xl font-semibold leading-[0.95] tracking-[-0.04em] text-slate-800">
-                                    Administracion
+                                    Administración
                                     <span class="block text-[#e3342f]">Merkamigo</span>
                                 </h1>
 
@@ -37,7 +37,7 @@
 
                             <div class="space-y-3 text-center">
                                 <h1 class="text-4xl font-semibold leading-none tracking-[-0.04em] text-slate-800 sm:text-5xl">
-                                    Administracion
+                                    Administración
                                     <span class="block text-[#e3342f]">Merkamigo</span>
                                 </h1>
 
@@ -55,11 +55,11 @@
                                     </p>
 
                                     <h2 class="text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-                                        Verificacion en dos pasos
+                                        Verificación en dos pasos
                                     </h2>
 
                                     <p class="max-w-md text-base leading-7 text-slate-500">
-                                        Completa el metodo de verificacion configurado para continuar al panel.
+                                        Completa el método de verificación configurado para continuar al panel.
                                     </p>
                                 </div>
 
@@ -71,7 +71,7 @@
                             <div class="space-y-6" x-data="{ revealPassword: false }">
                                 <div class="space-y-2">
                                     <h2 class="text-3xl font-semibold tracking-[-0.04em] text-slate-900 sm:text-[2.2rem]">
-                                        Administracion <span class="text-[#e3342f]">Merkamigo</span>
+                                        Administración <span class="text-[#e3342f]">Merkamigo</span>
                                     </h2>
 
                                     <p class="max-w-md text-base leading-7 text-slate-500">
@@ -82,7 +82,7 @@
                                 <form wire:submit="authenticate" class="space-y-5">
                                     <div class="space-y-2">
                                         <label for="admin-email" class="block text-sm font-medium text-slate-700">
-                                            Correo electronico
+                                            Correo electrónico
                                         </label>
 
                                         <div class="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition focus-within:border-[#e3342f] focus-within:ring-4 focus-within:ring-[#e3342f]/10">
@@ -108,7 +108,7 @@
 
                                     <div class="space-y-2">
                                         <label for="admin-password" class="block text-sm font-medium text-slate-700">
-                                            Contrasena
+                                            Contraseña
                                         </label>
 
                                         <div class="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition focus-within:border-[#e3342f] focus-within:ring-4 focus-within:ring-[#e3342f]/10">
@@ -161,7 +161,7 @@
 
                                         @if ($this->getPasswordResetUrl())
                                             <a href="{{ $this->getPasswordResetUrl() }}" class="text-sm font-medium text-[#e3342f] transition hover:text-[#c92f2a]">
-                                                ¿Olvidaste tu contrasena?
+                                                ¿Olvidaste tu contraseña?
                                             </a>
                                         @endif
                                     </div>
@@ -190,7 +190,7 @@
                                                 Acceso exclusivo para administradores autorizados.
                                             </p>
                                             <p class="text-sm leading-6 text-slate-500">
-                                                Usa tus credenciales internas para gestionar la operacion y las solicitudes de la plataforma.
+                                                Usa tus credenciales internas para gestionar la operación y las solicitudes de la plataforma.
                                             </p>
                                         </div>
                                     </div>

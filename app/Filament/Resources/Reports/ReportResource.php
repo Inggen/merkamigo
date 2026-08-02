@@ -23,6 +23,12 @@ class ReportResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Moderación';
 
+    protected static ?string $modelLabel = 'reporte';
+
+    protected static ?string $pluralModelLabel = 'reportes';
+
+    protected static ?string $navigationLabel = 'Reportes';
+
     public static function table(Table $table): Table
     {
         return ReportsTable::configure($table);

@@ -22,10 +22,10 @@ class UpdateStorefront
 {
     private const BUSINESS_FIELDS = [
         'name', 'zone', 'address', 'latitude', 'longitude', 'municipality_id', 'category_id',
-        'whatsapp_number', 'hours', 'social_links', 'payment_info', 'attributes',
+        'whatsapp_number', 'hours', 'social_links', 'payment_info', 'attributes', 'logo_alt_text',
     ];
 
-    private const STOREFRONT_FIELDS = ['headline', 'description'];
+    private const STOREFRONT_FIELDS = ['headline', 'description', 'cover_alt_text'];
 
     /**
      * @param  array<string, mixed>  $data
@@ -48,7 +48,9 @@ class UpdateStorefront
             'headline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'logo' => ['sometimes', 'nullable'],
+            'logo_alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'cover' => ['sometimes', 'nullable'],
+            'cover_alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
         ])->validate();
 
         return DB::transaction(function () use ($business, $validated, $actor) {

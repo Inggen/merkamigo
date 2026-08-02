@@ -34,5 +34,11 @@
                 description="{{ __('Todavía no se ha definido el número de WhatsApp de soporte.') }}"
             />
         @endif
+
+        <div class="mt-4">
+            <flux:link :href="route('soporte.solicitud.crear')" wire:navigate>
+                {{ __('¿Prefieres escribirnos? Envía tu solicitud aquí.') }}
+            </flux:link>
+        </div>
     </div>
 </x-layouts::public>

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Storefronts\Actions;
 
+use App\Domain\Billing\Actions\CheckUsageLimit;
+use App\Domain\Billing\Exceptions\PlanLimitException;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Storefronts\Models\Product;
@@ -24,6 +26,12 @@ class CreateProduct
         $validated = Validator::make($data, $this->rules())->validate();
 
         $this->validatePhotoCount(0, count($photos));
+
+        $usage = app(CheckUsageLimit::class)->handle($business, 'max_products');
+
+        if (! $usage['allowed']) {
+            throw new PlanLimitException("Tu plan permite hasta {$usage['limit']} productos o servicios. Mejora tu plan para agregar más.");
+        }
 
         $variants = $validated['variants'] ?? null;
         unset($validated['variants']);

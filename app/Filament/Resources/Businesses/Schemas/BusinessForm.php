@@ -20,7 +20,13 @@ class BusinessForm
                     ->relationship('organization', 'name')
                     ->required(),
                 Select::make('municipality_id')
+                    ->label('Municipio principal')
                     ->relationship('municipality', 'name'),
+                Select::make('municipalities')
+                    ->label('Municipios adicionales')
+                    ->relationship('municipalities', 'name')
+                    ->multiple()
+                    ->helperText('Otros municipios donde también atiende este negocio, además del principal.'),
                 TextInput::make('zone'),
                 TextInput::make('address'),
                 Select::make('category_id')

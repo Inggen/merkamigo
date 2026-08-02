@@ -4,9 +4,11 @@ info:
   version: "1.0"
   description: >
     API pública de Merkamigo, versionada desde /api/v1 (0.4 del TODO).
-    Este documento cubre únicamente los endpoints construidos en la
-    fundación técnica de Fase 0; se amplía en cada fase siguiente
-    (ver docs/architecture/versionado-api.md).
+    Cubre la fundación técnica de Fase 0 más la cobertura ampliada de
+    Fase 5.1/5.2 (descubrimiento, necesidades/propuestas, confianza,
+    métricas, Copiloto de WhatsApp, dispositivos y notificaciones push).
+    Se amplía en cada fase siguiente (ver
+    docs/architecture/versionado-api.md).
 servers:
   - url: https://merkamigo.test/api/v1
 paths:
@@ -116,6 +118,441 @@ paths:
           description: Datos del negocio
         "403":
           description: El usuario no pertenece a este negocio
+
+  /municipios:
+    get:
+      summary: Municipios activos
+      tags: [Discovery]
+      responses:
+        "200":
+          description: Listado (cacheado 10 min)
+
+  /categorias:
+    get:
+      summary: Categorías activas
+      tags: [Discovery]
+      responses:
+        "200":
+          description: Listado (cacheado 10 min)
+
+  /plaza:
+    get:
+      summary: Negocios publicados, con filtros de municipio/categoría/texto/cercanía
+      tags: [Discovery]
+      parameters:
+        - name: municipio
+          in: query
+          schema: { type: string, description: "Slug del municipio" }
+        - name: categoria
+          in: query
+          schema: { type: string, description: "Slug de la categoría" }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: lat
+          in: query
+          schema: { type: number }
+        - name: lng
+          in: query
+          schema: { type: number }
+      responses:
+        "200":
+          description: Listado paginado de negocios publicados
+
+  /plaza/negocios/{business}:
+    get:
+      summary: Vitrina pública de un negocio publicado
+      tags: [Discovery]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: string, description: "Slug del negocio" }
+      responses:
+        "200":
+          description: Datos públicos del negocio
+        "404":
+          description: No existe o no está publicado
+
+  /plaza/negocios/{business}/productos:
+    get:
+      summary: Productos publicados de un negocio
+      tags: [Discovery]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Listado paginado de productos
+
+  /plaza/negocios/{business}/productos/{product}:
+    get:
+      summary: Detalle público de un producto
+      tags: [Discovery]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: string }
+        - name: product
+          in: path
+          required: true
+          schema: { type: string, description: "Slug del producto, único por negocio" }
+      responses:
+        "200":
+          description: Datos del producto
+        "404":
+          description: No existe en ese negocio
+
+  /needs:
+    get:
+      summary: Catálogo público de necesidades abiertas ("Pídelo en Merkamigo")
+      tags: [Needs]
+      parameters:
+        - name: municipio_id
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: categoria_id
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Listado paginado de necesidades abiertas
+        "422":
+          description: Falta municipio_id
+
+  /businesses/{business}/needs/{need}/offers:
+    post:
+      summary: Enviar (o actualizar) una propuesta de un negocio a una necesidad
+      tags: [Needs]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: need
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string }
+                price: { type: number, nullable: true }
+                availability: { type: string, nullable: true }
+                product_id: { type: integer, nullable: true }
+      responses:
+        "201":
+          description: Propuesta enviada
+
+  /businesses/{business}/offers:
+    get:
+      summary: Propuestas enviadas por un negocio
+      tags: [Needs]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Listado paginado de propuestas del negocio
+
+  /offers/{offer}:
+    delete:
+      summary: Retirar una propuesta (WithdrawOffer)
+      tags: [Needs]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: offer
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Propuesta retirada
+        "403":
+          description: La propuesta no pertenece a un negocio del usuario
+
+  /order-confirmations:
+    get:
+      summary: Pedidos confirmados del usuario (como comprador o como negocio)
+      tags: [Trust]
+      security: [{ sanctum: [] }]
+      responses:
+        "200":
+          description: Listado paginado
+
+  /order-confirmations/{orderConfirmation}/confirmar:
+    post:
+      summary: Confirmar el lado propio del pedido (comprador o negocio, según quién llame)
+      tags: [Trust]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: orderConfirmation
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Pedido actualizado
+
+  /order-confirmations/{orderConfirmation}/completar:
+    post:
+      summary: Marcar un pedido confirmado como completado
+      tags: [Trust]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: orderConfirmation
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Pedido completado
+
+  /order-confirmations/{orderConfirmation}/disputar:
+    post:
+      summary: Reportar un problema con el pedido
+      tags: [Trust]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: orderConfirmation
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Pedido marcado en disputa
+
+  /order-confirmations/{orderConfirmation}/cancelar:
+    post:
+      summary: Cancelar un pedido antes de completarse
+      tags: [Trust]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: orderConfirmation
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Pedido cancelado
+
+  /order-confirmations/{orderConfirmation}/recomendacion:
+    post:
+      summary: Recomendar un negocio tras un pedido completado (SubmitRecommendation)
+      tags: [Trust]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: orderConfirmation
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body: { type: string }
+                tags: { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Recomendación enviada (queda pendiente de moderación)
+        "422":
+          description: El pedido no está completado, ya se recomendó, o no pertenece al comprador
+
+  /businesses/{business}/verificacion:
+    post:
+      summary: Solicitar verificación del negocio (multipart, RequestBusinessVerification)
+      tags: [Trust]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                legal_name: { type: string }
+                contact_name: { type: string }
+                contact_document_type: { type: string }
+                contact_document_number: { type: string }
+                request_note: { type: string, nullable: true }
+                document: { type: string, format: binary, nullable: true }
+      responses:
+        "201":
+          description: Solicitud registrada (nunca expone la ruta del documento)
+
+  /businesses/{business}/metricas:
+    get:
+      summary: Resumen de métricas del negocio (visitas, embudo, rendimiento por producto)
+      tags: [Analytics]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: "{ summary, conversion_funnel, product_performance }"
+
+  /businesses/{business}/whatsapp-contents:
+    get:
+      summary: Historial del Copiloto de WhatsApp (últimos 20)
+      tags: [WhatsApp]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Listado
+    post:
+      summary: Guardar un borrador (SaveWhatsAppDraft)
+      tags: [WhatsApp]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string, enum: [promocion, estado, respuesta, presentacion] }
+                product_id: { type: integer, nullable: true }
+                tone: { type: string, enum: [cercano, formal], nullable: true }
+                content: { type: string }
+                scheduled_for: { type: string, format: date, nullable: true }
+      responses:
+        "201":
+          description: Borrador guardado
+
+  /businesses/{business}/whatsapp-contents/generar:
+    post:
+      summary: Generar texto del Copiloto (GenerateWhatsAppPromotion, nunca envía nada)
+      tags: [WhatsApp]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string, enum: [promocion, estado, respuesta, presentacion] }
+                product_id: { type: integer, nullable: true }
+                tone: { type: string, enum: [cercano, formal] }
+                length: { type: string, enum: [corto, medio, largo] }
+      responses:
+        "200":
+          description: "{ content: string }"
+
+  /devices:
+    post:
+      summary: Registrar (o reasignar) un dispositivo para push
+      tags: [Devices]
+      security: [{ sanctum: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platform: { type: string, enum: [fcm, apns, web] }
+                push_token: { type: string }
+                app_version: { type: string, nullable: true }
+      responses:
+        "201":
+          description: Dispositivo registrado
+
+  /devices/{device}:
+    delete:
+      summary: Revocar un dispositivo propio
+      tags: [Devices]
+      security: [{ sanctum: [] }]
+      parameters:
+        - name: device
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Dispositivo revocado
+        "403":
+          description: El dispositivo no pertenece al usuario
+
+  /notificaciones/preferencias:
+    patch:
+      summary: Desactivar push para tipos específicos de notificación
+      tags: [Devices]
+      security: [{ sanctum: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                push_disabled:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - offer_submitted
+                      - offer_withdrawn
+                      - order_confirmed_by_business
+                      - order_pending_your_confirmation
+                      - verification_expiring_soon
+                      - weekly_business_report
+                      - storefront_needs_attention
+                      - payment_failed
+      responses:
+        "200":
+          description: Preferencias actualizadas (el canal database nunca se desactiva)
 
 components:
   securitySchemes:

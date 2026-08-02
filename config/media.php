@@ -44,10 +44,17 @@ return [
         'max_width' => 1920,
     ],
 
+    'municipality_hero_video' => [
+        'mimes' => ['mp4', 'webm', 'mov'],
+        'max_kb' => 51200,
+        'max_files' => 1,
+    ],
+
     'verification_document' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'pdf'],
         'max_kb' => 8192,
         'max_files' => 5,
+        'disk' => 'private',
     ],
 
     'need_photo' => [

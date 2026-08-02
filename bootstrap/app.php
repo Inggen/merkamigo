@@ -33,6 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // throttling en la ruta.
         $middleware->validateCsrfTokens(except: [
             'm/*/compartir',
+            // Webhook de Wompi (4.2 del TODO): notificación servidor a
+            // servidor, no puede adjuntar un token CSRF de sesión. Se
+            // verifica con la firma propia de Wompi en el controlador.
+            'webhooks/wompi',
         ]);
 
         // Preferencias de UI (Cliente/Emprendedor, municipio elegido), no

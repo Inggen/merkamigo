@@ -14,13 +14,14 @@ class SaveWhatsAppDraft
 {
     private const HISTORY_LIMIT = 20;
 
-    public function handle(Business $business, string $type, ?Product $product, ?string $tone, string $content): WhatsAppContent
+    public function handle(Business $business, string $type, ?Product $product, ?string $tone, string $content, ?string $scheduledFor = null): WhatsAppContent
     {
         $draft = WhatsAppContent::create([
             'business_id' => $business->id,
             'product_id' => $product?->id,
             'type' => $type,
             'tone' => $tone,
+            'scheduled_for' => $scheduledFor,
             'content' => $content,
         ]);
 

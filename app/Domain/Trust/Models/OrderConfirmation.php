@@ -6,8 +6,15 @@ use App\Domain\Businesses\Models\Business;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $customer_confirmed_at
+ * @property Carbon|null $business_confirmed_at
+ * @property Carbon|null $completed_at
+ */
 class OrderConfirmation extends Model
 {
     public const PENDIENTE = 'pendiente_confirmacion';
@@ -46,21 +53,33 @@ class OrderConfirmation extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Business, $this>
+     */
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function customerUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_user_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function businessUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'business_user_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -69,6 +88,14 @@ class OrderConfirmation extends Model
     public function source(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * @return HasOne<Recommendation, $this>
+     */
+    public function recommendation(): HasOne
+    {
+        return $this->hasOne(Recommendation::class);
     }
 
     public function canBeCompleted(): bool

@@ -3,21 +3,23 @@ import { GLTFLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/GL
 
 const container = document.getElementById('zipa-immersive-scene');
 const lockTrigger = document.getElementById('zipa-lock-trigger');
+const coordinatesDisplay = document.getElementById('zipa-player-coordinates');
+const loadingOverlay = document.getElementById('zipa-loading-overlay');
+const immersiveBusinesses = Array.isArray(window.zipaImmersiveBusinesses) ? window.zipaImmersiveBusinesses.slice(0, 4) : [];
 
 if (!container) {
     throw new Error('Zipa immersive container not found.');
 }
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xb6d7f3, 78, 260);
 
 const camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.BasicShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.setClearColor(0x87ceeb, 1);
 container.appendChild(renderer.domElement);
@@ -28,7 +30,7 @@ scene.add(ambient);
 const sun = new THREE.DirectionalLight(0xfff2d0, 3.1);
 sun.position.set(55, 78, 36);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -120;
 sun.shadow.camera.right = 120;
 sun.shadow.camera.top = 120;
@@ -46,8 +48,13 @@ const collisions = [];
 const animatedActors = [];
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
+const textureLoader = new THREE.TextureLoader();
 let palmModelTemplate = null;
+let lampModelTemplate = null;
 const pendingPalmPlacements = [];
+const pendingLampPlacements = [];
+let remainingSceneAssets = 5;
+let baseSceneReady = false;
 
 const movement = {
     forward: false,
@@ -63,7 +70,7 @@ const controls = {
     isDragging: false,
     lastX: 0,
     lastY: 0,
-    yaw: 2.62,
+    yaw: 5.761592653589793,
     pitch: -0.16,
     minPitch: -1.05,
     maxPitch: 0.24,
@@ -113,9 +120,9 @@ const plazaLayout = {
     edgeWest: -89,
     edgeEast: 105,
     cathedralX: 12,
-    cathedralZ: -44,
-    annexX: 48,
-    annexZ: -41,
+    cathedralZ: -75,
+    annexX: -120,
+    annexZ: 56,
 };
 
 const palette = {
@@ -155,10 +162,33 @@ const palette = {
 };
 
 const textures = createVoxelTextures(palette);
+const labelTextures = new Map();
 
 const player = buildPlayer();
-player.position.set(10, playerState.feetY, 52);
+player.position.set(-1.95, 0, 29);
+player.rotation.y = Math.PI;
 scene.add(player);
+
+function syncLoadingOverlay() {
+    if (!loadingOverlay) {
+        return;
+    }
+
+    loadingOverlay.classList.toggle('is-hidden', baseSceneReady && remainingSceneAssets <= 0);
+}
+
+function settleSceneAsset() {
+    remainingSceneAssets = Math.max(0, remainingSceneAssets - 1);
+    syncLoadingOverlay();
+}
+
+function updateCoordinatesDisplay() {
+    if (!coordinatesDisplay) {
+        return;
+    }
+
+    coordinatesDisplay.textContent = `X: ${player.position.x.toFixed(2)} · Y: ${player.position.y.toFixed(2)} · Z: ${player.position.z.toFixed(2)}`;
+}
 
 const pointerLockTarget = renderer.domElement;
 
@@ -254,6 +284,83 @@ function material(texture, extra = {}) {
     });
 }
 
+function createLabelTexture(key, text, {
+    width = 512,
+    height = 160,
+    background = '#f4e4c1',
+    foreground = '#3a2412',
+    accent = '#b45d2c',
+    font = '700 44px Instrument Sans, sans-serif',
+    subFont = '600 30px Instrument Sans, sans-serif',
+} = {}) {
+    if (labelTextures.has(key)) {
+        return labelTextures.get(key);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 10;
+    ctx.strokeRect(8, 8, width - 16, height - 16);
+
+    const lines = Array.isArray(text) ? text : [text];
+    const fonts = lines.length > 1 ? [font, subFont, subFont] : [font];
+    const startY = lines.length > 1 ? 62 : 92;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = foreground;
+
+    lines.forEach((line, index) => {
+        ctx.font = fonts[index] ?? subFont;
+        ctx.fillText(String(line).slice(0, 28), width / 2, startY + (index * 42));
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+    labelTextures.set(key, texture);
+
+    return texture;
+}
+
+function addLabelPlane({
+    x,
+    y,
+    z,
+    width,
+    height,
+    rotation = 0,
+    text,
+    key,
+    background,
+    foreground,
+    accent,
+    group = world,
+}) {
+    const texture = createLabelTexture(key, text, { background, foreground, accent });
+    const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(width, height),
+        new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: false,
+            side: THREE.DoubleSide,
+        }),
+    );
+
+    plane.position.set(x, y, z);
+    plane.rotation.y = rotation;
+    group.add(plane);
+
+    return plane;
+}
+
 function addCollisionBox(x, y, z, w, h, d) {
     collisions.push(new THREE.Box3().setFromCenterAndSize(
         new THREE.Vector3(x, y, z),
@@ -304,14 +411,20 @@ function addRoundPlanterCollision(x, z, radius, height = 1.6) {
     addCollisionBox(x, height / 2, z, radius * 1.85, height, radius * 1.85);
 }
 
-function prepareModelShadows(root) {
+function prepareModelShadows(root, {
+    castShadow = false,
+    receiveShadow = true,
+} = {}) {
     root.traverse((child) => {
         if (!child.isMesh) {
             return;
         }
 
-        child.castShadow = true;
-        child.receiveShadow = true;
+        child.castShadow = castShadow;
+        child.receiveShadow = receiveShadow;
+        child.frustumCulled = true;
+        child.matrixAutoUpdate = false;
+        child.updateMatrix();
 
         if (!child.material) {
             return;
@@ -327,27 +440,134 @@ function prepareModelShadows(root) {
 
         child.material.needsUpdate = true;
     });
+
+    root.matrixAutoUpdate = false;
+    root.updateMatrixWorld(true);
+}
+
+function brightenModel(root, {
+    emissive = 0x2c2c2c,
+    emissiveIntensity = 0.28,
+    roughness = 0.78,
+} = {}) {
+    root.traverse((child) => {
+        if (!child.isMesh || !child.material) {
+            return;
+        }
+
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+        materials.forEach((materialItem) => {
+            if ('emissive' in materialItem) {
+                materialItem.emissive = new THREE.Color(emissive);
+                materialItem.emissiveIntensity = emissiveIntensity;
+            }
+
+            if ('roughness' in materialItem) {
+                materialItem.roughness = Math.min(materialItem.roughness ?? roughness, roughness);
+            }
+
+            if ('metalness' in materialItem) {
+                materialItem.metalness = Math.min(materialItem.metalness ?? 0.08, 0.08);
+            }
+
+            materialItem.needsUpdate = true;
+        });
+    });
 }
 
 function loadPalmModel() {
     gltfLoader.load(
-        '/3D/palmera.glb',
+        '/3D/palmera-voxel.glb',
         (gltf) => {
             palmModelTemplate = gltf.scene;
-            prepareModelShadows(palmModelTemplate);
+            prepareModelShadows(palmModelTemplate, {
+                castShadow: false,
+                receiveShadow: false,
+            });
 
             pendingPalmPlacements.splice(0).forEach((placement) => {
                 placePalmModel(placement);
             });
+
+            settleSceneAsset();
         },
         undefined,
         (error) => {
-            console.error('No se pudo cargar public/3D/palmera.glb', error);
+            console.error('No se pudo cargar public/3D/palmera-voxel.glb', error);
+            settleSceneAsset();
         },
     );
 }
 
-function placePalmModel({ x, z, trunk }) {
+function loadLampModel() {
+    gltfLoader.load(
+        '/3D/farol-voxel.glb',
+        (gltf) => {
+            lampModelTemplate = gltf.scene;
+            prepareModelShadows(lampModelTemplate, {
+                castShadow: false,
+                receiveShadow: false,
+            });
+            brightenModel(lampModelTemplate, {
+                emissive: 0x3a3328,
+                emissiveIntensity: 0.34,
+                roughness: 0.72,
+            });
+
+            pendingLampPlacements.splice(0).forEach((placement) => {
+                placeLampModel(placement);
+            });
+
+            settleSceneAsset();
+        },
+        undefined,
+        (error) => {
+            console.error('No se pudo cargar public/3D/farol-voxel.glb', error);
+            settleSceneAsset();
+        },
+    );
+}
+
+function loadSkyDome() {
+    textureLoader.load(
+        '/3D/paisaje_otono_voxel_4k.png',
+        (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.magFilter = THREE.LinearFilter;
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.generateMipmaps = true;
+            texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+            texture.repeat.x = -1;
+            texture.needsUpdate = true;
+
+            const skyDome = new THREE.Mesh(
+                new THREE.SphereGeometry(250, 96, 64),
+                new THREE.MeshBasicMaterial({
+                    map: texture,
+                    side: THREE.BackSide,
+                    fog: false,
+                }),
+            );
+
+            skyDome.position.set(plazaLayout.centerX, 52, plazaLayout.centerZ - 8);
+            skyDome.rotation.y = Math.PI * 1.08;
+            skyDome.renderOrder = -10;
+            scene.add(skyDome);
+            settleSceneAsset();
+        },
+        undefined,
+        (error) => {
+            console.error('No se pudo cargar public/3D/paisaje_otono_voxel_4k.png', error);
+            settleSceneAsset();
+        },
+    );
+}
+
+function placePalmModel({ x, z, trunk, baseY = 0 }) {
     if (!palmModelTemplate) {
         pendingPalmPlacements.push({ x, z, trunk });
 
@@ -368,12 +588,46 @@ function placePalmModel({ x, z, trunk }) {
 
     palm.position.set(
         x - scaledCenter.x,
-        1.3 - scaledBox.min.y,
+        baseY - scaledBox.min.y,
         z - scaledCenter.z,
     );
+    palm.updateMatrix();
+    palm.updateMatrixWorld(true);
 
     world.add(palm);
     addCollisionBox(x, Math.max(3.8, trunk * 0.32), z, 2.2, Math.max(7.5, trunk * 0.64), 2.2);
+}
+
+function placeLampModel({ x, z, height = 10 }) {
+    if (!lampModelTemplate) {
+        pendingLampPlacements.push({ x, z, height });
+
+        return;
+    }
+
+    const lamp = lampModelTemplate.clone(true);
+    const rawBox = new THREE.Box3().setFromObject(lamp);
+    const rawSize = rawBox.getSize(new THREE.Vector3());
+    const rawCenter = rawBox.getCenter(new THREE.Vector3());
+    const targetHeight = height + 5;
+    const scale = targetHeight / Math.max(rawSize.y, 1);
+
+    lamp.scale.setScalar(scale);
+
+    const scaledBox = new THREE.Box3().setFromObject(lamp);
+    const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+
+    lamp.position.set(
+        x - scaledCenter.x,
+        0.08 - scaledBox.min.y,
+        z - scaledCenter.z,
+    );
+    lamp.rotation.y = Math.PI / 2;
+    lamp.updateMatrix();
+    lamp.updateMatrixWorld(true);
+
+    world.add(lamp);
+    addCollisionBox(x, Math.max(3, targetHeight * 0.28), z, 1.8, Math.max(6, targetHeight * 0.56), 1.8);
 }
 
 function buildPlayer() {
@@ -507,32 +761,6 @@ function buildGround() {
 }
 
 function buildMountains() {
-    const mountainGroup = new THREE.Group();
-    world.add(mountainGroup);
-
-    const peaks = [
-        [-88, 6, -96, 40, 18, 14],
-        [-26, 8, -104, 62, 24, 18],
-        [18, 11, -110, 78, 32, 25],
-        [78, 8, -100, 48, 19, 15],
-    ];
-
-    peaks.forEach(([x, y, z, width, height, layers]) => {
-        for (let i = 0; i < layers; i += 1) {
-            const factor = 1 - i / layers;
-            addVoxelBox({
-                x,
-                y: y + i * 1.18,
-                z,
-                w: Math.max(8, width * factor),
-                h: 1.3,
-                d: Math.max(8, width * 0.82 * factor),
-                texture: i > layers * 0.72 && i % 2 === 0 ? 'trim' : 'mountain',
-                group: mountainGroup,
-                castShadow: false,
-            });
-        }
-    });
 }
 
 function buildCloud(x, y, z, scale = 1) {
@@ -573,30 +801,10 @@ function buildSkyProps() {
 }
 
 function buildCityBackdrop() {
-    const cityGroup = new THREE.Group();
-    world.add(cityGroup);
-
-    const rows = [
-        { z: -70, count: 15, baseX: -86, width: 10, depth: 7 },
-        { z: -82, count: 16, baseX: -92, width: 9, depth: 6.8 },
-        { z: -94, count: 18, baseX: -98, width: 8.8, depth: 6.4 },
-    ];
-
-    rows.forEach((row, rowIndex) => {
-        for (let i = 0; i < row.count; i += 1) {
-            const x = row.baseX + i * 11.4;
-            const width = row.width + (i % 3) * 1.4;
-            const depth = row.depth + (i % 2) * 0.8;
-            const height = 5.5 + (i % 4) * 1.2 + rowIndex * 0.4;
-
-            addVoxelBox({ x, y: height / 2, z: row.z, w: width, h: height, d: depth, texture: i % 5 === 0 ? 'trim' : 'white', group: cityGroup, castShadow: false });
-            addVoxelBox({ x, y: height + 0.5, z: row.z, w: width + 0.8, h: 0.9, d: depth + 0.8, texture: 'roof', group: cityGroup, castShadow: false });
-        }
-    });
 }
 
-function buildPalm({ x, z, trunk = 18 }) {
-    placePalmModel({ x, z, trunk });
+function buildPalm({ x, z, trunk = 18, baseY = 0 }) {
+    placePalmModel({ x, z, trunk, baseY });
 }
 
 function buildTree({ x, z, height = 10 }) {
@@ -633,34 +841,7 @@ function buildTree({ x, z, height = 10 }) {
 }
 
 function buildLamp({ x, z, height = 10, hanging = true }) {
-    for (let i = 0; i < height; i += 1) {
-        addVoxelBox({
-            x,
-            y: i + 0.5,
-            z,
-            w: 0.68,
-            h: 1,
-            d: 0.68,
-            texture: 'iron',
-            collidable: i < 3,
-        });
-    }
-
-    addVoxelBox({ x, y: height + 0.5, z, w: 1.2, h: 0.35, d: 1.2, texture: 'iron' });
-    if (hanging) {
-        addVoxelBox({ x: x + 1.15, y: height - 0.4, z, w: 0.35, h: 0.35, d: 0.35, texture: 'iron' });
-        addVoxelBox({
-            x: x + 1.85,
-            y: height - 1.45,
-            z,
-            w: 1.2,
-            h: 1.2,
-            d: 1.2,
-            texture: 'glass',
-            opacity: 0.94,
-            emissive: 0x111111,
-        });
-    }
+    placeLampModel({ x, z, height });
 }
 
 function buildBench({ x, z, rotation = 0 }) {
@@ -685,7 +866,7 @@ function buildPlanter({ x, z, radius = 5, tree = null, flowers = false, trunk = 
     addRoundPlanterCollision(x, z, radius);
 
     if (tree === 'palm') {
-        buildPalm({ x, z, trunk });
+        buildPalm({ x, z, trunk, baseY: 1.6 });
     }
 
     if (tree === 'tree') {
@@ -709,7 +890,7 @@ function buildArcadeRow({
     facadeJitter = 0,
 }) {
     const group = new THREE.Group();
-    group.position.set(x, 0, z);
+    group.position.set(x, -0.9, z);
     group.rotation.y = rotation;
     world.add(group);
 
@@ -728,7 +909,6 @@ function buildArcadeRow({
         const windowHeight = hasBalcony ? 1.95 : 1.6;
         const windowY = hasBalcony ? 5.55 : 3.2;
 
-        addVoxelBox({ x: offset, y: 0.45, z: 0, w: width + 0.3, h: 0.9, d: depth, texture: baseTexture, group, collidable: true });
         addVoxelBox({ x: offset, y: bodyHeight / 2 + 0.9, z: 0, w: width, h: bodyHeight, d: depth, texture: paletteSwap, group, collidable: true });
         addVoxelBox({ x: offset, y: corniceY, z: upperInset * 0.35, w: width - 0.4, h: 0.36, d: depth - 0.48, texture: upperColor, group });
         addVoxelBox({ x: offset, y: roofBaseY, z: 0, w: width + 0.95, h: 0.95, d: depth + 0.85, texture: roofTexture, group });
@@ -791,11 +971,10 @@ function buildColonialHouse({
     windows = 3,
 }) {
     const group = new THREE.Group();
-    group.position.set(x, 0, z);
+    group.position.set(x, -0.9, z);
     group.rotation.y = rotation;
     world.add(group);
 
-    addVoxelBox({ x: 0, y: 0.45, z: 0, w: width + 0.4, h: 0.9, d: depth, texture: 'stoneLight', group, collidable: true });
     addVoxelBox({ x: 0, y: bodyHeight / 2 + 0.9, z: 0, w: width, h: bodyHeight, d: depth, texture: paletteSwap, group, collidable: true });
     addVoxelBox({ x: 0, y: bodyHeight + 1.18, z: 0, w: width + 0.9, h: 1, d: depth + 1.1, texture: roofTexture, group });
     addVoxelBox({ x: 0, y: bodyHeight + 2, z: 0, w: width + 1.7, h: 0.7, d: depth + 1.8, texture: roofTexture, group });
@@ -832,58 +1011,6 @@ function buildColonialHouse({
 }
 
 function buildChurchSideComplex() {
-    buildColonialHouse({
-        x: -74,
-        z: -46.8,
-        width: 19.5,
-        depth: 12.2,
-        bodyHeight: 7.5,
-        paletteSwap: 'coral',
-        shutterColor: 'butter',
-        roofTexture: 'roofClay',
-        doorOffset: -3.8,
-        windows: 4,
-    });
-
-    buildColonialHouse({
-        x: -56,
-        z: -46.2,
-        width: 15.8,
-        depth: 11,
-        bodyHeight: 7.1,
-        paletteSwap: 'coral',
-        shutterColor: 'butter',
-        roofTexture: 'roofClay',
-        doorOffset: 2.2,
-        windows: 4,
-    });
-
-    buildColonialHouse({
-        x: -38.5,
-        z: -45.6,
-        width: 15.2,
-        depth: 10.6,
-        bodyHeight: 6.9,
-        paletteSwap: 'coral',
-        shutterColor: 'butter',
-        roofTexture: 'roof',
-        doorOffset: -2,
-        hasBalcony: true,
-        windows: 4,
-    });
-
-    buildColonialHouse({
-        x: -21,
-        z: -45.1,
-        width: 16.4,
-        depth: 10.8,
-        bodyHeight: 7.2,
-        paletteSwap: 'coral',
-        shutterColor: 'butter',
-        roofTexture: 'roofClay',
-        doorOffset: -2.1,
-        windows: 4,
-    });
 }
 
 function buildFlagCornerCluster() {
@@ -1447,10 +1574,13 @@ function buildCathedral() {
     addCollisionBox(plazaLayout.cathedralX, 12, plazaLayout.cathedralZ + 22, 46, 24, 11);
 
     gltfLoader.load(
-        '/3D/catedral-zipa.glb',
+        '/3D/catedral-zipa-voxel.glb',
         (gltf) => {
             const model = gltf.scene;
-            prepareModelShadows(model);
+            prepareModelShadows(model, {
+                castShadow: false,
+                receiveShadow: true,
+            });
 
             const localBox = new THREE.Box3().setFromObject(model);
             const size = localBox.getSize(new THREE.Vector3());
@@ -1463,7 +1593,7 @@ function buildCathedral() {
                 targetWidth / Math.max(size.x, 1),
                 targetDepth / Math.max(size.z, 1),
                 targetHeight / Math.max(size.y, 1),
-            );
+            ) * 1.5;
 
             model.scale.setScalar(scale);
 
@@ -1477,6 +1607,8 @@ function buildCathedral() {
                 -scaledCenter.z + 1.5,
             );
             model.rotation.y = Math.PI * 2;
+            model.updateMatrix();
+            model.updateMatrixWorld(true);
 
             anchor.add(model);
 
@@ -1486,36 +1618,73 @@ function buildCathedral() {
                 new THREE.Vector3(plazaLayout.cathedralX, worldBox.min.y + Math.max(2.5, scaledSize.y * 0.22), plazaLayout.cathedralZ + 21),
                 new THREE.Vector3(Math.max(24, scaledSize.x * 0.94), Math.max(5, scaledSize.y * 0.44), 12),
             ));
+            settleSceneAsset();
         },
         undefined,
         (error) => {
-            console.error('No se pudo cargar public/3D/catedral-zipa.glb', error);
+            console.error('No se pudo cargar public/3D/catedral-zipa-voxel.glb', error);
+            settleSceneAsset();
         },
     );
 }
 
 loadPalmModel();
+loadLampModel();
+loadSkyDome();
 
 function buildWhiteBuilding() {
-    const group = new THREE.Group();
-    group.position.set(plazaLayout.annexX, 0, plazaLayout.annexZ);
-    world.add(group);
+    const anchor = new THREE.Group();
+    anchor.position.set(plazaLayout.annexX, 0, plazaLayout.annexZ);
+    world.add(anchor);
 
-    addVoxelBox({ x: 0, y: 7.6, z: 0, w: 20.4, h: 15.2, d: 12.4, texture: 'white', group, collidable: true });
-    addVoxelBox({ x: 0, y: 14.95, z: 0, w: 21.2, h: 0.9, d: 13.2, texture: 'roofClay', group });
-    addVoxelBox({ x: 0, y: 16.25, z: 0, w: 14.8, h: 2.3, d: 8.8, texture: 'white', group });
-    addVoxelBox({ x: 0, y: 17.7, z: 0, w: 7.8, h: 0.58, d: 5.2, texture: 'trim', group });
-    addVoxelBox({ x: 0, y: 18.75, z: 0, w: 3.6, h: 1.4, d: 3.4, texture: 'white', group });
+    addCollisionBox(plazaLayout.annexX, 20, plazaLayout.annexZ, 38, 40, 55);
 
-    [-7.2, -2.4, 2.4, 7.2].forEach((wx) => {
-        addVoxelBox({ x: wx, y: 4.6, z: 6.1, w: 1.6, h: 2.8, d: 0.26, texture: 'glass', group });
-        addVoxelBox({ x: wx, y: 10.2, z: 6.1, w: 1.6, h: 2.8, d: 0.26, texture: 'glass', group });
-    });
+    gltfLoader.load(
+        '/3D/alcaldia1.glb',
+        (gltf) => {
+            const model = gltf.scene;
+            prepareModelShadows(model, {
+                castShadow: false,
+                receiveShadow: true,
+            });
 
-    addVoxelBox({ x: 0, y: 4.3, z: 6.1, w: 2.8, h: 4.4, d: 0.24, texture: 'wood', group });
-    addVoxelBox({ x: 0, y: 17.55, z: 0.3, w: 6, h: 0.9, d: 3.6, texture: 'grass', group });
-    addVoxelBox({ x: -7.4, y: 16.9, z: 0, w: 3.2, h: 1.4, d: 3.2, texture: 'white', group });
-    addVoxelBox({ x: 7.4, y: 16.9, z: 0, w: 3.2, h: 1.4, d: 3.2, texture: 'white', group });
+            const localBox = new THREE.Box3().setFromObject(model);
+            const size = localBox.getSize(new THREE.Vector3());
+            const targetWidth = 21;
+            const targetDepth = 13;
+            const targetHeight = 19;
+            const scale = Math.min(
+                targetWidth / Math.max(size.x, 1),
+                targetDepth / Math.max(size.z, 1),
+                targetHeight / Math.max(size.y, 1),
+            ) * 2.5;
+
+            model.scale.setScalar(scale);
+
+            const scaledBox = new THREE.Box3().setFromObject(model);
+            const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+
+            model.position.set(
+                -scaledCenter.x,
+                -scaledBox.min.y,
+                -scaledCenter.z,
+            );
+            model.rotation.y = Math.PI / 2;
+            model.updateMatrix();
+            model.updateMatrixWorld(true);
+
+            anchor.add(model);
+
+            const worldBox = new THREE.Box3().setFromObject(model);
+            collisions.push(worldBox.clone());
+            settleSceneAsset();
+        },
+        undefined,
+        (error) => {
+            console.error('No se pudo cargar public/3D/alcaldia1.glb', error);
+            settleSceneAsset();
+        },
+    );
 }
 
 function buildCornerDomeBuilding({ x, z, rotation = 0, domeColor = 'flower' }) {
@@ -1532,32 +1701,133 @@ function buildCornerDomeBuilding({ x, z, rotation = 0, domeColor = 'flower' }) {
 }
 
 function buildPerimeterArchitecture() {
-    buildArcadeRow({ x: -94, z: 84, sections: 12, rotation: 0, paletteSwap: 'white', upperColor: 'trim', shutterColor: 'leaf', roofTexture: 'roofClay', facadeJitter: 0.18 });
-    buildArcadeRow({ x: -88, z: -62, sections: 6, rotation: 0, paletteSwap: 'white', upperColor: 'trim', shutterColor: 'leaf', roofTexture: 'roofClay', facadeJitter: 0.14 });
-    buildArcadeRow({ x: -34, z: -62, sections: 7, rotation: 0, paletteSwap: 'stoneLight', upperColor: 'wood', shutterColor: 'leafDark', roofTexture: 'roofClay', facadeJitter: 0.14 });
-    buildArcadeRow({ x: 26, z: -62, sections: 6, rotation: 0, paletteSwap: 'white', upperColor: 'trim', shutterColor: 'leaf', roofTexture: 'roofClay', facadeJitter: 0.16 });
-    buildArcadeRow({ x: 86, z: 84, sections: 8, rotation: Math.PI, paletteSwap: 'white', upperColor: 'trim', shutterColor: 'leaf', roofTexture: 'roofClay', depth: 7.8, facadeJitter: 0.22 });
-    buildArcadeRow({ x: -98, z: -44, sections: 10, rotation: Math.PI / 2, paletteSwap: 'white', upperColor: 'wood', shutterColor: 'leafDark', roofTexture: 'roofClay', depth: 7.8, frontOffset: 3.5, facadeJitter: 0.2 });
-    buildArcadeRow({ x: 92, z: -42, sections: 9, rotation: -Math.PI / 2, paletteSwap: 'white', upperColor: 'trim', shutterColor: 'leaf', roofTexture: 'roofClay', depth: 7.6, frontOffset: 3.35, facadeJitter: 0.2 });
-
     buildWhiteBuilding();
-    buildCornerDomeBuilding({ x: -118, z: 88, rotation: 0, domeColor: 'flower' });
-    buildCornerDomeBuilding({ x: 114, z: -28, rotation: -Math.PI / 2, domeColor: 'glass' });
-    buildChurchSideComplex();
-    buildFlagCornerCluster();
-    buildFrontChurchEdge();
-    buildNorthernColonialEdge();
-    buildNorthGrassBarrier();
-    buildSouthGrassBarrier();
+    buildImmersiveStorefronts();
+}
+
+function formatProductPrice(product) {
+    if (product.price_type === 'consultar') {
+        return 'Consultar';
+    }
+
+    if (product.price_type === 'sin_precio' || !product.price) {
+        return 'Disponible';
+    }
+
+    const amount = new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0,
+    }).format(Number(product.price));
+
+    return product.price_type === 'desde' ? `Desde ${amount}` : amount;
+}
+
+function buildImmersiveStorefronts() {
+    if (immersiveBusinesses.length === 0) {
+        return;
+    }
+
+    const slots = [
+        { x: -79, z: -36, rotation: Math.PI / 2, paletteSwap: 'ochre', shutterColor: 'white' },
+        { x: -79, z: -14, rotation: Math.PI / 2, paletteSwap: 'white', shutterColor: 'leaf' },
+        { x: 95, z: -36, rotation: -Math.PI / 2, paletteSwap: 'white', shutterColor: 'leaf' },
+        { x: 95, z: -14, rotation: -Math.PI / 2, paletteSwap: 'coral', shutterColor: 'white' },
+    ];
+
+    immersiveBusinesses.forEach((business, index) => {
+        const slot = slots[index];
+
+        if (!slot) {
+            return;
+        }
+
+        buildImmersiveStorefront(business, slot, index);
+    });
+}
+
+function buildImmersiveStorefront(business, slot, index) {
+    const group = new THREE.Group();
+    group.position.set(slot.x, 0, slot.z);
+    group.rotation.y = slot.rotation;
+    world.add(group);
+
+    buildColonialHouse({
+        x: slot.x,
+        z: slot.z,
+        rotation: slot.rotation,
+        width: 17,
+        depth: 10.6,
+        bodyHeight: 7.3,
+        paletteSwap: slot.paletteSwap,
+        roofTexture: 'roofClay',
+        shutterColor: slot.shutterColor,
+        doorOffset: 0,
+        hasBalcony: true,
+        windows: 4,
+    });
+
+    addLabelPlane({
+        x: 0,
+        y: 6.9,
+        z: 5.45,
+        width: 7.8,
+        height: 2.2,
+        text: [business.name, business.headline || 'Vitrina local'],
+        key: `business-sign-${business.slug}-${index}`,
+        background: '#f1dfb6',
+        foreground: '#412817',
+        accent: '#9f552a',
+        group,
+    });
+
+    const displayCount = Math.min(business.products.length, 3);
+    const startX = -((displayCount - 1) * 3.7) / 2;
+
+    business.products.slice(0, 3).forEach((product, productIndex) => {
+        const localX = startX + (productIndex * 3.7);
+        const localZ = 8.5;
+
+        addVoxelBox({
+            x: localX,
+            y: 0.85,
+            z: localZ,
+            w: 2.8,
+            h: 1.7,
+            d: 2.2,
+            texture: 'stoneLight',
+            group,
+        });
+
+        addVoxelBox({
+            x: localX,
+            y: 1.95,
+            z: localZ,
+            w: 2,
+            h: 0.48,
+            d: 1.48,
+            texture: product.is_available ? 'cloth' : 'woodDark',
+            group,
+        });
+
+        addLabelPlane({
+            x: localX,
+            y: 3.55,
+            z: localZ,
+            width: 3,
+            height: 1.28,
+            text: [product.name, formatProductPrice(product)],
+            key: `product-sign-${business.slug}-${productIndex}`,
+            background: product.is_available ? '#fff5dd' : '#d9d0c3',
+            foreground: '#40291b',
+            accent: product.is_available ? '#cc6e2d' : '#6d5c4d',
+            group,
+        });
+    });
 }
 
 function buildPlazaSteps() {
-    const stepsX = plazaLayout.cathedralX;
-    const stepsZ = plazaLayout.cathedralZ + 16.6;
-
-    addVoxelBox({ x: stepsX, y: 0.35, z: stepsZ, w: 50, h: 0.7, d: 5.2, texture: 'stone' });
-    addVoxelBox({ x: stepsX, y: 0.9, z: stepsZ + 2.25, w: 43, h: 0.5, d: 2.8, texture: 'stone' });
-    addCollisionBox(stepsX, 1, stepsZ, 50, 2, 5.2);
+    // Las escalinatas ahora vienen resueltas por el modelo de la catedral.
 }
 
 function buildPlazaStreetFurniture() {
@@ -1840,6 +2110,7 @@ function animate() {
     updatePlayer(delta);
     updateActors(time);
     updateCamera();
+    updateCoordinatesDisplay();
     renderer.render(scene, camera);
 }
 
@@ -1909,4 +2180,7 @@ lockTrigger?.addEventListener('click', lockPointer);
 
 buildWorld();
 updateCamera();
+updateCoordinatesDisplay();
+baseSceneReady = true;
+syncLoadingOverlay();
 animate();

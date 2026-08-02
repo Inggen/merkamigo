@@ -26,6 +26,12 @@ class ProductResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Moderación';
 
+    protected static ?string $modelLabel = 'producto';
+
+    protected static ?string $pluralModelLabel = 'productos';
+
+    protected static ?string $navigationLabel = 'Productos';
+
     public static function form(Schema $schema): Schema
     {
         return ProductForm::configure($schema);

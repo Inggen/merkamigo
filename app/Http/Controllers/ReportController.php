@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Moderation\Actions\SubmitReport;
 use App\Domain\Storefronts\Models\Product;
+use App\Domain\Trust\Models\Recommendation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,7 +60,34 @@ class ReportController extends Controller
         return redirect()->route('vitrinas.product', [$business, $product])->with('status', __('Gracias, revisaremos tu reporte.'));
     }
 
-    private function store(Request $request, Business|Product $reportable): void
+    public function createRecommendation(Business $business, int $recommendation): View
+    {
+        abort_unless($business->isPublished(), 404);
+
+        $recommendation = $business->recommendations()
+            ->where('status', Recommendation::PUBLICADA)
+            ->findOrFail($recommendation);
+
+        return view('reportes.crear', [
+            'title' => __('Reportar recomendación'),
+            'actionUrl' => route('reportes.guardar.recomendacion', [$business, $recommendation]),
+        ]);
+    }
+
+    public function storeRecommendation(Request $request, Business $business, int $recommendation): RedirectResponse
+    {
+        abort_unless($business->isPublished(), 404);
+
+        $recommendation = $business->recommendations()
+            ->where('status', Recommendation::PUBLICADA)
+            ->findOrFail($recommendation);
+
+        $this->store($request, $recommendation);
+
+        return redirect()->route('vitrinas.show', $business)->with('status', __('Gracias, revisaremos tu reporte.'));
+    }
+
+    private function store(Request $request, Business|Product|Recommendation $reportable): void
     {
         $data = $request->validate([
             'reason' => ['required', 'in:'.implode(',', self::REASONS)],

@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Request;
 /**
  * Registra una acción sensible (ingreso, cambio de permisos, creación de
  * negocio, moderación...) para trazabilidad (0.5 y 0.6 del TODO exigen
- * auditoría de estas acciones).
+ * auditoría de estas acciones). También es el único punto de enganche
+ * para los webhooks salientes (5.4 del TODO) — cualquier acción de
+ * dominio que ya audita algo queda cubierta automáticamente sin tocarla.
  */
 class RecordAuditLog
 {
@@ -19,7 +21,7 @@ class RecordAuditLog
      */
     public function handle(?Authenticatable $user, string $action, ?Model $subject = null, array $metadata = []): AuditLog
     {
-        return AuditLog::create([
+        $auditLog = AuditLog::create([
             'user_id' => $user?->getAuthIdentifier(),
             'action' => $action,
             'subject_type' => $subject?->getMorphClass(),
@@ -27,5 +29,9 @@ class RecordAuditLog
             'metadata' => $metadata,
             'ip_address' => Request::ip(),
         ]);
+
+        app(DispatchOutboundWebhook::class)->handle($action, $subject, $metadata);
+
+        return $auditLog;
     }
 }

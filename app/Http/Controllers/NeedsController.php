@@ -28,9 +28,7 @@ class NeedsController extends Controller
         $municipality = $this->preferredMunicipality($request);
 
         $needs = Need::query()
-            ->whereIn('status', [Need::PUBLICADA, Need::RECIBIENDO_OFERTAS])
-            ->whereNull('suspended_at')
-            ->when($municipality, fn ($query) => $query->where('municipality_id', $municipality->id))
+            ->when($municipality, fn ($query) => $query->openIn($municipality->id))
             ->when(! $municipality, fn ($query) => $query->whereRaw('1 = 0'))
             ->withCount('offers')
             ->with(['category', 'user'])
@@ -46,7 +44,11 @@ class NeedsController extends Controller
 
     public function misSolicitudes(Request $request): View
     {
-        $needs = $request->user()->needs()->withCount('offers')->with('category')->get();
+        $needs = $request->user()
+            ->needs()
+            ->withCount('offers')
+            ->with(['category', 'municipality'])
+            ->get();
 
         return view('public.mis-solicitudes', ['needs' => $needs]);
     }

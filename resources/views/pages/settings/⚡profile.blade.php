@@ -17,6 +17,7 @@ new #[Title('Configuración de perfil')] class extends Component {
     public string $name = '';
     public ?string $email = '';
     public ?string $phone = '';
+    public bool $rememberRecentlyViewed = false;
 
     public $avatar;
 
@@ -28,6 +29,20 @@ new #[Title('Configuración de perfil')] class extends Component {
         $this->name = Auth::user()->name;
         $this->email = Auth::user()->email;
         $this->phone = Auth::user()->phone;
+        $this->rememberRecentlyViewed = (bool) Auth::user()->remember_recently_viewed;
+    }
+
+    /**
+     * Historial básico de negocios vistos (1.1.1 del TODO): solo se guarda
+     * con este consentimiento explícito.
+     */
+    public function updateRememberRecentlyViewed(): void
+    {
+        Auth::user()->update(['remember_recently_viewed' => $this->rememberRecentlyViewed]);
+
+        Flux::toast(variant: 'success', text: $this->rememberRecentlyViewed
+            ? __('Ahora recordaremos los negocios que visites.')
+            : __('Dejamos de guardar los negocios que visitas.'));
     }
 
     /**
@@ -74,7 +89,7 @@ new #[Title('Configuración de perfil')] class extends Component {
 
         $user->save();
 
-        Flux::toast(variant: 'success', text: __('Profile updated.'));
+        Flux::toast(variant: 'success', text: __('Perfil actualizado.'));
     }
 
     /**
@@ -178,6 +193,15 @@ new #[Title('Configuración de perfil')] class extends Component {
 
             </div>
         </form>
+
+        <div class="my-6 border-t border-zinc-200 pt-6 dark:border-zinc-700">
+            <flux:checkbox
+                wire:model="rememberRecentlyViewed"
+                wire:change="updateRememberRecentlyViewed"
+                :label="__('Recordar los negocios que visito')"
+                :description="__('Guardaremos los últimos negocios que abras para mostrarte un historial rápido. Puedes desactivarlo cuando quieras.')"
+            />
+        </div>
 
         @if ($this->showDeleteUser)
             <livewire:pages::settings.delete-user-form />

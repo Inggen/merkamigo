@@ -6,6 +6,7 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Needs\Exceptions\NeedClosedException;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Needs\Models\Offer;
+use App\Domain\Needs\Notifications\OfferSubmitted;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,8 @@ class SubmitOffer
             }
 
             app(RecordAuditLog::class)->handle($actor, 'offer.submitted', $offer, ['need_id' => $need->id]);
+
+            $need->user->notify(new OfferSubmitted($offer));
 
             return $offer->fresh();
         });

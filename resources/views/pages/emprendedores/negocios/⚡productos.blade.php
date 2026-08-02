@@ -5,6 +5,7 @@ use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\DuplicateProduct;
 use App\Domain\Storefronts\Actions\UpdateProduct;
 use App\Domain\Storefronts\Models\Product;
+use App\Domain\Storefronts\Models\ProductMedia;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -47,6 +48,12 @@ new #[Title('Productos y servicios')] class extends Component {
 
     /** @var array<int, mixed> */
     public array $photos = [];
+
+    /** @var array<int, array{id: int, url: string}> */
+    public array $existingMedia = [];
+
+    /** @var array<int, string> media id => texto alternativo */
+    public array $photoAlts = [];
 
     /**
      * El middleware `business.team` solo corre en la carga inicial de la
@@ -94,7 +101,7 @@ new #[Title('Productos y servicios')] class extends Component {
     {
         $this->authorize('update', $this->business);
 
-        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants']);
+        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'photoAlts']);
         $this->type = 'producto';
         $this->price_type = 'exacto';
         $this->is_available = true;
@@ -105,7 +112,7 @@ new #[Title('Productos y servicios')] class extends Component {
     {
         $this->authorize('update', $this->business);
 
-        $product = $this->business->products()->with('variants')->findOrFail($productId);
+        $product = $this->business->products()->with(['variants', 'media'])->findOrFail($productId);
 
         $this->editingId = $product->id;
         $this->name = $product->name;
@@ -116,6 +123,8 @@ new #[Title('Productos y servicios')] class extends Component {
         $this->unit = $product->unit;
         $this->is_available = $product->is_available;
         $this->photos = [];
+        $this->existingMedia = $product->media->map(fn ($media) => ['id' => $media->id, 'url' => $media->url()])->all();
+        $this->photoAlts = $product->media->pluck('alt_text', 'id')->all();
 
         $this->has_promo = (bool) $product->promo_price;
         $this->promo_price = $product->promo_price ? (float) $product->promo_price : null;
@@ -164,16 +173,39 @@ new #[Title('Productos y servicios')] class extends Component {
             )),
         ];
 
-        if ($this->editingId) {
-            $product = $this->business->products()->findOrFail($this->editingId);
-            app(UpdateProduct::class)->handle($product, $data, $this->photos, [], Auth::user());
-        } else {
-            app(CreateProduct::class)->handle($this->business, $data, $this->photos, Auth::user());
+        try {
+            if ($this->editingId) {
+                $product = $this->business->products()->findOrFail($this->editingId);
+                app(UpdateProduct::class)->handle($product, $data, $this->photos, [], Auth::user());
+            } else {
+                app(CreateProduct::class)->handle($this->business, $data, $this->photos, Auth::user());
+            }
+        } catch (\App\Domain\Billing\Exceptions\PlanLimitException $e) {
+            Flux::toast(variant: 'danger', text: $e->getMessage());
+
+            return;
         }
 
         unset($this->products);
         Flux::modal('product-form')->close();
         Flux::toast(variant: 'success', text: __('Producto guardado.'));
+    }
+
+    /**
+     * Texto alternativo por foto (0.2.2 del TODO): se guarda aparte del
+     * resto del formulario porque aplica a una foto ya subida, no al
+     * producto en conjunto.
+     */
+    public function saveMediaAlt(int $mediaId): void
+    {
+        $this->authorize('update', $this->business);
+
+        $media = ProductMedia::whereHas('product', fn ($q) => $q->where('business_id', $this->businessId))
+            ->findOrFail($mediaId);
+
+        $media->update(['alt_text' => $this->photoAlts[$mediaId] ?? null]);
+
+        Flux::toast(variant: 'success', text: __('Descripción de la foto guardada.'));
     }
 
     public function duplicate(int $productId): void
@@ -234,7 +266,12 @@ new #[Title('Productos y servicios')] class extends Component {
 
 <section class="mx-auto w-full max-w-4xl space-y-6">
     <div class="flex items-center justify-between">
-        <flux:heading size="xl">{{ __('Productos y servicios') }}</flux:heading>
+        <div class="flex items-center gap-1.5">
+            <flux:heading size="xl">{{ __('Productos y servicios') }}</flux:heading>
+            <flux:tooltip :content="__('Solo lo publicado se ve en tu vitrina. Archiva lo que ya no ofreces en vez de borrarlo, para no perder su historial.')">
+                <flux:icon.question-mark-circle class="size-4 shrink-0 text-zinc-400" variant="outline" />
+            </flux:tooltip>
+        </div>
 
         <flux:modal.trigger name="product-form">
             <flux:button variant="primary" wire:click="openCreate">{{ __('Agregar') }}</flux:button>
@@ -258,7 +295,7 @@ new #[Title('Productos y servicios')] class extends Component {
                 <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                     <div class="relative aspect-square bg-zinc-100 dark:bg-zinc-800">
                         @if ($product->media->isNotEmpty())
-                            <img src="{{ $product->media->first()->url() }}" class="h-full w-full object-cover" alt="{{ $product->name }}">
+                            <img src="{{ $product->media->first()->url() }}" class="h-full w-full object-cover" alt="{{ $product->media->first()->alt_text ?? $product->name }}">
                         @else
                             <div class="flex h-full w-full items-center justify-center">
                                 <flux:icon.photo class="size-8 text-zinc-300 dark:text-zinc-600" variant="outline" />
@@ -370,9 +407,76 @@ new #[Title('Productos y servicios')] class extends Component {
             </div>
 
             <div>
-                <flux:text class="mb-2">{{ __('Fotos') }}</flux:text>
-                <input type="file" wire:model="photos" multiple accept="image/*" class="block w-full text-sm">
-                @error('photos') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
+                <div class="mb-2 space-y-1">
+                    <flux:text class="font-medium">{{ __('Fotos') }}</flux:text>
+                    <flux:text class="text-sm text-zinc-500">{{ __('Agrega una o varias imágenes para mostrar mejor tu producto o servicio.') }}</flux:text>
+                </div>
+
+                @if (! empty($existingMedia))
+                    <div class="mb-3 space-y-2">
+                        @foreach ($existingMedia as $item)
+                            <div class="flex items-center gap-2">
+                                <img src="{{ $item['url'] }}" class="size-12 shrink-0 rounded-lg object-cover" alt="{{ $photoAlts[$item['id']] ?? '' }}">
+                                <flux:input wire:model="photoAlts.{{ $item['id'] }}" class="flex-1" placeholder="{{ __('Texto alternativo de esta foto (opcional)') }}" />
+                                <flux:button type="button" size="sm" variant="ghost" wire:click="saveMediaAlt({{ $item['id'] }})">{{ __('Guardar') }}</flux:button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <label class="block cursor-pointer rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/90 p-4 transition hover:border-brand-400 hover:bg-white">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                                <flux:icon.photo class="size-5" variant="outline" />
+                            </span>
+
+                            <div class="min-w-0">
+                                <div class="text-sm font-semibold text-zinc-800">{{ __('Subir fotos') }}</div>
+                                <div class="text-xs text-zinc-500">{{ __('Haz clic para elegir imágenes JPG, PNG o WEBP desde tu dispositivo.') }}</div>
+                            </div>
+                        </div>
+
+                        <span class="inline-flex items-center rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm">
+                            {{ __('Seleccionar archivos') }}
+                        </span>
+                    </div>
+
+                    <input
+                        type="file"
+                        wire:model="photos"
+                        multiple
+                        accept="image/*"
+                        class="sr-only"
+                    >
+                </label>
+
+                <div wire:loading wire:target="photos" class="mt-2">
+                    <flux:text class="text-sm text-zinc-500">{{ __('Cargando fotos...') }}</flux:text>
+                </div>
+
+                @if ($photos !== [])
+                    <div class="mt-3 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+                        <div class="mb-3 flex items-center justify-between gap-3">
+                            <flux:text class="text-sm font-medium text-zinc-800">
+                                {{ trans_choice(':count foto lista para guardar|:count fotos listas para guardar', count($photos), ['count' => count($photos)]) }}
+                            </flux:text>
+                            <flux:text class="text-xs text-zinc-500">{{ __('Se guardarán cuando presiones "Guardar".') }}</flux:text>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                            @foreach ($photos as $photo)
+                                <div class="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+                                    <img src="{{ $photo->temporaryUrl() }}" class="aspect-square h-full w-full object-cover" alt="{{ __('Vista previa de la foto') }}">
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @error('photos')
+                    <flux:text class="mt-2 text-sm text-red-600">{{ $message }}</flux:text>
+                @enderror
             </div>
 
             <div class="flex justify-end gap-2">

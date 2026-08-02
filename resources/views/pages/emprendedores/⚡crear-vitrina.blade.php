@@ -3,6 +3,9 @@
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Billing\Exceptions\PlanLimitException;
+use App\Domain\Businesses\Actions\SyncBusinessMunicipalities;
+use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use App\Domain\Storefronts\Actions\UpdateStorefront;
@@ -32,6 +35,10 @@ new #[Title('Crea tu vitrina')] class extends Component {
     public string $name = '';
     public ?string $whatsapp_number = '';
     public ?int $municipality_id = null;
+
+    /** @var array<int, int> */
+    public array $additional_municipality_ids = [];
+
     public ?int $category_id = null;
     public ?string $zone = '';
 
@@ -40,7 +47,18 @@ new #[Title('Crea tu vitrina')] class extends Component {
 
     // Paso 3
     public $logo;
+    public ?string $logoAlt = '';
     public $cover;
+    public ?string $coverAlt = '';
+
+    // Paso 4
+    public string $product_name = '';
+    public string $product_type = 'producto';
+    public ?string $product_description = '';
+    public ?float $product_price = null;
+    public string $product_price_type = 'exacto';
+    public ?string $product_unit = '';
+    public bool $product_is_available = true;
 
     /** @var array<int, string> */
     public array $missing = [];
@@ -54,9 +72,12 @@ new #[Title('Crea tu vitrina')] class extends Component {
             $this->name = $business->name;
             $this->whatsapp_number = $business->whatsapp_number;
             $this->municipality_id = $business->municipality_id;
+            $this->additional_municipality_ids = $business->municipalities->pluck('id')->all();
             $this->category_id = $business->category_id;
             $this->zone = $business->zone;
             $this->description = $business->storefront?->description;
+            $this->logoAlt = $business->logo_alt_text;
+            $this->coverAlt = $business->storefront?->cover_alt_text;
         }
     }
 
@@ -70,12 +91,26 @@ new #[Title('Crea tu vitrina')] class extends Component {
             'zone' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $additionalMunicipalityIds = $this->validate([
+            'additional_municipality_ids' => ['array'],
+            'additional_municipality_ids.*' => ['integer', 'exists:municipalities,id'],
+        ])['additional_municipality_ids'];
+
         if (! $this->business) {
-            $storefront = app(CreateStorefront::class)->handle(Auth::user(), $data);
+            try {
+                $storefront = app(CreateStorefront::class)->handle(Auth::user(), $data);
+            } catch (PlanLimitException $e) {
+                Flux::toast(variant: 'danger', text: $e->getMessage());
+
+                return;
+            }
+
             $this->business = $storefront->business;
         } else {
             app(UpdateStorefront::class)->handle($this->business, $data, Auth::user());
         }
+
+        app(SyncBusinessMunicipalities::class)->handle($this->business, $additionalMunicipalityIds);
 
         $this->step = 2;
     }
@@ -93,7 +128,9 @@ new #[Title('Crea tu vitrina')] class extends Component {
     {
         $data = array_filter([
             'logo' => $this->logo,
+            'logo_alt_text' => $this->logoAlt,
             'cover' => $this->cover,
+            'cover_alt_text' => $this->coverAlt,
         ]);
 
         if ($data !== []) {
@@ -107,7 +144,45 @@ new #[Title('Crea tu vitrina')] class extends Component {
 
     public function goToStep5(): void
     {
+        if ($this->business->products()->count() === 0 || filled($this->product_name)) {
+            $data = $this->validate([
+                'product_name' => ['required', 'string', 'max:255'],
+                'product_type' => ['required', 'in:producto,servicio'],
+                'product_description' => ['nullable', 'string'],
+                'product_price' => ['nullable', 'numeric', 'min:0'],
+                'product_price_type' => ['required', 'in:exacto,desde,consultar,sin_precio'],
+                'product_unit' => ['nullable', 'string', 'max:100'],
+                'product_is_available' => ['boolean'],
+            ]);
+
+            app(CreateProduct::class)->handle($this->business, [
+                'name' => $data['product_name'],
+                'type' => $data['product_type'],
+                'description' => $data['product_description'],
+                'price' => $data['product_price'],
+                'price_type' => $data['product_price_type'],
+                'unit' => $data['product_unit'],
+                'is_available' => $data['product_is_available'],
+            ], [], Auth::user());
+
+            $this->business->refresh();
+            $this->reset([
+                'product_name',
+                'product_description',
+                'product_price',
+                'product_unit',
+            ]);
+            $this->product_type = 'producto';
+            $this->product_price_type = 'exacto';
+            $this->product_is_available = true;
+        }
+
         $this->step = 5;
+    }
+
+    public function goToStep6(): void
+    {
+        $this->step = 6;
     }
 
     public function editInformation(): void
@@ -144,6 +219,12 @@ new #[Title('Crea tu vitrina')] class extends Component {
     {
         return Category::where('is_active', true)->orderBy('position')->get();
     }
+
+    #[Computed]
+    public function wizardProducts()
+    {
+        return $this->business?->products()->latest()->get() ?? collect();
+    }
 }; ?>
 
 <section class="mx-auto w-full max-w-2xl">
@@ -157,8 +238,9 @@ new #[Title('Crea tu vitrina')] class extends Component {
             1 => __('Información'),
             2 => __('Tu negocio'),
             3 => __('Fotografías'),
-            4 => __('Vista previa'),
-            5 => __('¡Listo!'),
+            4 => __('Primer producto'),
+            5 => __('Vista previa'),
+            6 => __('¡Listo!'),
         ];
     @endphp
 
@@ -174,7 +256,7 @@ new #[Title('Crea tu vitrina')] class extends Component {
                             {{ $i }}
                         @endif
                     </div>
-                    <div class="h-0.5 flex-1 {{ $i < 5 ? ($step > $i ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700') : 'bg-transparent' }}"></div>
+                    <div class="h-0.5 flex-1 {{ $i < 6 ? ($step > $i ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700') : 'bg-transparent' }}"></div>
                 </div>
                 <flux:text class="mt-1.5 text-center text-xs {{ $step === $i ? 'font-medium text-brand-600' : 'text-zinc-400' }}">
                     {{ $label }}
@@ -196,6 +278,14 @@ new #[Title('Crea tu vitrina')] class extends Component {
                     <flux:select.option value="{{ $municipality->id }}">{{ $municipality->name }}</flux:select.option>
                 @endforeach
             </flux:select>
+
+            <flux:checkbox.group wire:model="additional_municipality_ids" :label="__('¿También atiendes en otros municipios? (opcional)')">
+                <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($this->municipalities as $municipality)
+                        <flux:checkbox value="{{ $municipality->id }}" :label="$municipality->name" />
+                    @endforeach
+                </div>
+            </flux:checkbox.group>
 
             <flux:select wire:model="category_id" :label="__('Categoría')">
                 <flux:select.option value="">{{ __('Selecciona una categoría') }}</flux:select.option>
@@ -225,21 +315,28 @@ new #[Title('Crea tu vitrina')] class extends Component {
             <flux:heading size="lg">{{ __('3. Agrega fotografías') }}</flux:heading>
 
             <div>
-                <flux:text class="mb-2">{{ __('Logo o foto principal') }}</flux:text>
-                <input type="file" wire:model="logo" accept="image/*" class="block w-full text-sm">
-                @if ($business?->logo_path && ! $logo)
-                    <img src="{{ $business->logoUrl() }}" class="mt-2 size-16 rounded-lg object-cover" alt="{{ $business->name }}">
-                @endif
-                @error('logo') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
+                <x-forms.image-upload-field
+                    wire:model="logo"
+                    accept="image/*"
+                    :title="__('Logo o foto principal')"
+                    :preview-url="$business?->logo_path && ! $logo ? $business->logoUrl() : null"
+                    :preview-alt="$business?->logo_alt_text ?? $business?->name"
+                    :preview-class="'size-20 rounded-xl object-cover'"
+                    :error="$errors->first('logo')"
+                />
+                <flux:input wire:model="logoAlt" class="mt-2" :label="__('Texto alternativo del logo (opcional)')" placeholder="{{ __('Ej: Logo de mi negocio') }}" />
             </div>
 
             <div>
-                <flux:text class="mb-2">{{ __('Portada de tu vitrina') }}</flux:text>
-                <input type="file" wire:model="cover" accept="image/*" class="block w-full text-sm">
-                @if ($business?->storefront?->cover_path && ! $cover)
-                    <img src="{{ $business->storefront->coverUrl() }}" class="mt-2 h-24 w-full rounded-lg object-cover" alt="{{ __('Portada actual') }}">
-                @endif
-                @error('cover') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
+                <x-forms.image-upload-field
+                    wire:model="cover"
+                    accept="image/*"
+                    :title="__('Portada de tu vitrina')"
+                    :preview-url="$business?->storefront?->cover_path && ! $cover ? $business->storefront->coverUrl() : null"
+                    :preview-alt="$business?->storefront?->cover_alt_text ?? __('Portada actual')"
+                    :error="$errors->first('cover')"
+                />
+                <flux:input wire:model="coverAlt" class="mt-2" :label="__('Texto alternativo de la portada (opcional)')" placeholder="{{ __('Ej: Fachada de mi negocio') }}" />
             </div>
 
             <div class="flex gap-3">
@@ -249,18 +346,69 @@ new #[Title('Crea tu vitrina')] class extends Component {
         </div>
     @elseif ($step === 4)
         <div class="space-y-6">
-            <flux:heading size="lg">{{ __('4. Revisa la vista previa') }}</flux:heading>
+            <flux:heading size="lg">{{ __('4. Agrega tu primer producto o servicio') }}</flux:heading>
+            <flux:subheading>{{ __('Este paso desbloquea la publicación de la vitrina. Si ya tienes uno creado, puedes continuar sin llenar el formulario otra vez.') }}</flux:subheading>
+
+            @if ($this->wizardProducts->isNotEmpty())
+                <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                    <flux:text class="font-medium text-zinc-800">{{ __('Ya agregaste estos productos o servicios') }}</flux:text>
+                    <div class="mt-3 space-y-2">
+                        @foreach ($this->wizardProducts as $product)
+                            <div class="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 px-3 py-2">
+                                <div>
+                                    <div class="font-medium text-zinc-800">{{ $product->name }}</div>
+                                    <div class="text-sm text-zinc-500">{{ $product->type === 'producto' ? __('Producto') : __('Servicio') }}</div>
+                                </div>
+                                <flux:badge size="sm" :color="$product->status === 'publicado' ? 'green' : 'zinc'">{{ ucfirst($product->status) }}</flux:badge>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <flux:select wire:model="product_type" :label="__('Tipo')">
+                    <flux:select.option value="producto">{{ __('Producto') }}</flux:select.option>
+                    <flux:select.option value="servicio">{{ __('Servicio') }}</flux:select.option>
+                </flux:select>
+
+                <flux:select wire:model="product_price_type" :label="__('Precio')">
+                    <flux:select.option value="exacto">{{ __('Precio exacto') }}</flux:select.option>
+                    <flux:select.option value="desde">{{ __('Desde') }}</flux:select.option>
+                    <flux:select.option value="consultar">{{ __('Consultar') }}</flux:select.option>
+                    <flux:select.option value="sin_precio">{{ __('Sin precio') }}</flux:select.option>
+                </flux:select>
+            </div>
+
+            <flux:input wire:model="product_name" :label="__('Nombre del producto o servicio')" placeholder="{{ __('Ej: Desayuno especial, Corte de cabello, Domicilio express') }}" />
+            <flux:textarea wire:model="product_description" :label="__('Descripción breve (opcional)')" rows="3" placeholder="{{ __('Cuéntale al cliente qué incluye o cómo funciona.') }}" />
+
+            @if (in_array($product_price_type, ['exacto', 'desde']))
+                <flux:input wire:model="product_price" :label="__('Valor')" type="number" step="0.01" min="0" />
+            @endif
+
+            <flux:input wire:model="product_unit" :label="__('Unidad (opcional)')" placeholder="{{ __('Ej: unidad, hora, porción') }}" />
+            <flux:checkbox wire:model="product_is_available" :label="__('Disponible')" />
+
+            <div class="flex gap-3">
+                <flux:button variant="ghost" wire:click="back">{{ __('Editar información') }}</flux:button>
+                <flux:button variant="primary" class="flex-1" wire:click="goToStep5">{{ __('Siguiente') }}</flux:button>
+            </div>
+        </div>
+    @elseif ($step === 5)
+        <div class="space-y-6">
+            <flux:heading size="lg">{{ __('5. Revisa la vista previa') }}</flux:heading>
 
             <x-storefront-preview :business="$business" />
 
             <div class="flex gap-3">
-                <flux:button variant="ghost" wire:click="back">{{ __('Editar información') }}</flux:button>
-                <flux:button variant="primary" class="flex-1" wire:click="goToStep5">{{ __('Revisar y publicar') }}</flux:button>
+                <flux:button variant="ghost" wire:click="back">{{ __('Editar producto') }}</flux:button>
+                <flux:button variant="primary" class="flex-1" wire:click="goToStep6">{{ __('Revisar y publicar') }}</flux:button>
             </div>
         </div>
     @else
         <div class="space-y-6">
-            <flux:heading size="lg">{{ __('5. Publicación') }}</flux:heading>
+            <flux:heading size="lg">{{ __('6. Publicación') }}</flux:heading>
 
             @if ($missing !== [])
                 <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
@@ -270,6 +418,18 @@ new #[Title('Crea tu vitrina')] class extends Component {
                             <li>{{ $item }}</li>
                         @endforeach
                     </ul>
+
+                    @if (in_array('Al menos un producto o servicio', $missing, true))
+                        <flux:button
+                            variant="ghost"
+                            size="sm"
+                            icon="plus"
+                            class="mt-3"
+                            wire:click="$set('step', 4)"
+                        >
+                            {{ __('Agregar producto o servicio') }}
+                        </flux:button>
+                    @endif
 
                     <flux:button
                         variant="ghost"

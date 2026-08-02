@@ -17,11 +17,37 @@ use App\Domain\Trust\Models\Recommendation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class TrustPhaseThreeTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_the_verification_document_url_is_a_temporary_signed_link_never_on_the_public_disk(): void
+    {
+        Storage::fake('private');
+        Storage::fake('public');
+
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+        [$business] = $this->publishedBusiness($municipality, $category);
+
+        $path = 'business-verifications/'.$business->id.'/documento.pdf';
+        Storage::disk('private')->put($path, 'contenido');
+
+        $verification = BusinessVerification::create([
+            'business_id' => $business->id,
+            'status' => BusinessVerification::EN_REVISION,
+            'verification_document_path' => $path,
+        ]);
+
+        $url = $verification->documentUrl();
+
+        $this->assertNotNull($url);
+        $this->assertStringContainsString('expiration=', $url);
+        Storage::disk('public')->assertMissing($path);
+    }
 
     private function publishedBusiness(Municipality $municipality, Category $category): array
     {

@@ -23,6 +23,12 @@ class BusinessVerificationResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Confianza';
 
+    protected static ?string $modelLabel = 'verificación de negocio';
+
+    protected static ?string $pluralModelLabel = 'verificaciones de negocio';
+
+    protected static ?string $navigationLabel = 'Verificaciones de negocio';
+
     public static function form(Schema $schema): Schema
     {
         return BusinessVerificationForm::configure($schema);

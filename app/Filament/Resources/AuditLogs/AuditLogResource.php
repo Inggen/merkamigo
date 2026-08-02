@@ -23,6 +23,12 @@ class AuditLogResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Plataforma';
 
+    protected static ?string $modelLabel = 'registro de auditoría';
+
+    protected static ?string $pluralModelLabel = 'registros de auditoría';
+
+    protected static ?string $navigationLabel = 'Registros de auditoría';
+
     public static function table(Table $table): Table
     {
         return AuditLogsTable::configure($table);

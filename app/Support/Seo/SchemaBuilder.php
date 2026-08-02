@@ -134,10 +134,7 @@ class SchemaBuilder
                 'latitude' => $business->latitude,
                 'longitude' => $business->longitude,
             ] : null,
-            'areaServed' => $business->municipality ? [
-                '@type' => 'City',
-                'name' => $business->municipality->name,
-            ] : null,
+            'areaServed' => self::areaServed($business),
             'keywords' => collect([$business->category?->name, $business->municipality?->name, $business->zone])
                 ->filter()
                 ->implode(', '),
@@ -160,6 +157,27 @@ class SchemaBuilder
         ]);
     }
 
+    /**
+     * Todos los municipios donde atiende el negocio (principal + los
+     * adicionales, 0.2.2 del TODO), no solo el principal.
+     *
+     * @return array<int, array<string, string>>|null
+     */
+    private static function areaServed(Business $business): ?array
+    {
+        $names = collect([$business->municipality?->name])
+            ->merge($business->municipalities->pluck('name'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($names->isEmpty()) {
+            return null;
+        }
+
+        return $names->map(fn (string $name) => ['@type' => 'City', 'name' => $name])->all();
+    }
+
     public static function commerceEntity(Product $product, Business $business): array
     {
         $images = $product->media->map(fn ($media) => $media->url())->values()->all();
@@ -179,10 +197,7 @@ class SchemaBuilder
                 'name' => $business->name,
                 'url' => route('vitrinas.show', $business),
             ],
-            'areaServed' => $business->municipality ? [
-                '@type' => 'City',
-                'name' => $business->municipality->name,
-            ] : null,
+            'areaServed' => self::areaServed($business),
             'offers' => self::offer($product, $business),
         ];
 

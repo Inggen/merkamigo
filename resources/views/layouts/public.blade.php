@@ -30,7 +30,7 @@
             <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
                 <a href="{{ route('home') }}" class="flex items-center gap-2" wire:navigate>
                     <x-app-logo-icon class="h-9 w-auto" />
-                    <span class="font-heading text-lg font-semibold">Merkamigo</span>
+                    <x-brand-wordmark size="base" />
                 </a>
 
                 <nav class="flex items-center gap-3 text-sm">

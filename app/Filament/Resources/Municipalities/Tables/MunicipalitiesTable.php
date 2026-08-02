@@ -25,6 +25,9 @@ class MunicipalitiesTable
                     ->searchable(),
                 TextColumn::make('department')
                     ->searchable(),
+                IconColumn::make('hero_video_path')
+                    ->label('Video')
+                    ->boolean(fn ($state): bool => filled($state)),
                 IconColumn::make('is_active')
                     ->boolean(),
                 TextColumn::make('created_at')

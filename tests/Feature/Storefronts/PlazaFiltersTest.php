@@ -10,6 +10,7 @@ use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Js;
 use Tests\TestCase;
 
 /**
@@ -105,11 +106,11 @@ class PlazaFiltersTest extends TestCase
 
         $this->get(route('plaza.show', $withCover))
             ->assertOk()
-            ->assertSee($withCover->coverUrl(), false);
+            ->assertSee((string) Js::from($withCover->coverUrl()), false);
 
         $this->get(route('plaza.show', $withoutCover))
             ->assertOk()
-            ->assertSee(asset('images/backgrounds/fondo-buscador-principal.webp'), false);
+            ->assertSee((string) Js::from(asset('images/backgrounds/fondo-buscador-principal.webp')), false);
     }
 
     public function test_sharing_a_location_orders_businesses_by_distance_without_hiding_those_without_coordinates(): void

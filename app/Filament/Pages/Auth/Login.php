@@ -13,20 +13,20 @@ class Login extends BaseLogin
 
     public function getTitle(): string
     {
-        return 'Administracion Merkamigo';
+        return 'Administración Merkamigo';
     }
 
     public function getHeading(): string
     {
         return filled($this->userUndertakingMultiFactorAuthentication)
-            ? 'Verificacion en dos pasos'
-            : 'Administracion Merkamigo';
+            ? 'Verificación en dos pasos'
+            : 'Administración Merkamigo';
     }
 
     public function getSubheading(): ?string
     {
         if (filled($this->userUndertakingMultiFactorAuthentication)) {
-            return 'Completa el metodo de verificacion para continuar al panel.';
+            return 'Completa el método de verificación para continuar al panel.';
         }
 
         return 'Gestiona negocios, solicitudes y la comunidad local.';

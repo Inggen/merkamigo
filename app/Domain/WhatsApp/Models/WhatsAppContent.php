@@ -6,10 +6,13 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Borrador generado por el Copiloto de WhatsApp (1.7 del TODO): plantilla
  * de texto lista para copiar y compartir, nunca enviada automáticamente.
+ *
+ * @property Carbon|null $scheduled_for
  */
 class WhatsAppContent extends Model
 {
@@ -23,7 +26,14 @@ class WhatsAppContent extends Model
 
     protected $table = 'whatsapp_contents';
 
-    protected $fillable = ['business_id', 'product_id', 'type', 'tone', 'content'];
+    protected $fillable = ['business_id', 'product_id', 'type', 'tone', 'scheduled_for', 'content'];
+
+    protected function casts(): array
+    {
+        return [
+            'scheduled_for' => 'date',
+        ];
+    }
 
     /**
      * @return BelongsTo<Business, $this>

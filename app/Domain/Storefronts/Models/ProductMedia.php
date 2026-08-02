@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductMedia extends Model
 {
-    protected $fillable = ['product_id', 'path', 'position'];
+    protected $fillable = ['product_id', 'path', 'position', 'alt_text'];
 
     /**
      * @return BelongsTo<Product, $this>

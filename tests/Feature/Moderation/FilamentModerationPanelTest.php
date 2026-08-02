@@ -4,10 +4,12 @@ namespace Tests\Feature\Moderation;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Moderation\Models\Report;
+use App\Domain\Moderation\Models\SupportTicket;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Filament\Resources\Businesses\Pages\ListBusinesses;
 use App\Filament\Resources\Reports\Pages\ListReports;
+use App\Filament\Resources\SupportTickets\Pages\ListSupportTickets;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -90,5 +92,26 @@ class FilamentModerationPanelTest extends TestCase
         $report->refresh();
         $this->assertSame(Report::RESUELTO, $report->status);
         $this->assertSame($moderator->id, $report->resolved_by);
+    }
+
+    public function test_the_support_ticket_list_renders_and_the_resolve_table_action_works(): void
+    {
+        $ticket = SupportTicket::create([
+            'subject' => 'No puedo publicar', 'message' => 'El botón no responde.',
+            'contact_email' => 'a@example.com', 'status' => SupportTicket::PENDIENTE,
+        ]);
+
+        $moderator = User::factory()->create();
+        $this->assignPlatformRole($moderator, 'moderator');
+        $this->actingAs($moderator);
+
+        Livewire::test(ListSupportTickets::class)
+            ->assertSuccessful()
+            ->callTableAction('resolve', $ticket, data: ['note' => 'Ya se corrigió.'])
+            ->assertHasNoTableActionErrors();
+
+        $ticket->refresh();
+        $this->assertSame(SupportTicket::RESUELTO, $ticket->status);
+        $this->assertSame($moderator->id, $ticket->resolved_by);
     }
 }

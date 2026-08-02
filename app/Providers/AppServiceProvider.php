@@ -5,8 +5,18 @@ namespace App\Providers;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Policies\BusinessPolicy;
 use App\Domain\Needs\Models\Need;
+use App\Domain\Needs\Models\Offer;
 use App\Domain\Needs\Policies\NeedPolicy;
+use App\Domain\Needs\Policies\OfferPolicy;
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Trust\Models\OrderConfirmation;
+use App\Domain\Trust\Policies\OrderConfirmationPolicy;
+use App\Support\Ai\Contracts\GeneratesAssistedText;
+use App\Support\Ai\Contracts\TranscribesAudio;
+use App\Support\Ai\NullAudioTranscriber;
+use App\Support\Ai\OpenAiTextGenerator;
+use App\Support\Geo\Contracts\GeocodesAddresses;
+use App\Support\Geo\ManualGeocoder;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -26,7 +36,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(GeneratesAssistedText::class, OpenAiTextGenerator::class);
+        $this->app->bind(TranscribesAudio::class, NullAudioTranscriber::class);
+
+        // Contrato de geocodificación (5.4 del TODO): sin proveedor real
+        // elegido todavía, `ManualGeocoder` mantiene el comportamiento
+        // actual (coordenadas manuales). Cambiar de proveedor más
+        // adelante es solo cambiar este binding.
+        $this->app->bind(GeocodesAddresses::class, ManualGeocoder::class);
     }
 
     /**
@@ -44,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Business::class, BusinessPolicy::class);
         Gate::policy(Need::class, NeedPolicy::class);
+        Gate::policy(Offer::class, OfferPolicy::class);
+        Gate::policy(OrderConfirmation::class, OrderConfirmationPolicy::class);
     }
 
     protected function configureAuditing(): void

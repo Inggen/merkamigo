@@ -4,7 +4,7 @@
 
 Última actualización: 27 de julio de 2026 (borrador).
 
-Este documento describe cómo Merkamigo recolecta, usa y protege los datos personales de sus usuarios, en línea con la Ley 1581 de 2012 y el Decreto 1377 de 2013 de Colombia (protección de datos personales / habeas data).
+Este documento describe cómo Merkamigo recolecta, usa y protege los datos personales de sus usuarios, en línea con el régimen colombiano de protección de datos personales y habeas data, incluyendo la Ley 1581 de 2012, el Decreto 1377 de 2013 y, cuando resulte aplicable, la Ley 1266 de 2008.
 
 ## 1. Datos que recolectamos
 
@@ -40,14 +40,27 @@ Como titular de tus datos personales, puedes:
 
 Para ejercer estos derechos, usa el canal de soporte indicado en la plataforma.
 
-## 5. Conservación y eliminación
+## 5. Autorización de tratamiento y habeas data
+
+Al registrarte, enviar formularios o compartir datos dentro de Merkamigo, autorizas a Merkamigo a tratar tu información personal para las finalidades descritas en esta política, en los términos permitidos por la legislación colombiana.
+
+En desarrollo de tus derechos de habeas data, podrás:
+
+- Consultar qué datos tuyos tratamos.
+- Solicitar actualización, corrección o supresión de información inexacta, incompleta o desactualizada.
+- Revocar la autorización cuando sea procedente.
+- Conocer el canal para atención de consultas, reclamos y solicitudes relacionadas con datos personales.
+
+Merkamigo tratará los datos bajo principios de legalidad, finalidad, libertad, veracidad, transparencia, acceso y circulación restringida, seguridad y confidencialidad.
+
+## 6. Conservación y eliminación
 
 Conservamos los datos mientras la cuenta esté activa y el tiempo adicional necesario para cumplir obligaciones legales o resolver disputas. Los documentos de verificación y los eventos de analítica tienen políticas de retención específicas, pendientes de definir formalmente antes del lanzamiento (ver `docs/architecture/decisiones.md`).
 
-## 6. Menores de edad
+## 7. Menores de edad
 
 Merkamigo no está dirigido a menores de edad. Si detectamos una cuenta de un menor, será suspendida.
 
-## 7. Cambios a esta política
+## 8. Cambios a esta política
 
 Publicaremos la fecha de última actualización cada vez que cambiemos este documento y, cuando el cambio sea significativo, lo comunicaremos a los usuarios activos.

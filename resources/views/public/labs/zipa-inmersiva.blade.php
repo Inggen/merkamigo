@@ -57,8 +57,15 @@
             }
 
             .zipa-demo-brand-copy {
-                flex: 1;
+                flex: 0 1 auto;
                 min-width: 0;
+            }
+
+            .zipa-demo-brand-meta {
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
 
             .zipa-demo-brand svg {
@@ -159,6 +166,85 @@
                 margin-top: 18px;
             }
 
+            .zipa-demo-coordinates {
+                padding: 10px 12px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 14px;
+                background: rgba(255, 255, 255, 0.04);
+            }
+
+            .zipa-demo-coordinates-label {
+                display: block;
+                margin-bottom: 4px;
+                font-size: 0.72rem;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                color: rgba(255, 255, 255, 0.64);
+            }
+
+            .zipa-demo-coordinates-value {
+                font-family: var(--font-mono, 'JetBrains Mono', 'SFMono-Regular', monospace);
+                font-size: 0.82rem;
+                color: rgba(255, 255, 255, 0.92);
+                white-space: nowrap;
+            }
+
+            .zipa-demo-loader {
+                position: absolute;
+                inset: 0;
+                z-index: 40;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: radial-gradient(circle at top, rgba(33, 98, 196, 0.18), transparent 34%), rgba(7, 17, 31, 0.88);
+                backdrop-filter: blur(10px);
+                transition: opacity 220ms ease, visibility 220ms ease;
+            }
+
+            .zipa-demo-loader.is-hidden {
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+            }
+
+            .zipa-demo-loader-card {
+                display: grid;
+                justify-items: center;
+                gap: 12px;
+                padding: 24px 28px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 22px;
+                background: rgba(10, 18, 33, 0.78);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+                text-align: center;
+            }
+
+            .zipa-demo-loader-spinner {
+                width: 42px;
+                height: 42px;
+                border: 3px solid rgba(255, 255, 255, 0.14);
+                border-top-color: #d7352a;
+                border-radius: 999px;
+                animation: zipa-spin 0.9s linear infinite;
+            }
+
+            .zipa-demo-loader-title {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #fff;
+            }
+
+            .zipa-demo-loader-copy {
+                font-size: 0.9rem;
+                color: rgba(255, 255, 255, 0.72);
+            }
+
+            @keyframes zipa-spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
             .zipa-demo-button {
                 display: inline-flex;
                 align-items: center;
@@ -213,6 +299,15 @@
                     padding: 16px;
                 }
 
+                .zipa-demo-brand {
+                    align-items: flex-start;
+                }
+
+                .zipa-demo-brand-meta {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
                 .zipa-demo-status {
                     left: 14px;
                     right: 14px;
@@ -231,22 +326,29 @@
                         <strong>Merkamigo Labs</strong>
                         <div style="font-size: .88rem; color: rgba(255,255,255,.68);">Demo temporal inmersiva</div>
                     </div>
-                    <button
-                        id="zipa-panel-toggle"
-                        type="button"
-                        class="zipa-demo-toggle"
-                        aria-controls="zipa-demo-panel"
-                        aria-expanded="true"
-                        aria-label="Ocultar instrucciones"
-                        title="Mostrar u ocultar instrucciones"
-                    >
-                        <svg id="zipa-panel-toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </button>
+                    <div class="zipa-demo-brand-meta">
+                        <div class="zipa-demo-coordinates">
+                            <span class="zipa-demo-coordinates-label">Posición</span>
+                            <div id="zipa-player-coordinates" class="zipa-demo-coordinates-value">X: 0.00 · Y: 0.00 · Z: 0.00</div>
+                        </div>
+
+                        <button
+                            id="zipa-panel-toggle"
+                            type="button"
+                            class="zipa-demo-toggle"
+                            aria-controls="zipa-demo-panel"
+                            aria-expanded="false"
+                            aria-label="Mostrar instrucciones"
+                            title="Mostrar u ocultar instrucciones"
+                        >
+                            <svg id="zipa-panel-toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
-                <div id="zipa-demo-panel" class="zipa-demo-card zipa-demo-panel">
+                <div id="zipa-demo-panel" class="zipa-demo-card zipa-demo-panel is-collapsed">
                     <h1>Plaza voxel de Zipaquirá</h1>
                     <p>Recorre una versión tipo Minecraft inspirada en la plaza principal. Haz clic en la escena para capturar el mouse y mira alrededor libremente.</p>
 
@@ -258,17 +360,26 @@
                     </div>
 
                     <div class="zipa-demo-actions">
-                        <a href="{{ route('plaza.show', 'zipaquira') }}" class="zipa-demo-button zipa-demo-button--ghost">Volver a la plaza web</a>
+                        <a href="{{ route('buscar', ['municipio' => 'zipaquira']) }}" class="zipa-demo-button zipa-demo-button--ghost">Volver a la plaza web</a>
                         <button id="zipa-lock-trigger" type="button" class="zipa-demo-button zipa-demo-button--primary">Entrar en modo inmersivo</button>
                     </div>
                 </div>
             </div>
 
             <div id="zipa-immersive-scene" aria-label="Escena inmersiva de la plaza de Zipaquirá"></div>
+            <div id="zipa-loading-overlay" class="zipa-demo-loader" aria-live="polite">
+                <div class="zipa-demo-loader-card">
+                    <div class="zipa-demo-loader-spinner" aria-hidden="true"></div>
+                    <div class="zipa-demo-loader-title">Cargando experiencia inmersiva</div>
+                    <div class="zipa-demo-loader-copy">Preparando escenario, modelos y colisiones...</div>
+                </div>
+            </div>
             <div class="zipa-demo-status">Prueba temporal: referencia voxel de la plaza. No representa la escala exacta del sitio real.</div>
         </div>
 
         <script>
+            window.zipaImmersiveBusinesses = @json($immersiveBusinesses ?? []);
+
             (() => {
                 const toggle = document.getElementById('zipa-panel-toggle');
                 const panel = document.getElementById('zipa-demo-panel');
@@ -290,7 +401,7 @@
                     setExpanded(!expanded);
                 });
 
-                setExpanded(true);
+                setExpanded(false);
             })();
         </script>
         <script type="module" src="{{ asset('js/zipa-plaza-immersive.js') }}"></script>

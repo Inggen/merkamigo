@@ -23,6 +23,12 @@ class RecommendationResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Confianza';
 
+    protected static ?string $modelLabel = 'recomendación';
+
+    protected static ?string $pluralModelLabel = 'recomendaciones';
+
+    protected static ?string $navigationLabel = 'Recomendaciones';
+
     public static function form(Schema $schema): Schema
     {
         return RecommendationForm::configure($schema);

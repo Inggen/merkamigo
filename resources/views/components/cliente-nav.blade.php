@@ -9,13 +9,19 @@
         ? Municipality::where('slug', request()->cookie('municipio'))->where('is_active', true)->first()
         : null;
     $allMunicipios = Municipality::where('is_active', true)->orderBy('name')->get();
+    $guestLoginUrl = route('login');
+    $guestFavoritesMessage = __('Necesitas ingresar o crear una cuenta para guardar favoritos.');
+    $guestNeedsMessage = __('Necesitas ingresar o crear una cuenta para publicar en Pídelo.');
 @endphp
 
-<header class="sticky top-0 z-30 border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-    <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-3">
-        <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2" wire:navigate>
-            <x-app-logo-icon class="h-8 w-auto" />
-            <span class="hidden font-heading text-lg font-semibold sm:inline">Merkamigo</span>
+<header
+    class="sticky top-0 z-30 border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
+    style="box-shadow: 0 0 15px rgba(0, 0, 0, .2);"
+>
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-6 py-3">
+        <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2.5" wire:navigate>
+            <x-app-logo-icon class="h-10 w-auto" />
+            <x-brand-wordmark size="lg" class="hidden sm:inline" />
         </a>
 
         @if ($showMunicipalitySelector)
@@ -46,19 +52,27 @@
         @endif
 
         <nav class="ml-auto flex shrink-0 items-center gap-1">
-            <flux:button size="sm" variant="ghost" icon="magnifying-glass" :href="route('buscar')" wire:navigate>
-                <span class="hidden md:inline">{{ __('Explorar') }}</span>
-            </flux:button>
-
-            <span class="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 md:inline-flex dark:text-zinc-500">
-                <flux:icon.chat-bubble-left-right class="size-4" variant="outline" />
-                {{ __('Mensajes') }}
-                <flux:badge size="sm" color="zinc">{{ __('Pronto') }}</flux:badge>
-            </span>
-
             @auth
-                <flux:button size="sm" variant="ghost" icon="heart" :href="route('clientes.favoritos')" wire:navigate>
-                    <span class="hidden md:inline">{{ __('Favoritos') }}</span>
+                <flux:button
+                    size="sm"
+                    variant="ghost"
+                    icon="clipboard-document-list"
+                    :href="route('mis-solicitudes')"
+                    wire:navigate
+                    class="[&_[data-flux-icon]]:text-brand-600"
+                >
+                    <span class="hidden md:inline">{{ __('Mis solicitudes') }}</span>
+                </flux:button>
+
+                <flux:button
+                    size="sm"
+                    variant="ghost"
+                    icon="shopping-bag"
+                    :href="route('pidelo.nueva')"
+                    wire:navigate
+                    class="[&_[data-flux-icon]]:text-brand-600"
+                >
+                    <span class="hidden md:inline">{{ __('Pídelo') }}</span>
                 </flux:button>
 
                 <flux:dropdown position="bottom" align="end">
@@ -69,7 +83,8 @@
                         :chevron="false"
                     />
                     <flux:menu>
-                        <flux:menu.item :href="route('dashboard')" icon="squares-2x2" wire:navigate>{{ __('Mi cuenta') }}</flux:menu.item>
+                        <flux:menu.item :href="route('profile.edit')" icon="user-circle" wire:navigate>{{ __('Mi cuenta') }}</flux:menu.item>
+                        <flux:menu.item :href="route('clientes.favoritos')" icon="heart" wire:navigate>{{ __('Favoritos') }}</flux:menu.item>
                         <flux:menu.separator />
                         <x-experience-switch-menu />
                         <flux:menu.separator />
@@ -82,8 +97,38 @@
                     </flux:menu>
                 </flux:dropdown>
             @else
-                <flux:button size="sm" variant="ghost" :href="route('login')" wire:navigate>{{ __('Iniciar sesión') }}</flux:button>
-                <flux:button size="sm" variant="primary" :href="route('register')" wire:navigate>{{ __('Crear cuenta') }}</flux:button>
+                <flux:button
+                    size="sm"
+                    variant="ghost"
+                    icon="shopping-bag"
+                    x-data
+                    x-on:click.prevent="$flux.toast({ text: '{{ e($guestNeedsMessage) }}' }); setTimeout(() => window.location.href = '{{ $guestLoginUrl }}', 900)"
+                    class="[&_[data-flux-icon]]:text-brand-600"
+                >
+                    {{ __('Pídelo') }}
+                </flux:button>
+                <flux:button
+                    size="sm"
+                    variant="ghost"
+                    icon="heart"
+                    x-data
+                    x-on:click.prevent="$flux.toast({ text: '{{ e($guestFavoritesMessage) }}' }); setTimeout(() => window.location.href = '{{ $guestLoginUrl }}', 900)"
+                    class="[&_[data-flux-icon]]:text-brand-600"
+                >
+                    {{ __('Favoritos') }}
+                </flux:button>
+                <flux:button
+                    size="sm"
+                    variant="ghost"
+                    :href="route('login')"
+                    wire:navigate
+                    class="rounded-xl border border-brand-300 px-4 text-brand-700 hover:border-brand-400 hover:bg-brand-50"
+                >
+                    {{ __('Ingresa') }}
+                </flux:button>
+                <flux:button size="sm" variant="primary" :href="route('emprendedores.bienvenida')" wire:navigate class="rounded-xl px-4">
+                    {{ __('Publica tu negocio') }}
+                </flux:button>
             @endauth
         </nav>
     </div>

@@ -5,6 +5,7 @@ namespace App\Domain\Needs\Models;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -125,6 +126,31 @@ class Need extends Model
         return $this->relationLoaded('offers')
             ? $this->offers->firstWhere('id', $this->selected_offer_id)
             : Offer::find($this->selected_offer_id);
+    }
+
+    /**
+     * Necesidades abiertas (publicadas o recibiendo ofertas, sin suspender)
+     * en uno o varios municipios, opcionalmente filtradas por categoría.
+     * Consulta compartida por `/pidelo`, "Oportunidades" del Emprendedor
+     * (que pasa todos los municipios que atiende el negocio, 0.2.2 del
+     * TODO) y la Plaza del municipio (1.5/2.2 del TODO) para no triplicar
+     * la misma lógica.
+     *
+     * @param  Builder<Need>  $query
+     * @param  int|array<int, int>  $municipalityId
+     * @return Builder<Need>
+     */
+    public function scopeOpenIn(Builder $query, int|array $municipalityId, ?int $categoryId = null): Builder
+    {
+        return $query
+            ->when(
+                is_array($municipalityId),
+                fn (Builder $q) => $q->whereIn('municipality_id', $municipalityId),
+                fn (Builder $q) => $q->where('municipality_id', $municipalityId),
+            )
+            ->whereIn('status', [self::PUBLICADA, self::RECIBIENDO_OFERTAS])
+            ->whereNull('suspended_at')
+            ->when($categoryId, fn (Builder $q) => $q->where('category_id', $categoryId));
     }
 
     public function isDraft(): bool

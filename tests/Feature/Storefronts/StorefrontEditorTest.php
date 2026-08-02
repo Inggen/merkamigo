@@ -64,6 +64,25 @@ class StorefrontEditorTest extends TestCase
         $this->assertSame('Frase corta autoguardada', $business->fresh()->storefront->headline);
     }
 
+    public function test_owner_can_set_alt_text_for_the_logo_and_cover(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Alt Text',
+            'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('logo_alt_text', 'Logo de Negocio Alt Text')
+            ->set('cover_alt_text', 'Fachada de Negocio Alt Text')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Logo de Negocio Alt Text', $business->fresh()->logo_alt_text);
+        $this->assertSame('Fachada de Negocio Alt Text', $business->fresh()->storefront->cover_alt_text);
+    }
+
     public function test_autosave_survives_losing_the_permissions_team_context_between_requests(): void
     {
         // En producción, cada interacción de Livewire (autosave, guardar,

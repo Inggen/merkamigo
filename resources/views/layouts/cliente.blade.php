@@ -8,7 +8,7 @@
     'pageSchemaData' => [],
     'schemaGraph' => [],
     'ogType' => 'website',
-    'showMunicipalitySelector' => true,
+    'showMunicipalitySelector' => false,
 ])
 
 <!DOCTYPE html>
@@ -29,11 +29,23 @@
     <body class="min-h-screen bg-mist dark:bg-zinc-900 dark:text-white">
         <x-cliente-nav :show-municipality-selector="$showMunicipalitySelector" />
 
-        <main>
+        <main class="{{ auth()->check() && auth()->user()->experience === 'cliente' ? 'pb-16 md:pb-0' : '' }}">
             {{ $slot }}
         </main>
 
         @include('partials.public-footer')
+
+        @auth
+            @if (auth()->user()->experience === 'cliente')
+                <x-cliente-bottom-nav />
+            @endif
+        @endauth
+
+        @persist('toast')
+            <flux:toast.group>
+                <flux:toast />
+            </flux:toast.group>
+        @endpersist
 
         @stack('scripts')
         @fluxScripts

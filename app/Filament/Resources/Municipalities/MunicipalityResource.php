@@ -28,6 +28,12 @@ class MunicipalityResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Configuración';
 
+    protected static ?string $modelLabel = 'municipio';
+
+    protected static ?string $pluralModelLabel = 'municipios';
+
+    protected static ?string $navigationLabel = 'Municipios';
+
     public static function form(Schema $schema): Schema
     {
         return MunicipalityForm::configure($schema);

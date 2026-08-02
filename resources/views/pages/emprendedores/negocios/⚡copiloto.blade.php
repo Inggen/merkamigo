@@ -4,6 +4,7 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\WhatsApp\Actions\GenerateWhatsAppPromotion;
 use App\Domain\WhatsApp\Actions\SaveWhatsAppDraft;
+use App\Domain\WhatsApp\Actions\SuggestWhatsAppContent;
 use App\Domain\WhatsApp\Models\WhatsAppContent;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -28,9 +29,19 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
 
     public string $tone = 'cercano';
 
+    public string $length = 'medio';
+
+    public ?string $scheduledFor = null;
+
     public string $generated = '';
 
     public bool $hasGenerated = false;
+
+    public ?string $faqDisponibilidad = null;
+
+    public ?string $faqHorario = null;
+
+    public ?string $faqDomicilio = null;
 
     /**
      * El middleware `business.team` solo corre en la carga inicial de la
@@ -58,6 +69,9 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
         $this->authorize('update', $business);
 
         $this->businessId = $business->id;
+        $this->faqDisponibilidad = $business->faqAnswer('disponibilidad');
+        $this->faqHorario = $business->faqAnswer('horario');
+        $this->faqDomicilio = $business->faqAnswer('domicilio');
     }
 
     #[Computed]
@@ -72,11 +86,21 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
         return $this->business->products()->where('status', 'publicado')->get();
     }
 
+    /**
+     * 4.4 del TODO: sugerencias basadas en métricas reales del negocio.
+     */
+    #[Computed]
+    public function suggestions(): array
+    {
+        return app(SuggestWhatsAppContent::class)->handle($this->business);
+    }
+
     #[Computed]
     public function history()
     {
         return WhatsAppContent::query()
             ->where('business_id', $this->businessId)
+            ->orderByRaw('scheduled_for IS NULL, scheduled_for asc')
             ->latest()
             ->take(20)
             ->get();
@@ -90,13 +114,14 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
             'type' => ['required', 'in:promocion,estado,respuesta,presentacion'],
             'productId' => ['nullable', 'integer', 'exists:products,id'],
             'tone' => ['required', 'in:cercano,formal'],
+            'length' => ['required', 'in:corto,medio,largo'],
         ]);
 
         $product = $this->type === WhatsAppContent::PROMOCION && $this->productId
             ? Product::find($this->productId)
             : null;
 
-        $this->generated = app(GenerateWhatsAppPromotion::class)->handle($this->business, $this->type, $product, $this->tone);
+        $this->generated = app(GenerateWhatsAppPromotion::class)->handle($this->business, $this->type, $product, $this->tone, $this->length);
         $this->hasGenerated = true;
     }
 
@@ -108,15 +133,41 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
             return;
         }
 
+        $this->validate([
+            'scheduledFor' => ['nullable', 'date'],
+        ]);
+
         $product = $this->type === WhatsAppContent::PROMOCION && $this->productId
             ? Product::find($this->productId)
             : null;
 
-        app(SaveWhatsAppDraft::class)->handle($this->business, $this->type, $product, $this->tone, $this->generated);
+        app(SaveWhatsAppDraft::class)->handle($this->business, $this->type, $product, $this->tone, $this->generated, $this->scheduledFor);
 
+        $this->scheduledFor = null;
         unset($this->history);
 
         Flux::toast(variant: 'success', text: __('Borrador guardado.'));
+    }
+
+    public function saveFaqAnswers(): void
+    {
+        $this->authorize('update', $this->business);
+
+        $this->validate([
+            'faqDisponibilidad' => ['nullable', 'string', 'max:500'],
+            'faqHorario' => ['nullable', 'string', 'max:500'],
+            'faqDomicilio' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $this->business->update([
+            'whatsapp_faq_answers' => array_filter([
+                'disponibilidad' => $this->faqDisponibilidad ?: null,
+                'horario' => $this->faqHorario ?: null,
+                'domicilio' => $this->faqDomicilio ?: null,
+            ]),
+        ]);
+
+        Flux::toast(variant: 'success', text: __('Respuestas guardadas.'));
     }
 
     public function reuse(int $draftId): void
@@ -139,11 +190,27 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
 
 <section class="mx-auto w-full max-w-2xl space-y-8">
     <div>
-        <flux:heading size="xl">{{ __('Copiloto de WhatsApp') }}</flux:heading>
+        <div class="flex items-center gap-1.5">
+            <flux:heading size="xl">{{ __('Copiloto de WhatsApp') }}</flux:heading>
+            <flux:tooltip :content="__('Revisa siempre el texto generado antes de enviarlo: Merkamigo no verifica automáticamente que los datos sean correctos.')">
+                <flux:icon.question-mark-circle class="size-4 shrink-0 text-zinc-400" variant="outline" />
+            </flux:tooltip>
+        </div>
         <flux:subheading>
             {{ __('Genera un texto listo para copiar y compartir. Nada se envía automáticamente: tú decides cuándo y a quién.') }}
         </flux:subheading>
+        <flux:text class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            {{ __('Si OpenAI está activo en administración, el texto puede mejorarse con IA; si no, Merkamigo sigue usando su generación guiada sin IA.') }}
+        </flux:text>
     </div>
+
+    @if (! empty($this->suggestions))
+        <div class="space-y-2 rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-900 dark:bg-brand-950">
+            @foreach ($this->suggestions as $suggestion)
+                <flux:text class="text-sm">💡 {{ $suggestion }}</flux:text>
+            @endforeach
+        </div>
+    @endif
 
     <div class="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
         <flux:select wire:model.live="type" :label="__('¿Qué quieres generar?')">
@@ -167,6 +234,12 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
             <flux:select.option value="formal">{{ __('Formal (sin emoji)') }}</flux:select.option>
         </flux:select>
 
+        <flux:select wire:model="length" :label="__('Longitud')">
+            <flux:select.option value="corto">{{ __('Corto') }}</flux:select.option>
+            <flux:select.option value="medio">{{ __('Medio') }}</flux:select.option>
+            <flux:select.option value="largo">{{ __('Largo') }}</flux:select.option>
+        </flux:select>
+
         <flux:button variant="primary" wire:click="generate" class="w-full">
             {{ __('Generar texto') }}
         </flux:button>
@@ -179,6 +252,8 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
             </flux:text>
 
             <flux:textarea wire:model="generated" rows="6" />
+
+            <flux:input type="date" wire:model="scheduledFor" :label="__('Fecha sugerida para usarlo (opcional)')" />
 
             <div x-data class="flex flex-wrap gap-2">
                 <flux:button
@@ -205,6 +280,23 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
         </div>
     @endif
 
+    <div class="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
+        <div>
+            <flux:subheading>{{ __('Respuestas automáticas') }}</flux:subheading>
+            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                {{ __('Sobrescribe lo que dice el Copiloto en "Respuesta a preguntas frecuentes". Déjalo vacío para usar el texto automático.') }}
+            </flux:text>
+        </div>
+
+        <flux:textarea wire:model="faqDisponibilidad" :label="__('Disponibilidad')" rows="2" />
+        <flux:textarea wire:model="faqHorario" :label="__('Horario')" rows="2" />
+        <flux:textarea wire:model="faqDomicilio" :label="__('Domicilios')" rows="2" />
+
+        <flux:button type="button" variant="ghost" wire:click="saveFaqAnswers">
+            {{ __('Guardar respuestas') }}
+        </flux:button>
+    </div>
+
     <div>
         <flux:subheading class="mb-3">{{ __('Historial (últimos 20)') }}</flux:subheading>
 
@@ -215,7 +307,12 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
                 @foreach ($this->history as $draft)
                     <div class="flex items-start justify-between gap-3 rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-700">
                         <div class="min-w-0">
-                            <div class="font-medium">{{ ucfirst($draft->type) }} · {{ $draft->created_at->diffForHumans() }}</div>
+                            <div class="font-medium">
+                                {{ ucfirst($draft->type) }} · {{ $draft->created_at->diffForHumans() }}
+                                @if ($draft->scheduled_for)
+                                    <flux:badge size="sm" color="amber">{{ __('Para el :date', ['date' => $draft->scheduled_for->translatedFormat('d \\d\\e F')]) }}</flux:badge>
+                                @endif
+                            </div>
                             <div class="truncate text-zinc-500">{{ \Illuminate\Support\Str::limit($draft->content, 80) }}</div>
                         </div>
                         <div class="flex shrink-0 gap-2">

@@ -35,6 +35,7 @@ class MediaUploader
     public function store(UploadedFile $file, string $context, string $directory): string
     {
         $rules = config("media.{$context}");
+        $disk = $rules['disk'] ?? 'public';
 
         Validator::make(['file' => $file], [
             'file' => [
@@ -46,10 +47,10 @@ class MediaUploader
         ])->validate();
 
         if (isset($rules['max_width'])) {
-            return $this->storeResized($file, $directory, $rules['max_width']);
+            return $this->storeResized($file, $directory, $rules['max_width'], $disk);
         }
 
-        $path = $file->store($directory, 'public');
+        $path = $file->store($directory, $disk);
 
         if ($path === false) {
             throw new RuntimeException('No se pudo guardar el archivo.');
@@ -58,26 +59,26 @@ class MediaUploader
         return $path;
     }
 
-    public function delete(?string $path): void
+    public function delete(?string $path, string $disk = 'public'): void
     {
         if ($path) {
-            Storage::disk('public')->delete($path);
+            Storage::disk($disk)->delete($path);
         }
     }
 
-    public function url(?string $path): ?string
+    public function url(?string $path, string $disk = 'public'): ?string
     {
-        return $path ? Storage::disk('public')->url($path) : null;
+        return $path ? Storage::disk($disk)->url($path) : null;
     }
 
-    private function storeResized(UploadedFile $file, string $directory, int $maxWidth): string
+    private function storeResized(UploadedFile $file, string $directory, int $maxWidth, string $disk): string
     {
         $image = (new ImageManager(Driver::class))->decode($file);
         $image->scaleDown(width: $maxWidth);
 
         $path = $file->hashName($directory);
 
-        Storage::disk('public')->put($path, (string) $image->encode());
+        Storage::disk($disk)->put($path, (string) $image->encode());
 
         return $path;
     }

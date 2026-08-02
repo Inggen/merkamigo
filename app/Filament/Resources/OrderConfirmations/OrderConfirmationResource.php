@@ -19,6 +19,12 @@ class OrderConfirmationResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Confianza';
 
+    protected static ?string $modelLabel = 'confirmación de pedido';
+
+    protected static ?string $pluralModelLabel = 'confirmaciones de pedido';
+
+    protected static ?string $navigationLabel = 'Confirmaciones de pedido';
+
     public static function table(Table $table): Table
     {
         return OrderConfirmationsTable::configure($table);

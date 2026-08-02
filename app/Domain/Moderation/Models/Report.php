@@ -4,6 +4,7 @@ namespace App\Domain\Moderation\Models;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
+use App\Domain\Trust\Models\Recommendation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -56,6 +57,7 @@ class Report extends Model
         return match (true) {
             $this->reportable instanceof Business => 'Negocio: '.$this->reportable->name,
             $this->reportable instanceof Product => 'Producto: '.$this->reportable->name,
+            $this->reportable instanceof Recommendation => 'Recomendación: '.str($this->reportable->body)->limit(60),
             default => __('(eliminado)'),
         };
     }

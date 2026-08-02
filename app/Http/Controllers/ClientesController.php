@@ -33,7 +33,7 @@ class ClientesController extends Controller
                     ->whereNotNull('longitude')
                     ->orderBy('name')
                     ->get(['id', 'name', 'slug', 'latitude', 'longitude']),
-                'categories' => collect(),
+                'categories' => Category::where('is_active', true)->orderBy('position')->get(),
                 'businesses' => collect(),
             ]);
         }
@@ -63,6 +63,18 @@ class ClientesController extends Controller
         ]);
     }
 
+    /**
+     * Centro de actividad (0.2.2/1.1.1 del TODO): notificaciones de
+     * propuestas recibidas o retiradas sobre las solicitudes del Cliente.
+     */
+    public function actividad(Request $request): View
+    {
+        return view('clientes.actividad', [
+            'notifications' => $request->user()->notifications()->paginate(20),
+            'recentlyViewed' => $request->user()->recentlyViewedBusinesses()->with('business')->take(8)->get(),
+        ]);
+    }
+
     public function setMunicipio(Request $request, SetPreferredMunicipality $setPreferredMunicipality): RedirectResponse
     {
         $data = $request->validate([
@@ -80,6 +92,13 @@ class ClientesController extends Controller
         $setPreferredMunicipality->handle($municipality);
 
         return redirect()->back(fallback: route('clientes.home'));
+    }
+
+    public function marcarActividadLeida(Request $request, string $notification): RedirectResponse
+    {
+        $request->user()->notifications()->whereKey($notification)->firstOrFail()->markAsRead();
+
+        return redirect()->route('clientes.actividad');
     }
 
     private function preferredMunicipality(Request $request): ?Municipality

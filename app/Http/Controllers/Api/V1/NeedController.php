@@ -6,6 +6,7 @@ use App\Domain\Needs\Actions\SaveNeedDraft;
 use App\Domain\Needs\Models\Need;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\NeedResource;
+use App\Http\Resources\PublicNeedResource;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,31 @@ use Illuminate\Http\Request;
  */
 class NeedController extends Controller
 {
+    /**
+     * Catálogo público de necesidades abiertas (5.1 del TODO), mismo
+     * criterio de visibilidad que `Need::scopeOpenIn()` ya usa en
+     * `plaza.show` y en "Oportunidades" del Emprendedor — no reemplaza el
+     * `show`/`update` de más abajo, que siguen siendo privados (solo el
+     * dueño de la necesidad).
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'municipio_id' => ['required', 'integer', 'exists:municipalities,id'],
+            'categoria_id' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        $needs = Need::query()
+            ->openIn($data['municipio_id'], $data['categoria_id'] ?? null)
+            ->withCount('offers')
+            ->with('category')
+            ->latest('published_at')
+            ->paginate(12)
+            ->withQueryString();
+
+        return ApiResponse::paginated($needs, PublicNeedResource::class);
+    }
+
     public function store(Request $request, SaveNeedDraft $saveNeedDraft): JsonResponse
     {
         $need = $saveNeedDraft->handle($request->user(), null, $request->only([

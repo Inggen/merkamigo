@@ -258,7 +258,7 @@
                     </div>
 
                     <div class="voxel-lab-actions">
-                        <a href="{{ route('plaza.show', 'cajica') }}" class="voxel-lab-button voxel-lab-button--ghost">Volver a la plaza web</a>
+                        <a href="{{ route('buscar', ['municipio' => 'cajica']) }}" class="voxel-lab-button voxel-lab-button--ghost">Volver a la plaza web</a>
                         <button id="cajica-lock-trigger" type="button" class="voxel-lab-button voxel-lab-button--primary">Entrar en modo inmersivo</button>
                     </div>
                 </div>

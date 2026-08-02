@@ -2,6 +2,7 @@
 
 namespace App\Domain\Businesses\Actions;
 
+use App\Domain\Billing\Actions\CheckUsageLimit;
 use App\Domain\Businesses\Exceptions\CollaboratorInviteException;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Models\BusinessMembership;
@@ -32,6 +33,12 @@ class InviteCollaborator
 
         if ($business->members()->where('users.id', $user->id)->exists()) {
             throw new CollaboratorInviteException('Esa persona ya hace parte de este negocio.');
+        }
+
+        $usage = app(CheckUsageLimit::class)->handle($business, 'max_members');
+
+        if (! $usage['allowed']) {
+            throw new CollaboratorInviteException("Tu plan permite hasta {$usage['limit']} miembros en el negocio. Mejora tu plan para agregar más.");
         }
 
         return DB::transaction(function () use ($business, $actor, $user, $role) {

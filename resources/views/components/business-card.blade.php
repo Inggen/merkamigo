@@ -4,9 +4,9 @@
     <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="block">
         <div class="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
             @if ($business->storefront?->coverUrl())
-                <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" alt="{{ __('Portada de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
+                <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
             @elseif ($business->logoUrl())
-                <img src="{{ $business->logoUrl() }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" alt="{{ __('Logo de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
+                <img src="{{ $business->logoUrl() }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $business->logo_alt_text ?? __('Logo de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
             @else
                 <div class="flex h-full w-full items-center justify-center">
                     <flux:icon.building-storefront class="size-10 text-zinc-300 dark:text-zinc-600" variant="outline" />

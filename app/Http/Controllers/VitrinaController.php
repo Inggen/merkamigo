@@ -7,6 +7,7 @@ use App\Domain\Analytics\Actions\RegisterStoreView;
 use App\Domain\Analytics\Actions\RegisterWhatsAppClick;
 use App\Domain\Analytics\Models\AnalyticsEvent;
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Discovery\Actions\RegisterRecentlyViewedBusiness;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Contracts\View\View;
@@ -26,9 +27,13 @@ class VitrinaController extends Controller
     {
         abort_unless($business->isPublished(), 404);
 
-        $business->load(['storefront', 'municipality', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
+        $business->load(['storefront', 'municipality', 'municipalities', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
 
         app(RegisterStoreView::class)->handle($business, null, $request);
+
+        if ($request->user()) {
+            app(RegisterRecentlyViewedBusiness::class)->handle($request->user(), $business);
+        }
 
         return view('vitrinas.show', [
             'business' => $business,
@@ -40,18 +45,26 @@ class VitrinaController extends Controller
     {
         abort_unless($business->isPublished(), 404);
 
-        $business->load(['storefront', 'municipality', 'category', 'verifications', 'orderConfirmations']);
+        $business->load(['storefront', 'municipality', 'municipalities', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
 
         $product = $business->products()
             ->where('slug', $product)
             ->where('status', 'publicado')
             ->firstOrFail();
 
+        $relatedProducts = $business->products()
+            ->where('status', 'publicado')
+            ->whereKeyNot($product->getKey())
+            ->with('media')
+            ->take(4)
+            ->get();
+
         app(RegisterStoreView::class)->handle($business, $product, $request);
 
         return view('vitrinas.product', [
             'business' => $business,
             'product' => $product->load(['media', 'variants']),
+            'relatedProducts' => $relatedProducts,
         ]);
     }
 
@@ -69,6 +82,29 @@ class VitrinaController extends Controller
         ]);
 
         $png = (new QRCode($options))->render(route('vitrinas.show', $business));
+
+        return response($png, 200, ['Content-Type' => 'image/png']);
+    }
+
+    public function qrProduct(Business $business, string $product, Request $request): Response
+    {
+        abort_unless($business->isPublished(), 404);
+
+        $product = $business->products()
+            ->where('slug', $product)
+            ->where('status', 'publicado')
+            ->firstOrFail();
+
+        app(RegisterAnalyticsEvent::class)->handle($business, AnalyticsEvent::QR_VIEW, $product, $request);
+
+        $options = new QROptions([
+            'outputType' => QRCode::OUTPUT_IMAGE_PNG,
+            'outputBase64' => false,
+            'imageTransparent' => false,
+            'scale' => 8,
+        ]);
+
+        $png = (new QRCode($options))->render(route('vitrinas.product', [$business, $product]));
 
         return response($png, 200, ['Content-Type' => 'image/png']);
     }
@@ -97,7 +133,11 @@ class VitrinaController extends Controller
 
         app(RegisterWhatsAppClick::class)->handle($business, $product, $request);
 
-        $text = __('Hola, me interesa ":product" que vi en Merkamigo.', ['product' => $product->name]);
+        $productUrl = route('vitrinas.product', [$business, $product]);
+        $text = __('Hola, me interesa ":product" que vi en Merkamigo. Te comparto el enlace: :url', [
+            'product' => $product->name,
+            'url' => $productUrl,
+        ]);
 
         return redirect()->away($this->whatsappUrl($business->whatsapp_number, $text));
     }

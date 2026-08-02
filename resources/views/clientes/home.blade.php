@@ -18,7 +18,7 @@
         $schemaGraph[] = \App\Support\Seo\SchemaBuilder::itemList(
             $municipalities->map(fn ($option) => [
                 'name' => $option->name,
-                'url' => route('plaza.show', $option),
+                'url' => route('buscar', ['municipio' => $option->slug]),
             ])->all(),
             __('Municipios activos'),
         );
@@ -33,44 +33,22 @@
     :canonical="route('home')"
     :page-schema-type="$municipality ? 'CollectionPage' : 'WebPage'"
     :schema-graph="$schemaGraph"
-    :show-municipality-selector="! $municipality"
 >
     @if (! $municipality)
         <div
             x-data="clienteMunicipalityAutodetect({{ \Illuminate\Support\Js::from($autoDetectMunicipalities) }})"
             x-init="init()"
-            class="relative overflow-hidden bg-cover bg-center px-6 py-16 text-white"
-            style="background-image: url('{{ asset('images/backgrounds/fondo-buscador-principal.webp') }}')"
         >
-            <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
+            <x-clientes.search-hero
+                :municipality="null"
+                :municipalities="$municipalities"
+                :query="request('q', '')"
+            />
 
-            <div class="relative mx-auto max-w-3xl text-center">
-                <flux:heading size="xl" class="text-3xl text-white sm:text-4xl">{{ __('Descubre lo local, conecta con tu comunidad') }}</flux:heading>
-                <flux:text class="mt-2 mb-8 text-brand-100">
-                    {{ __('Elige tu municipio para ver negocios cercanos.') }}
-                </flux:text>
-
-                <div x-show="detecting" x-cloak class="mb-6 text-sm text-brand-100/90">
-                    {{ __('Intentando detectar tu municipio para mostrarte lo mas cercano...') }}
-                </div>
-
-                <div class="flex flex-wrap justify-center gap-2">
-                    @foreach ($municipalities as $option)
-                        <form method="POST" action="{{ route('clientes.municipio') }}">
-                            @csrf
-                            <input type="hidden" name="municipality_id" value="{{ $option->id }}">
-                            <button type="submit" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-brand-700 transition hover:bg-brand-50">
-                                {{ $option->name }}
-                            </button>
-                        </form>
-                    @endforeach
-                </div>
-
-                <form x-ref="autodetectForm" method="POST" action="{{ route('clientes.municipio') }}" class="hidden">
-                    @csrf
-                    <input x-ref="municipalityId" type="hidden" name="municipality_id">
-                </form>
-            </div>
+            <form x-ref="autodetectForm" method="POST" action="{{ route('clientes.municipio') }}" class="hidden">
+                @csrf
+                <input x-ref="municipalityId" type="hidden" name="municipality_id">
+            </form>
         </div>
 
         @push('scripts')
@@ -160,19 +138,23 @@
             :municipalities="$municipalities"
             :query="request('q', '')"
         />
+    @endif
 
-        <div class="mx-auto max-w-6xl px-6 py-8">
-            <div class="mb-8">
-                <x-category-icons
-                    :categories="$categories"
-                    :all-url="route('plaza.show', $municipality)"
-                    :url-for="fn ($category) => route('plaza.category', [$municipality, $category])"
-                />
-            </div>
+    <div class="mx-auto max-w-7xl px-6 py-8">
+        <div class="mb-8">
+            <x-category-icons
+                :categories="$categories"
+                :all-url="$municipality ? route('buscar', ['municipio' => $municipality->slug]) : route('buscar')"
+                :url-for="fn ($category) => $municipality
+                    ? route('buscar', ['municipio' => $municipality->slug, 'categoria' => $category->slug])
+                    : route('buscar', ['municipio' => 'todos', 'categoria' => $category->slug])"
+            />
+        </div>
 
+        @if ($municipality)
             <div class="mb-4 flex items-center justify-between">
                 <flux:heading size="lg">{{ __('Negocios destacados') }}</flux:heading>
-                <flux:link :href="route('plaza.show', $municipality)" wire:navigate>{{ __('Ver toda la plaza →') }}</flux:link>
+                <flux:link :href="route('buscar', ['municipio' => $municipality->slug])" wire:navigate>{{ __('Ver toda la plaza →') }}</flux:link>
             </div>
 
             @if ($businesses->isEmpty())
@@ -203,6 +185,6 @@
                     <flux:button variant="primary" :href="route('como-funciona')" wire:navigate>{{ __('Conoce cómo funciona') }}</flux:button>
                 </div>
             </div>
-        </div>
-    @endif
+        @endif
+    </div>
 </x-layouts::cliente>

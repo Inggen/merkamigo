@@ -39,6 +39,11 @@ class BusinessesTable
                     ->searchable(),
                 TextColumn::make('municipality.name')
                     ->label('Municipio'),
+                TextColumn::make('municipalities.name')
+                    ->label('Municipios adicionales')
+                    ->badge()
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('category.name')
                     ->label('Categoría'),
                 TextColumn::make('status')

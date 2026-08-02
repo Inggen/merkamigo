@@ -27,6 +27,12 @@ class CategoryResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Configuración';
 
+    protected static ?string $modelLabel = 'categoría';
+
+    protected static ?string $pluralModelLabel = 'categorías';
+
+    protected static ?string $navigationLabel = 'Categorías';
+
     public static function form(Schema $schema): Schema
     {
         return CategoryForm::configure($schema);

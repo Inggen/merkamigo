@@ -7,7 +7,7 @@
         \App\Support\Seo\SchemaBuilder::itemList(
             $municipalities->map(fn ($municipality) => [
                 'name' => $municipality->name,
-                'url' => route('plaza.show', $municipality),
+                'url' => route('buscar', ['municipio' => $municipality->slug]),
             ])->all(),
             __('Municipios activos'),
         ),
@@ -27,7 +27,7 @@
 
         <div class="grid gap-4 sm:grid-cols-2">
             @foreach ($municipalities as $municipality)
-                <a href="{{ route('plaza.show', $municipality) }}" class="rounded-xl border border-zinc-200 p-4 hover:border-brand-300 dark:border-zinc-700" wire:navigate>
+                <a href="{{ route('buscar', ['municipio' => $municipality->slug]) }}" class="rounded-xl border border-zinc-200 p-4 hover:border-brand-300 dark:border-zinc-700" wire:navigate>
                     <flux:heading>{{ $municipality->name }}</flux:heading>
                     <flux:text class="text-zinc-500">{{ $municipality->department }}</flux:text>
                 </a>

@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             MunicipalitySeeder::class,
             CategorySeeder::class,
             BusinessAttributeSeeder::class,
+            PlanSeeder::class,
+            BillingProductSeeder::class,
         ]);
 
         if (app()->isLocal()) {

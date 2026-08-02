@@ -56,13 +56,25 @@ class MediaUploaderTest extends TestCase
 
     public function test_a_context_without_max_width_stores_the_file_unmodified(): void
     {
-        Storage::fake('public');
+        Storage::fake('private');
 
         $file = UploadedFile::fake()->create('documento.pdf', 500, 'application/pdf');
 
         $path = app(MediaUploader::class)->store($file, 'verification_document', 'test');
 
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('private')->assertExists($path);
         $this->assertSame('pdf', pathinfo($path, PATHINFO_EXTENSION));
+    }
+
+    public function test_a_document_marked_private_never_lands_on_the_public_disk(): void
+    {
+        Storage::fake('public');
+        Storage::fake('private');
+
+        $file = UploadedFile::fake()->create('documento.pdf', 500, 'application/pdf');
+
+        $path = app(MediaUploader::class)->store($file, 'verification_document', 'test');
+
+        Storage::disk('public')->assertMissing($path);
     }
 }
