@@ -6,7 +6,10 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageInterface;
 use RuntimeException;
 
 /**
@@ -17,12 +20,13 @@ use RuntimeException;
  * docs/architecture/decisiones.md).
  *
  * Cuando el contexto define `max_width` (1.2 del TODO: "optimizar,
- * comprimir y generar variantes de imágenes"), la imagen se reduce con
- * Intervention Image antes de guardarse — nunca se agranda, y se
- * conserva el formato original (importante para no romper la
- * transparencia de logos en PNG).
+ * comprimir y generar variantes de imágenes"), la imagen se orienta
+ * según EXIF, se reduce con Intervention Image antes de guardarse —
+ * nunca se agranda — y puede convertirse a un formato de salida común
+ * del contexto (hoy, WebP cuando el servidor lo soporta) con compresión
+ * ligera.
  *
- * El mismo paso de `storeResized()` cubre además "analizar archivos y
+ * El mismo paso de transformación cubre además "analizar archivos y
  * remover metadatos sensibles" (0.6 del TODO): el driver GD de
  * Intervention Image no lee ni conserva EXIF al recodificar, así que
  * cualquier ubicación GPS o dato del dispositivo embebido en la foto
@@ -47,7 +51,14 @@ class MediaUploader
         ])->validate();
 
         if (isset($rules['max_width'])) {
-            return $this->storeResized($file, $directory, $rules['max_width'], $disk);
+            return $this->storeImage(
+                $file,
+                $directory,
+                $rules['max_width'],
+                $disk,
+                $rules['target_extension'] ?? null,
+                $rules['quality'] ?? null,
+            );
         }
 
         $path = $file->store($directory, $disk);
@@ -71,15 +82,50 @@ class MediaUploader
         return $path ? Storage::disk($disk)->url($path) : null;
     }
 
-    private function storeResized(UploadedFile $file, string $directory, int $maxWidth, string $disk): string
-    {
+    private function storeImage(
+        UploadedFile $file,
+        string $directory,
+        int $maxWidth,
+        string $disk,
+        ?string $targetExtension,
+        ?int $quality,
+    ): string {
         $image = (new ImageManager(Driver::class))->decode($file);
+        $image->orient();
         $image->scaleDown(width: $maxWidth);
 
-        $path = $file->hashName($directory);
+        $targetExtension = $this->resolveTargetExtension($file, $targetExtension);
+        $path = $this->hashNameWithExtension($file, $directory, $targetExtension);
 
-        Storage::disk($disk)->put($path, (string) $image->encode());
+        Storage::disk($disk)->put($path, $this->encodeImage($image, $targetExtension, $quality));
 
         return $path;
+    }
+
+    private function resolveTargetExtension(UploadedFile $file, ?string $targetExtension): string
+    {
+        $originalExtension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
+
+        if ($targetExtension === 'webp' && ! function_exists('imagewebp')) {
+            return $originalExtension;
+        }
+
+        return strtolower($targetExtension ?: $originalExtension);
+    }
+
+    private function hashNameWithExtension(UploadedFile $file, string $directory, string $extension): string
+    {
+        $filename = pathinfo($file->hashName(), PATHINFO_FILENAME);
+
+        return trim($directory, '/').'/'.$filename.'.'.$extension;
+    }
+
+    private function encodeImage(ImageInterface $image, string $extension, ?int $quality): string
+    {
+        return match ($extension) {
+            'jpg', 'jpeg' => (string) $image->encode(new JpegEncoder($quality ?? 85, progressive: true, strip: true)),
+            'webp' => (string) $image->encode(new WebpEncoder($quality ?? 85, strip: true)),
+            default => (string) $image->encodeUsingFileExtension($extension),
+        };
     }
 }

@@ -4,7 +4,7 @@
     $pageDescription = $description ?? __('Descubre lo local, conecta con tu comunidad. Merkamigo conecta emprendedores locales con compradores cercanos en Bogotá y Sabana Norte.');
     $pageImage = $image ?? asset('icons/icon-512.png');
     $canonicalUrl = $canonical ?? url()->full();
-    $robotsContent = $robots ?? 'index,follow';
+    $robotsContent = $robots ?? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
     $pageSchemaType = $pageSchemaType ?? 'WebPage';
     $pageSchemaData = $pageSchemaData ?? [];
     $schemaGraph = array_values(array_filter([

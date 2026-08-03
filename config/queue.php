@@ -1,5 +1,11 @@
 <?php
 
+$queueConnection = env('QUEUE_CONNECTION', 'database');
+
+if ($queueConnection === 'redis' && ! extension_loaded('redis')) {
+    $queueConnection = 'database';
+}
+
 return [
 
     /*
@@ -13,7 +19,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    'default' => $queueConnection,
 
     /*
     |--------------------------------------------------------------------------

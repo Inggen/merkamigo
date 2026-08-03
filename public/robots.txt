@@ -1,4 +1,8 @@
 User-agent: *
 Disallow:
+Allow: /.well-known/
+Allow: /docs/api
+Allow: /docs/api/reference
+Allow: /feeds/google-merchant.xml
 
-Sitemap: /sitemap.xml
+Sitemap: https://merkamigo.com/sitemap.xml

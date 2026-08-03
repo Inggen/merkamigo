@@ -205,8 +205,11 @@
             <button
                 type="submit"
                 class="inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-white transition hover:bg-brand-700 sm:w-auto"
+                aria-label="{{ __('Buscar') }}"
+                title="{{ __('Buscar') }}"
             >
-                <flux:icon.magnifying-glass class="size-5" variant="outline" />
+                <flux:icon.magnifying-glass class="size-5 shrink-0" variant="outline" />
+                <span class="ml-2 inline">{{ __('Buscar') }}</span>
             </button>
         </form>
     </div>

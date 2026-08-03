@@ -4,6 +4,7 @@ namespace App\Support\Seo;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
+use App\Domain\Trust\Models\Recommendation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
@@ -13,6 +14,7 @@ class SchemaBuilder
     {
         return self::clean([
             '@type' => 'Organization',
+            '@id' => route('home').'#organization',
             'name' => config('app.name', 'Merkamigo'),
             'url' => route('home'),
             'logo' => asset('icons/icon-512.png'),
@@ -24,12 +26,12 @@ class SchemaBuilder
     {
         return self::clean([
             '@type' => 'WebSite',
+            '@id' => route('home').'#website',
             'name' => config('app.name', 'Merkamigo'),
             'url' => route('home'),
             'inLanguage' => str_replace('_', '-', app()->getLocale()),
             'publisher' => [
-                '@type' => 'Organization',
-                'name' => config('app.name', 'Merkamigo'),
+                '@id' => route('home').'#organization',
             ],
         ]);
     }
@@ -38,14 +40,13 @@ class SchemaBuilder
     {
         return self::clean(array_merge([
             '@type' => $options['type'] ?? 'WebPage',
+            '@id' => $url.'#webpage',
             'name' => $name,
             'description' => $description,
             'url' => $url,
             'inLanguage' => str_replace('_', '-', app()->getLocale()),
             'isPartOf' => [
-                '@type' => 'WebSite',
-                'name' => config('app.name', 'Merkamigo'),
-                'url' => route('home'),
+                '@id' => route('home').'#website',
             ],
             'primaryImageOfPage' => filled($options['image'] ?? null)
                 ? self::imageObject($options['image'], $name)
@@ -119,14 +120,22 @@ class SchemaBuilder
             ->filter()
             ->values()
             ->all();
+        $storeUrl = route('vitrinas.show', $business);
+        $reviews = $business->publishedRecommendations()
+            ->take(5)
+            ->map(fn (Recommendation $recommendation) => self::review($recommendation, $business))
+            ->all();
 
         return self::clean([
             '@type' => 'Store',
+            '@id' => $storeUrl.'#store',
             'name' => $business->name,
             'description' => $business->storefront?->description,
-            'url' => route('vitrinas.show', $business),
+            'url' => $storeUrl,
+            'mainEntityOfPage' => $storeUrl,
             'image' => $images === [] ? null : $images,
             'logo' => $business->logoUrl(),
+            'slogan' => $business->storefront?->headline,
             'telephone' => $business->whatsapp_number,
             'address' => self::postalAddress($business),
             'geo' => $business->hasCoordinates() ? [
@@ -140,6 +149,7 @@ class SchemaBuilder
                 ->implode(', '),
             'sameAs' => array_values(array_filter($business->social_links ?? [])),
             'openingHoursSpecification' => self::openingHours($business),
+            'review' => $reviews === [] ? null : $reviews,
             'hasOfferCatalog' => $products->isEmpty() ? null : [
                 '@type' => 'OfferCatalog',
                 'name' => __('Catálogo de :business', ['business' => $business->name]),
@@ -184,18 +194,18 @@ class SchemaBuilder
 
         $schema = [
             '@type' => $product->type === 'servicio' ? 'Service' : 'Product',
+            '@id' => route('vitrinas.product', [$business, $product]).'#product',
             'name' => $product->name,
             'description' => $product->description ?: $business->storefront?->description,
             'url' => route('vitrinas.product', [$business, $product]),
+            'mainEntityOfPage' => route('vitrinas.product', [$business, $product]),
             'image' => $images === [] ? null : $images,
             'brand' => [
                 '@type' => 'Brand',
                 'name' => $business->name,
             ],
             'provider' => [
-                '@type' => 'Store',
-                'name' => $business->name,
-                'url' => route('vitrinas.show', $business),
+                '@id' => route('vitrinas.show', $business).'#store',
             ],
             'areaServed' => self::areaServed($business),
             'offers' => self::offer($product, $business),
@@ -203,9 +213,42 @@ class SchemaBuilder
 
         if ($product->type === 'producto') {
             $schema['category'] = $business->category?->name;
+            $schema['sku'] = 'MKG-'.$business->id.'-'.$product->id;
         }
 
         return self::clean($schema);
+    }
+
+    public static function review(Recommendation $recommendation, Business $business): array
+    {
+        return self::clean([
+            '@type' => 'Review',
+            'itemReviewed' => [
+                '@id' => route('vitrinas.show', $business).'#store',
+            ],
+            'author' => [
+                '@type' => 'Person',
+                'name' => $recommendation->authorUser?->name ?? __('Cliente verificado'),
+            ],
+            'reviewBody' => $recommendation->body,
+            'datePublished' => $recommendation->published_at?->toDateString(),
+            'publisher' => [
+                '@id' => route('home').'#organization',
+            ],
+            'positiveNotes' => blank($recommendation->tags)
+                ? null
+                : [
+                    '@type' => 'ItemList',
+                    'itemListElement' => collect($recommendation->tags)
+                        ->filter()
+                        ->values()
+                        ->map(fn (string $tag, int $index) => [
+                            '@type' => 'ListItem',
+                            'position' => $index + 1,
+                            'name' => $tag,
+                        ])->all(),
+                ],
+        ]);
     }
 
     public static function contactPage(?string $whatsapp = null): array
@@ -232,23 +275,48 @@ class SchemaBuilder
         if (! filled($price) || $product->price_type === 'consultar') {
             return self::clean([
                 '@type' => 'Offer',
+                '@id' => route('vitrinas.product', [$business, $product]).'#offer',
                 'url' => route('vitrinas.product', [$business, $product]),
                 'priceCurrency' => 'COP',
                 'availability' => $product->isSoldOut()
                     ? 'https://schema.org/OutOfStock'
                     : 'https://schema.org/InStock',
+                'seller' => [
+                    '@id' => route('vitrinas.show', $business).'#store',
+                ],
             ]);
         }
 
-        return self::clean([
+        $offer = [
             '@type' => 'Offer',
+            '@id' => route('vitrinas.product', [$business, $product]).'#offer',
             'url' => route('vitrinas.product', [$business, $product]),
             'priceCurrency' => 'COP',
             'price' => number_format((float) $price, 2, '.', ''),
             'availability' => $product->isSoldOut()
                 ? 'https://schema.org/OutOfStock'
                 : 'https://schema.org/InStock',
-        ]);
+            'seller' => [
+                '@id' => route('vitrinas.show', $business).'#store',
+            ],
+        ];
+
+        if ($product->hasActivePromo() && filled($product->price) && (float) $product->promo_price < (float) $product->price) {
+            $offer['priceSpecification'] = [
+                [
+                    '@type' => 'UnitPriceSpecification',
+                    'price' => number_format((float) $product->price, 2, '.', ''),
+                    'priceCurrency' => 'COP',
+                    'priceType' => 'https://schema.org/StrikethroughPrice',
+                ],
+            ];
+
+            if ($product->promo_ends_at) {
+                $offer['priceValidUntil'] = $product->promo_ends_at->toDateString();
+            }
+        }
+
+        return self::clean($offer);
     }
 
     private static function postalAddress(Business $business): ?array

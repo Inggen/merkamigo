@@ -12,14 +12,14 @@
 <div {{ $attributes->class('overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900') }}>
     <div class="h-32 bg-zinc-100 dark:bg-zinc-800">
         @if ($business->storefront?->coverUrl())
-            <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}">
+            <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
         @endif
     </div>
 
     <div class="-mt-8 flex items-end gap-4 px-6">
         <div class="flex size-16 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-zinc-100 dark:border-zinc-900 dark:bg-zinc-800">
             @if ($business->logoUrl())
-                <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}">
+                <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}" loading="lazy" decoding="async">
             @else
                 <flux:icon.building-storefront class="size-6 text-zinc-400" variant="outline" />
             @endif

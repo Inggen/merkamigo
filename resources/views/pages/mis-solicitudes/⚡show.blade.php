@@ -113,7 +113,7 @@ new #[Layout('layouts::cliente')] #[Title('Mi solicitud')] class extends Compone
         @if ($this->need->media->isNotEmpty())
             <div class="mb-6 flex flex-wrap gap-2">
                 @foreach ($this->need->media as $photo)
-                    <img src="{{ $photo->url() }}" class="size-20 rounded-lg object-cover">
+                    <img src="{{ $photo->url() }}" class="size-20 rounded-lg object-cover" loading="lazy" decoding="async" alt="{{ __('Foto de referencia de :title', ['title' => $this->need->title]) }}">
                 @endforeach
             </div>
         @endif

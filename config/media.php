@@ -1,10 +1,12 @@
 <?php
 
 // Límites de archivos por contexto (0.6 del TODO: "validar y limitar
-// archivos por tipo, tamaño y cantidad"). `max_width` (1.2 del TODO:
-// "optimizar, comprimir y generar variantes de imágenes") se aplica en
-// `App\Support\Media\MediaUploader`: reduce el ancho si lo excede, nunca
-// agranda, y conserva el formato original. No aplica a
+// archivos por tipo, tamaño y cantidad"). `max_width`, `target_extension`
+// y `quality` (1.2 del TODO: "optimizar, comprimir y generar variantes
+// de imágenes") se aplican en `App\Support\Media\MediaUploader`:
+// orienta por EXIF, reduce el ancho si lo excede, nunca agranda, remueve
+// metadatos al recodificar y, cuando el servidor soporta WebP, convierte
+// automáticamente a ese formato con compresión suave. No aplica a
 // `verification_document`, que admite PDF.
 
 return [
@@ -14,6 +16,8 @@ return [
         'max_kb' => 2048,
         'max_files' => 1,
         'max_width' => 512,
+        'target_extension' => 'webp',
+        'quality' => 88,
     ],
 
     'business_logo' => [
@@ -21,6 +25,8 @@ return [
         'max_kb' => 2048,
         'max_files' => 1,
         'max_width' => 512,
+        'target_extension' => 'webp',
+        'quality' => 90,
     ],
 
     'product_photo' => [
@@ -28,6 +34,8 @@ return [
         'max_kb' => 5120,
         'max_files' => 8,
         'max_width' => 1600,
+        'target_extension' => 'webp',
+        'quality' => 85,
     ],
 
     'storefront_cover' => [
@@ -35,6 +43,8 @@ return [
         'max_kb' => 5120,
         'max_files' => 1,
         'max_width' => 1920,
+        'target_extension' => 'webp',
+        'quality' => 86,
     ],
 
     'municipality_cover' => [
@@ -42,6 +52,8 @@ return [
         'max_kb' => 5120,
         'max_files' => 1,
         'max_width' => 1920,
+        'target_extension' => 'webp',
+        'quality' => 86,
     ],
 
     'municipality_hero_video' => [
@@ -62,6 +74,8 @@ return [
         'max_kb' => 5120,
         'max_files' => 4,
         'max_width' => 1600,
+        'target_extension' => 'webp',
+        'quality' => 85,
     ],
 
 ];

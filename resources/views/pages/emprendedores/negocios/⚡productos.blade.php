@@ -56,6 +56,9 @@ new #[Title('Productos y servicios')] class extends Component {
     /** @var array<int, array{id: int, url: string}> */
     public array $existingMedia = [];
 
+    /** @var array<int, int> */
+    public array $removeMediaIds = [];
+
     /** @var array<int, string> media id => texto alternativo */
     public array $photoAlts = [];
 
@@ -119,7 +122,7 @@ new #[Title('Productos y servicios')] class extends Component {
     {
         $this->authorize('update', $this->business);
 
-        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'photoAlts']);
+        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'removeMediaIds', 'photoAlts']);
         $this->type = 'producto';
         $this->price_type = 'exacto';
         $this->is_available = true;
@@ -144,6 +147,7 @@ new #[Title('Productos y servicios')] class extends Component {
         $this->is_available = $product->is_available;
         $this->photos = [];
         $this->existingMedia = $product->media->map(fn ($media) => ['id' => $media->id, 'url' => $media->url()])->all();
+        $this->removeMediaIds = [];
         $this->photoAlts = $product->media->pluck('alt_text', 'id')->all();
 
         $this->has_promo = (bool) $product->promo_price;
@@ -204,13 +208,22 @@ new #[Title('Productos y servicios')] class extends Component {
             if ($this->editingId) {
                 $product = $this->business->products()->findOrFail($this->editingId);
                 $this->authorize('update', $product->business);
-                app(UpdateProduct::class)->handle($product, $data, $this->photos, [], Auth::user());
+                $product = app(UpdateProduct::class)->handle($product, $data, $this->photos, $this->removeMediaIds, Auth::user());
 
                 if ($product->business_id !== $targetBusiness->id) {
-                    app(MoveProductToBusiness::class)->handle($product->fresh(), $targetBusiness, Auth::user());
+                    $product = app(MoveProductToBusiness::class)->handle($product->fresh(), $targetBusiness, Auth::user());
                 }
             } else {
-                app(CreateProduct::class)->handle($targetBusiness, $data, $this->photos, Auth::user());
+                $product = app(CreateProduct::class)->handle($targetBusiness, $data, $this->photos, Auth::user());
+            }
+
+            if (! empty($this->photoAlts)) {
+                $product->media()
+                    ->whereKey(array_keys($this->photoAlts))
+                    ->get()
+                    ->each(fn (ProductMedia $media) => $media->update([
+                        'alt_text' => trim((string) ($this->photoAlts[$media->id] ?? '')) ?: null,
+                    ]));
             }
         } catch (\App\Domain\Billing\Exceptions\PlanLimitException $e) {
             Flux::toast(variant: 'danger', text: $e->getMessage());
@@ -230,21 +243,29 @@ new #[Title('Productos y servicios')] class extends Component {
         Flux::toast(variant: 'success', text: __('Producto guardado.'));
     }
 
-    /**
-     * Texto alternativo por foto (0.2.2 del TODO): se guarda aparte del
-     * resto del formulario porque aplica a una foto ya subida, no al
-     * producto en conjunto.
-     */
-    public function saveMediaAlt(int $mediaId): void
+    public function removeExistingMedia(int $mediaId): void
     {
         $this->authorize('update', $this->business);
 
-        $media = ProductMedia::whereHas('product', fn ($q) => $q->where('business_id', $this->businessId))
+        ProductMedia::whereHas('product', fn ($q) => $q->where('business_id', $this->businessId))
             ->findOrFail($mediaId);
 
-        $media->update(['alt_text' => $this->photoAlts[$mediaId] ?? null]);
+        if (! in_array($mediaId, $this->removeMediaIds, true)) {
+            $this->removeMediaIds[] = $mediaId;
+        }
 
-        Flux::toast(variant: 'success', text: __('Descripción de la foto guardada.'));
+        $this->existingMedia = array_values(array_filter(
+            $this->existingMedia,
+            fn (array $item) => $item['id'] !== $mediaId,
+        ));
+
+        unset($this->photoAlts[$mediaId]);
+    }
+
+    public function removePendingPhoto(int $index): void
+    {
+        unset($this->photos[$index]);
+        $this->photos = array_values($this->photos);
     }
 
     public function duplicate(int $productId): void
@@ -489,7 +510,14 @@ new #[Title('Productos y servicios')] class extends Component {
                             <div class="flex items-center gap-2">
                                 <img src="{{ $item['url'] }}" class="size-12 shrink-0 rounded-lg object-cover" alt="{{ $photoAlts[$item['id']] ?? '' }}">
                                 <flux:input wire:model="photoAlts.{{ $item['id'] }}" class="flex-1" placeholder="{{ __('Texto alternativo de esta foto (opcional)') }}" />
-                                <flux:button type="button" size="sm" variant="ghost" wire:click="saveMediaAlt({{ $item['id'] }})">{{ __('Guardar') }}</flux:button>
+                                <flux:button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="trash"
+                                    wire:click="removeExistingMedia({{ $item['id'] }})"
+                                    aria-label="{{ __('Eliminar esta imagen') }}"
+                                />
                             </div>
                         @endforeach
                     </div>
@@ -536,9 +564,18 @@ new #[Title('Productos y servicios')] class extends Component {
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                            @foreach ($photos as $photo)
-                                <div class="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+                            @foreach ($photos as $index => $photo)
+                                <div class="relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
                                     <img src="{{ $photo->temporaryUrl() }}" class="aspect-square h-full w-full object-cover" alt="{{ __('Vista previa de la foto') }}">
+                                    <flux:button
+                                        type="button"
+                                        size="sm"
+                                        variant="danger"
+                                        icon="trash"
+                                        wire:click="removePendingPhoto({{ $index }})"
+                                        class="absolute right-2 top-2"
+                                        aria-label="{{ __('Eliminar esta imagen') }}"
+                                    />
                                 </div>
                             @endforeach
                         </div>

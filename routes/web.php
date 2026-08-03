@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentDiscoveryController;
 use App\Http\Controllers\Analytics\MetricsExportController;
 use App\Http\Controllers\Billing\CheckoutController;
 use App\Http\Controllers\Billing\WompiWebhookController;
@@ -8,12 +9,15 @@ use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
 use App\Http\Controllers\ExperienceController;
+use App\Http\Controllers\GoogleMerchantFeedController;
 use App\Http\Controllers\NeedsController;
 use App\Http\Controllers\PlazaController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\VitrinaController;
+use App\Http\Middleware\AddAgentDiscoveryHeaders;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -25,7 +29,54 @@ use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 use Laravel\Fortify\Http\Controllers\TwoFactorAuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\VerifyEmailController;
 
-Route::get('/', [ClientesController::class, 'home'])->name('home');
+Route::middleware('auth')->group(function () {
+    Route::get('/limpiar-cache', function () {
+        abort_unless(auth()->user()?->hasAnyPlatformRole(['superadmin']), 403);
+
+        config([
+            'cache.default' => 'file',
+            'queue.default' => 'database',
+        ]);
+
+        $commands = [
+            'cache:clear',
+            'config:clear',
+            'route:clear',
+            'view:clear',
+            'event:clear',
+            'clear-compiled',
+        ];
+
+        $output = [];
+
+        foreach ($commands as $command) {
+            Artisan::call($command);
+
+            $output[] = '$ php artisan '.$command;
+            $output[] = trim(Artisan::output()) ?: 'OK';
+            $output[] = '';
+        }
+
+        return '<pre>'.e(implode(PHP_EOL, $output)).'</pre>';
+    });
+
+    Route::get('/link', function () {
+        abort_unless(auth()->user()?->hasAnyPlatformRole(['superadmin']), 403);
+
+        Artisan::call('storage:link');
+
+        return nl2br(e(Artisan::output()));
+    });
+});
+
+Route::middleware(AddAgentDiscoveryHeaders::class)->group(function () {
+    Route::get('/', [ClientesController::class, 'home'])->name('home');
+    Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
+    Route::get('.well-known/api-catalog', [AgentDiscoveryController::class, 'catalog'])->name('well-known.api-catalog');
+    Route::get('docs/api', [AgentDiscoveryController::class, 'openApi'])->name('docs.api');
+    Route::get('docs/api/reference', [AgentDiscoveryController::class, 'documentation'])->name('docs.api.reference');
+});
+Route::get('feeds/google-merchant.xml', [GoogleMerchantFeedController::class, 'index'])->name('feeds.google-merchant');
 
 Route::view('terminos', 'legal.terminos')->name('terminos');
 Route::view('privacidad', 'legal.privacidad')->name('privacidad');
@@ -122,7 +173,6 @@ Route::post('m/{business:slug}/recomendaciones/{recommendation}/reportar', [Repo
     ->middleware('throttle:10,1')
     ->name('reportes.guardar.recomendacion');
 
-Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
 Route::post('clientes/municipio', [ClientesController::class, 'setMunicipio'])->name('clientes.municipio');
 
 // "Pídelo en Merkamigo" (Fase 2 del TODO) — explorar es público.

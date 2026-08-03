@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\NegotiateMarkdown;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetPermissionsTeam;
 use App\Support\Api\ApiError;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(NegotiateMarkdown::class);
         $middleware->append(SecurityHeaders::class);
 
         $middleware->alias([

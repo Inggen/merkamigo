@@ -43,7 +43,7 @@ class MediaUploaderTest extends TestCase
         $this->assertSame(100, $height);
     }
 
-    public function test_a_png_keeps_its_format_after_resizing(): void
+    public function test_an_image_is_converted_to_webp_when_the_context_requests_it(): void
     {
         Storage::fake('public');
 
@@ -51,7 +51,8 @@ class MediaUploaderTest extends TestCase
 
         $path = app(MediaUploader::class)->store($file, 'business_logo', 'test');
 
-        $this->assertSame('image/png', Storage::disk('public')->mimeType($path));
+        $this->assertSame('webp', pathinfo($path, PATHINFO_EXTENSION));
+        $this->assertSame('image/webp', Storage::disk('public')->mimeType($path));
     }
 
     public function test_a_context_without_max_width_stores_the_file_unmodified(): void

@@ -10,7 +10,6 @@
         : null;
     $allMunicipios = Municipality::where('is_active', true)->orderBy('name')->get();
     $guestLoginUrl = route('login');
-    $guestFavoritesMessage = __('Necesitas ingresar o crear una cuenta para guardar favoritos.');
     $guestNeedsMessage = __('Necesitas ingresar o crear una cuenta para publicar en Pídelo.');
 @endphp
 
@@ -19,9 +18,16 @@
     style="box-shadow: 0 0 15px rgba(0, 0, 0, .2);"
 >
     <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-6 py-3">
-        <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2.5" wire:navigate>
+        <a
+            href="{{ route('home') }}"
+            class="flex shrink-0 items-center gap-2.5"
+            wire:navigate
+            aria-label="{{ __('Ir al inicio de Merkamigo') }}"
+            title="{{ __('Merkamigo') }}"
+        >
             <x-app-logo-icon class="h-10 w-auto" />
             <x-brand-wordmark size="lg" class="hidden sm:inline" />
+            <span class="sr-only">{{ __('Merkamigo') }}</span>
         </a>
 
         @if ($showMunicipalitySelector)
@@ -82,7 +88,7 @@
                     wire:navigate
                     class="rounded-xl px-4"
                 >
-                    <span class="hidden md:inline">{{ __('Publica tu negocio') }}</span>
+                    <span class="hidden md:inline">{{ __('Publicar') }}</span>
                     <span class="md:hidden">{{ __('Publica') }}</span>
                 </flux:button>
 
@@ -117,16 +123,6 @@
                     class="[&_[data-flux-icon]]:text-brand-600"
                 >
                     {{ __('Pídelo') }}
-                </flux:button>
-                <flux:button
-                    size="sm"
-                    variant="ghost"
-                    icon="heart"
-                    x-data
-                    x-on:click.prevent="$flux.toast({ text: '{{ e($guestFavoritesMessage) }}' }); setTimeout(() => window.location.href = '{{ $guestLoginUrl }}', 900)"
-                    class="[&_[data-flux-icon]]:text-brand-600"
-                >
-                    {{ __('Favoritos') }}
                 </flux:button>
                 <flux:button
                     size="sm"

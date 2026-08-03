@@ -4,6 +4,8 @@
     $seoDescription = $business->storefront?->description
         ? Str::limit(strip_tags($business->storefront->description), 160)
         : __(':name en :municipio, con Merkamigo.', ['name' => $business->name, 'municipio' => $business->municipality?->name ?? '']);
+    $pageUrl = route('vitrinas.show', $business);
+    $storeSchemaId = $pageUrl.'#store';
     $pageImage = $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('icons/icon-512.png');
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb(array_values(array_filter([
@@ -46,10 +48,14 @@
     :title="$business->name"
     :description="$seoDescription"
     :image="$pageImage"
-    :canonical="route('vitrinas.show', $business)"
+    :canonical="$pageUrl"
     :show-municipality-selector="false"
     page-schema-type="ProfilePage"
-    :page-schema-data="['about' => $business->category?->name]"
+    :page-schema-data="[
+        'about' => $business->category?->name,
+        'mainEntity' => ['@id' => $storeSchemaId],
+        'significantLink' => $products->take(6)->map(fn ($product) => route('vitrinas.product', [$business, $product]))->values()->all(),
+    ]"
     :schema-graph="$schemaGraph"
 >
     <div x-data="{ tab: 'inicio' }" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -68,9 +74,9 @@
                 <article class="overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="relative aspect-[16/10] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800 sm:aspect-[16/6]">
                         @if ($business->storefront?->coverUrl())
-                            <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}" loading="eager">
+                            <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}" loading="eager" decoding="async">
                         @elseif ($business->logoUrl())
-                            <img src="{{ $business->logoUrl() }}" class="h-full w-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}" loading="eager">
+                            <img src="{{ $business->logoUrl() }}" class="h-full w-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}" loading="eager" decoding="async">
                         @endif
                     </div>
 
@@ -78,7 +84,7 @@
                         <div class="-mt-16 flex sm:-mt-20">
                             <div class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md dark:border-zinc-900 dark:bg-zinc-950 sm:size-24">
                                 @if ($business->logoUrl())
-                                    <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}">
+                                    <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}" loading="lazy" decoding="async">
                                 @else
                                     <flux:icon.building-storefront class="size-8 text-zinc-400" variant="outline" />
                                 @endif
@@ -385,7 +391,7 @@
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte esta vitrina') }}</h3>
                     <div class="mt-4 space-y-4">
                         <div class="flex items-center gap-4">
-                            <img src="{{ route('vitrinas.qr', $business) }}" alt="QR" class="size-28 shrink-0 rounded-2xl border border-zinc-200 bg-white p-2 dark:border-zinc-700">
+                            <img src="{{ route('vitrinas.qr', $business) }}" alt="QR" class="size-28 shrink-0 rounded-2xl border border-zinc-200 bg-white p-2 dark:border-zinc-700" loading="lazy" decoding="async">
                             <p class="max-w-32 text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">{{ __('Escanea para compartir') }}</p>
                         </div>
 

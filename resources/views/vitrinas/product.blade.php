@@ -4,6 +4,8 @@
     $seoDescription = $product->description
         ? Str::limit(strip_tags($product->description), 160)
         : __(':product en :business, disponible en Merkamigo.', ['product' => $product->name, 'business' => $business->name]);
+    $productUrl = route('vitrinas.product', [$business, $product]);
+    $productSchemaId = $productUrl.'#product';
     $pageImage = $product->media->first()?->url() ?? $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('icons/icon-512.png');
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb([
@@ -23,7 +25,10 @@
         ->take(6)
         ->values();
     $gallery = $product->media;
-    $productUrl = route('vitrinas.product', [$business, $product]);
+    $galleryItems = $gallery->map(fn ($media) => [
+        'url' => $media->url(),
+        'alt' => $media->alt_text ?? $product->name,
+    ])->values();
     $productShareLabel = parse_url($productUrl, PHP_URL_HOST) . parse_url($productUrl, PHP_URL_PATH);
 @endphp
 
@@ -34,10 +39,53 @@
     :canonical="$productUrl"
     :show-municipality-selector="false"
     page-schema-type="ItemPage"
+    :page-schema-data="[
+        'mainEntity' => ['@id' => $productSchemaId],
+        'isPartOf' => ['@id' => route('vitrinas.show', $business).'#store'],
+    ]"
     :schema-graph="$schemaGraph"
     og-type="product"
 >
-    <div x-data="{ tab: 'descripcion', quantity: 1, activeImage: @js($gallery->first()?->url() ?? $pageImage) }" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div
+        x-data="{
+            tab: 'descripcion',
+            quantity: 1,
+            gallery: @js($galleryItems),
+            activeImage: @js($gallery->first()?->url() ?? $pageImage),
+            activeAlt: @js($gallery->first()?->alt_text ?? $product->name),
+            lightboxOpen: false,
+            lightboxIndex: 0,
+            setActive(index) {
+                if (! this.gallery[index]) return;
+                this.activeImage = this.gallery[index].url;
+                this.activeAlt = this.gallery[index].alt;
+            },
+            openLightbox(index = 0) {
+                this.setActive(index);
+                this.lightboxIndex = index;
+                this.lightboxOpen = true;
+                document.body.classList.add('overflow-hidden');
+            },
+            closeLightbox() {
+                this.lightboxOpen = false;
+                document.body.classList.remove('overflow-hidden');
+            },
+            showPrevious() {
+                if (this.gallery.length === 0) return;
+                this.lightboxIndex = (this.lightboxIndex - 1 + this.gallery.length) % this.gallery.length;
+                this.setActive(this.lightboxIndex);
+            },
+            showNext() {
+                if (this.gallery.length === 0) return;
+                this.lightboxIndex = (this.lightboxIndex + 1) % this.gallery.length;
+                this.setActive(this.lightboxIndex);
+            },
+        }"
+        x-on:keydown.escape.window="if (lightboxOpen) closeLightbox()"
+        x-on:keydown.arrow-left.window="if (lightboxOpen) showPrevious()"
+        x-on:keydown.arrow-right.window="if (lightboxOpen) showNext()"
+        class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+    >
         <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
             <nav class="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                 <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>
@@ -69,10 +117,22 @@
                 <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
                     <div class="self-start space-y-4 p-4 dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
                         <h1 class="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-3xl sm:leading-[1.02]">{{ $product->name }}</h1>
-                        <div class="relative overflow-hidden rounded-[24px] bg-zinc-100 dark:bg-zinc-800">
+                        <div class="group relative overflow-hidden rounded-[24px] bg-zinc-100 dark:bg-zinc-800">
                             <div class="aspect-[4/3]">
                                 @if ($gallery->isNotEmpty())
-                                    <img x-bind:src="activeImage" src="{{ $gallery->first()->url() }}" class="h-full w-full object-cover" alt="{{ $gallery->first()->alt_text ?? $product->name }}">
+                                    <button
+                                        type="button"
+                                        x-on:click="openLightbox(gallery.findIndex((item) => item.url === activeImage) >= 0 ? gallery.findIndex((item) => item.url === activeImage) : 0)"
+                                        class="relative block h-full w-full text-left"
+                                        aria-label="{{ __('Abrir galería de imágenes') }}"
+                                    >
+                                        <img x-bind:src="activeImage" src="{{ $gallery->first()->url() }}" x-bind:alt="activeAlt" alt="{{ $gallery->first()->alt_text ?? $product->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" loading="eager" decoding="async">
+                                        <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-950/0 transition duration-300 group-hover:bg-zinc-950/20">
+                                            <span class="inline-flex translate-y-2 items-center justify-center rounded-full bg-white/95 p-3 text-zinc-900 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                                                <flux:icon.magnifying-glass-plus class="size-6" variant="outline" />
+                                            </span>
+                                        </div>
+                                    </button>
                                 @endif
                             </div>
 
@@ -92,11 +152,17 @@
                                 @foreach ($gallery->take(5) as $media)
                                     <button
                                         type="button"
-                                        x-on:click="activeImage = '{{ $media->url() }}'"
-                                        class="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 transition hover:border-brand-300 dark:border-zinc-800 dark:bg-zinc-800"
+                                        x-on:click="setActive({{ $loop->index }})"
+                                        class="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 transition hover:border-brand-300 dark:border-zinc-800 dark:bg-zinc-800"
+                                        aria-label="{{ __('Ver imagen :numero', ['numero' => $loop->iteration]) }}"
                                     >
                                         <div class="aspect-square">
-                                            <img src="{{ $media->url() }}" class="h-full w-full object-cover" alt="{{ $media->alt_text ?? $product->name }}">
+                                            <img src="{{ $media->url() }}" class="h-full w-full object-cover" alt="{{ $media->alt_text ?? $product->name }}" loading="lazy" decoding="async">
+                                        </div>
+                                        <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-950/0 transition duration-300 group-hover:bg-zinc-950/20">
+                                            <span class="inline-flex items-center justify-center rounded-full bg-white/95 p-2 text-zinc-900 opacity-0 shadow-md transition duration-300 group-hover:opacity-100">
+                                                <flux:icon.magnifying-glass class="size-4" variant="outline" />
+                                            </span>
                                         </div>
                                     </button>
                                 @endforeach
@@ -291,7 +357,7 @@
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte este producto') }}</h3>
                     <div class="mt-4 space-y-5">
                         <div class="flex items-center justify-center gap-4">
-                            <img src="{{ route('vitrinas.qr.product', [$business, $product]) }}" alt="QR" class="size-28 shrink-0 rounded-2xl border border-zinc-200 bg-white p-2 dark:border-zinc-700">
+                            <img src="{{ route('vitrinas.qr.product', [$business, $product]) }}" alt="QR" class="size-28 shrink-0 rounded-2xl border border-zinc-200 bg-white p-2 dark:border-zinc-700" loading="lazy" decoding="async">
                             <p class="max-w-32 text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">{{ __('Escanea para compartir') }}</p>
                         </div>
                         <div
@@ -356,7 +422,7 @@
                         <div class="flex items-center gap-3">
                             <div class="flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950">
                                 @if ($business->logoUrl())
-                                    <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}">
+                                    <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}" loading="lazy" decoding="async">
                                 @else
                                     <flux:icon.building-storefront class="size-6 text-zinc-400" variant="outline" />
                                 @endif
@@ -395,6 +461,79 @@
                 </div>
             </aside>
         </div>
+
+        @if ($gallery->isNotEmpty())
+            <div
+                x-cloak
+                x-show="lightboxOpen"
+                x-transition.opacity
+                class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/88 px-4 py-6"
+                role="dialog"
+                aria-modal="true"
+                aria-label="{{ __('Galería de imágenes') }}"
+            >
+                <button type="button" x-on:click="closeLightbox()" class="absolute inset-0 cursor-zoom-out" aria-label="{{ __('Cerrar galería') }}"></button>
+
+                <div class="relative z-10 w-full max-w-5xl">
+                    <div class="relative overflow-hidden rounded-[28px] bg-white/5 shadow-2xl backdrop-blur-sm">
+                        <button
+                            type="button"
+                            x-on:click="closeLightbox()"
+                            class="absolute right-4 top-4 z-20 inline-flex size-11 items-center justify-center rounded-full bg-white/90 text-zinc-900 transition hover:bg-white"
+                            aria-label="{{ __('Cerrar galería') }}"
+                        >
+                            <flux:icon.x-mark class="size-5" />
+                        </button>
+
+                        @if ($gallery->count() > 1)
+                            <button
+                                type="button"
+                                x-on:click="showPrevious()"
+                                class="absolute left-4 top-1/2 z-20 inline-flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-900 transition hover:bg-white"
+                                aria-label="{{ __('Imagen anterior') }}"
+                            >
+                                <flux:icon.chevron-left class="size-6" />
+                            </button>
+
+                            <button
+                                type="button"
+                                x-on:click="showNext()"
+                                class="absolute right-4 top-1/2 z-20 inline-flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-900 transition hover:bg-white"
+                                aria-label="{{ __('Siguiente imagen') }}"
+                            >
+                                <flux:icon.chevron-right class="size-6" />
+                            </button>
+                        @endif
+
+                        <div class="flex min-h-[60vh] items-center justify-center bg-zinc-950/40 p-4 sm:p-8">
+                            <img x-bind:src="activeImage" x-bind:alt="activeAlt" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain">
+                        </div>
+
+                        @if ($gallery->count() > 1)
+                            <div class="flex items-center justify-between gap-4 border-t border-white/10 px-4 py-4 sm:px-6">
+                                <div class="text-sm text-white/80">
+                                    <span x-text="lightboxIndex + 1"></span> / {{ $gallery->count() }}
+                                </div>
+
+                                <div class="flex max-w-full gap-2 overflow-x-auto">
+                                    @foreach ($gallery as $media)
+                                        <button
+                                            type="button"
+                                            x-on:click="lightboxIndex = {{ $loop->index }}; setActive({{ $loop->index }})"
+                                            class="overflow-hidden rounded-xl border border-white/15 transition"
+                                            x-bind:class="lightboxIndex === {{ $loop->index }} ? 'border-white shadow-lg' : 'border-white/15 opacity-70 hover:opacity-100'"
+                                            aria-label="{{ __('Ir a imagen :numero', ['numero' => $loop->iteration]) }}"
+                                        >
+                                            <img src="{{ $media->url() }}" class="size-16 object-cover" alt="{{ $media->alt_text ?? $product->name }}" loading="lazy" decoding="async">
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 </x-layouts::cliente>
 
