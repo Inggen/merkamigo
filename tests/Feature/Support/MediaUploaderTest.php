@@ -49,10 +49,14 @@ class MediaUploaderTest extends TestCase
 
         $file = UploadedFile::fake()->image('logo.png', 2000, 2000);
 
-        $path = app(MediaUploader::class)->store($file, 'business_logo', 'test');
+        $path = app(MediaUploader::class)->store($file, 'product_photo', 'test');
 
         $this->assertSame('webp', pathinfo($path, PATHINFO_EXTENSION));
         $this->assertSame('image/webp', Storage::disk('public')->mimeType($path));
+
+        [$width] = getimagesize(Storage::disk('public')->path($path));
+
+        $this->assertSame(1000, $width);
     }
 
     public function test_a_context_without_max_width_stores_the_file_unmodified(): void

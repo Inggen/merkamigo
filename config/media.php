@@ -33,9 +33,9 @@ return [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
         'max_files' => 8,
-        'max_width' => 1600,
+        'max_width' => 1000,
         'target_extension' => 'webp',
-        'quality' => 85,
+        'quality' => 90,
     ],
 
     'storefront_cover' => [

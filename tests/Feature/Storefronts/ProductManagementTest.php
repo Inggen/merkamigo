@@ -227,7 +227,7 @@ class ProductManagementTest extends TestCase
         $this->assertTrue($product->isSoldOut());
     }
 
-    public function test_owner_can_set_alt_text_for_an_existing_product_photo(): void
+    public function test_owner_can_set_alt_text_for_an_existing_product_photo_when_saving_the_product(): void
     {
         Storage::fake('public');
 
@@ -250,13 +250,13 @@ class ProductManagementTest extends TestCase
 
         $component->call('openEdit', $product->id)
             ->set("photoAlts.{$media->id}", 'Torta de chocolate con fresas')
-            ->call('saveMediaAlt', $media->id)
+            ->call('save')
             ->assertHasNoErrors();
 
         $this->assertSame('Torta de chocolate con fresas', $media->fresh()->alt_text);
     }
 
-    public function test_a_collaborator_of_another_business_cannot_set_alt_text_for_its_photos(): void
+    public function test_a_collaborator_of_another_business_cannot_remove_its_photos(): void
     {
         Storage::fake('public');
 
@@ -281,8 +281,7 @@ class ProductManagementTest extends TestCase
         $this->expectException(ModelNotFoundException::class);
 
         Livewire::test('pages::emprendedores.negocios.productos', ['business' => $businessB->id])
-            ->set("photoAlts.{$media->id}", 'Intento ajeno')
-            ->call('saveMediaAlt', $media->id);
+            ->call('removeExistingMedia', $media->id);
 
         $this->assertNull($media->fresh()->alt_text);
     }
