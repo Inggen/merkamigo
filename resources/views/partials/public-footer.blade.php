@@ -1,4 +1,4 @@
-<footer class="mt-12 border-t border-zinc-200/80 bg-white/80 pt-10 text-zinc-700 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200">
+<footer class="mt-12 border-t border-zinc-200/80 bg-white/80 pt-10 text-zinc-700 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200" style="background-image: url('{{ asset('images/fondo-footer.webp') }}'); background-repeat: no-repeat; background-position: center bottom; background-size: cover;background-blend-mode: color-burn;">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="overflow-hidden">
             <div class="grid gap-10 py-10 lg:grid-cols-[1.15fr_1px_1fr_1fr_1fr] lg:py-12">
@@ -13,14 +13,14 @@
                     </p>
 
                     <div class="flex items-center gap-4">
-                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="inline-flex size-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Facebook') }}">
-                            <svg viewBox="0 0 24 24" class="size-5 fill-current" aria-hidden="true"><path d="M13.5 21v-7h2.3l.4-3h-2.7V9.1c0-.9.3-1.6 1.6-1.6H16V4.8c-.5-.1-1.3-.2-2.2-.2-2.2 0-3.8 1.3-3.8 4V11H7.8v3H10V21h3.5Z"/></svg>
+                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Facebook') }}">
+                            <svg viewBox="0 0 24 24" class="size-6 fill-current" aria-hidden="true"><path d="M13.5 21v-7h2.3l.4-3h-2.7V9.1c0-.9.3-1.6 1.6-1.6H16V4.8c-.5-.1-1.3-.2-2.2-.2-2.2 0-3.8 1.3-3.8 4V11H7.8v3H10V21h3.5Z"/></svg>
                         </a>
-                        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="inline-flex size-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Instagram') }}">
-                            <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/></svg>
+                        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Instagram') }}">
+                            <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/></svg>
                         </a>
-                        <a href="{{ route('municipios') }}" wire:navigate class="inline-flex size-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Municipios') }}">
-                            <flux:icon.map-pin class="size-5" />
+                        <a href="{{ route('municipios') }}" wire:navigate class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Municipios') }}">
+                            <flux:icon.map-pin class="size-6" />
                         </a>
                     </div>
                 </div>
@@ -29,7 +29,14 @@
 
                 <div class="space-y-5">
                     <div class="flex items-center gap-3 text-zinc-950 dark:text-white">
-                        <svg viewBox="0 0 24 24" class="size-6 text-brand-500" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m14.8 9.2-2 5.6-5.6 2 2-5.6 5.6-2Z"/></svg>
+                        <svg viewBox="0 0 24 24" class="size-6 text-brand-500" fill="none" stroke="currentColor" stroke-width="1.85" aria-hidden="true">
+                            <circle cx="12" cy="12" r="8.25" />
+                            <path d="M14.8 9.2 12.9 13l-3.7 1.8 1.9-3.8 3.7-1.8Z" stroke-linejoin="round" />
+                            <path d="M12 7.2v1.3" stroke-linecap="round" />
+                            <path d="M16.8 12h-1.3" stroke-linecap="round" />
+                            <path d="M12 16.8v-1.3" stroke-linecap="round" />
+                            <path d="M7.2 12h1.3" stroke-linecap="round" />
+                        </svg>
                         <h3 class="text-lg font-semibold">{{ __('Explora') }}</h3>
                     </div>
 
@@ -98,9 +105,17 @@
                     </div>
                     <span class="hidden text-zinc-300 sm:inline dark:text-zinc-700">|</span>
                     <p>
-                        {{ __('Hecho con') }}
-                        <span class="font-semibold text-brand-500">{{ __('amor') }}</span>
-                        {{ __('por lo local') }}
+                        {{ __('Hecho con') }} 
+                        <span class="font-semibold text-brand-500">{{ __('♥️') }}</span>
+                        {{ __('por') }}
+                        <a
+                            href="https://inggen.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-4 transition hover:text-brand-600 hover:decoration-brand-300 dark:text-zinc-300 dark:hover:text-brand-300"
+                        >
+                            Inggen
+                        </a>
                     </p>
                 </div>
             </div>

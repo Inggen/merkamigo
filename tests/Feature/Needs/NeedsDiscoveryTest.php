@@ -46,6 +46,60 @@ class NeedsDiscoveryTest extends TestCase
             ->assertSee('1 propuesta');
     }
 
+    public function test_an_explicit_municipio_query_parameter_overrides_the_preferred_municipality_cookie(): void
+    {
+        $zipaquira = Municipality::create(['name' => 'Zipaquirá', 'slug' => 'zipaquira', 'department' => 'Cundinamarca', 'is_active' => true]);
+        Municipality::create(['name' => 'Chía', 'slug' => 'chia', 'department' => 'Cundinamarca', 'is_active' => true]);
+
+        $need = app(SaveNeedDraft::class)->handle(User::factory()->create(), null, [
+            'title' => 'Torta de Red Velvet', 'description' => 'Para un cumpleaños.', 'municipality_id' => $zipaquira->id,
+        ]);
+        $need->update(['status' => Need::PUBLICADA, 'published_at' => now(), 'expires_at' => now()->addDays(14)]);
+
+        // La cookie de preferencia guardada es Chía, pero el enlace "Ver
+        // todas" desde la Plaza de Zipaquirá debe respetar ese municipio
+        // explícito en vez de caer a la cookie desactualizada.
+        $this->withUnencryptedCookie('municipio', 'chia')
+            ->get(route('pidelo', ['municipio' => 'zipaquira']))
+            ->assertOk()
+            ->assertSee('Torta de Red Velvet');
+    }
+
+    public function test_a_need_can_be_viewed_publicly_regardless_of_the_preferred_municipality_cookie(): void
+    {
+        $zipaquira = Municipality::create(['name' => 'Zipaquirá', 'slug' => 'zipaquira', 'department' => 'Cundinamarca', 'is_active' => true]);
+        Municipality::create(['name' => 'Chía', 'slug' => 'chia', 'department' => 'Cundinamarca', 'is_active' => true]);
+
+        $need = app(SaveNeedDraft::class)->handle(User::factory()->create(), null, [
+            'title' => 'Torta de Red Velvet', 'description' => 'Para un cumpleaños.', 'municipality_id' => $zipaquira->id, 'budget' => 80000,
+        ]);
+        $need->update(['status' => Need::PUBLICADA, 'published_at' => now(), 'expires_at' => now()->addDays(14)]);
+
+        $this->withUnencryptedCookie('municipio', 'chia')
+            ->get(route('pidelo.show', $need))
+            ->assertOk()
+            ->assertSee('Torta de Red Velvet')
+            ->assertSee('Presupuesto: $80.000');
+    }
+
+    public function test_a_draft_need_is_not_publicly_viewable(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+
+        $need = app(SaveNeedDraft::class)->handle(User::factory()->create(), null, [
+            'title' => 'Aún sin publicar', 'description' => 'Descripción.', 'municipality_id' => $municipality->id,
+        ]);
+
+        $this->get(route('pidelo.show', $need))->assertNotFound();
+    }
+
+    public function test_publishing_a_new_need_still_works_and_is_not_intercepted_by_the_need_detail_route(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('pidelo.nueva'))
+            ->assertOk();
+    }
+
     public function test_pidelo_asks_to_choose_a_municipality_when_there_is_none_preferred(): void
     {
         $this->get(route('pidelo'))

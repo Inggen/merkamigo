@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\CreateProduct;
@@ -69,5 +71,51 @@ class EmprendedorHomeTest extends TestCase
             ->assertOk()
             ->assertSee(__('Ayuda'))
             ->assertSeeHtml(route('soporte'));
+    }
+
+    public function test_free_plan_hides_the_create_another_storefront_action_after_reaching_the_limit(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Única Vitrina']);
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.home'))
+            ->assertOk()
+            ->assertDontSee(__('+ Crear otra vitrina'))
+            ->assertSee(__('Ya alcanzaste el máximo de 1 vitrinas para tu plan actual.'));
+    }
+
+    public function test_emprendedor_plan_keeps_the_create_action_visible_until_the_third_storefront(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+        $firstBusiness = app(CreateStorefront::class)->handle($owner, ['name' => 'Primera Vitrina'])->business;
+
+        $plan = Plan::create([
+            'slug' => 'emprendedor',
+            'name' => 'Emprendedor',
+            'description' => 'Más productos, colaboradores y destacados.',
+            'price_cents' => 1990000,
+            'billing_period' => Plan::MENSUAL,
+            'limits' => ['max_products' => null, 'max_members' => 5, 'max_featured_days' => 7, 'max_storefronts' => 3],
+            'trial_days' => 14,
+            'is_active' => true,
+            'position' => 1,
+        ]);
+
+        app(SubscribeToPlan::class)->handle($firstBusiness, $plan, $owner);
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Segunda Vitrina']);
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.home'))
+            ->assertOk()
+            ->assertSee(__('+ Crear otra vitrina'));
+
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Tercera Vitrina']);
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.home'))
+            ->assertOk()
+            ->assertDontSee(__('+ Crear otra vitrina'))
+            ->assertSee(__('Ya alcanzaste el máximo de 3 vitrinas para tu plan actual.'));
     }
 }

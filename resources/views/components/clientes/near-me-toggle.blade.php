@@ -30,7 +30,7 @@
         x-bind:disabled="loading"
         @class([
             'whitespace-nowrap rounded-xl',
-            'h-12 px-4' => $compact,
+            'h-10 px-4' => $compact,
         ])
     >
         <span x-show="!loading">{{ $near ? __('Cerca de mí ✓') : __('Cerca de mí') }}</span>

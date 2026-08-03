@@ -5,6 +5,8 @@ namespace Tests\Feature\Storefronts;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Needs\Actions\PublishNeed;
+use App\Domain\Needs\Actions\SaveNeedDraft;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Actions\PublishStorefront;
@@ -157,5 +159,27 @@ class PlazaFiltersTest extends TestCase
         $this->get(route('buscar', ['lat' => 4.9186, 'lng' => -74.0279]))
             ->assertOk()
             ->assertSeeInOrder([$near->name, $far->name]);
+    }
+
+    public function test_the_general_plaza_search_shows_businesses_products_and_needs_from_any_municipality(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $business = $this->publishedBusiness($municipality, $category);
+        $product = $business->products()->firstOrFail();
+
+        $need = app(SaveNeedDraft::class)->handle(User::factory()->create(), null, [
+            'title' => 'Necesito jardinero', 'description' => 'Podar el jardín.', 'municipality_id' => $municipality->id,
+        ]);
+        app(PublishNeed::class)->handle($need, $need->user);
+
+        $this->get(route('buscar', ['municipio' => 'todos']))
+            ->assertOk()
+            ->assertSee($business->name)
+            ->assertSee(__('Productos para ti'))
+            ->assertSee($product->name)
+            ->assertSee(__('Solicitudes activas'))
+            ->assertSee($need->title);
     }
 }

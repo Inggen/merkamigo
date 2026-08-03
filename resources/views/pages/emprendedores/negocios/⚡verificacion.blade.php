@@ -161,7 +161,7 @@ new #[Title('Verificación de tu negocio')] class extends Component {
 
             @if ($this->verification->verification_document_path)
                 <div class="mt-3">
-                    <flux:link :href="route('emprendedores.negocios.verificacion.documento', $this->business)" target="_blank">
+                    <flux:link :href="route('emprendedores.negocios.verificacion.documento', $this->business)" target="_blank" class="text-sm">
                         {{ __('Ver documento enviado') }}
                     </flux:link>
                 </div>

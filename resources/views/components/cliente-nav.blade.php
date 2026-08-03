@@ -75,6 +75,17 @@
                     <span class="hidden md:inline">{{ __('Pídelo') }}</span>
                 </flux:button>
 
+                <flux:button
+                    size="sm"
+                    variant="primary"
+                    :href="route('emprendedores.bienvenida')"
+                    wire:navigate
+                    class="rounded-xl px-4"
+                >
+                    <span class="hidden md:inline">{{ __('Publica tu negocio') }}</span>
+                    <span class="md:hidden">{{ __('Publica') }}</span>
+                </flux:button>
+
                 <flux:dropdown position="bottom" align="end">
                     <flux:profile
                         :avatar="auth()->user()->avatarUrl()"

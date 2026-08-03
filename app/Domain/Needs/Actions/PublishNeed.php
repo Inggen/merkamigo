@@ -59,6 +59,10 @@ class PublishNeed
             $missing[] = 'Municipio';
         }
 
+        if (blank($need->category_id)) {
+            $missing[] = 'Categoría';
+        }
+
         return $missing;
     }
 }

@@ -14,6 +14,7 @@ use App\Filament\Resources\Businesses\Pages\EditBusiness;
 use App\Filament\Resources\Businesses\Pages\ListBusinesses;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -78,6 +79,51 @@ class MultiMunicipalityTest extends TestCase
 
         $this->assertSame([$zipaquira->id], $business->municipalities()->pluck('municipalities.id')->all());
         $this->assertSame([$cajica->id, $zipaquira->id], $business->allMunicipalityIds()->sort()->values()->all());
+    }
+
+    public function test_syncing_municipalities_rejects_more_than_three_additional_ones(): void
+    {
+        $municipalities = collect([
+            Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]),
+            Municipality::create(['name' => 'Zipaquirá', 'slug' => 'zipaquira', 'department' => 'Cundinamarca', 'is_active' => true]),
+            Municipality::create(['name' => 'Chía', 'slug' => 'chia', 'department' => 'Cundinamarca', 'is_active' => true]),
+            Municipality::create(['name' => 'Cota', 'slug' => 'cota', 'department' => 'Cundinamarca', 'is_active' => true]),
+            Municipality::create(['name' => 'Sopó', 'slug' => 'sopo', 'department' => 'Cundinamarca', 'is_active' => true]),
+        ]);
+
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio con límite',
+            'municipality_id' => $municipalities[0]->id,
+        ])->business;
+
+        $this->expectException(ValidationException::class);
+
+        app(SyncBusinessMunicipalities::class)->handle($business, [
+            $municipalities[1]->id,
+            $municipalities[2]->id,
+            $municipalities[3]->id,
+            $municipalities[4]->id,
+        ]);
+    }
+
+    public function test_onboarding_normalizes_the_primary_municipality_and_limits_additional_ones_to_three(): void
+    {
+        $owner = User::factory()->create();
+        $this->actingAs($owner);
+
+        $cajica = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $zipaquira = Municipality::create(['name' => 'Zipaquirá', 'slug' => 'zipaquira', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $chia = Municipality::create(['name' => 'Chía', 'slug' => 'chia', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $cota = Municipality::create(['name' => 'Cota', 'slug' => 'cota', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $sopo = Municipality::create(['name' => 'Sopó', 'slug' => 'sopo', 'department' => 'Cundinamarca', 'is_active' => true]);
+
+        Livewire::test('pages::emprendedores.crear-vitrina')
+            ->set('name', 'Negocio con cobertura')
+            ->set('municipality_id', $cajica->id)
+            ->set('additional_municipality_ids', [$cajica->id, $zipaquira->id, $chia->id, $cota->id, $sopo->id])
+            ->call('goToStep2')
+            ->assertSet('additional_municipality_ids', [$zipaquira->id, $chia->id, $cota->id]);
     }
 
     public function test_oportunidades_shows_needs_from_every_municipality_the_business_serves(): void

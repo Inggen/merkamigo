@@ -29,7 +29,7 @@
         </div>
 
         <div @class([
-            'mt-2 text-[0.7rem] font-medium uppercase tracking-[0.34em] text-slate-500' => ! $compact,
+            'mt-2 text-[0.7rem] font-medium uppercase tracking-[0.10em] text-slate-500' => ! $compact,
             'mt-1 text-[0.52rem] font-medium uppercase tracking-[0.24em] text-slate-500' => $compact,
         ])>
             Cercania · Comunidad · Visibilidad

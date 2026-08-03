@@ -35,103 +35,11 @@
     :schema-graph="$schemaGraph"
 >
     @if (! $municipality)
-        <div
-            x-data="clienteMunicipalityAutodetect({{ \Illuminate\Support\Js::from($autoDetectMunicipalities) }})"
-            x-init="init()"
-        >
-            <x-clientes.search-hero
-                :municipality="null"
-                :municipalities="$municipalities"
-                :query="request('q', '')"
-            />
-
-            <form x-ref="autodetectForm" method="POST" action="{{ route('clientes.municipio') }}" class="hidden">
-                @csrf
-                <input x-ref="municipalityId" type="hidden" name="municipality_id">
-            </form>
-        </div>
-
-        @push('scripts')
-            <script>
-                window.clienteMunicipalityAutodetect = function (municipalities) {
-                    return {
-                        municipalities,
-                        detecting: false,
-                        maxDistanceKm: 25,
-                        init() {
-                            if (! Array.isArray(this.municipalities) || this.municipalities.length === 0) {
-                                return;
-                            }
-
-                            if (window.localStorage?.getItem('cliente-municipality-autodetect') === 'done') {
-                                return;
-                            }
-
-                            if (! window.isSecureContext || ! ('geolocation' in navigator)) {
-                                return;
-                            }
-
-                            this.detecting = true;
-
-                            navigator.geolocation.getCurrentPosition(
-                                (position) => {
-                                    this.detecting = false;
-
-                                    const nearest = this.findNearestMunicipality(
-                                        position.coords.latitude,
-                                        position.coords.longitude,
-                                    );
-
-                                    if (! nearest || nearest.distanceKm > this.maxDistanceKm) {
-                                        window.localStorage?.setItem('cliente-municipality-autodetect', 'done');
-                                        return;
-                                    }
-
-                                    window.localStorage?.setItem('cliente-municipality-autodetect', 'done');
-                                    this.$refs.municipalityId.value = nearest.id;
-                                    this.$refs.autodetectForm.submit();
-                                },
-                                () => {
-                                    this.detecting = false;
-                                    window.localStorage?.setItem('cliente-municipality-autodetect', 'done');
-                                },
-                                {
-                                    enableHighAccuracy: false,
-                                    timeout: 5000,
-                                    maximumAge: 3600000,
-                                },
-                            );
-                        },
-                        findNearestMunicipality(latitude, longitude) {
-                            return this.municipalities
-                                .map((municipality) => ({
-                                    ...municipality,
-                                    distanceKm: this.distanceBetween(
-                                        latitude,
-                                        longitude,
-                                        municipality.latitude,
-                                        municipality.longitude,
-                                    ),
-                                }))
-                                .sort((a, b) => a.distanceKm - b.distanceKm)[0] ?? null;
-                        },
-                        distanceBetween(fromLat, fromLng, toLat, toLng) {
-                            const toRadians = (degrees) => degrees * (Math.PI / 180);
-                            const earthRadiusKm = 6371;
-                            const deltaLat = toRadians(toLat - fromLat);
-                            const deltaLng = toRadians(toLng - fromLng);
-                            const a =
-                                Math.sin(deltaLat / 2) ** 2 +
-                                Math.cos(toRadians(fromLat)) *
-                                    Math.cos(toRadians(toLat)) *
-                                    Math.sin(deltaLng / 2) ** 2;
-
-                            return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                        },
-                    };
-                };
-            </script>
-        @endpush
+        <x-clientes.search-hero
+            :municipality="null"
+            :municipalities="$municipalities"
+            :query="request('q', '')"
+        />
     @else
         <x-clientes.search-hero
             :municipality="$municipality"
@@ -151,40 +59,110 @@
             />
         </div>
 
-        @if ($municipality)
-            <div class="mb-4 flex items-center justify-between">
-                <flux:heading size="lg">{{ __('Negocios destacados') }}</flux:heading>
-                <flux:link :href="route('buscar', ['municipio' => $municipality->slug])" wire:navigate>{{ __('Ver toda la plaza →') }}</flux:link>
+        <div class="mb-4 flex items-center justify-between">
+            <flux:heading size="lg">{{ __('Descubre cerca de ti') }}</flux:heading>
+            <flux:link :href="$municipality ? route('buscar', ['municipio' => $municipality->slug]) : route('buscar', ['municipio' => 'todos'])" wire:navigate class="text-sm">{{ __('Ver toda la plaza →') }}</flux:link>
+        </div>
+
+        @if ($businesses->isEmpty())
+            <x-states.empty
+                title="{{ __('Todavía no hay negocios publicados aquí') }}"
+                description="{{ $municipality
+                    ? __('Vuelve pronto — cada semana se suman más emprendedores de :municipio.', ['municipio' => $municipality->name])
+                    : __('Vuelve pronto — cada semana se suman más emprendedores a Merkamigo.') }}"
+            />
+        @else
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($businesses as $business)
+                    <x-business-card :business="$business" />
+                @endforeach
             </div>
+        @endif
 
-            @if ($businesses->isEmpty())
-                <x-states.empty
-                    title="{{ __('Todavía no hay negocios publicados aquí') }}"
-                    description="{{ __('Vuelve pronto — cada semana se suman más emprendedores de :municipio.', ['municipio' => $municipality->name]) }}"
-                />
-            @else
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($businesses as $business)
-                        <x-business-card :business="$business" />
-                    @endforeach
-                </div>
-            @endif
-
-            <div class="mt-10 flex flex-col items-center gap-4 rounded-2xl border border-brand-100 bg-brand-50 p-6 sm:flex-row dark:border-brand-900 dark:bg-brand-950">
-                <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
-                    <flux:icon.user-group class="size-6" variant="outline" />
-                </div>
-                <div class="flex-1 text-center sm:text-left">
-                    <flux:heading size="lg">{{ __('Juntos construimos comunidad') }}</flux:heading>
-                    <flux:text class="text-zinc-500 dark:text-zinc-400">
-                        {{ __('Merkamigo es más que una plataforma: es un punto de encuentro para apoyar, recomendar y crecer juntos.') }}
+        <div class="mt-10 overflow-hidden rounded-[28px] border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
+            <div class="grid gap-0 lg:grid-cols-2">
+                <div class="flex flex-col justify-center gap-4 p-6 sm:p-8">
+                    <span class="flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
+                        <flux:icon.chat-bubble-left-right variant="outline" class="size-6" />
+                    </span>
+                    <flux:heading size="lg">{{ __('¿No encuentras lo que necesitas?') }}</flux:heading>
+                    <flux:text class="text-zinc-600 dark:text-zinc-300">
+                        {{ __('Publica tu solicitud y recibe propuestas de negocios cercanos listos para ayudar.') }}
                     </flux:text>
+                    <flux:button variant="primary" :href="route('pidelo.nueva')" wire:navigate class="w-fit">
+                        {{ __('Publicar una solicitud') }}
+                    </flux:button>
                 </div>
-                <div class="flex shrink-0 gap-2">
-                    <flux:button variant="ghost" :href="route('emprendedores.bienvenida')" wire:navigate>{{ __('Publica tu negocio') }}</flux:button>
-                    <flux:button variant="primary" :href="route('como-funciona')" wire:navigate>{{ __('Conoce cómo funciona') }}</flux:button>
+
+                @if ($openNeeds->isNotEmpty())
+                    <div class="border-t border-rose-100 bg-white p-6 dark:border-rose-900/40 dark:bg-zinc-900 lg:border-t-0 lg:border-l sm:p-8">
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <flux:heading size="base">
+                                {{ $municipality ? __('Solicitudes activas en :municipio', ['municipio' => $municipality->name]) : __('Solicitudes activas') }}
+                            </flux:heading>
+                            <flux:link :href="route('pidelo', $municipality ? ['municipio' => $municipality->slug] : [])" wire:navigate class="shrink-0 text-sm">{{ __('Ver todas →') }}</flux:link>
+                        </div>
+
+                        <div class="grid gap-4 sm:grid-cols-3">
+                            @foreach ($openNeeds as $need)
+                                <div class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-700">
+                                    <flux:text class="font-semibold text-zinc-950 dark:text-white">{{ $need->title }}</flux:text>
+
+                                    @if ($need->category)
+                                        <flux:text class="mt-0.5 block text-sm text-zinc-500 dark:text-zinc-400">{{ $need->category->name }}</flux:text>
+                                    @endif
+
+                                    <flux:text class="mt-3 block text-sm text-zinc-500 dark:text-zinc-400">
+                                        {{ __('Hace :time', ['time' => $need->published_at?->diffForHumans(null, true)]) }}
+                                    </flux:text>
+
+                                    <div class="mt-1 flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+                                        <flux:icon.clock variant="outline" class="size-4" />
+                                        <span>{{ trans_choice(':count propuesta|:count propuestas', $need->offers_count, ['count' => $need->offers_count]) }}</span>
+                                    </div>
+
+                                    @if ($need->budget)
+                                        <span class="mt-3 flex items-center justify-center rounded-full bg-rose-50 px-3 py-1.5 text-center text-xs font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                                            {{ __('Presupuesto: :amount', ['amount' => '$'.number_format((float) $need->budget, 0, ',', '.')]) }}
+                                        </span>
+                                    @endif
+
+                                    <div class="mt-3 text-center">
+                                        <flux:link :href="route('pidelo.show', $need)" wire:navigate class="text-sm font-medium">{{ __('Ver solicitud →') }}</flux:link>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        @if ($products->isNotEmpty())
+            <div class="mt-10">
+                <flux:heading size="lg" class="mb-4">{{ __('Productos para ti') }}</flux:heading>
+
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach ($products as $product)
+                        @include('vitrinas.partials.product-card', ['business' => $product->business, 'product' => $product, 'showBusinessName' => true])
+                    @endforeach
                 </div>
             </div>
         @endif
+
+        <div class="mt-10 overflow-hidden rounded-[28px] border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
+            <div class="flex flex-col items-center gap-6 p-8 sm:flex-row sm:justify-between sm:p-10">
+                <div class="max-w-lg text-center sm:text-left">
+                    <flux:heading size="lg">{{ __('Haz visible tu negocio en tu comunidad') }}</flux:heading>
+                    <flux:text class="mt-2 text-zinc-600 dark:text-zinc-300">
+                        {{ __('Crea tu vitrina gratis y llega a más personas de tu zona que ya están comprando local.') }}
+                    </flux:text>
+                    <flux:button variant="primary" :href="route('emprendedores.bienvenida')" wire:navigate class="mt-4 w-fit">
+                        {{ __('Crear mi vitrina gratis') }}
+                    </flux:button>
+                </div>
+                <img src="{{ asset('images/fondo-login-admin.svg') }}" alt="" class="hidden w-full shrink-0 opacity-50 sm:block" style="max-width: 700px" loading="lazy">
+            </div>
+        </div>
     </div>
 </x-layouts::cliente>

@@ -159,46 +159,52 @@
                 >
             </div>
 
-            <div class="hidden h-10 w-px bg-zinc-100 sm:block dark:bg-zinc-700"></div>
+            <div class="flex w-full flex-col gap-2 border-t border-zinc-100 pt-2 sm:w-auto sm:flex-row sm:items-center sm:border-t-0 sm:pt-0 dark:border-zinc-700">
+                <div class="hidden h-10 w-px bg-zinc-100 sm:block dark:bg-zinc-700"></div>
 
-            <flux:dropdown class="shrink-0 border-t border-zinc-100 pt-2 sm:border-t-0 sm:pt-0 dark:border-zinc-700">
-                <flux:button variant="ghost" icon="map-pin" icon-trailing="chevron-down" class="w-full justify-start sm:w-auto sm:min-w-44">
-                    <span x-text="selectedMunicipalityName"></span>
-                </flux:button>
-                <flux:menu>
-                    <flux:menu.item
-                        as="button"
-                        type="button"
-                        x-on:click="selectMunicipality('', allMunicipalitiesLabel, '')"
-                        class="w-full cursor-pointer"
-                    >
-                        <span class="flex w-full items-center justify-between gap-2">
-                            {{ $allMunicipalitiesLabel }}
-                            <flux:icon.check x-show="selectedMunicipalityId === ''" x-cloak class="size-4" variant="outline" />
-                        </span>
-                    </flux:menu.item>
+                <div class="flex w-full items-stretch gap-2 sm:w-auto sm:items-center">
+                    <flux:dropdown class="min-w-0 flex-1 shrink sm:flex-none">
+                        <flux:button variant="ghost" icon="map-pin" icon-trailing="chevron-down" class="w-full justify-start sm:w-auto sm:min-w-44">
+                            <span x-text="selectedMunicipalityName" class="truncate"></span>
+                        </flux:button>
+                        <flux:menu>
+                            <flux:menu.item
+                                as="button"
+                                type="button"
+                                x-on:click="selectMunicipality('', allMunicipalitiesLabel, '')"
+                                class="w-full cursor-pointer"
+                            >
+                                <span class="flex w-full items-center justify-between gap-2">
+                                    {{ $allMunicipalitiesLabel }}
+                                    <flux:icon.check x-show="selectedMunicipalityId === ''" x-cloak class="size-4" variant="outline" />
+                                </span>
+                            </flux:menu.item>
 
-                    @foreach ($municipalities as $option)
-                        <flux:menu.item
-                            as="button"
-                            type="button"
-                            x-on:click="selectMunicipality('{{ $option->id }}', '{{ e($option->name) }}', '{{ $option->slug }}')"
-                            class="w-full cursor-pointer"
-                        >
-                            <span class="flex w-full items-center justify-between gap-2">
-                                {{ $option->name }}
-                                <flux:icon.check x-show="selectedMunicipalityId === '{{ $option->id }}'" x-cloak class="size-4" variant="outline" />
-                            </span>
-                        </flux:menu.item>
-                    @endforeach
-                </flux:menu>
-            </flux:dropdown>
+                            @foreach ($municipalities as $option)
+                                <flux:menu.item
+                                    as="button"
+                                    type="button"
+                                    x-on:click="selectMunicipality('{{ $option->id }}', '{{ e($option->name) }}', '{{ $option->slug }}')"
+                                    class="w-full cursor-pointer"
+                                >
+                                    <span class="flex w-full items-center justify-between gap-2">
+                                        {{ $option->name }}
+                                        <flux:icon.check x-show="selectedMunicipalityId === '{{ $option->id }}'" x-cloak class="size-4" variant="outline" />
+                                    </span>
+                                </flux:menu.item>
+                            @endforeach
+                        </flux:menu>
+                    </flux:dropdown>
 
-            <x-clientes.near-me-toggle :near="$near" compact />
+                    <div class="shrink-0">
+                        <x-clientes.near-me-toggle :near="$near" compact />
+                    </div>
+                </div>
+            </div>
 
             <button
                 type="submit"
-                class="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-white transition hover:bg-brand-700"
+                class="inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-white transition hover:bg-brand-700 sm:w-auto"
             >
                 <flux:icon.magnifying-glass class="size-5" variant="outline" />
             </button>

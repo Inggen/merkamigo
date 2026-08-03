@@ -3,14 +3,12 @@
 namespace App\Domain\Storefronts\Actions;
 
 use App\Domain\Billing\Exceptions\PlanLimitException;
-use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Models\BusinessMembership;
 use App\Domain\Businesses\Models\Organization;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Storefronts\Models\Storefront;
 use App\Models\User;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -108,28 +106,11 @@ class CreateStorefront
      */
     private function assertStorefrontLimitNotExceeded(User $owner): void
     {
-        $currentCount = Business::whereHas('organization', fn ($query) => $query->where('owner_user_id', $owner->id))->count();
+        $quota = app(ResolveStorefrontQuota::class)->handle($owner);
+        $limit = $quota['limit'];
 
-        $limit = $this->storefrontLimitFor($owner);
-
-        if ($limit !== null && $currentCount >= $limit) {
+        if ($limit !== null && ! $quota['can_create']) {
             throw new PlanLimitException("Tu plan permite hasta {$limit} vitrinas. Mejora tu plan para crear más.");
         }
-    }
-
-    private function storefrontLimitFor(User $owner): ?int
-    {
-        $plans = Business::whereHas('organization', fn ($query) => $query->where('owner_user_id', $owner->id))
-            ->get()
-            ->map(fn (Business $business) => $business->activePlan());
-
-        /** @var Collection<int, Plan> $plans */
-        $plans = $plans->push(Plan::where('slug', 'gratis')->firstOrFail());
-
-        if ($plans->contains(fn (Plan $plan) => $plan->limit('max_storefronts') === null)) {
-            return null;
-        }
-
-        return $plans->max(fn (Plan $plan) => $plan->limit('max_storefronts'));
     }
 }

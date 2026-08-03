@@ -3,6 +3,7 @@
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\DuplicateProduct;
+use App\Domain\Storefronts\Actions\MoveProductToBusiness;
 use App\Domain\Storefronts\Actions\UpdateProduct;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\ProductMedia;
@@ -24,6 +25,9 @@ new #[Title('Productos y servicios')] class extends Component {
 
     #[Locked]
     public int $businessId;
+
+    public int $selectedBusinessId;
+    public int $productBusinessId;
 
     public string $filter = 'todos';
 
@@ -67,7 +71,10 @@ new #[Title('Productos y servicios')] class extends Component {
      */
     public function boot(): void
     {
-        if (isset($this->businessId)) {
+        if (isset($this->selectedBusinessId)) {
+            setPermissionsTeamId($this->selectedBusinessId);
+            Auth::user()?->unsetRelation('roles');
+        } elseif (isset($this->businessId)) {
             setPermissionsTeamId($this->businessId);
             Auth::user()?->unsetRelation('roles');
         }
@@ -80,12 +87,23 @@ new #[Title('Productos y servicios')] class extends Component {
 
         $this->authorize('update', $business);
         $this->businessId = $business->id;
+        $this->selectedBusinessId = $business->id;
+        $this->productBusinessId = $business->id;
     }
 
     #[Computed]
     public function business(): Business
     {
         return Business::findOrFail($this->businessId);
+    }
+
+    #[Computed]
+    public function availableBusinesses()
+    {
+        return Auth::user()
+            ->businesses()
+            ->orderBy('name')
+            ->get();
     }
 
     #[Computed]
@@ -105,6 +123,7 @@ new #[Title('Productos y servicios')] class extends Component {
         $this->type = 'producto';
         $this->price_type = 'exacto';
         $this->is_available = true;
+        $this->productBusinessId = $this->selectedBusinessId;
         $this->resetValidation();
     }
 
@@ -115,6 +134,7 @@ new #[Title('Productos y servicios')] class extends Component {
         $product = $this->business->products()->with(['variants', 'media'])->findOrFail($productId);
 
         $this->editingId = $product->id;
+        $this->productBusinessId = $product->business_id;
         $this->name = $product->name;
         $this->type = $product->type;
         $this->description = $product->description;
@@ -140,6 +160,13 @@ new #[Title('Productos y servicios')] class extends Component {
         $this->resetValidation();
     }
 
+    public function updatedSelectedBusinessId(int|string $businessId): void
+    {
+        $business = $this->resolveManagedBusiness((int) $businessId);
+
+        $this->redirectRoute('emprendedores.negocios.productos', ['business' => $business], navigate: true);
+    }
+
     public function addVariant(): void
     {
         $this->variants[] = ['label' => '', 'price' => null];
@@ -153,7 +180,7 @@ new #[Title('Productos y servicios')] class extends Component {
 
     public function save(): void
     {
-        $this->authorize('update', $this->business);
+        $targetBusiness = $this->resolveManagedBusiness($this->productBusinessId);
 
         $data = [
             'name' => $this->name,
@@ -176,9 +203,14 @@ new #[Title('Productos y servicios')] class extends Component {
         try {
             if ($this->editingId) {
                 $product = $this->business->products()->findOrFail($this->editingId);
+                $this->authorize('update', $product->business);
                 app(UpdateProduct::class)->handle($product, $data, $this->photos, [], Auth::user());
+
+                if ($product->business_id !== $targetBusiness->id) {
+                    app(MoveProductToBusiness::class)->handle($product->fresh(), $targetBusiness, Auth::user());
+                }
             } else {
-                app(CreateProduct::class)->handle($this->business, $data, $this->photos, Auth::user());
+                app(CreateProduct::class)->handle($targetBusiness, $data, $this->photos, Auth::user());
             }
         } catch (\App\Domain\Billing\Exceptions\PlanLimitException $e) {
             Flux::toast(variant: 'danger', text: $e->getMessage());
@@ -187,6 +219,13 @@ new #[Title('Productos y servicios')] class extends Component {
         }
 
         unset($this->products);
+
+        if ($this->selectedBusinessId !== $targetBusiness->id) {
+            $this->redirectRoute('emprendedores.negocios.productos', ['business' => $targetBusiness], navigate: true);
+
+            return;
+        }
+
         Flux::modal('product-form')->close();
         Flux::toast(variant: 'success', text: __('Producto guardado.'));
     }
@@ -262,15 +301,41 @@ new #[Title('Productos y servicios')] class extends Component {
 
         unset($this->products);
     }
+
+    private function resolveManagedBusiness(int $businessId): Business
+    {
+        $business = Auth::user()
+            ->businesses()
+            ->where('businesses.id', $businessId)
+            ->firstOrFail();
+
+        setPermissionsTeamId($business->id);
+        Auth::user()->unsetRelation('roles');
+        $this->authorize('update', $business);
+
+        return $business;
+    }
 }; ?>
 
 <section class="mx-auto w-full max-w-4xl space-y-6">
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-1.5">
-            <flux:heading size="xl">{{ __('Productos y servicios') }}</flux:heading>
-            <flux:tooltip :content="__('Solo lo publicado se ve en tu vitrina. Archiva lo que ya no ofreces en vez de borrarlo, para no perder su historial.')">
-                <flux:icon.question-mark-circle class="size-4 shrink-0 text-zinc-400" variant="outline" />
-            </flux:tooltip>
+    <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div class="space-y-3">
+            <div class="flex items-center gap-1.5">
+                <flux:heading size="xl">{{ __('Productos y servicios') }}</flux:heading>
+                <flux:tooltip :content="__('Solo lo publicado se ve en tu vitrina. Archiva lo que ya no ofreces en vez de borrarlo, para no perder su historial.')">
+                    <flux:icon.question-mark-circle class="size-4 shrink-0 text-zinc-400" variant="outline" />
+                </flux:tooltip>
+            </div>
+
+            @if ($this->availableBusinesses->count() > 1)
+                <div class="max-w-xs">
+                    <flux:select wire:model.live="selectedBusinessId" :label="__('Vitrina')">
+                        @foreach ($this->availableBusinesses as $availableBusiness)
+                            <flux:select.option value="{{ $availableBusiness->id }}">{{ $availableBusiness->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+            @endif
         </div>
 
         <flux:modal.trigger name="product-form">
@@ -354,6 +419,12 @@ new #[Title('Productos y servicios')] class extends Component {
     <flux:modal name="product-form" variant="flyout" class="max-w-md">
         <form wire:submit="save" class="space-y-6">
             <flux:heading size="lg">{{ $editingId ? __('Editar producto') : __('Nuevo producto') }}</flux:heading>
+
+            <flux:select wire:model="productBusinessId" :label="__('Vitrina asociada')">
+                @foreach ($this->availableBusinesses as $availableBusiness)
+                    <flux:select.option value="{{ $availableBusiness->id }}">{{ $availableBusiness->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
 
             <flux:select wire:model="type" :label="__('Tipo')">
                 <flux:select.option value="producto">{{ __('Producto') }}</flux:select.option>

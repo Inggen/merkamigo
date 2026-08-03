@@ -281,6 +281,101 @@ Se confirmó el bug inspeccionando el HTML real (`curl` contra `https://merkamig
 
 **Lección para el resto de componentes Livewire del proyecto:** ningún componente con un `<button wire:click="...">` (o cualquier `wire:*` de acción) debe tener un `@if`/`@else` como la primerísima línea de su vista si las ramas no comparten ya un wrapper común — hay que envolver en un elemento raíz explícito primero. `Livewire::test()->call(...)` no detecta este bug porque no pasa por el DOM; solo una prueba que inspeccione el HTML real (orden de `wire:id` vs. `wire:click` en el string, como el test agregado) o una prueba de navegador real lo detecta.
 
+## Submenú "Cambiar de experiencia" se veía como dos tarjetas sueltas
+
+El usuario pidió que el submenú Cliente/Emprendedor (`experience-switch-menu.blade.php`) se viera como una lista continua, igual que el resto del menú ("Mi cuenta", "Favoritos"), en vez de como dos tarjetas separadas. Causa: cada opción envolvía su `<flux:menu.item>` en su propio `<form method="POST">` para poder enviar el cambio de experiencia — eso rompía la relación de "hijo directo" que la CSS/JS de Flux espera entre `<flux:menu>` y `<flux:menu.item>` (la misma familia de problema que el bug de favoritos: una capa extra de envoltura confunde a un mecanismo que asume una relación de DOM específica). El menú de nivel superior no mostraba el mismo problema porque solo tenía **un** ítem envuelto en `<form>` ("Cerrar sesión"), no dos adyacentes.
+
+**Corrección:** se sacaron los dos `<form>` fuera de la lista de ítems y se asociaron a sus botones con el atributo HTML5 `form="id"` (el botón vive fuera del `<form>` pero lo dispara igual), dejando `<flux:menu.item>` como hijo directo de `<flux:menu>`, sin envoltura. Verificado con el HTML real (`curl` contra la página) que la estructura quedó idéntica a la de los ítems que ya se veían bien, y que `SwitchExperienceTest` sigue pasando.
+
+## `mis-solicitudes.blade.php`: `use` dentro de un componente Blade rompía toda la página
+
+Durante la verificación del punto anterior se detectó (vía la suite completa) que `resources/views/public/mis-solicitudes.blade.php` daba `ParseError: syntax error, unexpected token "use"` — un `500` total en `/mis-solicitudes`, la página detrás del botón "Mis solicitudes" del header. No estaba relacionado con el trabajo de esta sesión (falla incluso con los cambios de esta sesión revertidos vía `git stash`), pero se corrigió al ser un bug real y bloqueante.
+
+**Causa raíz:** el archivo tenía `use App\Domain\Needs\Models\Need;` dentro de un `@php ... @endphp` que vive **dentro del slot de `<x-layouts::cliente>`**. Blade compila una etiqueta de componente envolviendo su contenido en `<?php if ($component->shouldRender()): ?> ... <?php endif; ?>` — y PHP prohíbe terminantemente las declaraciones `use` (import) dentro de cualquier bloque condicional, sin importar cómo se llegó ahí. Por eso el parser fallaba justo al toparse con `use`, pidiendo `elseif`/`else`/`endif` (los únicos tokens válidos para cerrar ese `if` en ese punto).
+
+**Corrección:** se quitó el `use` y se calificó `Need` con su namespace completo (`\App\Domain\Needs\Models\Need`) en los 4 sitios donde se usaba (`$statusLabel`, `$statusClasses`, `$cardIcon`, `$cardIconShell`). **Regla general para el resto del proyecto:** ningún `@php` dentro del cuerpo de una etiqueta de componente Blade (`<x-algo>...</x-algo>`) puede tener un `use` de importación — solo funciona en un `@php` que esté fuera de toda etiqueta de componente (al principio absoluto de un archivo que no empiece con `<x-...>`).
+
+## Rediseño de la Plaza pública (vista principal por municipio)
+
+El usuario pidió que `plaza/show.blade.php` (la vista de un municipio, servida hoy por la ruta `buscar`) se pareciera a una imagen de referencia con 5 secciones: destacados, una tarjeta promocional de "Pídelo" con solicitudes activas al lado, nuevos, productos, y un CTA final para crear vitrina. Casi todos los datos ya existían (`featured`, `businesses`, `openNeeds`, `products` en `PlazaController::plazaData()`); el trabajo fue de presentación, no de datos nuevos:
+
+- **Destacados cerca de ti**: se bajó el límite de 6 a 4 (`take(4)` en el controlador) y se agregó subtítulo + enlace "Ver toda la plaza" (apunta a la misma URL canónica de la página — mismo patrón que ya usaba el enlace original, no es circular por accidente, es el mismo comportamiento de antes reubicado).
+- **Tarjeta "¿No encuentras lo que necesitas?"**: nueva, siempre visible (no depende de si hay solicitudes), con botón a `pidelo.nueva`. La columna derecha con las solicitudes activas solo se muestra si `$openNeeds` no está vacío. "Ver solicitud" enlaza a `route('pidelo')` (el catálogo público), no a una solicitud individual — **no existe una página de detalle pública de una `Need`** (`mis-solicitudes.show` es privada, solo el dueño), así que no se podía enlazar a una específica sin construir esa página nueva, fuera de alcance de un rediseño visual.
+- **Nuevos en la plaza**: se mantiene la paginación completa (`->links()`) — es la sección de "explorar todo", no un preview; solo se renombró el encabezado por defecto (de "Nuevos" a "Nuevos en la plaza"; "Cerca de ti"/"Negocios en :categoria" sin cambios).
+- **Productos para ti**: `vitrinas/partials/product-card.blade.php` ganó un prop opcional `$showBusinessName` (por defecto `false`, no afecta su uso existente en la vitrina/producto) que muestra el nombre del negocio en vez de la descripción — así no se duplicó el partial.
+- **CTA final**: nuevo, enlaza a `emprendedores.bienvenida` (mismo punto de entrada que ya usa el resto del sitio para "publica tu negocio").
+
+**Verificado:** las pruebas existentes de este mismo flujo (`PlazaFiltersTest`, parte de `PublicDiscoveryTest`) están **rotas desde antes de esta sesión** — usan `route('plaza.show', ...)`/`route('plaza.category', ...)`, nombres de ruta que ya no existen (`PlazaController::show()`/`category()` no están enrutados; la única ruta viva es `buscar`, que internamente sigue renderizando la misma vista `plaza.show`). Confirmado con `git stash` que fallan igual sin los cambios de esta sesión. No se tocaron esos tests (son ~12 llamadas a reescribir en 2 archivos, un trabajo aparte de "rediseñar la vista"); en su lugar se verificó el rediseño con un test ad-hoc temporal contra la ruta real (`buscar`), confirmando las 5 secciones en el orden correcto, incluyendo el formato de presupuesto y el nombre del negocio en productos — y se descartó el test temporal. `vendor/bin/phpstan analyse` sin errores nuevos; suite completa 289 pasan / 27 fallos preexistentes sin cambio.
+
+## "Ver solicitud" te mandaba al municipio equivocado (sin página de detalle público)
+
+El usuario reportó: buscando en la Plaza de Zipaquirá, al dar clic en "Ver solicitud" de la tarjeta "Torta de Red Velvet", terminaba viendo "no hay solicitudes en Chía" — un municipio en el que ni siquiera estaba navegando.
+
+**Dos bugs reales, no uno:**
+
+1. **No existía una página de detalle público de una `Need`.** `mis-solicitudes.show` es privada (solo el dueño, por `NeedPolicy`). "Ver solicitud" en la Plaza enlazaba al catálogo genérico `route('pidelo')`, sin ningún parámetro — nunca a la solicitud específica en la que se hizo clic.
+2. **`pidelo` (el catálogo) solo miraba la cookie `municipio`** (`NeedsController::preferredMunicipality()`), nunca la URL. Esa cookie guarda la "preferencia" del Cliente (fijada, por ejemplo, al elegir municipio en el Inicio) y puede no coincidir en absoluto con el municipio de la Plaza que se está navegando en ese momento — como le pasó al usuario (cookie en Chía, navegando Zipaquirá).
+
+**Corrección:**
+- Nueva ruta pública `pidelo/{need}` (`pidelo.show`, con `whereNumber('need')` para no chocar con la ruta existente `pidelo/nueva` — sin el constraint, `/pidelo/nueva` intentaría bindear "nueva" como id de `Need` y devolvería 404 en vez de la página de Livewire). `NeedsController::show()` solo exige `$need->isPublished()` — sin filtrar por municipio en absoluto, porque se pide por id: la solicitud es la solicitud, sin importar en qué municipio esté navegando quien hace clic. Vista nueva `public/pidelo-show.blade.php`.
+- `NeedsController::preferredMunicipality()` ahora lee primero `?municipio=slug` de la URL y solo cae a la cookie si no viene explícito en la petición — así "Ver todas" desde la Plaza de un municipio siempre lleva a ese mismo municipio, no a la preferencia guardada.
+- Los enlaces de la Plaza y del catálogo `/pidelo` actualizados: "Ver solicitud" → `pidelo.show`, "Ver todas" → `pidelo` con `?municipio=` explícito.
+
+**Verificado:** 4 tests nuevos en `NeedsDiscoveryTest` (ver una solicitud con la cookie apuntando a otro municipio; `?municipio=` explícito ignora la cookie; un borrador no es visible públicamente; `/pidelo/nueva` sigue llegando a la página de Livewire y no es interceptada por la nueva ruta). `vendor/bin/phpstan analyse` sin errores nuevos; suite completa 293 pasan / 27 fallos preexistentes sin cambio.
+
+## `/plaza` (sin municipio) visualmente distinta de `/plaza/:municipio`
+
+El usuario notó que `/plaza` (sin municipio elegido) se veía distinta a `/plaza/bogota`. Causa: son dos vistas distintas — `PlazaController::buscar()` solo renderiza `plaza/show.blade.php` (la que se rediseñó en la sesión anterior) cuando hay un municipio seleccionado y no hay búsqueda por texto ni "cerca de mí"; en cualquier otro caso (incluido `/plaza` sin nada) cae a `plaza/buscar.blade.php`, una vista más antigua que nunca se actualizó con el mismo rediseño.
+
+Se preguntó al usuario el alcance: iguala también "Destacados" y "Productos" a nivel de toda la plataforma (sin municipio), o solo el estilo visual de lo que ya existe. Eligió **solo estilo visual** — no se agregaron consultas nuevas de "toda la plataforma" para destacados/productos (eso exigiría decidir qué significa "destacado" o "producto para ti" sin un municipio de referencia, una decisión de producto aparte).
+
+**Cambios en `plaza/buscar.blade.php`:**
+- Grilla de resultados: de 3 a 4 columnas (`lg:grid-cols-4`), igual que `plaza/show.blade.php`.
+- Se agregó la misma tarjeta "¿No encuentras lo que necesitas?" (sin la columna de "Solicitudes activas en :municipio", porque esta vista no tiene un municipio único al que atribuirlas).
+- Se agregó el mismo CTA final "Haz visible tu negocio en tu comunidad" con la misma ilustración (`fondo-login-admin.svg` al 50% de opacidad, `max-width: 700px`).
+
+**Verificado:** suite completa 293 pasan / 27 fallos preexistentes sin cambio (no se tocó ningún archivo PHP, solo la vista).
+
+## Inicio del Cliente (`/`) igualado visualmente a la Plaza
+
+Continuación directa del punto anterior: el usuario pidió el mismo tratamiento visual también en `/` (Inicio del Cliente, `clientes/home.blade.php`, cuando ya hay un municipio elegido):
+
+- Grilla de "Negocios destacados": de 3 a 4 columnas.
+- Se agregó la misma tarjeta "¿No encuentras lo que necesitas?".
+- Se **reemplazó** la tarjeta "Juntos construimos comunidad" (fondo `brand-50`, ícono `user-group`, dos botones "Publica tu negocio"/"Conoce cómo funciona") por el mismo CTA "Haz visible tu negocio en tu comunidad" con la ilustración `fondo-login-admin.svg`, para que fuera "exactamente lo mismo" como se pidió explícitamente — no una versión híbrida. El enlace a `como-funciona` que tenía ese botón ya no aparece ahí (sigue existiendo la ruta, solo no hay acceso directo desde este bloque).
+
+**Verificado:** ningún test hacía referencia al texto reemplazado ("Juntos construimos comunidad", "Conoce cómo funciona") — confirmado por grep antes de quitarlo. Suite completa 293 pasan / 27 fallos preexistentes sin cambio (solo se tocó la vista, sin cambios en PHP).
+
+## Se quitó la autodetección silenciosa de municipio por geolocalización
+
+El usuario reportó que el Inicio le mostraba "Mostrando Chía" sin haberlo elegido, y sin negocios ahí. Causa: `clientes/home.blade.php` tenía un `x-init="init()"` que, al cargar la página sin municipio en cookie, pedía la ubicación del navegador (`navigator.geolocation`) y, si encontraba un municipio a menos de 25km, enviaba un formulario oculto que fijaba la cookie `municipio` automáticamente — sin ninguna acción explícita del usuario. El usuario ya había pedido antes que el estado por defecto (sin elección explícita) fuera **"Todos"**, no una selección automática.
+
+**Corrección:** se eliminó por completo el flujo de autodetección (el bloque `x-data="clienteMunicipalityAutodetect(...)"`, el formulario oculto, y el script de geolocalización/distancia en `clientes/home.blade.php`; también la consulta ahora innecesaria `autoDetectMunicipalities` en `ClientesController::home()`). Sin municipio elegido, el Inicio ahora se queda genuinamente en el estado "Todos" (el hero de búsqueda sin filtrar) hasta que el usuario elige uno explícitamente desde el selector.
+
+`Municipality::canAutoDetect()` se dejó intacta (un helper de dominio razonable, `latitude`/`longitude` no nulos) por si en el futuro se ofrece geolocalización como una acción explícita del usuario (ej. un botón "Detectar mi ubicación") — nunca automática al cargar la página. Se guardó esta preferencia en memoria (`feedback_municipio_default_todos.md`) para no reintroducirla por accidente en una sesión futura.
+
+**Verificado:** ningún test dependía del flujo de autodetección (confirmado por grep antes de quitarlo); `ClientesHomeTest` sigue pasando. Suite completa 293 pasan / 27 fallos preexistentes sin cambio.
+
+## `/plaza/todos` (sin municipio): se agregaron Productos y Solicitudes site-wide
+
+Tras el ajuste visual de `/plaza` (ver punto anterior), el usuario notó dos cosas al probar `/plaza/todos/belleza-y-cuidado-personal`: (a) esa categoría específica está genuinamente vacía en la base de datos (solo hay 2 negocios publicados en todo el sitio, ninguno en esa categoría — comportamiento correcto, no un bug), pero (b) señaló correctamente que **la página general nunca mostraba productos**, y pidió además que se mostraran las últimas 3 publicaciones de Pídelo de **cualquier** municipio — revirtiendo la decisión anterior de "solo estilo visual" ahora que quedó claro que sí quería el contenido, no solo la apariencia.
+
+**`PlazaController::buscar()`** (rama general, sin municipio fijo o con búsqueda por texto): se agregaron dos queries nuevas, sin depender de un municipio único:
+- `$products`: mismo patrón que `plazaData()` (`status = 'publicado'`, `disponibles`, coincide con el negocio o el municipio/categoría cuando se filtran), pero con el filtro de texto (`$query`) aplicado también al nombre del producto o de su negocio — igual criterio que ya usaba la búsqueda de negocios.
+- `$openNeeds`: últimas 3 solicitudes abiertas (`PUBLICADA`/`RECIBIENDO_OFERTAS`, sin suspender), filtradas por municipio/categoría **solo si están seleccionados** — sin municipio, cubre toda la plataforma. El enlace "Ver todas" apunta a `pidelo` con o sin `?municipio=` según corresponda.
+
+**Bug de PHPStan propio, corregido en el momento:** el primer intento reusaba el scope `servesMunicipality()` dentro de un closure de `whereHas('business', fn ($b) => ...)`, y PHPStan no puede inferir que `$b` ahí es un `Builder<Business>` (lo ve como `Builder<Model>` genérico), así que no reconoce el scope. Se corrigió con el mismo patrón manual (`where('municipality_id', ...)->orWhereHas('municipalities', ...)`) que ya usa `plazaData()` para el mismo caso — evita el scope dentro del closure en vez de intentar tipar el closure.
+
+**Verificado:** 1 test nuevo en `PlazaFiltersTest` (negocio, producto y solicitud de cualquier municipio, todos visibles en `/plaza/todos`) — usando la ruta real `buscar`, no `plaza.show`/`plaza.category` (esas siguen rotas desde antes de esta sesión, ver más abajo). `vendor/bin/phpstan analyse` vuelve a 28 errores (los mismos preexistentes) tras la corrección. Suite completa 294 pasan / 27 fallos preexistentes sin cambio.
+
+## El Inicio (`/`) también debía mostrar todo sin filtrar
+
+Continuación directa de los dos puntos anteriores: el usuario aclaró que quería exactamente el mismo comportamiento (todo visible sin filtrar por defecto) también en `/` — no solo en `/plaza`. `ClientesController::home()` seguía devolviendo `businesses => collect()` (vacío) cuando no había municipio, y `clientes/home.blade.php` tenía la grilla de "Negocios destacados" envuelta en `@if ($municipality)`, así que sin municipio elegido no se veía ningún negocio, ni productos, ni solicitudes — solo el hero, categorías y las dos tarjetas fijas.
+
+**Corrección:** `ClientesController::home()` ahora arma `$businesses`/`$products`/`$openNeeds` con `when($municipalityId, ...)` en vez de tener dos ramas separadas (una vacía) — sin municipio, cubre toda la plataforma; con municipio, se acota igual que antes. La vista ganó la sección "Productos para ti" (no existía en el Inicio) y la lista de "Solicitudes activas" dentro de la tarjeta de Pídelo (antes esa tarjeta era solo texto fijo, sin datos). El heading "Negocios destacados" y su empty-state ya no dependen de `$municipality`.
+
+**Verificado:** `ClientesHomeTest` sigue pasando sin cambios (no dependía de la rama vacía). Suite completa 294 pasan / 27 fallos preexistentes sin cambio; `vendor/bin/phpstan analyse` 28 errores preexistentes sin cambio.
+
 ## Explícitamente diferido a una sesión posterior
 
 - Revisión legal real de los textos de `docs/legal/`.

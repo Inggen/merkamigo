@@ -657,7 +657,7 @@ Además de las 12 vistas principales, el producto necesita:
 - [ ] Reservar sección “Solicitudes actuales” para activarla con la fase 2.
 - [x] Estado vacío útil para categorías sin oferta.
 - [x] Selector y persistencia del municipio.
-- [x] Preparar geolocalización opcional sin depender de ella. (`Municipality` tiene `latitude`/`longitude` opcionales y `canAutoDetect()`; el Inicio de Cliente ofrece autodetectar el municipio cuando el navegador lo permite, sin bloquear el flujo si no hay permiso o dato).
+- [x] Preparar geolocalización opcional sin depender de ella. (`Municipality` tiene `latitude`/`longitude` opcionales y `canAutoDetect()`, listos para usarse. La autodetección automática al cargar el Inicio se quitó por pedido explícito del usuario — el municipio nunca debe autoseleccionarse en silencio, el estado por defecto sin elección explícita es "Todos"; ver docs/architecture/decisiones.md.)
 - [x] Evitar geolocalización avanzada en el MVP.
 
 **Pantallas/rutas**

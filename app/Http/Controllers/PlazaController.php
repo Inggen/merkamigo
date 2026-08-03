@@ -119,7 +119,7 @@ class PlazaController extends Controller
             ->where('featured_until', '>', now())
             ->with(['category', 'storefront'])
             ->orderByDesc('featured_until')
-            ->take(6)
+            ->take(4)
             ->get();
 
         $businessesQuery = (clone $publishedBusinesses)
@@ -194,6 +194,7 @@ class PlazaController extends Controller
         $near = $this->nearMeCoordinates($request);
         $selectedMunicipality = $this->resolveSearchMunicipality($request, $municipio);
         $selectedCategory = $this->resolveSearchCategory($request, $categoria);
+        $onlyAvailable = $request->boolean('disponibles');
 
         if ($redirect = $this->normalizeLegacySearchUrl($request, $selectedMunicipality, $selectedCategory, $municipio, $categoria)) {
             return $redirect;
@@ -227,6 +228,38 @@ class PlazaController extends Controller
             $businesses = $businessesQuery->orderByDesc('created_at')->paginate(12)->withQueryString();
         }
 
+        $products = Product::query()
+            ->where('status', 'publicado')
+            ->when($onlyAvailable, fn (Builder $q) => $q->where('is_available', true))
+            ->when(
+                $query !== '',
+                fn (Builder $q) => $q->where(function (Builder $q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                        ->orWhereHas('business', fn (Builder $b) => $b->where('name', 'like', "%{$query}%"));
+                }),
+            )
+            ->whereHas('business', fn (Builder $b) => $b
+                ->where('status', 'publicado')
+                ->when($municipalityId, fn (Builder $b) => $b->where(fn (Builder $q) => $q
+                    ->where('municipality_id', $municipalityId)
+                    ->orWhereHas('municipalities', fn (Builder $m) => $m->where('municipalities.id', $municipalityId))))
+                ->when($categoryId, fn (Builder $b) => $b->where('category_id', $categoryId)))
+            ->with(['business', 'media'])
+            ->orderByDesc('created_at')
+            ->paginate(8, ['*'], 'productos_page')
+            ->withQueryString();
+
+        $openNeeds = Need::query()
+            ->whereIn('status', [Need::PUBLICADA, Need::RECIBIENDO_OFERTAS])
+            ->whereNull('suspended_at')
+            ->when($municipalityId, fn (Builder $q) => $q->where('municipality_id', $municipalityId))
+            ->when($categoryId, fn (Builder $q) => $q->where('category_id', $categoryId))
+            ->withCount('offers')
+            ->with('category')
+            ->latest('published_at')
+            ->take(3)
+            ->get();
+
         return view('plaza.buscar', [
             'query' => $query,
             'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
@@ -234,6 +267,9 @@ class PlazaController extends Controller
             'selectedMunicipality' => $selectedMunicipality,
             'selectedCategory' => $selectedCategory,
             'businesses' => $businesses,
+            'products' => $products,
+            'onlyAvailable' => $onlyAvailable,
+            'openNeeds' => $openNeeds,
             'near' => $near,
         ]);
     }

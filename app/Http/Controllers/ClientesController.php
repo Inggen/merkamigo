@@ -6,6 +6,7 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Actions\SetPreferredMunicipality;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Needs\Models\Need;
 use App\Domain\Storefronts\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -23,33 +24,48 @@ class ClientesController extends Controller
     public function home(Request $request): View
     {
         $municipality = $this->preferredMunicipality($request);
+        $municipalityId = $municipality?->id;
 
-        if (! $municipality) {
-            return view('clientes.home', [
-                'municipality' => null,
-                'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
-                'autoDetectMunicipalities' => Municipality::where('is_active', true)
-                    ->whereNotNull('latitude')
-                    ->whereNotNull('longitude')
-                    ->orderBy('name')
-                    ->get(['id', 'name', 'slug', 'latitude', 'longitude']),
-                'categories' => Category::where('is_active', true)->orderBy('position')->get(),
-                'businesses' => collect(),
-            ]);
-        }
+        // Sin municipio elegido, el Inicio no se queda vacío esperando una
+        // elección: muestra negocios, productos y solicitudes de toda la
+        // plataforma (sin filtrar), igual que `/plaza` — el municipio solo
+        // acota estos mismos listados cuando el Cliente lo elige, nunca es
+        // un requisito para ver contenido.
+        $businesses = Business::query()
+            ->where('status', 'publicado')
+            ->when($municipalityId, fn ($query) => $query->where('municipality_id', $municipalityId))
+            ->with(['category', 'storefront'])
+            ->latest('created_at')
+            ->take(6)
+            ->get();
+
+        $products = Product::query()
+            ->where('status', 'publicado')
+            ->whereHas('business', fn ($query) => $query
+                ->where('status', 'publicado')
+                ->when($municipalityId, fn ($query) => $query->where('municipality_id', $municipalityId)))
+            ->with(['business', 'media'])
+            ->latest('created_at')
+            ->take(8)
+            ->get();
+
+        $openNeeds = Need::query()
+            ->whereIn('status', [Need::PUBLICADA, Need::RECIBIENDO_OFERTAS])
+            ->whereNull('suspended_at')
+            ->when($municipalityId, fn ($query) => $query->where('municipality_id', $municipalityId))
+            ->withCount('offers')
+            ->with('category')
+            ->latest('published_at')
+            ->take(3)
+            ->get();
 
         return view('clientes.home', [
             'municipality' => $municipality,
             'municipalities' => Municipality::where('is_active', true)->orderBy('name')->get(),
-            'autoDetectMunicipalities' => collect(),
             'categories' => Category::where('is_active', true)->orderBy('position')->get(),
-            'businesses' => Business::query()
-                ->where('municipality_id', $municipality->id)
-                ->where('status', 'publicado')
-                ->with(['category', 'storefront'])
-                ->latest('created_at')
-                ->take(6)
-                ->get(),
+            'businesses' => $businesses,
+            'products' => $products,
+            'openNeeds' => $openNeeds,
         ]);
     }
 

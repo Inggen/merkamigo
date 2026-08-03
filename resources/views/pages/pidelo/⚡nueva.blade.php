@@ -157,10 +157,10 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                 {{ __('Pídelo en Merkamigo') }}
             </div>
 
-            <flux:heading class="mt-4 text-4xl font-bold tracking-tight text-zinc-950 sm:text-3xl">
+            <flux:heading class="mt-4 text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
                 {{ __('Cuéntanos qué necesitas') }}
             </flux:heading>
-            <flux:text class="mt-3 text-lg text-zinc-500 dark:text-zinc-400">
+            <flux:text class="mt-3 text-md text-zinc-500 dark:text-zinc-400">
                 {{ __('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.') }}
             </flux:text>
 
@@ -180,7 +180,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                             <section class="space-y-5">
                                 <div class="flex items-center gap-3">
                                     <span class="flex size-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">1</span>
-                                    <h2 class="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Describe lo que buscas') }}</h2>
+                                    <h2 class="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Describe lo que buscas') }}</h2>
                                 </div>
 
                                 <flux:input wire:model.live.debounce.900ms="title" :label="__('¿Qué necesitas?')" placeholder="{{ __('Ej: Torta de cumpleaños para el sábado') }}" required />
@@ -196,7 +196,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                             <section class="space-y-5">
                                 <div class="flex items-center gap-3">
                                     <span class="flex size-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">2</span>
-                                    <h2 class="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Ubicación y categoría') }}</h2>
+                                    <h2 class="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Ubicación y categoría') }}</h2>
                                 </div>
 
                                 <div class="grid gap-4 md:grid-cols-2">
@@ -216,12 +216,9 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                                     </div>
 
                                     <div>
-                                        <div class="mb-2 flex items-center gap-2">
-                                            <label class="text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ __('Categoría') }}</label>
-                                            <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">{{ __('Opcional') }}</span>
-                                        </div>
-                                        <flux:select wire:model.live="category_id">
-                                            <flux:select.option value="">{{ __('Sin categoría') }}</flux:select.option>
+                                        <label class="mb-2 block text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ __('Categoría') }}</label>
+                                        <flux:select wire:model.live="category_id" required>
+                                            <flux:select.option value="">{{ __('Selecciona una categoría') }}</flux:select.option>
                                             @foreach ($this->categories as $option)
                                                 <flux:select.option value="{{ $option->id }}">{{ $option->name }}</flux:select.option>
                                             @endforeach
@@ -244,7 +241,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                                 <div class="flex items-center gap-3">
                                     <span class="flex size-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">3</span>
                                     <div class="flex items-center gap-2">
-                                        <h2 class="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Agrega fotos') }}</h2>
+                                        <h2 class="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Agrega fotos') }}</h2>
                                         <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">{{ __('Opcional') }}</span>
                                     </div>
                                 </div>
@@ -271,7 +268,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                                     <span class="mx-auto mb-4 flex size-16 items-center justify-center rounded-3xl bg-zinc-100 text-brand-600 dark:bg-zinc-800 dark:text-brand-400">
                                         <flux:icon.photo class="size-8" variant="outline" />
                                     </span>
-                                    <div class="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Arrastra tus fotos aquí') }}</div>
+                                    <div class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Arrastra tus fotos aquí') }}</div>
                                     <div class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                                         {{ __('o haz clic para elegir archivos · JPG, PNG o WEBP') }}
                                     </div>
@@ -379,7 +376,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                         <span class="flex size-12 items-center justify-center rounded-full bg-amber-100 text-amber-500 dark:bg-amber-500/10 dark:text-amber-300">
                             <flux:icon.light-bulb class="size-6" variant="outline" />
                         </span>
-                        <h3 class="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Recibe mejores propuestas') }}</h3>
+                        <h3 class="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Recibe mejores propuestas') }}</h3>
                     </div>
 
                     <div class="space-y-0">
@@ -399,7 +396,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                 </div>
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                    <h3 class="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('¿Qué pasará después?') }}</h3>
+                    <h3 class="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('¿Qué pasará después?') }}</h3>
 
                     <div class="mt-6 space-y-6">
                         @foreach ([
@@ -411,10 +408,10 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                                 @if (! $loop->last)
                                     <span class="absolute left-[18px] top-10 h-12 w-px border-l border-dashed border-zinc-300 dark:border-zinc-700"></span>
                                 @endif
-                                <span class="relative z-10 flex size-9 items-center justify-center rounded-full border-2 border-brand-500 bg-white text-sm font-semibold text-brand-600 dark:bg-zinc-900 dark:text-brand-400">
+                                <span class="relative z-10 flex size-8 items-center justify-center rounded-full border-2 border-brand-500 bg-white text-sm font-semibold text-brand-600 dark:bg-zinc-900 dark:text-brand-400">
                                     {{ $index + 1 }}
                                 </span>
-                                <p class="pt-1 text-base leading-7 text-zinc-700 dark:text-zinc-300">{{ $step }}</p>
+                                <p class="pt-1 text-sm leading-7 text-zinc-700 dark:text-zinc-300">{{ $step }}</p>
                             </div>
                         @endforeach
                     </div>

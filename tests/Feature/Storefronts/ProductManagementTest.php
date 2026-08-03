@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -17,6 +19,21 @@ use Tests\TestCase;
 class ProductManagementTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function emprendedorPlan(): Plan
+    {
+        return Plan::create([
+            'slug' => 'emprendedor',
+            'name' => 'Emprendedor',
+            'description' => 'Más productos, colaboradores y destacados.',
+            'price_cents' => 1990000,
+            'billing_period' => Plan::MENSUAL,
+            'limits' => ['max_products' => null, 'max_members' => 5, 'max_featured_days' => 7, 'max_storefronts' => 3],
+            'trial_days' => 14,
+            'is_active' => true,
+            'position' => 1,
+        ]);
+    }
 
     public function test_owner_can_create_edit_and_archive_a_product(): void
     {
@@ -100,6 +117,57 @@ class ProductManagementTest extends TestCase
         $this->assertSame('Grande', $product->variants->first()->label);
         $this->assertEquals(6000, $product->variants->first()->price);
         $this->assertNull($product->variants->last()->price);
+    }
+
+    public function test_owner_can_choose_which_storefront_a_new_product_belongs_to(): void
+    {
+        $owner = User::factory()->create();
+        $businessA = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio A'])->business;
+        app(SubscribeToPlan::class)->handle($businessA, $this->emprendedorPlan(), $owner);
+        $businessB = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio B'])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $businessA->id])
+            ->call('openCreate')
+            ->set('productBusinessId', $businessB->id)
+            ->set('name', 'Producto en B')
+            ->set('type', 'producto')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'business_id' => $businessB->id,
+            'name' => 'Producto en B',
+        ]);
+    }
+
+    public function test_owner_can_move_an_existing_product_to_another_storefront(): void
+    {
+        $owner = User::factory()->create();
+        $businessA = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio A'])->business;
+        app(SubscribeToPlan::class)->handle($businessA, $this->emprendedorPlan(), $owner);
+        $businessB = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio B'])->business;
+
+        $this->actingAs($owner);
+
+        $component = Livewire::test('pages::emprendedores.negocios.productos', ['business' => $businessA->id])
+            ->call('openCreate')
+            ->set('name', 'Producto a mover')
+            ->set('type', 'producto')
+            ->call('save');
+
+        $product = $businessA->products()->where('name', 'Producto a mover')->firstOrFail();
+
+        $component->call('openEdit', $product->id)
+            ->set('productBusinessId', $businessB->id)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'business_id' => $businessB->id,
+        ]);
     }
 
     public function test_owner_can_duplicate_a_product_with_its_variants_and_photos(): void

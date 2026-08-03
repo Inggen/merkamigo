@@ -1,4 +1,7 @@
-@php $photo = $product->media->first(); @endphp
+@php
+    $photo = $product->media->first();
+    $showBusinessName = $showBusinessName ?? false;
+@endphp
 
 <div class="group relative overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
     <a href="{{ route('vitrinas.product', [$business, $product]) }}" class="block" wire:navigate>
@@ -17,7 +20,9 @@
         <div class="space-y-2 p-4">
             <h3 class="line-clamp-2 text-base font-semibold text-zinc-950 dark:text-white">{{ $product->name }}</h3>
 
-            @if ($product->description)
+            @if ($showBusinessName)
+                <p class="line-clamp-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $business->name }}</p>
+            @elseif ($product->description)
                 <p class="line-clamp-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{{ $product->description }}</p>
             @endif
 

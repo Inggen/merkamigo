@@ -42,6 +42,23 @@ class NeedsController extends Controller
         ]);
     }
 
+    /**
+     * Detalle público de una solicitud (2.2 del TODO): a diferencia de
+     * `mis-solicitudes.show` (privada, solo el dueño puede comparar y
+     * cerrar propuestas), cualquiera puede ver una solicitud ya publicada
+     * — sin acciones, solo para saber qué se necesita. No depende del
+     * municipio "preferido" de nadie: se accede por id, sin filtrar.
+     */
+    public function show(Need $need): View
+    {
+        abort_unless($need->isPublished(), 404);
+
+        $need->loadMissing(['category', 'municipality', 'media', 'user']);
+        $need->loadCount('offers');
+
+        return view('public.pidelo-show', ['need' => $need]);
+    }
+
     public function misSolicitudes(Request $request): View
     {
         $needs = $request->user()
@@ -77,9 +94,17 @@ class NeedsController extends Controller
         return redirect()->away("https://wa.me/{$number}?text=".urlencode($text));
     }
 
+    /**
+     * El municipio se toma primero de la URL (`?municipio=slug`, así el
+     * enlace "Ver todas" de la Plaza de un municipio siempre apunta a ese
+     * mismo municipio) y solo cae a la cookie de preferencia guardada
+     * cuando no se pidió uno explícito — antes solo miraba la cookie, así
+     * que venir desde la Plaza de un municipio podía terminar mostrando
+     * las solicitudes de un municipio completamente distinto.
+     */
     private function preferredMunicipality(Request $request): ?Municipality
     {
-        $slug = $request->cookie('municipio');
+        $slug = $request->query('municipio') ?: $request->cookie('municipio');
 
         if (! $slug) {
             return null;

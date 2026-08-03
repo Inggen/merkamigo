@@ -63,7 +63,9 @@ class PublishNeedTest extends TestCase
             ->call('togglePreview')
             ->call('publish');
 
-        $component->assertSet('missing', fn ($missing) => in_array('Descripción', $missing) && in_array('Municipio', $missing));
+        $component->assertSet('missing', fn ($missing) => in_array('Descripción', $missing)
+            && in_array('Municipio', $missing)
+            && in_array('Categoría', $missing));
         $this->assertSame(Need::BORRADOR, Need::firstOrFail()->status);
     }
 

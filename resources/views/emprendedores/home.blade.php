@@ -1,4 +1,9 @@
 <x-layouts::app :title="__('Inicio')">
+    @php
+        $canCreateStorefront = $storefrontQuota['can_create'] ?? true;
+        $storefrontLimit = $storefrontQuota['limit'] ?? null;
+    @endphp
+
     <div class="flex h-full w-full flex-1 flex-col gap-4">
         <flux:heading size="xl">{{ __('Hola, :name', ['name' => auth()->user()->name]) }} 👋</flux:heading>
         <flux:text class="text-zinc-500 dark:text-zinc-400">
@@ -10,9 +15,11 @@
                 title="Todavía no tienes ninguna vitrina"
                 description="Crea tu Merkamigo en cinco minutos y empieza a recibir contactos por WhatsApp."
             >
-                <flux:button variant="primary" :href="route('emprendedores.crear-vitrina')" wire:navigate>
-                    {{ __('Crear mi vitrina') }}
-                </flux:button>
+                @if ($canCreateStorefront)
+                    <flux:button variant="primary" :href="route('emprendedores.crear-vitrina')" wire:navigate>
+                        {{ __('Crear mi vitrina') }}
+                    </flux:button>
+                @endif
             </x-states.empty>
         @else
             <div class="grid gap-4 sm:grid-cols-2">
@@ -94,9 +101,15 @@
                 @endforeach
             </div>
 
-            <flux:button variant="ghost" class="self-start" :href="route('emprendedores.crear-vitrina')" wire:navigate>
-                {{ __('+ Crear otra vitrina') }}
-            </flux:button>
+            @if ($canCreateStorefront)
+                <flux:button variant="ghost" class="self-start" :href="route('emprendedores.crear-vitrina')" wire:navigate>
+                    {{ __('+ Crear otra vitrina') }}
+                </flux:button>
+            @elseif ($storefrontLimit)
+                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ __('Ya alcanzaste el máximo de :count vitrinas para tu plan actual.', ['count' => $storefrontLimit]) }}
+                </flux:text>
+            @endif
         @endif
     </div>
 </x-layouts::app>

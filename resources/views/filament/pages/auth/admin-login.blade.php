@@ -1,10 +1,10 @@
-<div class="min-h-screen bg-[#faf7f5] text-slate-900">
+<div class="min-h-screen bg-[#faf7f5] font-sans text-slate-900">
     <div class="relative isolate overflow-hidden min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(227,52,47,0.12),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(227,52,47,0.08),_transparent_18%),linear-gradient(180deg,_#fffdfc_0%,_#f8f4f2_100%)]">
         <div class="pointer-events-none absolute left-[-6rem] top-14 h-64 w-64 rounded-full bg-[#f7cfc9]/30 blur-3xl"></div>
         <div class="pointer-events-none absolute bottom-8 right-8 h-72 w-72 rounded-full bg-[#fde7e3]/50 blur-3xl"></div>
 
         <main class="mx-auto flex min-h-screen w-full max-w-[1440px] items-center justify-center px-4 py-6 sm:px-6 lg:px-10">
-            <div class="grid w-full max-w-[1320px] overflow-hidden rounded-[2.25rem] border border-white/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.18)] backdrop-blur xl:grid-cols-[1.05fr_0.95fr]">
+            <div class="grid w-full max-w-[1320px] rounded-2xl overflow-hidden bg-white/85 backdrop-blur xl:grid-cols-[1.05fr_0.95fr]">
                 <section class="relative hidden overflow-hidden xl:flex">
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(227,52,47,0.10),_transparent_20%),linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(255,250,248,0.92)_100%)]"></div>
                     <div class="absolute left-[-7rem] top-[-4rem] h-72 w-72 rounded-full border border-[#f6d8d2] bg-[#fbeceb]/60"></div>
@@ -13,38 +13,20 @@
                     <div class="relative flex w-full flex-col justify-between px-12 py-14">
                         <div class="space-y-10">
                             <x-admin.auth.brand />
-
-                            <div class="max-w-xl space-y-5">
-                                <h1 class="text-6xl font-semibold leading-[0.95] tracking-[-0.04em] text-slate-800">
-                                    Administración
-                                    <span class="block text-[#e3342f]">Merkamigo</span>
-                                </h1>
-
-                                <p class="max-w-lg text-2xl leading-relaxed text-slate-600">
-                                    Gestiona negocios, solicitudes y la comunidad local.
-                                </p>
-                            </div>
                         </div>
 
-                        <x-admin.auth.storefront-illustration class="w-full text-[#ef7a72]" />
+                        <img
+                            src="{{ asset('images/fondo-login-admin.svg') }}"
+                            alt="Fondo ilustrado del acceso administrativo"
+                            class="w-full rounded-2xl object-contain" style="opacity:40%"
+                        >
                     </div>
                 </section>
 
                 <section class="relative flex items-center justify-center px-5 py-8 sm:px-8 lg:px-12">
-                    <div class="w-full max-w-[34rem] rounded-[2rem] border border-[#f1e5e2] bg-white/95 p-6 shadow-[0_24px_60px_rgba(226,62,52,0.08)] sm:p-8 lg:p-10">
+                    <div class="w-full max-w-[34rem] rounded-2xl border border-[#f1e5e2] bg-white/95 p-6 shadow-[0_24px_60px_rgba(226,62,52,0.08)] sm:p-8 lg:p-10">
                         <div class="mb-8 space-y-5 xl:hidden">
                             <x-admin.auth.brand compact />
-
-                            <div class="space-y-3 text-center">
-                                <h1 class="text-4xl font-semibold leading-none tracking-[-0.04em] text-slate-800 sm:text-5xl">
-                                    Administración
-                                    <span class="block text-[#e3342f]">Merkamigo</span>
-                                </h1>
-
-                                <p class="mx-auto max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-                                    Gestiona negocios, solicitudes y la comunidad local.
-                                </p>
-                            </div>
                         </div>
 
                         @if (filled($this->userUndertakingMultiFactorAuthentication))

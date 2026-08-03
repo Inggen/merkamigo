@@ -127,6 +127,7 @@ Route::post('clientes/municipio', [ClientesController::class, 'setMunicipio'])->
 
 // "Pídelo en Merkamigo" (Fase 2 del TODO) — explorar es público.
 Route::get('pidelo', [NeedsController::class, 'index'])->name('pidelo');
+Route::get('pidelo/{need}', [NeedsController::class, 'show'])->whereNumber('need')->name('pidelo.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');

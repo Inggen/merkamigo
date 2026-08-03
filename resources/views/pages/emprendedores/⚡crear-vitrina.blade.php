@@ -12,6 +12,7 @@ use App\Domain\Storefronts\Actions\UpdateStorefront;
 use App\Domain\Storefronts\Exceptions\IncompleteStorefrontException;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -83,6 +84,8 @@ new #[Title('Crea tu vitrina')] class extends Component {
 
     public function goToStep2(): void
     {
+        $this->normalizeAdditionalMunicipalities();
+
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'whatsapp_number' => ['nullable', 'string', 'max:20'],
@@ -92,8 +95,12 @@ new #[Title('Crea tu vitrina')] class extends Component {
         ]);
 
         $additionalMunicipalityIds = $this->validate([
-            'additional_municipality_ids' => ['array'],
-            'additional_municipality_ids.*' => ['integer', 'exists:municipalities,id'],
+            'additional_municipality_ids' => ['array', 'max:3'],
+            'additional_municipality_ids.*' => [
+                'integer',
+                'exists:municipalities,id',
+                Rule::notIn(array_filter([(int) $this->municipality_id])),
+            ],
         ])['additional_municipality_ids'];
 
         if (! $this->business) {
@@ -113,6 +120,35 @@ new #[Title('Crea tu vitrina')] class extends Component {
         app(SyncBusinessMunicipalities::class)->handle($this->business, $additionalMunicipalityIds);
 
         $this->step = 2;
+    }
+
+    public function updatedMunicipalityId(): void
+    {
+        $this->normalizeAdditionalMunicipalities();
+    }
+
+    public function updatedAdditionalMunicipalityIds(): void
+    {
+        $this->normalizeAdditionalMunicipalities(notify: true);
+    }
+
+    private function normalizeAdditionalMunicipalities(bool $notify = false): void
+    {
+        $selectedMainMunicipalityId = (int) $this->municipality_id;
+        $normalized = collect($this->additional_municipality_ids)
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->reject(fn (int $id) => $id === $selectedMainMunicipalityId)
+            ->values();
+
+        $trimmed = $normalized->take(3)->all();
+
+        if ($notify && $normalized->count() > 3) {
+            Flux::toast(variant: 'warning', text: __('Solo puedes seleccionar hasta 3 municipios adicionales.'));
+        }
+
+        $this->additional_municipality_ids = $trimmed;
     }
 
     public function goToStep3(): void
@@ -272,17 +308,30 @@ new #[Title('Crea tu vitrina')] class extends Component {
             <flux:input wire:model="name" :label="__('Nombre del negocio')" required autofocus />
             <flux:input wire:model="whatsapp_number" :label="__('WhatsApp')" type="tel" placeholder="+57 300 000 0000" />
 
-            <flux:select wire:model="municipality_id" :label="__('Municipio')">
+            <flux:select wire:model.live="municipality_id" :label="__('Municipio')">
                 <flux:select.option value="">{{ __('Selecciona un municipio') }}</flux:select.option>
                 @foreach ($this->municipalities as $municipality)
                     <flux:select.option value="{{ $municipality->id }}">{{ $municipality->name }}</flux:select.option>
                 @endforeach
             </flux:select>
 
-            <flux:checkbox.group wire:model="additional_municipality_ids" :label="__('¿También atiendes en otros municipios? (opcional)')">
+            <flux:checkbox.group wire:model.live="additional_municipality_ids" :label="__('¿También atiendes en otros municipios? (opcional)')">
+                <flux:text class="mb-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ __('Máximo 3 municipios adicionales. El municipio principal no se puede repetir.') }}
+                </flux:text>
                 <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($this->municipalities as $municipality)
-                        <flux:checkbox value="{{ $municipality->id }}" :label="$municipality->name" />
+                        @php
+                            $isCurrentMunicipality = (int) $municipality->id === (int) $municipality_id;
+                            $isChecked = in_array((int) $municipality->id, array_map('intval', $additional_municipality_ids), true);
+                            $hasReachedLimit = count($additional_municipality_ids) >= 3;
+                        @endphp
+
+                        <flux:checkbox
+                            value="{{ $municipality->id }}"
+                            :label="$municipality->name"
+                            :disabled="$isCurrentMunicipality || ($hasReachedLimit && ! $isChecked)"
+                        />
                     @endforeach
                 </div>
             </flux:checkbox.group>

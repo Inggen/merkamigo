@@ -45,6 +45,10 @@
                         <flux:text class="mt-3 line-clamp-2 text-zinc-600 dark:text-zinc-300">
                             {{ $need->description }}
                         </flux:text>
+
+                        <div class="mt-3">
+                            <flux:link :href="route('pidelo.show', $need)" wire:navigate class="text-sm font-medium">{{ __('Ver solicitud →') }}</flux:link>
+                        </div>
                     </div>
                 @endforeach
             </div>

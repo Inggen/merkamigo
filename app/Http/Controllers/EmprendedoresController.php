@@ -6,6 +6,7 @@ use App\Domain\Analytics\Actions\CalculateReadableMetrics;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\PublishStorefront;
+use App\Domain\Storefronts\Actions\ResolveStorefrontQuota;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -17,8 +18,12 @@ class EmprendedoresController extends Controller
      * falta para vender" y un vistazo rápido de métricas semanales por cada
      * negocio publicado.
      */
-    public function home(Request $request, PublishStorefront $publishStorefront, CalculateReadableMetrics $calculateReadableMetrics): View
-    {
+    public function home(
+        Request $request,
+        PublishStorefront $publishStorefront,
+        CalculateReadableMetrics $calculateReadableMetrics,
+        ResolveStorefrontQuota $resolveStorefrontQuota,
+    ): View {
         $businesses = $request->user()->businesses()->with('storefront')->get();
 
         $missingByBusiness = $businesses
@@ -33,6 +38,7 @@ class EmprendedoresController extends Controller
             'businesses' => $businesses,
             'missingByBusiness' => $missingByBusiness,
             'metricsByBusiness' => $metricsByBusiness,
+            'storefrontQuota' => $resolveStorefrontQuota->handle($request->user()),
         ]);
     }
 

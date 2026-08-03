@@ -3,6 +3,7 @@
 namespace App\Domain\Businesses\Actions;
 
 use App\Domain\Businesses\Models\Business;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Sincroniza los municipios adicionales de un negocio (0.2.2 del TODO: una
@@ -17,8 +18,19 @@ class SyncBusinessMunicipalities
      */
     public function handle(Business $business, array $municipalityIds): void
     {
-        $additional = array_diff($municipalityIds, [$business->municipality_id]);
+        $additional = collect($municipalityIds)
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->reject(fn (int $id) => $id === (int) $business->municipality_id)
+            ->values();
 
-        $business->municipalities()->sync($additional);
+        if ($additional->count() > 3) {
+            throw ValidationException::withMessages([
+                'additional_municipality_ids' => __('Solo puedes seleccionar hasta 3 municipios adicionales.'),
+            ]);
+        }
+
+        $business->municipalities()->sync($additional->all());
     }
 }
