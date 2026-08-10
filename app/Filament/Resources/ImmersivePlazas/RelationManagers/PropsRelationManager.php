@@ -16,8 +16,8 @@ use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Collection;
 

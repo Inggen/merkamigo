@@ -89,7 +89,7 @@
                 >
                     <x-filament::icon icon="heroicon-m-arrow-uturn-left" class="h-4 w-4" />
                 </button>
-
+ 
                 <button
                     type="button"
                     wire:click="redo"
