@@ -1,6 +1,9 @@
 /.phpunit.cache
 /node_modules
-/public/build
+# Comitido a propósito (no ignorado): el deploy en cPanel no tiene Node.js
+# disponible, así que los assets se compilan en local con `npm run build`
+# y se suben ya listos junto con el resto del código. Acordarse de correr
+# `npm run build` y comitear el resultado antes de cada deploy.
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage

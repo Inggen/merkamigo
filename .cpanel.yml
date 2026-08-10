@@ -1,0 +1,36 @@
+---
+# Deploy automático desde "Git Version Control" de cPanel — se ejecuta al
+# hacer clic en "Deploy HEAD Commit" en la interfaz de cPanel. No requiere
+# terminal/SSH: cPanel corre estas tareas en el servidor por su cuenta.
+#
+# Estructura del servidor (cPanel, usuario inggenco):
+#   - App completa (composer, artisan, .env, etc.): /home/inggenco/webapps/merkamigo/
+#   - Carpeta pública del dominio merkamigo.com:     /home/inggenco/merkamigo.com/
+# No son carpetas hermanas directas, así que NUNCA se copian index.php ni
+# .htaccess desde el repo — esos ya están ajustados a mano en el servidor
+# con las rutas correctas para esta estructura partida; copiarlos desde el
+# repo (que asume public/ junto a vendor/) rompería el sitio.
+#
+# No corre `npm run build`: los assets de public/build ya vienen
+# compilados y comiteados en el repo (el servidor no tiene Node.js).
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/inggenco/webapps/merkamigo/
+    - export PUBLICPATH=/home/inggenco/merkamigo.com/
+    - /bin/cp -R * $DEPLOYPATH
+    - /bin/rm -rf $PUBLICPATH/build
+    - /bin/cp -R public/build $PUBLICPATH
+    - /bin/cp -R public/css $PUBLICPATH
+    - /bin/cp -R public/fonts $PUBLICPATH
+    - /bin/cp -R public/icons $PUBLICPATH
+    - /bin/cp -R public/images $PUBLICPATH
+    - /bin/cp -R public/js $PUBLICPATH
+    - /bin/cp -R public/3D $PUBLICPATH
+    - /bin/cp public/favicon.ico public/favicon.svg public/logo-mono.svg public/robots.txt public/site.webmanifest public/sw.js public/offline.html $PUBLICPATH
+    - cd $DEPLOYPATH && composer install --no-dev --optimize-autoloader --no-interaction
+    - cd $DEPLOYPATH && php artisan config:clear
+    - cd $DEPLOYPATH && php artisan view:clear
+    - cd $DEPLOYPATH && php artisan config:cache
+    - cd $DEPLOYPATH && php artisan route:cache
+    - cd $DEPLOYPATH && php artisan view:cache
+    - cd $DEPLOYPATH && php artisan migrate --force
