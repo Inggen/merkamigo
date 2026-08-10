@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             MunicipalitySeeder::class,
+            ImmersiveObjectTemplateSeeder::class,
+            ImmersiveExperienceSeeder::class,
             CategorySeeder::class,
             BusinessAttributeSeeder::class,
             PlanSeeder::class,

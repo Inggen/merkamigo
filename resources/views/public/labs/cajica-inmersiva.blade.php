@@ -220,6 +220,14 @@
                     border-radius: 18px;
                 }
             }
+
+            /* En táctil el motor agrega stick/botones abajo (voxel-plaza-engine.js)
+               — subir este aviso para que no quede debajo de esos controles. */
+            @media (hover: none) and (pointer: coarse) {
+                .voxel-lab-status {
+                    bottom: 150px;
+                }
+            }
         </style>
     </head>
     <body>
@@ -269,6 +277,8 @@
         </div>
 
         <script>
+            window.cajicaImmersivePlazaId = @json($immersivePlazaId ?? null);
+
             (() => {
                 const toggle = document.getElementById('cajica-panel-toggle');
                 const panel = document.getElementById('cajica-demo-panel');

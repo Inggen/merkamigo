@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Immersive\Models\ImmersivePlaza;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Storefronts\Models\Product;
 use App\Support\Geo\Distance;
@@ -30,7 +31,7 @@ use Illuminate\Support\Collection;
  */
 class PlazaController extends Controller
 {
-    public function zipaInmersiva(): View
+    public function zipaInmersiva(Request $request): View
     {
         $municipio = Municipality::query()
             ->where('slug', 'zipaquira')
@@ -70,7 +71,90 @@ class PlazaController extends Controller
 
         return view('public.labs.zipa-inmersiva', [
             'immersiveBusinesses' => $immersiveBusinesses,
+            'immersivePlazaId' => $this->resolvePrimaryPlazaId($municipio, $request),
         ]);
+    }
+
+    public function cajicaInmersiva(Request $request): View
+    {
+        $municipio = Municipality::query()
+            ->where('slug', 'cajica')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return view('public.labs.cajica-inmersiva', [
+            'immersivePlazaId' => $this->resolvePrimaryPlazaId($municipio, $request),
+        ]);
+    }
+
+    /**
+     * Escena inmersiva genérica: a diferencia de zipaInmersiva()/
+     * cajicaInmersiva(), no tiene ninguna geometría fija escrita a mano —
+     * arma el mundo caminable completo (suelo, elementos, stands) a partir
+     * de los datos de la `ImmersivePlaza` resuelta. Ver
+     * `public/js/generic-plaza-immersive.js`.
+     */
+    public function genericPlaza(Municipality $municipio, Request $request): View
+    {
+        abort_unless($municipio->is_active, 404);
+
+        $plaza = $this->resolvePrimaryPlaza($municipio, $request);
+
+        abort_if($plaza === null, 404);
+
+        return view('public.labs.generic-plaza', [
+            'municipio' => $municipio,
+            'plaza' => $plaza,
+        ]);
+    }
+
+    /**
+     * IMM-020b (puente mínimo de stands dinámicos): la primera plaza activa
+     * de la experiencia del municipio, para que el JS de la escena sepa a
+     * cuál plaza pedirle sus stands/elementos dinámicos. `null` si no hay
+     * ninguna experiencia utilizable — las escenas con geometría fija
+     * simplemente no dibujan nada encima; la escena genérica no tiene nada
+     * que mostrar en absoluto (ver `genericPlaza()`).
+     *
+     * Normalmente exige que la experiencia esté publicada (nadie más debe
+     * ver un borrador) Y que la plaza esté "activa". La excepción es
+     * `?preview=1`: le permite a un administrador autenticado "entrar" a la
+     * plaza tal cual quedaría antes de publicar — mismo mecanismo de
+     * autorización que ya usan los recursos de Filament
+     * (`hasAnyPlatformRole`), nunca público. Una plaza nueva empieza en
+     * "borrador" (default de la columna) y normalmente se previsualiza
+     * antes de activarla, así que en modo preview también se permite verla
+     * en ese estado — de lo contrario `?preview=1` no serviría para su
+     * caso de uso principal. Solo "archivada" queda excluida siempre (esa
+     * sí es una plaza retirada a propósito, no algo en construcción).
+     */
+    private function resolvePrimaryPlaza(Municipality $municipio, Request $request): ?ImmersivePlaza
+    {
+        $isPreview = $this->canPreviewDraftExperience($request);
+
+        $experience = $isPreview
+            ? $municipio->immersiveExperiences()->latest()->first()
+            : $municipio->publishedImmersiveExperience;
+
+        return $experience?->plazas()
+            ->when(
+                $isPreview,
+                fn ($query) => $query->where('status', '!=', 'archivada'),
+                fn ($query) => $query->where('status', 'activa'),
+            )
+            ->orderBy('order')
+            ->first();
+    }
+
+    private function resolvePrimaryPlazaId(Municipality $municipio, Request $request): ?int
+    {
+        return $this->resolvePrimaryPlaza($municipio, $request)?->id;
+    }
+
+    private function canPreviewDraftExperience(Request $request): bool
+    {
+        return $request->boolean('preview')
+            && (auth()->user()?->hasAnyPlatformRole(['admin', 'superadmin']) ?? false);
     }
 
     public function show(Municipality $municipio, Request $request): View

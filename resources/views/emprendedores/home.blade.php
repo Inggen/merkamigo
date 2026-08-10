@@ -95,6 +95,9 @@
                                 <flux:button size="sm" variant="ghost" icon="megaphone" :href="route('emprendedores.negocios.copiloto', $business)" wire:navigate>
                                     {{ __('Copiloto de WhatsApp') }}
                                 </flux:button>
+                                <flux:button size="sm" variant="ghost" icon="cube" :href="route('emprendedores.negocios.mi-stand', $business)" wire:navigate>
+                                    {{ __('Mi stand en la plaza') }}
+                                </flux:button>
                             @endif
                         </div>
                     </div>

@@ -70,7 +70,9 @@ class OpenAiSetting extends Model
 
     public function apiKey(): ?string
     {
-        return $this->api_key ?: config('services.openai.api_key');
+        $apiKey = $this->api_key ?: config('services.openai.api_key');
+
+        return is_string($apiKey) ? trim($apiKey) : $apiKey;
     }
 
     public function model(): ?string

@@ -55,7 +55,7 @@ class OpenAiSettingsTest extends TestCase
                 'model' => 'gpt-new',
                 'api_key' => '',
                 'base_url' => 'https://api.openai.com/v1',
-                'timeout_seconds' => 45,
+                'timeout_seconds' => 180,
                 'max_output_tokens' => 900,
                 'temperature' => 0.4,
                 'system_prompt' => 'No inventes datos.',
@@ -69,7 +69,44 @@ class OpenAiSettingsTest extends TestCase
         $this->assertTrue($setting->entrepreneur_copilot_enabled);
         $this->assertSame('gpt-new', $setting->model);
         $this->assertSame('sk-existing', $setting->getRawOriginal('api_key'));
-        $this->assertSame(45, $setting->timeout_seconds);
+        $this->assertSame(180, $setting->timeout_seconds);
+    }
+
+    public function test_an_admin_cannot_save_a_non_openai_api_key(): void
+    {
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(OpenAiSettings::class)
+            ->fillForm([
+                'enabled' => true,
+                'entrepreneur_copilot_enabled' => true,
+                'model' => 'gpt-new',
+                'api_key' => 'AIzaSyAX_jfZfakegooglekey1234567890abc',
+                'base_url' => 'https://api.openai.com/v1',
+                'timeout_seconds' => 45,
+                'max_output_tokens' => 900,
+                'temperature' => 0.4,
+                'system_prompt' => 'No inventes datos.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $setting = OpenAiSetting::query()->firstOrFail();
+
+        $this->assertNull($setting->getRawOriginal('api_key'));
+    }
+
+    public function test_the_api_key_is_trimmed_when_resolved(): void
+    {
+        $setting = OpenAiSetting::create([
+            'enabled' => true,
+            'api_key' => '  sk-trimmed-key  ',
+            'model' => 'gpt-test',
+        ]);
+
+        $this->assertSame('sk-trimmed-key', $setting->apiKey());
     }
 
     public function test_a_regular_user_cannot_access_the_openai_settings_page(): void

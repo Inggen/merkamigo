@@ -6,7 +6,7 @@
         : __(':product en :business, disponible en Merkamigo.', ['product' => $product->name, 'business' => $business->name]);
     $productUrl = route('vitrinas.product', [$business, $product]);
     $productSchemaId = $productUrl.'#product';
-    $pageImage = $product->media->first()?->url() ?? $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('icons/icon-512.png');
+    $pageImage = $product->media->first()?->url() ?? $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb([
             ['name' => __('Inicio'), 'url' => route('home')],

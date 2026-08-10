@@ -7,6 +7,7 @@ use App\Domain\Billing\Models\Subscription;
 use App\Domain\Discovery\Concerns\Favoritable;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Immersive\Models\StandAssignment;
 use App\Domain\Needs\Models\Offer;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\Storefront;
@@ -116,6 +117,19 @@ class Business extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * IMM-021/IMM-022 del TODO inmersivo: el stand de este negocio en la
+     * plaza voxel de su municipio, si tiene uno asignado. La crea y
+     * mantiene `App\Domain\Immersive\Observers\BusinessStandObserver` — no
+     * se asigna a mano desde aquí.
+     *
+     * @return HasOne<StandAssignment, $this>
+     */
+    public function standAssignment(): HasOne
+    {
+        return $this->hasOne(StandAssignment::class);
     }
 
     /**

@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\BusinessVerificationController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\ImmersivePlazaPropsController;
+use App\Http\Controllers\Api\V1\ImmersivePlazaStandsController;
 use App\Http\Controllers\Api\V1\MetricsController;
 use App\Http\Controllers\Api\V1\NeedController;
 use App\Http\Controllers\Api\V1\NotificationPreferencesController;
@@ -25,6 +27,20 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('plaza/negocios/{business:slug}', [DiscoveryController::class, 'business'])->name('plaza.negocios.show');
     Route::get('plaza/negocios/{business:slug}/productos', [DiscoveryController::class, 'products'])->name('plaza.negocios.productos');
     Route::get('plaza/negocios/{business:slug}/productos/{product}', [DiscoveryController::class, 'product'])->name('plaza.negocios.productos.show');
+
+    // IMM-020b — puente mínimo de stands dinámicos: qué stand está
+    // realmente ocupado en una plaza inmersiva publicada, y con qué
+    // plantilla, para que las escenas fijas por municipio (decisión de
+    // arquitectura #1) dibujen encima su capa dinámica de stands.
+    Route::get('inmersivo/plazas/{plaza}/stands', [ImmersivePlazaStandsController::class, 'index'])->name('inmersivo.plazas.stands');
+
+    // Hermano de la ruta anterior para elementos de plaza (construcciones,
+    // árboles, fuentes, monumentos, personajes) — consumida además por la
+    // escena inmersiva genérica (`labs.generic-plaza`), que no tiene ningún
+    // script propio y arma el mundo caminable solo con estos datos.
+    Route::middleware('web')
+        ->get('inmersivo/plazas/{plaza}/props', [ImmersivePlazaPropsController::class, 'index'])
+        ->name('inmersivo.plazas.props');
 
     // Catálogo público de necesidades abiertas (5.1/2.1 del TODO) — el
     // resto de `needs.*` sigue privado, ver dentro del grupo `auth:sanctum`.

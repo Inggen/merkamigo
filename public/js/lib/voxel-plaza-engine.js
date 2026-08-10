@@ -26,8 +26,12 @@
  * una catedral) como builders `custom`.
  */
 import * as THREE from 'https://esm.sh/three@0.179.1';
+import { GLTFLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/GLTFLoader.js';
+import { attachPerfMonitor } from './immersive-perf-monitor.js';
 
 export { THREE };
+
+const sharedGltfLoader = new GLTFLoader();
 
 export const basePalette = {
     plaza: 0xd3bb8b,
@@ -50,6 +54,8 @@ export const basePalette = {
     mountainDark: 0x374a31,
     trim: 0xa17c57,
     iron: 0x8493a4,
+    concrete: 0xb5b7b9,
+    brick: 0xad5a3b,
     glass: 0x7bc0e9,
     water: 0x73d2e5,
     flower: 0xdb5775,
@@ -136,6 +142,8 @@ export function createVoxelTextures(colors) {
     make('glass', colors.glass, 8, 0xd9f6ff);
     make('trim', colors.trim, 12, colors.woodDark);
     make('iron', colors.iron, 8, 0x53606f);
+    make('concrete', colors.concrete, 12, 0x8a8c8e);
+    make('brick', colors.brick, 14, 0x7a3d26, true);
     make('water', colors.water, 8, 0xc7f4fb);
     make('flower', colors.flower, 14, 0xf8b8ca);
     make('cloth', colors.cloth, 12, 0x7e541d);
@@ -149,6 +157,98 @@ export function createVoxelTextures(colors) {
     make('brickAccent', colors.brickAccent ?? 0xe6e0d3, 8, colors.stone);
 
     return cache;
+}
+
+/**
+ * IMM-020b: un "objetivo" mínimo compatible con `addVoxelBox`/
+ * `buildFromDefinition`, para previsualizar un objeto suelto (sin plaza,
+ * sin personaje, sin física) — por ejemplo, el panel de generación por IA en
+ * el admin. Deliberadamente NO es un `VoxelPlazaEngine`: ese motor trae
+ * cámara en tercera persona, control de personaje y loop de animación
+ * pensados para una plaza caminable completa (ver
+ * docs/architecture/personaje-inmersivo.md — esa lógica se reutiliza tal
+ * cual y no se toca aquí), que sería peso muerto para una vitrina estática
+ * de un solo objeto. Reutiliza el mismo diccionario de texturas
+ * (`createVoxelTextures`) para que el objeto se vea igual que dentro de una
+ * plaza real.
+ */
+export function createStandaloneVoxelTarget(palette = basePalette) {
+    const world = new THREE.Group();
+    const textures = createVoxelTextures(palette);
+
+    function material(texture, extra = {}) {
+        return new THREE.MeshStandardMaterial({
+            map: texture,
+            roughness: 0.94,
+            metalness: 0.03,
+            ...extra,
+        });
+    }
+
+    function addVoxelBox({
+        x, y, z, w, h, d, texture = 'stone', group = world, castShadow = true, receiveShadow = true,
+        opacity = 1, emissive = 0x000000, rotationY = 0,
+    }) {
+        const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(w, h, d),
+            material(textures[texture], { transparent: opacity < 1, opacity, emissive }),
+        );
+
+        mesh.position.set(x, y, z);
+        mesh.rotation.y = rotationY;
+        mesh.castShadow = castShadow;
+        mesh.receiveShadow = receiveShadow;
+        group.add(mesh);
+
+        return mesh;
+    }
+
+    return { world, textures, addVoxelBox };
+}
+
+/**
+ * Etiquetas de texto "X"/"Y"/"Z" junto a cada línea de color de un
+ * `THREE.AxesHelper` — el helper por sí solo solo dibuja las líneas, sin
+ * ningún texto. Solo para visores de edición (editor de objeto, editor
+ * espacial de plaza, previsualización del generador IA) — la experiencia
+ * inmersiva real nunca debe llevar esto.
+ */
+export function createAxisLabels(size = 4) {
+    const group = new THREE.Group();
+
+    const specs = [
+        { text: 'X', color: '#ef4444', position: [size, 0, 0] },
+        { text: 'Y', color: '#22c55e', position: [0, size, 0] },
+        { text: 'Z', color: '#3b82f6', position: [0, 0, size] },
+    ];
+
+    specs.forEach(({ text, color, position }) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+
+        const ctx = canvas.getContext('2d');
+        ctx.font = '500 30px sans-serif';
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.75;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 32, 34);
+
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(canvas),
+            depthTest: false,
+            transparent: true,
+            opacity: 0.85,
+        }));
+
+        const spriteScale = Math.max(0.3, size * 0.09);
+        sprite.scale.set(spriteScale, spriteScale, spriteScale);
+        sprite.position.set(...position);
+        group.add(sprite);
+    });
+
+    return group;
 }
 
 /**
@@ -168,6 +268,7 @@ export class VoxelPlazaEngine {
         skyColor = 0x87ceeb,
         playerStart = { x: 0, y: 0, z: 0 },
         playerFacing = 0,
+        movementBounds = null,
         player = {},
         camera = {},
     }) {
@@ -179,9 +280,11 @@ export class VoxelPlazaEngine {
         this.lockTrigger = lockTrigger;
         this.collisions = [];
         this.animatedActors = [];
+        this.updateCallbacks = [];
         this.clock = new THREE.Clock();
         this.groundSize = groundSize;
         this.groundTexture = groundTexture;
+        this.movementBounds = this.normalizeMovementBounds(movementBounds);
 
         this.movement = { forward: false, backward: false, left: false, right: false, jump: false, sprint: false };
 
@@ -195,6 +298,10 @@ export class VoxelPlazaEngine {
             minPitch: -1.05,
             maxPitch: 0.24,
             mouseSensitivity: 0.0026,
+            // Multiplicador aparte del de mouse: un arrastre de dedo cubre
+            // muchos más píxeles que un `movementX` de mouse, y el usuario
+            // final lo puede ajustar (ver bindTouchSensitivitySettings()).
+            touchSensitivity: this.loadTouchSensitivity(),
         };
 
         this.playerState = {
@@ -248,31 +355,42 @@ export class VoxelPlazaEngine {
         this.scene.add(this.world);
 
         this.textures = createVoxelTextures(palette);
+        this.perf = attachPerfMonitor({ renderer: this.renderer, label: 'Plaza voxel' });
 
         this.setupLights();
         this.buildGround();
 
         this.player = this.buildPlayer();
-        this.player.position.set(playerStart.x ?? 0, this.playerState.feetY, playerStart.z ?? 0);
+        const safePlayerStart = this.clampPositionToMovementBounds(new THREE.Vector3(
+            playerStart.x ?? 0,
+            this.playerState.feetY,
+            playerStart.z ?? 0,
+        ));
+        this.player.position.copy(safePlayerStart);
         this.player.rotation.y = playerFacing;
         this.scene.add(this.player);
 
         this.bindInput();
+        this.bindMobileControls();
     }
 
     setupLights() {
         const ambient = new THREE.HemisphereLight(0xe8f5ff, 0xb89262, 1.65);
         this.scene.add(ambient);
 
-        const sun = new THREE.DirectionalLight(0xfff2d0, 3.1);
-        sun.position.set(55, 78, 36);
-        sun.castShadow = true;
-        sun.shadow.mapSize.set(2048, 2048);
-        sun.shadow.camera.left = -120;
-        sun.shadow.camera.right = 120;
-        sun.shadow.camera.top = 120;
-        sun.shadow.camera.bottom = -120;
-        this.scene.add(sun);
+        // Público (`this.sun`, no una const local) para que una plaza pueda
+        // afinar su mapa de sombras (ej. una plaza muy pesada en polígonos
+        // puede necesitar un `mapSize` menor) sin duplicar todo el setup de
+        // luces.
+        this.sun = new THREE.DirectionalLight(0xfff2d0, 3.1);
+        this.sun.position.set(55, 78, 36);
+        this.sun.castShadow = true;
+        this.sun.shadow.mapSize.set(2048, 2048);
+        this.sun.shadow.camera.left = -120;
+        this.sun.shadow.camera.right = 120;
+        this.sun.shadow.camera.top = 120;
+        this.sun.shadow.camera.bottom = -120;
+        this.scene.add(this.sun);
 
         const fillLight = new THREE.DirectionalLight(0xc5e7ff, 0.55);
         fillLight.position.set(-40, 28, -18);
@@ -310,6 +428,82 @@ export class VoxelPlazaEngine {
 
     addRoundPlanterCollision(x, z, radius, height = 1.6) {
         this.addCollisionBox(x, height / 2, z, radius * 1.85, height, radius * 1.85);
+    }
+
+    syncObjectCollision(object, enabled = true) {
+        if (!object?.userData || !Array.isArray(this.collisions)) {
+            return;
+        }
+
+        const previousBox = object.userData.collisionBox;
+
+        if (previousBox) {
+            this.collisions = this.collisions.filter((box) => box !== previousBox);
+            object.userData.collisionBox = null;
+        }
+
+        if (!enabled) {
+            return;
+        }
+
+        object.updateWorldMatrix(true, true);
+
+        const box = new THREE.Box3().setFromObject(object);
+
+        if (box.isEmpty()) {
+            return;
+        }
+
+        object.userData.collisionBox = box;
+        this.collisions.push(box);
+    }
+
+    normalizeMovementBounds(bounds) {
+        if (!bounds || typeof bounds !== 'object') {
+            return null;
+        }
+
+        const minX = Number(bounds.minX);
+        const maxX = Number(bounds.maxX);
+        const minZ = Number(bounds.minZ);
+        const maxZ = Number(bounds.maxZ);
+
+        if ([minX, maxX, minZ, maxZ].some((value) => Number.isNaN(value))) {
+            return null;
+        }
+
+        return {
+            minX: Math.min(minX, maxX),
+            maxX: Math.max(minX, maxX),
+            minZ: Math.min(minZ, maxZ),
+            maxZ: Math.max(minZ, maxZ),
+        };
+    }
+
+    clampPositionToMovementBounds(position) {
+        if (!this.movementBounds) {
+            return position;
+        }
+
+        const safePosition = position.clone();
+        const radius = this.playerState.radius;
+        const minX = this.movementBounds.minX + radius;
+        const maxX = this.movementBounds.maxX - radius;
+        const minZ = this.movementBounds.minZ + radius;
+        const maxZ = this.movementBounds.maxZ - radius;
+
+        safePosition.x = THREE.MathUtils.clamp(
+            safePosition.x,
+            Math.min(minX, maxX),
+            Math.max(minX, maxX),
+        );
+        safePosition.z = THREE.MathUtils.clamp(
+            safePosition.z,
+            Math.min(minZ, maxZ),
+            Math.max(minZ, maxZ),
+        );
+
+        return safePosition;
     }
 
     addVoxelBox({
@@ -629,6 +823,7 @@ export class VoxelPlazaEngine {
 
         const next = this.player.position.clone();
         next.x += this.playerState.velocity.x * delta;
+        this.clampPositionToMovementBounds(next);
         if (!this.collides(next)) {
             this.player.position.x = next.x;
         } else {
@@ -637,6 +832,7 @@ export class VoxelPlazaEngine {
 
         next.copy(this.player.position);
         next.z += this.playerState.velocity.z * delta;
+        this.clampPositionToMovementBounds(next);
         if (!this.collides(next)) {
             this.player.position.z = next.z;
         } else {
@@ -711,6 +907,38 @@ export class VoxelPlazaEngine {
             this.controls.isDragging = false;
         };
 
+        // Arrastrar el dedo en la pantalla (fuera del stick/botones, que
+        // capturan su propio puntero) mueve la cámara igual que arrastrar
+        // el mouse — mismo cálculo de `onMouseMove()` vía `clientX/Y`, sin
+        // depender de pointer lock (que no aplica en táctil).
+        const onTouchLookStart = (event) => {
+            if (event.pointerType !== 'touch') return;
+            this.controls.isDragging = true;
+            this.controls.lastX = event.clientX;
+            this.controls.lastY = event.clientY;
+        };
+
+        const onTouchLookMove = (event) => {
+            if (event.pointerType !== 'touch' || !this.controls.isDragging) return;
+            event.preventDefault();
+
+            const deltaX = event.clientX - this.controls.lastX;
+            const deltaY = event.clientY - this.controls.lastY;
+
+            this.controls.lastX = event.clientX;
+            this.controls.lastY = event.clientY;
+
+            const sensitivity = this.controls.mouseSensitivity * this.controls.touchSensitivity;
+            this.controls.yaw -= deltaX * sensitivity;
+            this.controls.pitch -= deltaY * sensitivity * 0.88;
+            this.controls.pitch = THREE.MathUtils.clamp(this.controls.pitch, this.controls.minPitch, this.controls.maxPitch);
+        };
+
+        const onTouchLookEnd = (event) => {
+            if (event.pointerType !== 'touch') return;
+            this.controls.isDragging = false;
+        };
+
         const setMovement = (code, pressed) => {
             if (code === 'ArrowUp' || code === 'KeyW') this.movement.forward = pressed;
             if (code === 'ArrowDown' || code === 'KeyS') this.movement.backward = pressed;
@@ -729,12 +957,431 @@ export class VoxelPlazaEngine {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        pointerLockTarget.style.touchAction = 'none';
+
         pointerLockTarget.addEventListener('click', lockPointer);
         pointerLockTarget.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mouseup', onMouseUp);
         window.addEventListener('mousemove', onMouseMove);
+        pointerLockTarget.addEventListener('pointerdown', onTouchLookStart);
+        pointerLockTarget.addEventListener('pointermove', onTouchLookMove);
+        window.addEventListener('pointerup', onTouchLookEnd);
+        window.addEventListener('pointercancel', onTouchLookEnd);
         document.addEventListener('pointerlockchange', onPointerLockChange);
         this.lockTrigger?.addEventListener('click', lockPointer);
+    }
+
+    /**
+     * Stick virtual (mueve `this.movement.forward/backward/left/right`,
+     * igual que WASD/flechas) más botones de saltar y de acción, para
+     * celular/tableta. Solo se muestran en dispositivos cuyo input
+     * principal es táctil (`hover: none` + `pointer: coarse`) — un
+     * escritorio con pantalla táctil secundaria no los ve. No toca la
+     * física/cámara: solo alimenta las mismas banderas que ya usa
+     * `updateMovement()`.
+     */
+    bindMobileControls() {
+        this.injectMobileControlsStyles();
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'vpe-mobile-controls';
+
+        const joystick = document.createElement('div');
+        joystick.className = 'vpe-joystick';
+
+        const stick = document.createElement('div');
+        stick.className = 'vpe-joystick-stick';
+        joystick.appendChild(stick);
+
+        const joystickRadius = 40;
+        const deadzone = 0.32;
+        let joystickPointerId = null;
+        let joystickCenter = { x: 0, y: 0 };
+
+        const resetJoystick = () => {
+            stick.style.transform = 'translate(-50%, -50%)';
+            this.movement.forward = false;
+            this.movement.backward = false;
+            this.movement.left = false;
+            this.movement.right = false;
+        };
+
+        const updateJoystickFromPointer = (event) => {
+            const dx = event.clientX - joystickCenter.x;
+            const dy = event.clientY - joystickCenter.y;
+            const distance = Math.min(Math.hypot(dx, dy), joystickRadius);
+            const angle = Math.atan2(dy, dx);
+            const clampedX = Math.cos(angle) * distance;
+            const clampedY = Math.sin(angle) * distance;
+
+            stick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+
+            const nx = clampedX / joystickRadius;
+            const ny = clampedY / joystickRadius;
+
+            this.movement.forward = ny < -deadzone;
+            this.movement.backward = ny > deadzone;
+            this.movement.left = nx < -deadzone;
+            this.movement.right = nx > deadzone;
+        };
+
+        joystick.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            joystickPointerId = event.pointerId;
+            joystick.setPointerCapture(joystickPointerId);
+            joystick.classList.add('is-active');
+            const rect = joystick.getBoundingClientRect();
+            joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            updateJoystickFromPointer(event);
+        });
+
+        joystick.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== joystickPointerId) return;
+            event.preventDefault();
+            updateJoystickFromPointer(event);
+        });
+
+        const releaseJoystick = (event) => {
+            if (event.pointerId !== joystickPointerId) return;
+            joystickPointerId = null;
+            joystick.classList.remove('is-active');
+            resetJoystick();
+        };
+
+        joystick.addEventListener('pointerup', releaseJoystick);
+        joystick.addEventListener('pointercancel', releaseJoystick);
+
+        const bindHoldButton = (button, onPress, onRelease) => {
+            let pointerId = null;
+
+            button.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                pointerId = event.pointerId;
+                button.setPointerCapture(pointerId);
+                button.classList.add('is-active');
+                onPress();
+            });
+
+            const release = (event) => {
+                if (event.pointerId !== pointerId) return;
+                pointerId = null;
+                button.classList.remove('is-active');
+                onRelease();
+            };
+
+            button.addEventListener('pointerup', release);
+            button.addEventListener('pointercancel', release);
+        };
+
+        const buttons = document.createElement('div');
+        buttons.className = 'vpe-action-buttons';
+
+        const actionButton = document.createElement('button');
+        actionButton.type = 'button';
+        actionButton.className = 'vpe-btn vpe-btn-action';
+        actionButton.setAttribute('aria-label', 'Acción');
+        actionButton.textContent = '●';
+
+        const jumpButton = document.createElement('button');
+        jumpButton.type = 'button';
+        jumpButton.className = 'vpe-btn vpe-btn-jump';
+        jumpButton.setAttribute('aria-label', 'Saltar');
+        jumpButton.textContent = '↑';
+
+        bindHoldButton(jumpButton, () => {
+            this.movement.jump = true;
+        }, () => {
+            this.movement.jump = false;
+        });
+
+        // Sin función asignada todavía (queda por definir) — por ahora solo
+        // avisa mediante un evento del DOM al soltar, para que cada escena
+        // decida qué hacer sin que el motor conozca esa lógica.
+        bindHoldButton(actionButton, () => {}, () => {
+            this.container.dispatchEvent(new CustomEvent('voxelplaza:action'));
+        });
+
+        buttons.appendChild(actionButton);
+        buttons.appendChild(jumpButton);
+
+        wrapper.appendChild(joystick);
+        wrapper.appendChild(buttons);
+        wrapper.appendChild(this.buildTouchSensitivitySettings());
+        this.container.appendChild(wrapper);
+    }
+
+    /**
+     * Botón de engranaje + panel con una barra para graduar qué tan rápido
+     * gira la cámara al arrastrar el dedo — pedido explícito del usuario,
+     * separado del stick/botones porque es configuración, no movimiento.
+     * Se recuerda entre visitas (localStorage), por dispositivo.
+     */
+    buildTouchSensitivitySettings() {
+        const settings = document.createElement('div');
+        settings.className = 'vpe-settings';
+
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'vpe-settings-toggle';
+        toggle.setAttribute('aria-label', 'Configuración de cámara');
+        toggle.textContent = '⚙';
+
+        const panel = document.createElement('div');
+        panel.className = 'vpe-settings-panel';
+
+        const label = document.createElement('label');
+        label.className = 'vpe-settings-label';
+        label.textContent = 'Sensibilidad de cámara';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '0.4';
+        slider.max = '2.2';
+        slider.step = '0.05';
+        slider.value = String(this.controls.touchSensitivity);
+        slider.className = 'vpe-settings-slider';
+
+        slider.addEventListener('input', () => {
+            const value = Number.parseFloat(slider.value);
+            this.controls.touchSensitivity = value;
+            this.persistTouchSensitivity(value);
+        });
+
+        // Evita que arrastrar la barra también arrastre/gire la cámara
+        // (están sobre el mismo lienzo).
+        slider.addEventListener('pointerdown', (event) => event.stopPropagation());
+
+        toggle.addEventListener('click', () => {
+            panel.classList.toggle('is-open');
+        });
+
+        label.appendChild(slider);
+        panel.appendChild(label);
+        settings.appendChild(toggle);
+        settings.appendChild(panel);
+
+        return settings;
+    }
+
+    loadTouchSensitivity() {
+        try {
+            const stored = Number.parseFloat(localStorage.getItem('vpe-touch-sensitivity'));
+
+            return Number.isFinite(stored) ? THREE.MathUtils.clamp(stored, 0.4, 2.2) : 1;
+        } catch {
+            return 1;
+        }
+    }
+
+    persistTouchSensitivity(value) {
+        try {
+            localStorage.setItem('vpe-touch-sensitivity', String(value));
+        } catch {
+            // Almacenamiento no disponible (ej. modo privado) — la
+            // preferencia solo dura la sesión actual, sin romper nada.
+        }
+    }
+
+    injectMobileControlsStyles() {
+        if (document.getElementById('vpe-mobile-controls-style')) {
+            return;
+        }
+
+        const style = document.createElement('style');
+        style.id = 'vpe-mobile-controls-style';
+        style.textContent = `
+            .vpe-mobile-controls {
+                position: fixed;
+                inset: 0;
+                z-index: 25;
+                pointer-events: none;
+                display: none;
+            }
+
+            @media (hover: none) and (pointer: coarse) {
+                .vpe-mobile-controls {
+                    display: block;
+                }
+            }
+
+            .vpe-joystick {
+                position: absolute;
+                left: max(22px, env(safe-area-inset-left, 0px) + 14px);
+                bottom: max(22px, env(safe-area-inset-bottom, 0px) + 14px);
+                width: 108px;
+                height: 108px;
+                border-radius: 999px;
+                border: 1px solid rgba(255, 255, 255, 0.28);
+                background: rgba(10, 18, 33, 0.32);
+                pointer-events: auto;
+                touch-action: none;
+                -webkit-tap-highlight-color: transparent;
+                transition: background 160ms ease, border-color 160ms ease;
+            }
+
+            .vpe-joystick.is-active {
+                background: rgba(10, 18, 33, 0.58);
+                border-color: rgba(255, 255, 255, 0.5);
+            }
+
+            .vpe-joystick-stick {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 46px;
+                height: 46px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.42);
+                border: 1px solid rgba(255, 255, 255, 0.55);
+                transform: translate(-50%, -50%);
+                transition: background 160ms ease;
+                pointer-events: none;
+            }
+
+            .vpe-joystick.is-active .vpe-joystick-stick {
+                background: rgba(255, 255, 255, 0.72);
+            }
+
+            .vpe-action-buttons {
+                position: absolute;
+                right: max(22px, env(safe-area-inset-right, 0px) + 14px);
+                bottom: max(22px, env(safe-area-inset-bottom, 0px) + 14px);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+                pointer-events: none;
+            }
+
+            .vpe-btn {
+                pointer-events: auto;
+                touch-action: none;
+                -webkit-tap-highlight-color: transparent;
+                width: 58px;
+                height: 58px;
+                border-radius: 999px;
+                border: 1px solid rgba(255, 255, 255, 0.28);
+                background: rgba(10, 18, 33, 0.32);
+                color: rgba(255, 255, 255, 0.75);
+                font-size: 1.05rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+            }
+
+            .vpe-btn.is-active {
+                background: rgba(10, 18, 33, 0.6);
+                border-color: rgba(255, 255, 255, 0.55);
+                color: rgba(255, 255, 255, 0.95);
+                transform: scale(0.94);
+            }
+
+            .vpe-btn-jump {
+                width: 68px;
+                height: 68px;
+                font-size: 1.3rem;
+            }
+
+            .vpe-settings {
+                position: absolute;
+                top: 50%;
+                right: max(14px, env(safe-area-inset-right, 0px) + 10px);
+                transform: translateY(-50%);
+                pointer-events: auto;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 10px;
+            }
+
+            .vpe-settings-toggle {
+                touch-action: none;
+                -webkit-tap-highlight-color: transparent;
+                width: 42px;
+                height: 42px;
+                border-radius: 999px;
+                border: 1px solid rgba(255, 255, 255, 0.28);
+                background: rgba(10, 18, 33, 0.32);
+                color: rgba(255, 255, 255, 0.75);
+                font-size: 1.05rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 160ms ease, border-color 160ms ease;
+            }
+
+            .vpe-settings-panel {
+                max-width: 0;
+                max-height: 0;
+                overflow: hidden;
+                opacity: 0;
+                border-radius: 16px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                background: rgba(10, 18, 33, 0.62);
+                backdrop-filter: blur(10px);
+                transition: opacity 160ms ease, max-width 160ms ease, max-height 160ms ease, padding 160ms ease;
+            }
+
+            .vpe-settings-panel.is-open {
+                max-width: 220px;
+                max-height: 90px;
+                opacity: 1;
+                padding: 12px 14px;
+            }
+
+            .vpe-settings-label {
+                display: block;
+                white-space: nowrap;
+                font-size: 0.76rem;
+                color: rgba(255, 255, 255, 0.82);
+                font-family: sans-serif;
+            }
+
+            .vpe-settings-slider {
+                touch-action: pan-x;
+                display: block;
+                width: 180px;
+                margin-top: 8px;
+                accent-color: rgba(255, 255, 255, 0.85);
+            }
+
+            @media (min-width: 900px) {
+                .vpe-joystick {
+                    width: 124px;
+                    height: 124px;
+                }
+
+                .vpe-joystick-stick {
+                    width: 52px;
+                    height: 52px;
+                }
+
+                .vpe-btn {
+                    width: 66px;
+                    height: 66px;
+                }
+
+                .vpe-btn-jump {
+                    width: 76px;
+                    height: 76px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /**
+     * Registra un callback a ejecutar en cada frame, después de mover
+     * cámara/personaje y antes de renderizar (ej. un HUD de coordenadas
+     * propio de una plaza). Devuelve una función para des-registrarlo.
+     */
+    onUpdate(callback) {
+        this.updateCallbacks.push(callback);
+
+        return () => {
+            this.updateCallbacks = this.updateCallbacks.filter((cb) => cb !== callback);
+        };
     }
 
     animate() {
@@ -746,13 +1393,26 @@ export class VoxelPlazaEngine {
         this.updatePlayer(delta);
         this.updateActors(time);
         this.updateCamera();
+        this.updateCallbacks.forEach((callback) => callback(delta, time));
         this.renderer.render(this.scene, this.camera);
+        this.perf.sample();
     }
 
-    /** Construye el layout declarativo y arranca el loop de animación. */
-    start(layout = [], builders = standardBuilders) {
+    /**
+     * Construye el layout declarativo y arranca el loop de animación.
+     * `deferSceneReady`: cuando una plaza carga assets async propios
+     * (GLB/texturas fuera del layout declarativo), pasa `true` y llama tú
+     * mismo a `engine.perf.markSceneReady()` cuando esos assets terminen —
+     * si no, el panel técnico marcaría la escena lista antes de tiempo.
+     */
+    start(layout = [], builders = standardBuilders, { deferSceneReady = false } = {}) {
         this.place(layout, builders);
         this.updateCamera();
+
+        if (!deferSceneReady) {
+            this.perf.markSceneReady();
+        }
+
         this.animate();
     }
 }
@@ -1189,6 +1849,235 @@ function buildStatue(engine, { x, z, height = 6, figureTexture = 'patina' }) {
     engine.addVoxelBox({ x: 0, y: height + 0.3, z: 0, w: 0.7, h: 0.6, d: 0.7, texture: 'stoneLight', group });
 }
 
+/**
+ * IMM-020 del TODO inmersivo: una de las tres plantillas de stand del
+ * catálogo (`ImmersiveObjectTemplate.builder_key = 'standBooth'`) — caseta
+ * cerrada de madera con mostrador y letrero al frente (+Z, su eje frontal).
+ * Huella normalizada: ~4.2 × 3.8.
+ */
+function buildStandBooth(engine, {
+    x, z, rotation = 0, wallTexture = 'wood', roofTexture = 'roofClay', signColor = 0xd7352a,
+}) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotation;
+    engine.world.add(group);
+
+    engine.addVoxelBox({ x: 0, y: 0.1, z: 0, w: 3.6, h: 0.2, d: 3.2, texture: 'stoneLight', group });
+    engine.addVoxelBox({ x: 0, y: 1.3, z: -1.4, w: 3.6, h: 2.4, d: 0.3, texture: wallTexture, group, collidable: true });
+    engine.addVoxelBox({ x: -1.65, y: 1.3, z: 0, w: 0.3, h: 2.4, d: 3.2, texture: wallTexture, group, collidable: true });
+    engine.addVoxelBox({ x: 1.65, y: 1.3, z: 0, w: 0.3, h: 2.4, d: 3.2, texture: wallTexture, group, collidable: true });
+    engine.addVoxelBox({ x: 0, y: 1, z: 1.4, w: 3.2, h: 1, d: 0.5, texture: wallTexture, group, collidable: true });
+    engine.addVoxelBox({ x: 0, y: 2.6, z: 0, w: 4.2, h: 0.3, d: 3.8, texture: roofTexture, group });
+    engine.addVoxelBox({ x: 0, y: 2.9, z: 0, w: 3.6, h: 0.4, d: 3.2, texture: roofTexture, group });
+
+    const signTexture = engine.createColorTexture(signColor);
+    engine.addVoxelBox({ x: 0, y: 2.35, z: 1.66, w: 2.2, h: 0.5, d: 0.1, texture: signTexture, group });
+}
+
+/**
+ * IMM-020 del TODO inmersivo: segunda plantilla de stand
+ * (`builder_key = 'standTable'`) — mesa exhibidora al aire libre con
+ * mantel y letrero de fondo, sin paredes. Eje frontal +Z. Huella
+ * normalizada: ~3.2 × 2.4.
+ */
+function buildStandTable(engine, {
+    x, z, rotation = 0, clothColor = 'cloth', frameTexture = 'iron',
+}) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotation;
+    engine.world.add(group);
+
+    engine.addVoxelBox({ x: 0, y: 0.95, z: 0, w: 3.2, h: 0.15, d: 1.6, texture: 'stoneLight', group, collidable: true });
+
+    [[-1.4, -0.65], [1.4, -0.65], [-1.4, 0.65], [1.4, 0.65]].forEach(([lx, lz]) => {
+        engine.addVoxelBox({ x: lx, y: 0.45, z: lz, w: 0.15, h: 0.9, d: 0.15, texture: frameTexture, group });
+    });
+
+    engine.addVoxelBox({ x: 0, y: 0.55, z: 0.75, w: 3.2, h: 0.75, d: 0.1, texture: clothColor, group });
+    engine.addVoxelBox({ x: -1.5, y: 1.4, z: -0.7, w: 0.12, h: 1.8, d: 0.12, texture: frameTexture, group });
+    engine.addVoxelBox({ x: 1.5, y: 1.4, z: -0.7, w: 0.12, h: 1.8, d: 0.12, texture: frameTexture, group });
+    engine.addVoxelBox({ x: 0, y: 2.3, z: -0.7, w: 3.2, h: 0.6, d: 0.12, texture: clothColor, group });
+}
+
+/**
+ * IMM-020b del TODO inmersivo: renderiza una `model_definition` generada por
+ * IA (o refinada a mano) — una lista de cajas voxel ya validada en el
+ * backend (`VoxelDefinitionValidator`), en vez de un builder escrito a mano.
+ * Se exporta aparte de `standardBuilders` porque, a diferencia de esos
+ * builders de forma fija, necesita el payload `definition` por instancia
+ * (cada plantilla generada por IA tiene su propia lista de cajas).
+ */
+export function buildFromDefinition(engine, {
+    x, y = 0, z, rotation = 0, definition,
+}) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotation;
+    engine.world.add(group);
+
+    (definition?.boxes ?? []).forEach((box) => {
+        engine.addVoxelBox({
+            x: box.x,
+            y: box.y,
+            z: box.z,
+            w: box.w,
+            h: box.h,
+            d: box.d,
+            texture: box.texture,
+            rotationY: box.rotationY ?? 0,
+            collidable: Boolean(box.collidable),
+            group,
+        });
+    });
+
+    return group;
+}
+
+function loadGlbAt(engine, {
+    x, y = 0, z, rotation = 0, url,
+}) {
+    return new Promise((resolve, reject) => {
+        sharedGltfLoader.load(
+            url,
+            (gltf) => {
+                const model = gltf.scene;
+                model.position.set(x, y, z);
+                model.rotation.y = rotation;
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                engine.world.add(model);
+                resolve(model);
+            },
+            undefined,
+            (error) => reject(error),
+        );
+    });
+}
+
+function normalizeScaleVector(scale = null) {
+    if (typeof scale === 'number') {
+        return { x: scale, y: scale, z: scale };
+    }
+
+    if (scale && typeof scale === 'object') {
+        return {
+            x: Number(scale.x ?? 1),
+            y: Number(scale.y ?? 1),
+            z: Number(scale.z ?? 1),
+        };
+    }
+
+    return { x: 1, y: 1, z: 1 };
+}
+
+function applyScaleToObject(object, scale = null) {
+    const vector = normalizeScaleVector(scale);
+
+    object.scale.set(vector.x, vector.y, vector.z);
+
+    return object;
+}
+
+/**
+ * IMM-020b: resuelve y dibuja un objeto (stand o elemento de plaza) según
+ * la misma prioridad que usa la plaza en vivo — GLB real (`modelUrl`) >
+ * definición generada por IA (`modelDefinition`) > forma voxel procedural
+ * (`builderKey`). Un solo lugar para esta regla: la usan tanto
+ * `dynamic-stand-loader.js` (stands en la escena pública) como el editor
+ * espacial del admin, para que nunca diverjan entre sí.
+ */
+export async function renderObjectByPriority(engine, {
+    x, y = 0, z, rotation = 0, scale = null, modelUrl, modelDefinition, builderKey, builders = standardBuilders,
+}) {
+    if (modelUrl) {
+        try {
+            return applyScaleToObject(await loadGlbAt(engine, {
+                x,
+                y,
+                z,
+                rotation,
+                url: modelUrl,
+            }), scale);
+        } catch (error) {
+            // Un GLB roto/faltante no debe dejar el objeto invisible — sigue
+            // con las siguientes opciones en vez de abortar.
+            console.error(`No se pudo cargar el modelo GLB: ${modelUrl}`, error);
+        }
+    }
+
+    if (modelDefinition) {
+        return applyScaleToObject(buildFromDefinition(engine, {
+            x,
+            y,
+            z,
+            rotation,
+            definition: modelDefinition,
+        }), scale);
+    }
+
+    if (builderKey && builders[builderKey]) {
+        return applyScaleToObject(callBuilderAsSingleObject(engine, builders[builderKey], {
+            x,
+            y,
+            z,
+            rotation,
+        }), scale);
+    }
+
+    return null;
+}
+
+/**
+ * La mayoría de `standardBuilders` ya crean su propio `THREE.Group`
+ * posicionado en (x,z) y lo devuelven — pero algunos, más antiguos
+ * (`buildLamp`, `buildTree`), agregan varias cajas sueltas directo a
+ * `engine.world` con coordenadas ABSOLUTAS, sin grupo ni valor de retorno.
+ * Para que cualquier builder sea siempre un único objeto posicionable (lo
+ * que necesita el editor espacial para poder arrastrarlo), esta función
+ * detecta ese caso y reagrupa lo que el builder agregó, sin modificar los
+ * builders existentes uno por uno.
+ */
+function callBuilderAsSingleObject(engine, builder, {
+    x, y = 0, z, rotation,
+}) {
+    const childCountBefore = engine.world.children.length;
+
+    builder(engine, { x, z, rotation });
+
+    const added = engine.world.children.slice(childCountBefore);
+
+    if (added.length === 1) {
+        return added[0];
+    }
+
+    if (added.length === 0) {
+        return null;
+    }
+
+    const wrapper = new THREE.Group();
+
+    added.forEach((child) => {
+        engine.world.remove(child);
+        // Los builders "planos" ya hornearon (x,z) en cada caja como
+        // coordenadas absolutas — se restan aquí para que el wrapper
+        // pueda moverse como un todo sin duplicar el desplazamiento.
+        child.position.x -= x;
+        child.position.z -= z;
+        wrapper.add(child);
+    });
+
+    wrapper.position.set(x, y, z);
+    engine.world.add(wrapper);
+
+    return wrapper;
+}
+
 export const standardBuilders = {
     colonialHouse: buildColonialHouse,
     arcadeRow: buildArcadeRow,
@@ -1205,5 +2094,7 @@ export const standardBuilders = {
     marketStall: buildMarketStall,
     vehicle: buildVehicle,
     statue: buildStatue,
+    standBooth: buildStandBooth,
+    standTable: buildStandTable,
     voxelBox: (engine, opts) => engine.addVoxelBox(opts),
 };

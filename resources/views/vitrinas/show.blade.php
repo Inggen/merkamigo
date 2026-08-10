@@ -6,7 +6,7 @@
         : __(':name en :municipio, con Merkamigo.', ['name' => $business->name, 'municipio' => $business->municipality?->name ?? '']);
     $pageUrl = route('vitrinas.show', $business);
     $storeSchemaId = $pageUrl.'#store';
-    $pageImage = $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('icons/icon-512.png');
+    $pageImage = $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb(array_values(array_filter([
             ['name' => __('Inicio'), 'url' => route('home')],

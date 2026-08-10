@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Policies\BusinessPolicy;
+use App\Domain\Immersive\Contracts\GeneratesVoxelObjectDefinition;
+use App\Domain\Immersive\Observers\BusinessStandObserver;
+use App\Domain\Immersive\Support\OpenAiVoxelObjectGenerator;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Needs\Models\Offer;
 use App\Domain\Needs\Policies\NeedPolicy;
@@ -38,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(GeneratesAssistedText::class, OpenAiTextGenerator::class);
         $this->app->bind(TranscribesAudio::class, NullAudioTranscriber::class);
+        $this->app->bind(GeneratesVoxelObjectDefinition::class, OpenAiVoxelObjectGenerator::class);
 
         // Contrato de geocodificación (5.4 del TODO): sin proveedor real
         // elegido todavía, `ManualGeocoder` mantiene el comportamiento
@@ -55,6 +59,17 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAuthorization();
         $this->configureAuditing();
         $this->configureRateLimiting();
+        $this->configureImmersiveStandSync();
+    }
+
+    /**
+     * IMM-022/IMM-023 del TODO inmersivo: el negocio no sabe nada de la
+     * experiencia inmersiva — el observer vive en el dominio Immersive y
+     * se registra aquí, no dentro de `Business`.
+     */
+    protected function configureImmersiveStandSync(): void
+    {
+        Business::observe(BusinessStandObserver::class);
     }
 
     protected function configureAuthorization(): void

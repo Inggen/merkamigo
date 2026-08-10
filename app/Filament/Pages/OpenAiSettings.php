@@ -90,7 +90,7 @@ class OpenAiSettings extends Page
                             ->password()
                             ->revealable()
                             ->placeholder('sk-...')
-                            ->helperText('Solo llena este campo si quieres crear o reemplazar la llave guardada.'),
+                            ->helperText('Solo llena este campo si quieres crear o reemplazar la llave guardada. Debe ser una clave secreta de OpenAI y normalmente empieza por sk-.'),
                         TextInput::make('base_url')
                             ->label('URL base')
                             ->url()
@@ -99,7 +99,7 @@ class OpenAiSettings extends Page
                             ->label('Tiempo de espera (segundos)')
                             ->numeric()
                             ->minValue(1)
-                            ->maxValue(120)
+                            ->maxValue(300)
                             ->default(30),
                         TextInput::make('max_output_tokens')
                             ->label('Máximo de tokens de salida')
@@ -130,9 +130,22 @@ class OpenAiSettings extends Page
     {
         $setting = OpenAiSetting::current();
         $data = $this->form->getState();
+        $data['api_key'] = is_string($data['api_key'] ?? null)
+            ? trim($data['api_key'])
+            : $data['api_key'];
 
         if (blank($data['api_key'] ?? null)) {
             $data['api_key'] = $setting->getRawOriginal('api_key');
+        }
+
+        if (filled($data['api_key'] ?? null) && ! str_starts_with((string) $data['api_key'], 'sk-')) {
+            Notification::make()
+                ->title('La clave API no parece ser de OpenAI')
+                ->body('La llave guardada debe ser una clave secreta de OpenAI. Las claves de OpenAI normalmente empiezan por "sk-".')
+                ->danger()
+                ->send();
+
+            return;
         }
 
         $setting->fill($data)->save();

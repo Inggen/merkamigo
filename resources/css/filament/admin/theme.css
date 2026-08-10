@@ -5,3 +5,122 @@
 @source '../../../views/components/admin/**/*.blade.php';
 @source '../../../views/layouts/auth/**/*.blade.php';
 @source '../../../../app/Filament/**/*.php';
+
+@layer components {
+    .fi-topbar-ctn {
+        @apply border-b border-zinc-800 bg-[#18181b];
+    }
+
+    .fi-topbar {
+        @apply min-h-[4.5rem] gap-3 bg-transparent px-4 text-white shadow-none sm:px-6;
+    }
+
+    .fi-topbar .fi-topbar-start {
+        @apply gap-3;
+    }
+
+    .fi-topbar .fi-logo {
+        @apply h-auto!;
+    }
+
+    .fi-topbar .fi-icon-btn {
+        @apply border border-zinc-800 bg-zinc-900/80 text-zinc-300 shadow-none transition;
+    }
+
+    .fi-topbar .fi-icon-btn:hover {
+        @apply bg-zinc-800 text-white;
+    }
+
+    .fi-topbar .fi-user-menu-trigger {
+        @apply rounded-full border border-zinc-800 bg-zinc-950 p-0.5;
+    }
+
+    /* Sidebar oscuro (colapsado y desplegado) — mismo tono que el topbar
+       (#18181b) pero con un ligero tinte azulado, como pidió el usuario. */
+    .fi-sidebar,
+    .fi-sidebar-header-ctn,
+    .fi-sidebar-nav {
+        @apply border-white/5 bg-[#1e2530];
+    }
+
+    .fi-sidebar-group-btn,
+    .fi-sidebar-group-label {
+        @apply text-slate-400;
+    }
+
+    .fi-sidebar-group-btn:hover {
+        @apply text-white;
+    }
+
+    /* `.fi-sidebar-item-label` es un <span> hijo con SU PROPIO color fijado
+       por Filament (pensado para sidebar claro) — no hereda el color que
+       se le pone al <a> `.fi-sidebar-item-btn` que lo contiene, así que
+       hay que fijarlo acá también o queda casi invisible sobre este fondo
+       oscuro. Mismo motivo para repetirlo en :hover / activo. */
+    .fi-sidebar-item-btn,
+    .fi-sidebar-item-label {
+        @apply text-slate-300;
+    }
+
+    .fi-sidebar-item-btn:hover,
+    .fi-sidebar-item-btn:hover .fi-sidebar-item-label {
+        @apply bg-white/5 text-white;
+    }
+
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn,
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label {
+        @apply bg-white/5 text-white;
+    }
+
+    .fi-sidebar-item-grouped-border-part,
+    .fi-sidebar-item-grouped-border-part-not-first,
+    .fi-sidebar-item-grouped-border-part-not-last {
+        @apply bg-white/10;
+    }
+
+    .mk-admin-brand {
+        @apply flex items-center gap-3;
+    }
+
+    .mk-admin-brand__icon {
+        @apply flex size-11 items-center justify-center overflow-hidden rounded-2xl bg-[#0f172a] ring-1 ring-white/10;
+    }
+
+    .mk-admin-brand__wordmark {
+        @apply hidden text-[1.95rem] font-semibold tracking-[-0.04em] sm:inline;
+    }
+
+    .mk-admin-topbar-actions {
+        @apply ml-auto flex items-center gap-3;
+    }
+
+    .mk-admin-icon-btn {
+        @apply inline-flex size-11 items-center justify-center rounded-full border border-zinc-800 bg-transparent text-zinc-300 transition hover:bg-zinc-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500/30;
+    }
+
+    .mk-admin-icon-btn svg {
+        @apply size-5;
+    }
+
+    .mk-admin-site-link {
+        @apply inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30;
+    }
+
+    .mk-admin-site-link svg {
+        @apply size-4;
+    }
+
+    @media (max-width: 640px) {
+        .fi-topbar {
+            @apply px-3;
+        }
+
+        .mk-admin-topbar-actions {
+            @apply gap-2;
+        }
+
+        .mk-admin-site-link {
+            @apply px-3;
+        }
+    }
+}

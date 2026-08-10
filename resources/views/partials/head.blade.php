@@ -2,7 +2,7 @@
     $seoTitle = $title ?? config('app.name', 'Laravel');
     $pageTitle = filled($title ?? null) ? $title.' - '.config('app.name', 'Laravel') : config('app.name', 'Laravel');
     $pageDescription = $description ?? __('Descubre lo local, conecta con tu comunidad. Merkamigo conecta emprendedores locales con compradores cercanos en Bogotá y Sabana Norte.');
-    $pageImage = $image ?? asset('icons/icon-512.png');
+    $pageImage = $image ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
     $canonicalUrl = $canonical ?? url()->full();
     $robotsContent = $robots ?? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
     $pageSchemaType = $pageSchemaType ?? 'WebPage';
@@ -42,6 +42,12 @@
 <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+{{-- Google exige un favicon cuadrado, múltiplo de 48px, para mostrarlo en
+     resultados de búsqueda — favicon.ico (32x32) y favicon.svg (392x414,
+     no cuadrado) no cumplen esos requisitos por sí solos. Estos PNG
+     cuadrados sí califican. --}}
+<link rel="icon" href="{{ asset('icons/icon-512.png') }}" sizes="512x512" type="image/png">
+<link rel="icon" href="{{ asset('icons/icon-192.png') }}" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 <link rel="manifest" href="{{ asset('site.webmanifest') }}">
 <meta name="theme-color" content="#D7352A">

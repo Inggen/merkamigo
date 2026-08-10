@@ -69,6 +69,15 @@ return [
         'disk' => 'private',
     ],
 
+    'immersive_experience_thumbnail' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 3072,
+        'max_files' => 1,
+        'max_width' => 1280,
+        'target_extension' => 'webp',
+        'quality' => 86,
+    ],
+
     'need_photo' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,

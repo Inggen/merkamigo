@@ -90,7 +90,8 @@ Route::post('soporte/solicitud', [SupportTicketController::class, 'store'])
 Route::view('preguntas-frecuentes', 'public.preguntas-frecuentes', ['faqs' => config('faq.preguntas')])
     ->name('preguntas-frecuentes');
 Route::get('labs/zipa-inmersiva', [PlazaController::class, 'zipaInmersiva'])->name('labs.zipa-inmersiva');
-Route::view('labs/cajica-inmersiva', 'public.labs.cajica-inmersiva')->name('labs.cajica-inmersiva');
+Route::get('labs/cajica-inmersiva', [PlazaController::class, 'cajicaInmersiva'])->name('labs.cajica-inmersiva');
+Route::get('labs/plaza/{municipio:slug}', [PlazaController::class, 'genericPlaza'])->name('labs.generic-plaza');
 Route::get('sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 // Wompi (4.2 del TODO): retorno del checkout y webhook, ambos públicos —
@@ -201,6 +202,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('business.team')->prefix('emprendedores/negocios/{business}')->name('emprendedores.negocios.')->group(function () {
         Route::livewire('vitrina', 'pages::emprendedores.negocios.vitrina')->name('vitrina');
+        Route::livewire('mi-stand', 'pages::emprendedores.negocios.mi-stand')->name('mi-stand');
         Route::livewire('productos', 'pages::emprendedores.negocios.productos')->name('productos');
         Route::livewire('colaboradores', 'pages::emprendedores.negocios.colaboradores')->name('colaboradores');
         Route::livewire('metricas', 'pages::emprendedores.negocios.metricas')->name('metricas');

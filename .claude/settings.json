@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l /Users/johnalexanderramirezrodriguez/Herd/merkamigo/app/Livewire/PlazaSpatialEditor.php)",
+      "Bash(vendor/bin/pint --test app/Livewire/PlazaSpatialEditor.php resources/views/livewire/plaza-spatial-editor.blade.php)",
+      "Bash(php -l /Users/johnalexanderramirezrodriguez/Herd/merkamigo/resources/views/filament/immersive/object-template-preview-modal.blade.php)",
+      "Bash(vendor/bin/pint --test app/Filament/Resources/ImmersiveObjectTemplates/Pages/EditImmersiveObjectTemplate.php)",
+      "Bash(php -l /Users/johnalexanderramirezrodriguez/Herd/merkamigo/app/Providers/Filament/AdminPanelProvider.php)",
+      "Bash(vendor/bin/pint --test app/Providers/Filament/AdminPanelProvider.php)",
+      "Bash(cp /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_payload.mjs /Applications/MAMP/htdocs/inggen-local-com/verify_payload_tmp.mjs)",
+      "Bash(node verify_payload_tmp.mjs)",
+      "Bash(curl -sk -o /dev/null -w \"%{http_code}\\\\n\" http://merkamigo.test/admin/login)",
+      "Bash(curl -sk -o /tmp/login.html -w \"%{http_code}\\\\n\" https://merkamigo.test/admin/login)",
+      "Bash(python3 -c ' *)",
+      "Bash(node verify_mobile_controls_tmp.mjs)",
+      "Bash(ls -la /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_mobile_controls.mjs *)",
+      "Bash(node verify_touch_look_tmp.mjs)",
+      "Bash(cp /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_touch_look.mjs /Applications/MAMP/htdocs/inggen-local-com/verify_touch_look_tmp.mjs)",
+      "Bash(vendor/bin/pint --test public/js/lib/voxel-plaza-engine.js)",
+      "Bash(sed -i '' \"s#clip: { x: 0, y: 700, width: 390, height: 144 }#fullPage: false#\" /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_bottom.mjs)",
+      "Bash(cp /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_bottom.mjs /Applications/MAMP/htdocs/inggen-local-com/verify_bottom_tmp.mjs)",
+      "Bash(node verify_bottom_tmp.mjs)",
+      "Bash(curl -sk \"https://merkamigo.test/plaza/cajica\")",
+      "Bash(curl -sk \"https://merkamigo.test/labs/plaza/cajica\")",
+      "Bash(curl -sk \"https://merkamigo.test/labs/plaza/cajica?preview=1\")",
+      "Bash(curl -sk \"https://merkamigo.test/api/v1/inmersivo/plazas/2/props\")",
+      "Bash(php -l app/Domain/Immersive/Models/ImmersiveExperience.php)",
+      "Bash(vendor/bin/pint --test app/Livewire/PlazaSpatialEditor.php app/Domain/Immersive/Models/ImmersiveExperience.php)",
+      "Bash(vendor/bin/phpunit tests/Feature/Immersive/PlazaSpatialEditorConfirmPropTest.php tests/Feature/Immersive/ImmersiveExperienceVersioningTest.php)",
+      "Bash(vendor/bin/pint --test tests/Feature/Immersive/PlazaSpatialEditorConfirmPropTest.php tests/Feature/Immersive/ImmersiveExperienceVersioningTest.php)",
+      "Bash(rm -f /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_*.mjs /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/*.png 2>/dev/null; echo done)",
+      "Bash(grep -n 'afterObjectSaved\\('\\\\''slot'\\\\'', $slot\\)\\\\|afterObjectSaved\\('\\\\''prop'\\\\'', $prop\\)' app/Livewire/PlazaSpatialEditor.php)",
+      "Bash(php -l app/Livewire/PlazaSpatialEditor.php)",
+      "Bash(vendor/bin/phpunit tests/Feature/Immersive/PlazaSpatialEditorTest.php tests/Feature/Immersive/PlazaSpatialEditorUndoRedoTest.php tests/Feature/Immersive/PlazaSpatialEditorConfirmPropTest.php)",
+      "Bash(vendor/bin/pint --test app/Livewire/PlazaSpatialEditor.php tests/Feature/Immersive/PlazaSpatialEditorTest.php tests/Feature/Immersive/PlazaSpatialEditorUndoRedoTest.php)",
+      "Bash(cp /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_spawn3.mjs /Applications/MAMP/htdocs/inggen-local-com/verify_spawn3_tmp.mjs)",
+      "Bash(node verify_spawn3_tmp.mjs)",
+      "Bash(node verify_spawn4_tmp.mjs)",
+      "Bash(cp /private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad/verify_spawn4.mjs /Applications/MAMP/htdocs/inggen-local-com/verify_spawn4_tmp.mjs)",
+      "Bash(node verify_login_tmp.mjs)",
+      "Bash(rm -f /Applications/MAMP/htdocs/inggen-local-com/verify_spawn4_tmp.mjs)",
+      "Bash(php artisan tinker --execute=\" *)",
+      "Bash(curl -sk \"https://merkamigo.test/\")",
+      "Bash(php -l resources/views/vitrinas/show.blade.php)",
+      "Bash(php -l resources/views/vitrinas/product.blade.php)",
+      "Bash(php -l resources/views/partials/head.blade.php)"
+    ],
+    "additionalDirectories": [
+      "/Applications/MAMP/htdocs/inggen-local-com",
+      "/private/tmp/claude-501/-Users-johnalexanderramirezrodriguez-Herd-merkamigo/801e98cc-9e8f-4f80-ba9e-d69ed9e66daf/scratchpad"
+    ]
+  }
+}

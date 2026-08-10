@@ -315,6 +315,14 @@
                     border-radius: 18px;
                 }
             }
+
+            /* En táctil el motor agrega stick/botones abajo (voxel-plaza-engine.js)
+               — subir este aviso para que no quede debajo de esos controles. */
+            @media (hover: none) and (pointer: coarse) {
+                .zipa-demo-status {
+                    bottom: 150px;
+                }
+            }
         </style>
     </head>
     <body>
@@ -379,6 +387,7 @@
 
         <script>
             window.zipaImmersiveBusinesses = @json($immersiveBusinesses ?? []);
+            window.zipaImmersivePlazaId = @json($immersivePlazaId ?? null);
 
             (() => {
                 const toggle = document.getElementById('zipa-panel-toggle');

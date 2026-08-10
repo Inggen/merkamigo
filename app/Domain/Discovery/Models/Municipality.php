@@ -3,8 +3,10 @@
 namespace App\Domain\Discovery\Models;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Immersive\Models\ImmersiveExperience;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
@@ -37,6 +39,26 @@ class Municipality extends Model
     public function businesses(): HasMany
     {
         return $this->hasMany(Business::class);
+    }
+
+    /**
+     * @return HasMany<ImmersiveExperience, $this>
+     */
+    public function immersiveExperiences(): HasMany
+    {
+        return $this->hasMany(ImmersiveExperience::class);
+    }
+
+    /**
+     * La experiencia inmersiva "principal" del municipio, si tiene una
+     * publicada (IMM-011: solo puede haber una a la vez, ver
+     * `ImmersiveExperience::booted()`).
+     *
+     * @return HasOne<ImmersiveExperience, $this>
+     */
+    public function publishedImmersiveExperience(): HasOne
+    {
+        return $this->hasOne(ImmersiveExperience::class)->where('status', 'publicada');
     }
 
     public function coverUrl(): ?string
@@ -92,10 +114,6 @@ class Municipality extends Model
 
     public function immersiveLabUrl(): ?string
     {
-        return match ($this->slug) {
-            'zipaquira' => route('labs.zipa-inmersiva'),
-            'cajica' => route('labs.cajica-inmersiva'),
-            default => null,
-        };
+        return $this->publishedImmersiveExperience?->labUrl();
     }
 }

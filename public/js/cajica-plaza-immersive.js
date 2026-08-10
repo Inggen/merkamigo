@@ -7,6 +7,7 @@
  * único realmente único de este lugar.
  */
 import { THREE, VoxelPlazaEngine, standardBuilders, basePalette } from './lib/voxel-plaza-engine.js';
+import { loadDynamicStands } from './lib/dynamic-stand-loader.js';
 
 const container = document.getElementById('cajica-immersive-scene');
 const lockTrigger = document.getElementById('cajica-lock-trigger');
@@ -363,3 +364,4 @@ const layout = [
 ];
 
 engine.start(layout, standardBuilders);
+loadDynamicStands(engine, window.cajicaImmersivePlazaId);
