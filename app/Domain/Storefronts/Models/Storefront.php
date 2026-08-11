@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Storefront extends Model
 {
-    protected $fillable = ['business_id', 'headline', 'description', 'cover_path', 'cover_alt_text', 'status', 'published_at'];
+    protected $fillable = ['business_id', 'headline', 'description', 'cover_path', 'cover_alt_text', 'stand_color', 'status', 'published_at'];
 
     protected function casts(): array
     {

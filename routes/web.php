@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\GoogleMerchantFeedController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\NeedsController;
 use App\Http\Controllers\PlazaController;
 use App\Http\Controllers\ReportController;
@@ -64,6 +65,14 @@ Route::middleware('auth')->group(function () {
         abort_unless(auth()->user()?->hasAnyPlatformRole(['superadmin']), 403);
 
         Artisan::call('storage:link');
+
+        return nl2br(e(Artisan::output()));
+    });
+
+    Route::get('/migrar', function () {
+        abort_unless(auth()->user()?->hasAnyPlatformRole(['superadmin']), 403);
+
+        Artisan::call('migrate', ['--force' => true]);
 
         return nl2br(e(Artisan::output()));
     });
@@ -127,6 +136,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('salir', [AuthenticatedSessionController::class, 'destroy'])->name('front.logout');
+    Route::post('salir-de-usuario', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
     Route::get('confirmar-clave', fn () => view('pages::auth.confirm-password'))->name('password.confirm');
     Route::post('confirmar-clave', [ConfirmablePasswordController::class, 'store'])->name('front.password.confirm.store');
     Route::get('verificar-correo', [EmailVerificationPromptController::class, '__invoke'])->name('verification.notice');

@@ -95,6 +95,24 @@
                 </flux:header>
 
                 <div class="{{ auth()->user()->experience === 'cliente' ? 'pb-16 md:pb-0' : '' }}">
+                    @if (session(\App\Domain\Platform\Actions\StartUserImpersonation::SESSION_KEY))
+                        <div class="col-span-full w-full border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                            <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    Estás usando la cuenta de <strong>{{ auth()->user()->name }}</strong> como soporte.
+                                    Volverás a <strong>{{ data_get(session(\App\Domain\Platform\Actions\StartUserImpersonation::SESSION_KEY), 'impersonator_name', 'tu cuenta de superadmin') }}</strong> cuando cierres este modo.
+                                </div>
+
+                                <form method="POST" action="{{ route('impersonation.stop') }}">
+                                    @csrf
+                                    <flux:button type="submit" variant="filled" size="sm">
+                                        Volver a mi cuenta
+                                    </flux:button>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+
                     {{ $slot }}
                 </div>
             </div>

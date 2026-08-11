@@ -6,8 +6,12 @@
  * DÓNDE, como datos (`layout`), más la fachada de la iglesia, que es lo
  * único realmente único de este lugar.
  */
-import { THREE, VoxelPlazaEngine, standardBuilders, basePalette } from './lib/voxel-plaza-engine.js';
+import { THREE, VoxelPlazaEngine, standardBuilders, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js';
 import { loadDynamicStands } from './lib/dynamic-stand-loader.js';
+import { attachStandProximity } from './lib/stand-proximity.js';
+import { createVitrinaModal } from './lib/stand-vitrina-modal.js';
+import { attachSearchPanel } from './lib/stand-search-panel.js';
+import { loadAvatarPreference } from './lib/avatar-preference.js';
 
 const container = document.getElementById('cajica-immersive-scene');
 const lockTrigger = document.getElementById('cajica-lock-trigger');
@@ -23,6 +27,9 @@ const palette = {
     plaza: 0xb5502e,
     plazaDark: 0x8a3c22,
     path: 0xc06a3d,
+    // IMM-030: solo agrega las 4 claves dedicadas del avatar, no toca el
+    // resto de la paleta cálida de Cajicá de arriba.
+    ...avatarPresets[loadAvatarPreference()],
 };
 
 const plaza = { centerX: 0, centerZ: -4, width: 66, depth: 58 };
@@ -32,6 +39,7 @@ const engine = new VoxelPlazaEngine({
     container,
     lockTrigger,
     palette,
+    avatarPreset: loadAvatarPreference(),
     fog: { color: 0xb9d9ee, near: 70, far: 230 },
     playerStart: { x: 2, z: 18 },
     playerFacing: 0.22,
@@ -364,4 +372,8 @@ const layout = [
 ];
 
 engine.start(layout, standardBuilders);
-loadDynamicStands(engine, window.cajicaImmersivePlazaId);
+const cajicaVitrinaModal = createVitrinaModal(engine);
+loadDynamicStands(engine, window.cajicaImmersivePlazaId).then((stands) => {
+    attachStandProximity(engine, stands, { onOpen: (business) => cajicaVitrinaModal.open(business) });
+    attachSearchPanel(engine, stands, { currentMunicipalitySlug: window.cajicaMunicipalitySlug, vitrinaModal: cajicaVitrinaModal });
+});

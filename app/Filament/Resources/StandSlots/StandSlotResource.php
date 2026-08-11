@@ -34,6 +34,8 @@ class StandSlotResource extends Resource
 
     protected static ?string $navigationLabel = 'Slots de stand';
 
+    protected static ?string $navigationParentItem = 'Plazas';
+
     public static function form(Schema $schema): Schema
     {
         return StandSlotForm::configure($schema);

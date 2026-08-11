@@ -272,6 +272,20 @@
                 color: #fff;
             }
 
+            .zipa-demo-avatar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-top: 14px;
+                color: #fff;
+            }
+
+            .zipa-demo-avatar-label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                opacity: 0.75;
+            }
+
             .zipa-demo-status {
                 position: absolute;
                 bottom: 20px;
@@ -367,6 +381,11 @@
                         <span><span class="zipa-demo-key">Esc</span> Liberar el puntero</span>
                     </div>
 
+                    <div class="zipa-demo-avatar">
+                        <span class="zipa-demo-avatar-label">Tu avatar</span>
+                        <x-immersive.avatar-picker />
+                    </div>
+
                     <div class="zipa-demo-actions">
                         <a href="{{ route('buscar', ['municipio' => 'zipaquira']) }}" class="zipa-demo-button zipa-demo-button--ghost">Volver a la plaza web</a>
                         <button id="zipa-lock-trigger" type="button" class="zipa-demo-button zipa-demo-button--primary">Entrar en modo inmersivo</button>
@@ -388,6 +407,7 @@
         <script>
             window.zipaImmersiveBusinesses = @json($immersiveBusinesses ?? []);
             window.zipaImmersivePlazaId = @json($immersivePlazaId ?? null);
+            window.zipaMunicipalitySlug = @json('zipaquira');
 
             (() => {
                 const toggle = document.getElementById('zipa-panel-toggle');

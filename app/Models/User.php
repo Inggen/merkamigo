@@ -38,6 +38,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $phone
  * @property Carbon|null $phone_verified_at
  * @property string|null $avatar_path
+ * @property string|null $avatar_preset
  * @property string $password
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes

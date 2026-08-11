@@ -134,7 +134,7 @@
                     {{ __('Ingresa') }}
                 </flux:button>
                 <flux:button size="sm" variant="primary" :href="route('emprendedores.bienvenida')" wire:navigate class="rounded-xl px-4">
-                    {{ __('Publica tu negocio') }}
+                    {{ __('Publicar') }}
                 </flux:button>
             @endauth
         </nav>

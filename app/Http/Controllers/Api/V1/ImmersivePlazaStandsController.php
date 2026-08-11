@@ -22,7 +22,7 @@ class ImmersivePlazaStandsController extends Controller
     public function index(ImmersivePlaza $plaza): JsonResponse
     {
         $stands = $plaza->slots()
-            ->with(['assignment.template'])
+            ->with(['assignment.template', 'assignment.business.category', 'assignment.business.storefront', 'assignment.business.organization.owner'])
             ->get()
             ->filter(fn (StandSlot $slot): bool => (bool) $slot->assignment?->isLive())
             ->map(fn (StandSlot $slot) => [
@@ -37,6 +37,30 @@ class ImmersivePlazaStandsController extends Controller
                 'builder_key' => $slot->assignment->template?->builder_key,
                 'model_definition' => $slot->assignment->template?->model_definition,
                 'scale' => self::scaleForSlot($slot, $slot->assignment->template),
+                // IMM-032: activación por proximidad — el visitante necesita
+                // saber a qué negocio pertenece este stand y a dónde ir al
+                // hacer clic en el indicador "Ver vitrina".
+                'business' => [
+                    'name' => $slot->assignment->business->name,
+                    'slug' => $slot->assignment->business->slug,
+                    'logo_url' => $slot->assignment->business->logoUrl(),
+                    'vitrina_url' => route('vitrinas.show', $slot->assignment->business),
+                    // IMM-034: para que el panel de búsqueda pueda filtrar
+                    // por categoría los stands ya cargados en esta plaza
+                    // sin otra llamada de red por cada clic.
+                    'category_slug' => $slot->assignment->business->category?->slug,
+                    // Color elegido libremente por el emprendedor para su
+                    // propio stand (formato #rrggbb) — null si nunca eligió
+                    // uno, en cuyo caso el render usa los colores por
+                    // defecto de la plantilla/modelo.
+                    'stand_color' => $slot->assignment->business->storefront?->stand_color,
+                    // Persona junto al stand: mismo preset 'hombre'/'mujer'
+                    // que el dueño del negocio (dueño de la Organization,
+                    // no cualquier miembro) eligió para sí mismo en
+                    // /settings/avatar. Siempre resuelve a un valor válido
+                    // — el JS no necesita su propio fallback.
+                    'owner_avatar_preset' => $slot->assignment->business->organization?->owner->avatar_preset ?? 'hombre',
+                ],
             ])
             ->values();
 

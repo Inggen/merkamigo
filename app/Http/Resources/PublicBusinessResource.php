@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Domain\Businesses\Models\Business;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 /**
  * Vista pública de un negocio publicado (5.1 del TODO), pensada para
@@ -29,6 +30,7 @@ class PublicBusinessResource extends JsonResource
             'headline' => $this->storefront?->headline,
             'description' => $this->storefront?->description,
             'logo_url' => $this->logoUrl(),
+            'cover_url' => $this->storefront?->coverUrl(),
             'category' => new CategoryResource($this->whenLoaded('category')),
             'municipality' => new MunicipalityResource($this->whenLoaded('municipality')),
             'zone' => $this->zone,
@@ -41,6 +43,31 @@ class PublicBusinessResource extends JsonResource
             'has_verified_badge' => $this->hasVerifiedBadge(),
             'verified_badge_label' => $this->verifiedBadgeLabel(),
             'url' => route('vitrinas.show', $this->resource),
+            // IMM-033: resumen de reseñas para el modal de vitrina de la
+            // plaza inmersiva. No hay calificación numérica en este
+            // codebase — las "reseñas" son texto libre (Recommendation).
+            'recommendations_summary' => [
+                'count' => $this->publishedRecommendations()->count(),
+                'recent' => $this->publishedRecommendations()
+                    ->sortByDesc('created_at')
+                    ->take(3)
+                    ->map(fn ($recommendation) => [
+                        'body' => Str::limit($recommendation->body, 140),
+                        'created_at' => $recommendation->created_at,
+                    ])
+                    ->values(),
+            ],
+            // IMM-034: en qué plaza inmersiva está este negocio (si tiene
+            // un stand vivo asignado) y la URL para viajar ahí — el panel
+            // de búsqueda de la plaza 3D lo usa para "buscar una vitrina
+            // informa en qué plaza está y permite viajar a ella".
+            'immersive_location' => $this->standAssignment?->isLive()
+                ? [
+                    'plaza_name' => $this->standAssignment->plaza->name,
+                    'municipality_slug' => $this->standAssignment->plaza->experience->municipality->slug,
+                    'travel_url' => $this->standAssignment->plaza->experience->municipality->immersiveLabUrl(),
+                ]
+                : null,
         ];
     }
 }

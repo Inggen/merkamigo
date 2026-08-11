@@ -7,8 +7,12 @@
  * de prioridad de renderizado (GLB > definición IA > forma voxel) que ya
  * usa el editor espacial del admin — así nunca divergen.
  */
-import { THREE, VoxelPlazaEngine } from './lib/voxel-plaza-engine.js';
+import { THREE, VoxelPlazaEngine, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js';
 import { loadDynamicStands, loadDynamicProps } from './lib/dynamic-stand-loader.js';
+import { attachStandProximity } from './lib/stand-proximity.js';
+import { createVitrinaModal } from './lib/stand-vitrina-modal.js';
+import { attachSearchPanel } from './lib/stand-search-panel.js';
+import { loadAvatarPreference } from './lib/avatar-preference.js';
 
 const container = document.getElementById('generic-immersive-scene');
 const lockTrigger = document.getElementById('generic-lock-trigger');
@@ -35,6 +39,10 @@ const spawn = window.genericPlazaSpawn ?? { x: 0, z: 0 };
 const engine = new VoxelPlazaEngine({
     container,
     lockTrigger,
+    // IMM-030: solo se sobreescriben las 4 claves dedicadas del avatar —
+    // esta escena no tiene ninguna otra paleta propia que preservar.
+    palette: { ...basePalette, ...avatarPresets[loadAvatarPreference()] },
+    avatarPreset: loadAvatarPreference(),
     groundSize,
     movementBounds: bounds,
     playerStart: { x: spawn.x ?? 0, z: spawn.z ?? 0 },
@@ -62,9 +70,16 @@ if (window.genericPlazaReferenceImageUrl) {
     engine.world.add(ground);
 }
 
+const genericVitrinaModal = createVitrinaModal(engine);
+
 Promise.all([
     loadDynamicStands(engine, window.genericPlazaId),
     loadDynamicProps(engine, window.genericPlazaId),
-]).finally(() => {
+]).then(([stands]) => {
+    attachStandProximity(engine, stands, {
+        onOpen: (business) => genericVitrinaModal.open(business),
+    });
+    attachSearchPanel(engine, stands, { currentMunicipalitySlug: window.genericMunicipalitySlug, vitrinaModal: genericVitrinaModal });
+}).finally(() => {
     engine.perf.markSceneReady();
 });

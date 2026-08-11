@@ -25,7 +25,7 @@ class UpdateStorefront
         'whatsapp_number', 'hours', 'social_links', 'payment_info', 'attributes', 'logo_alt_text',
     ];
 
-    private const STOREFRONT_FIELDS = ['headline', 'description', 'cover_alt_text'];
+    private const STOREFRONT_FIELDS = ['headline', 'description', 'cover_alt_text', 'stand_color'];
 
     /**
      * @param  array<string, mixed>  $data
@@ -51,6 +51,10 @@ class UpdateStorefront
             'logo_alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'cover' => ['sometimes', 'nullable'],
             'cover_alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
+            // Color del stand en la plaza inmersiva 3D, elegido libremente
+            // por el emprendedor — formato exacto que ya produce
+            // <input type="color"> (#rrggbb, sin abreviatura ni alpha).
+            'stand_color' => ['sometimes', 'nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ])->validate();
 
         return DB::transaction(function () use ($business, $validated, $actor) {

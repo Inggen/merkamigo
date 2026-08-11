@@ -7,6 +7,7 @@ use App\Domain\Immersive\Models\ImmersiveExperience;
 use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Domain\Immersive\Models\ImmersivePlaza;
 use App\Domain\Immersive\Models\StandSlot;
+use App\Filament\Resources\ImmersiveObjectTemplates\ImmersiveObjectTemplateResource;
 use App\Livewire\PlazaSpatialEditor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -96,6 +97,16 @@ class PlazaSpatialEditorTest extends TestCase
         $this->assertCount(1, $scene['props']);
         $this->assertSame($prop->id, $scene['props'][0]['id']);
         $this->assertEquals(5.0, $scene['props'][0]['x']);
+    }
+
+    public function test_empty_properties_panel_shows_add_object_call_to_action(): void
+    {
+        $plaza = $this->makePlaza();
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->assertSee('Todavía no hay un objeto seleccionado.')
+            ->assertSee('Agregar objeto')
+            ->assertSee(ImmersiveObjectTemplateResource::getUrl('create'), false);
     }
 
     public function test_update_slot_position_persists_a_valid_position(): void

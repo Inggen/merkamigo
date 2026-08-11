@@ -175,6 +175,46 @@ class StorefrontEditorTest extends TestCase
         $this->assertNull($business->fresh()->longitude);
     }
 
+    public function test_owner_can_set_a_stand_color_for_the_immersive_plaza(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Color de Stand', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('stand_color', '#6E5A80')
+            ->assertHasNoErrors();
+
+        $this->assertSame('#6E5A80', $business->fresh()->storefront->stand_color);
+    }
+
+    public function test_stand_color_rejects_a_value_that_is_not_a_hex_color(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Color Inválido', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        // `updated()` es autoguardado silencioso (a propósito, ver su
+        // docblock): un valor inválido simplemente no se guarda, sin
+        // mostrar error mientras se escribe. `save()` sí valida "de
+        // verdad" y expone el error — se prueban ambos caminos.
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('stand_color', 'purple');
+
+        $this->assertNull($business->fresh()->storefront->stand_color);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('stand_color', 'purple')
+            ->call('save')
+            ->assertHasErrors(['stand_color']);
+    }
+
     public function test_a_collaborator_of_another_business_cannot_open_the_editor(): void
     {
         $ownerA = User::factory()->create();

@@ -34,6 +34,8 @@ class StandZoneResource extends Resource
 
     protected static ?string $navigationLabel = 'Zonas de stands';
 
+    protected static ?string $navigationParentItem = 'Plazas';
+
     public static function form(Schema $schema): Schema
     {
         return StandZoneForm::configure($schema);

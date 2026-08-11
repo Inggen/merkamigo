@@ -60,6 +60,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
     public ?string $logo_alt_text = '';
     public $cover;
     public ?string $cover_alt_text = '';
+    public ?string $stand_color = null;
 
     /** @var array<int, string> */
     public array $missing = [];
@@ -105,6 +106,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $this->description = $business->storefront?->description;
         $this->logo_alt_text = $business->logo_alt_text;
         $this->cover_alt_text = $business->storefront?->cover_alt_text;
+        $this->stand_color = $business->storefront?->stand_color;
         $this->hours_text = $business->hoursNote() ?? '';
         $this->payment_info = $business->payment_info;
         $this->social_links = array_merge($this->social_links, $business->social_links ?? []);
@@ -140,6 +142,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
             'payment_info' => ['nullable', 'string'],
             'logo_alt_text' => ['nullable', 'string', 'max:255'],
             'cover_alt_text' => ['nullable', 'string', 'max:255'],
+            'stand_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }
 
@@ -437,6 +440,25 @@ new #[Title('Editar mi vitrina')] class extends Component {
                         :error="$errors->first('cover')"
                     />
                     <flux:input wire:model.live.debounce.900ms="cover_alt_text" class="mt-2" :label="__('Texto alternativo de la portada (opcional)')" />
+                </div>
+
+                <div>
+                    <flux:label>{{ __('Color de tu stand en la plaza inmersiva (opcional)') }}</flux:label>
+                    <div class="mt-1 flex items-center gap-3">
+                        <input
+                            type="color"
+                            wire:model.live.debounce.900ms="stand_color"
+                            class="h-10 w-16 cursor-pointer rounded-lg border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
+                        />
+                        @if ($stand_color)
+                            <flux:button size="sm" variant="ghost" wire:click="$set('stand_color', null)">
+                                {{ __('Quitar color') }}
+                            </flux:button>
+                        @endif
+                    </div>
+                    <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ __('Se aplica a tu stand dentro de la experiencia 3D de la plaza. Si no eliges uno, se usa el color por defecto del diseño.') }}
+                    </flux:text>
                 </div>
             </div>
 

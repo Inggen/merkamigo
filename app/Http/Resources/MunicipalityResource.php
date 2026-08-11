@@ -22,6 +22,10 @@ class MunicipalityResource extends JsonResource
             'slug' => $this->slug,
             'department' => $this->department,
             'cover_url' => $this->coverUrl(),
+            // IMM-034: null si el municipio no tiene experiencia inmersiva
+            // publicada — el panel de "selector de plaza" de la plaza 3D
+            // filtra por este campo para saber a dónde se puede viajar.
+            'immersive_lab_url' => $this->immersiveLabUrl(),
         ];
     }
 }

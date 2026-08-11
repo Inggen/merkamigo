@@ -29,7 +29,11 @@ class DiscoveryController extends Controller
 {
     public function municipios(): JsonResponse
     {
-        $municipalities = Cache::remember('api.v1.municipios', now()->addMinutes(10), fn () => Municipality::where('is_active', true)->orderBy('name')->get());
+        // No se eager-carga `.municipality` sobre `publishedImmersiveExperience`
+        // para mantener el grafo cacheado simple — `ImmersiveExperience::municipality()`
+        // se resuelve con una query normal (barata, una sola fila) cuando
+        // `labUrl()` la necesita.
+        $municipalities = Cache::remember('api.v1.municipios', now()->addMinutes(10), fn () => Municipality::where('is_active', true)->with('publishedImmersiveExperience')->orderBy('name')->get());
 
         return ApiResponse::response(MunicipalityResource::collection($municipalities));
     }
@@ -65,7 +69,7 @@ class DiscoveryController extends Controller
                 ->orWhereHas('products', fn (Builder $p) => $p->where('status', 'publicado')->where('name', 'like', "%{$query}%"))))
             ->when($municipality, fn (Builder $q) => $q->servesMunicipality($municipality->id))
             ->when($category, fn (Builder $q) => $q->where('category_id', $category->id))
-            ->with(['category', 'municipality', 'storefront']);
+            ->with(['category', 'municipality', 'storefront', 'standAssignment.plaza.experience.municipality']);
 
         if ($near) {
             $businesses = $this->paginateByDistance($businessesQuery->get(), $near, $request);
@@ -80,7 +84,7 @@ class DiscoveryController extends Controller
     {
         abort_unless($business->isPublished(), 404);
 
-        $business->load(['storefront', 'category', 'municipality', 'municipalities', 'verifications']);
+        $business->load(['storefront', 'category', 'municipality', 'municipalities', 'verifications', 'standAssignment.plaza.experience.municipality']);
 
         return ApiResponse::response(new PublicBusinessResource($business));
     }

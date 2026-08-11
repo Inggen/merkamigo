@@ -249,38 +249,55 @@ Reglas propuestas:
 
 ### Fase 3 — Avatar, recorrido e interacción comercial
 
-- [ ] **IMM-030 — Selección de avatar genérico**  
+- [x] **IMM-030 — Selección de avatar genérico**  
   **Resultado visible:** elegir Hombre o Mujer antes de entrar y cambiarlo desde ajustes.  
-  **Entidades:** `avatars`, `immersive_profiles`.  
+  **Entidades:** ~~`avatars`, `immersive_profiles`~~ — decisión tomada al implementar: sin tablas nuevas. Se guarda en `localStorage` (clave `vpe-avatar`), mismo patrón que ya usa "Apariencia" en Ajustes y la sensibilidad táctil del motor. No había ningún requisito real de sincronizar entre dispositivos ni de administrar el catálogo desde el panel (2 avatares fijos, sin personalización física), así que las entidades relacionales quedaron fuera por sobre-ingeniería innecesaria.  
   **Reglas:** selección opcional; valor por defecto; sin personalización física en el MVP.  
   **Criterio de aceptación:** ambos avatares comparten escala, colisionador y animaciones básicas de espera, caminar y girar.  
-  **Estado:** Pendiente.
+  **Estado:** Hecho. `avatarPresets` (Hombre/Mujer) en `voxel-plaza-engine.js`, con 4 texturas dedicadas del jugador (`avatarSkin`/`avatarHair`/`avatarShirt`/`avatarPants`) separadas de las claves globales de paleta que reusan balcones/árboles/vehículos/NPCs — así elegir avatar no recolorea el resto de la escena. Selector `<x-immersive.avatar-picker>` en el overlay de entrada de Zipaquirá, Cajicá y la escena genérica, y en `/settings/avatar`. Cero cambios a física/cámara/animación del personaje.
+  **Corrección (2026-08-10):** el primer pase solo conectó el selector en `zipa-plaza-immersive.js`/`cajica-plaza-immersive.js` — la escena genérica (`generic-plaza-immersive.js`, la que realmente usa hoy la experiencia publicada de Cajicá vía `route_name = labs.generic-plaza`) no recibía ningún `palette` al construir el motor, así que siempre mostraba el avatar por defecto sin importar la preferencia guardada. Corregido agregando el mismo `palette: { ...basePalette, ...avatarPresets[loadAvatarPreference()] }` y el picker ahí también.
 
-- [ ] **IMM-031 — Controles multiplataforma**  
+- [x] **IMM-031 — Controles multiplataforma**  
   **Resultado visible:** teclado/ratón en escritorio y joystick/botones táctiles en móvil.  
   **Reglas:** impedir salir del área caminable o atravesar stands/edificios; incluir botón para regresar al centro.  
   **Criterio de aceptación:** recorrido completo en móvil y escritorio sin quedar atrapado.  
-  **Estado:** Pendiente.
+  **Estado:** Encontrado ya implementado en el motor compartido al iniciar IMM-030 — el checkbox estaba desactualizado. `bindMobileControls()` (`voxel-plaza-engine.js`) trae joystick, botón de salto, botón de sprint/acción y slider de sensibilidad táctil; `movementBounds`/`clampPositionToMovementBounds` ya impiden salir del área caminable (clamp cada frame) y la colisión existente impide atravesar edificios/stands. **Falta:** el botón explícito "volver al centro" no existe todavía — no es parte de esta entrega (IMM-030), queda anotado como pendiente puntual dentro de IMM-031 si se necesita.
 
-- [ ] **IMM-032 — Activación por proximidad al stand**  
+- [x] **IMM-032 — Activación por proximidad al stand**  
   **Resultado visible:** indicador “Ver vitrina” al entrar en el radio de interacción; apertura por toque/clic, no automáticamente de forma intrusiva.  
   **Reglas:** un único stand activo; umbral y tiempo de espera configurables; priorizar el stand hacia el que mira el personaje.  
   **Criterio de aceptación:** stands cercanos no abren el modal equivocado ni generan aperturas repetidas.  
-  **Estado:** Pendiente.
+  **Estado:** Hecho. `ImmersivePlazaStandsController` ahora expone `business` (nombre, logo, URL de vitrina) por stand. Nuevo `public/js/lib/stand-proximity.js` (`attachStandProximity()`) — construido sobre el punto de extensión público `engine.onUpdate()`, sin tocar `updatePlayer`/`updateCamera`/`bindInput`: cada frame calcula el stand más cercano dentro de un radio (6m por defecto) priorizando el que el personaje mira de frente (producto punto), con una espera de 220ms antes de cambiar de stand activo para evitar parpadeo. El clic en el indicador navega directo a la vitrina real (`vitrinas.show`) — IMM-033 podrá redirigir ese mismo clic a abrir un modal en vez de navegar. Cableado en las 3 escenas activas (Zipaquirá, Cajicá, genérica) vía `loadDynamicStands()`, que ahora devuelve el registro de stands en vez de descartarlo. Radio/tiempo de espera quedan como constantes en código, no en base de datos (mismo criterio que IMM-030).
 
-- [ ] **IMM-033 — Modal HTML de vitrina**  
+- [x] **IMM-033 — Modal HTML de vitrina**  
   **Resultado visible:** nombre, logo, descripción breve, productos/servicios, precios, galería, horario, reseñas resumidas y acciones disponibles como WhatsApp, compartir o ver vitrina completa.  
   **Pantallas/endpoints:** overlay HTML responsive reutilizando los endpoints/componentes públicos actuales.  
   **Entidades:** vitrinas, productos/servicios, horarios, reseñas.  
   **Reglas:** no duplicar el catálogo dentro del GLB; estados de carga, vacío y error; cerrar con botón, Escape o gesto accesible.  
   **Criterio de aceptación:** los cambios de la vitrina web se ven en el modal sin editar la escena 3D.  
-  **Estado:** Pendiente.
+  **Estado:** Hecho. Nuevo `public/js/lib/stand-vitrina-modal.js` — al hacer clic en el indicador de IMM-032 (`stand-proximity.js`, opción `onOpen` agregada) pide los datos frescos a los endpoints públicos ya existentes (`GET /api/v1/plaza/negocios/{slug}` y `/productos`, `DiscoveryController`), nunca datos precargados en la plaza — así los cambios en la vitrina web se ven sin tocar la escena. WhatsApp/compartir/ver-completa reutilizan las rutas reales de `VitrinaController` (`vitrinas.whatsapp`/`vitrinas.compartir`/`vitrinas.show`) tal cual, cero lógica duplicada. Único campo nuevo agregado al backend: `recommendations_summary` en `PublicBusinessResource` (conteo + hasta 3 extractos de `Recommendation` — no hay calificación numérica en este codebase). Estados de carga/error/vacío, cierre por botón/Escape/clic en fondo, y el input de movimiento se bloquea mientras el modal está abierto (listener aditivo en fase de captura, sin tocar `bindInput`/`voxel-plaza-engine.js`). Verificado con el negocio real de Cajicá (Daviu Decco) vía Playwright: el clic no navega, el modal muestra datos reales, Escape cierra, el personaje no se mueve con el modal abierto y vuelve a moverse al cerrarlo.
 
-- [ ] **IMM-034 — Búsqueda, categorías y navegación entre plazas**  
+- [x] **IMM-034 — Búsqueda, categorías y navegación entre plazas**  
   **Resultado visible:** buscador, chips de categorías, contador de resultados, selector de plaza y opción “Mostrar todos”.  
   **Reglas:** filtrar visibilidad sin reasignar posiciones; restaurar estado al cerrar un modal; URL compartible.  
   **Criterio de aceptación:** buscar una vitrina informa en qué plaza está y permite viajar a ella.  
-  **Estado:** Pendiente.
+  **Estado:** Hecho — con esto, Fase 3 completa queda cerrada. Nuevo `public/js/lib/stand-search-panel.js`: filtro local instantáneo (oculta/muestra los stands ya cargados en la plaza actual vía `root.visible`, nunca toca `position`/`rotation`) + resultados globales reutilizando `GET /api/v1/plaza` (mismo motor que `plaza/buscar.blade.php`, sin endpoint nuevo). Cada resultado sabe en qué plaza está (`immersive_location`, nuevo en `PublicBusinessResource`, vía `Business::standAssignment→plaza→experience→municipality`) y ofrece "Ver aquí" (abre el modal de IMM-033 sin caminar) o "Viajar a..." (navega a la otra escena, vía `Municipality::immersiveLabUrl()`, ya existente). Selector de plaza y chips de categoría alimentados por `/api/v1/municipios` (+`immersive_lab_url`, nuevo) y `/api/v1/categorias`. Filtro reflejado en la URL (`?q=&categoria=`) con `history.replaceState` y restaurado al cargar. Cableado en las 3 escenas.  
+  **Hallazgo importante, fuera de este alcance:** durante la verificación se encontró un bug **preexistente y real** (no introducido por esta tarea, reproducido incluso sin ningún cambio de código): `Cache::remember()` sobre una `Illuminate\Database\Eloquent\Collection` con `CACHE_STORE=redis` falla con 500 ("incomplete object... unserialize()") en la SEGUNDA lectura de caché en adelante — afecta `GET /api/v1/municipios` y `/api/v1/categorias` ya en producción, antes de esta tarea. No se solucionó aquí (cambiar el cacheo de esos endpoints ya-shipeados está fuera del alcance de IMM-034 y hay un test existente que valida ese cacheo); reportado al usuario para decidir cómo priorizarlo.
+
+### Post-Fase 3 — Personalización visual del stand (pedido 2026-08-10, fuera del alcance de IMM-030/032/033/034)
+
+- [x] **Insignia con el logo del negocio sobre el stand**  
+  **Resultado visible:** un distintivo circular con el logo del negocio, flotando sobre cada stand ocupado, visible dentro de la escena 3D (no un overlay 2D) para reconocerlo desde lejos.  
+  **Estado:** Hecho. `attachLogoBadge()` en `dynamic-stand-loader.js` — un `THREE.Sprite` (siempre mirando a la cámara) con el logo dibujado en canvas sobre un fondo circular blanco (legible con logos transparentes u oscuros). Funciona igual para stands GLB, `model_definition` o builder — se agrega a `engine.world` directamente, NO como hijo del objeto del stand, con altura acotada (máx. ~3.6 unidades sobre la base, luego capada por el límite de `maxPitch` de la cámara del personaje — canónica, no se toca). **Bug real encontrado y corregido durante la verificación:** la primera versión sí la agregaba como hija del stand, y como los stands suelen traer una escala aplicada para ajustarse al slot (ej. 3x), esa escala se propagaba a la posición local de la insignia y la disparaba muy por encima de lo esperado (verificado: terminaba en Y≈13.5 en vez de ~4.5) — quedaba fuera de la vista sin que hubiera ningún error de consola. Corregido calculando la posición en espacio de mundo aparte. Verificado con el stand real de Cajicá (Daviu Decco) vía Playwright: la insignia se ve clara junto al letrero del stand.
+
+- [x] **Color personalizable del stand, elegido por el emprendedor**  
+  **Resultado visible:** el emprendedor puede elegir un color para su propio stand desde su panel (no un ajuste del admin ni del catálogo de plantillas), y ese color se aplica al render 3D real — tanto si el stand es un `.glb` subido como si es un `model_definition` (JSON de cajas generado/guardado en BD).  
+  **Aclarado por el usuario:** el color es una elección del negocio, no de la plantilla; y las vitrinas también pueden ser objetos 3D guardados como JSON (`model_definition`), no solo `.glb` — el mecanismo de color debe cubrir ambos casos, no solo GLB.  
+  **Estado:** Hecho. Campo `stand_color` (`#rrggbb`, nullable) en `storefronts` — mismo lugar que `headline`/`description`/`cover_path`, guardado a través de `UpdateStorefront` (reutilizada, sin acción nueva) desde el editor de vitrina real (`⚡vitrina.blade.php`, `<input type="color">`, autoguardado con el mismo patrón que el resto del formulario). Expuesto en el endpoint de stands (`ImmersivePlazaStandsController`). En 3D: `applyPrimaryColor()` (`dynamic-stand-loader.js`) — **heurística automática** (decisión del usuario): recolorea la malla de mayor volumen en espacio de mundo, sin depender de nombres de malla; funciona igual para GLB, `model_definition` y builder porque los tres terminan siendo un árbol de `Mesh`. Verificado directamente sobre el GLB real de Cajicá (Daviu Decco) que sus materiales son color sólido sin textura (recolor limpio) y que no se comparten entre negocios que usan la misma plantilla (confirmado con Three.js/GLTFLoader). Tests: `StorefrontEditorTest` (guardar/rechazar formato inválido) y `ImmersivePlazaStandsEndpointTest` (expuesto/null en el endpoint).
+
+- [ ] **Espacio de video/pantalla proyectada dentro del stand 3D**  
+  **Resultado visible:** poder agregar un video (o un "espacio" tipo pantalla) que se reproduce dentro de la escena 3D, en el propio stand — mismo criterio que el logo: debe vivir dentro de la experiencia inmersiva 3D, no ser un overlay 2D aparte.  
+  **Estado:** Pendiente — anotado a pedido del usuario ("para que lo anotes"), todavía sin diseñar. Probable mecanismo: `THREE.VideoTexture` sobre un plano posicionado en el stand (mismo patrón de posicionamiento en espacio de mundo ya usado para el logo, para evitar el mismo bug de herencia de escala). Pendiente decidir: origen del video (¿el emprendedor sube un archivo? ¿URL de YouTube/Vimeo no serviría directamente con `VideoTexture`, que necesita un `<video>` HTML real?), autoplay/mute (los navegadores bloquean autoplay con audio sin interacción del usuario), y costo de rendimiento de tener varios videos reproduciéndose a la vez en una plaza con muchos stands.
 
 ### Fase 4 — Rendimiento, accesibilidad y analítica
 

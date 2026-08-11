@@ -35,6 +35,8 @@ class ImmersivePlazaPropResource extends Resource
 
     protected static ?string $navigationLabel = 'Elementos de plaza';
 
+    protected static ?string $navigationParentItem = 'Plazas';
+
     public static function form(Schema $schema): Schema
     {
         return ImmersivePlazaPropForm::configure($schema);

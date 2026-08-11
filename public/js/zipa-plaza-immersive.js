@@ -23,8 +23,12 @@
  */
 import * as THREE from 'https://esm.sh/three@0.179.1';
 import { GLTFLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/GLTFLoader.js';
-import { VoxelPlazaEngine } from './lib/voxel-plaza-engine.js';
+import { VoxelPlazaEngine, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js';
 import { loadDynamicStands } from './lib/dynamic-stand-loader.js';
+import { attachStandProximity } from './lib/stand-proximity.js';
+import { createVitrinaModal } from './lib/stand-vitrina-modal.js';
+import { attachSearchPanel } from './lib/stand-search-panel.js';
+import { loadAvatarPreference } from './lib/avatar-preference.js';
 
 const container = document.getElementById('zipa-immersive-scene');
 const lockTrigger = document.getElementById('zipa-lock-trigger');
@@ -39,6 +43,11 @@ if (!container) {
 const engine = new VoxelPlazaEngine({
     container,
     lockTrigger,
+    // IMM-030: solo se sobreescriben las 4 claves dedicadas del avatar
+    // (avatarSkin/avatarHair/avatarShirt/avatarPants) — el resto de la
+    // paleta de Zipaquirá sigue siendo la de siempre.
+    palette: { ...basePalette, ...avatarPresets[loadAvatarPreference()] },
+    avatarPreset: loadAvatarPreference(),
     playerStart: { x: -1.95, y: 0, z: 29 },
     playerFacing: Math.PI,
 });
@@ -834,7 +843,11 @@ loadLampModel();
 loadSkyDome();
 
 engine.start([{ type: 'custom', build: () => buildWorld() }], undefined, { deferSceneReady: true });
-loadDynamicStands(engine, window.zipaImmersivePlazaId);
+const zipaVitrinaModal = createVitrinaModal(engine);
+loadDynamicStands(engine, window.zipaImmersivePlazaId).then((stands) => {
+    attachStandProximity(engine, stands, { onOpen: (business) => zipaVitrinaModal.open(business) });
+    attachSearchPanel(engine, stands, { currentMunicipalitySlug: window.zipaMunicipalitySlug, vitrinaModal: zipaVitrinaModal });
+});
 
 updateCoordinatesDisplay();
 baseSceneReady = true;

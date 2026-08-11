@@ -177,8 +177,18 @@
                 </div>
             </div>
         @else
-            <div class="mt-4 rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
-                Todavía no hay un objeto seleccionado.
+            <div class="mt-4 space-y-3 rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
+                <div>
+                    Todavía no hay un objeto seleccionado.
+                </div>
+
+                <x-filament::button
+                    tag="a"
+                    :href="\App\Filament\Resources\ImmersiveObjectTemplates\ImmersiveObjectTemplateResource::getUrl('create')"
+                    icon="heroicon-m-plus"
+                >
+                    Agregar objeto
+                </x-filament::button>
             </div>
         @endif
     </div>
@@ -188,7 +198,7 @@
             <div>
                 <h3 class="text-sm font-semibold text-gray-950 dark:text-white">Editor espacial (3D)</h3>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Mantiene el mismo visor actual: scroll para acercar o alejar, clic derecho para rotar la cámara y arrastre del objeto para guardar su posición en X/Z al soltar.
+                    Mantiene el mismo visor actual: scroll para acercar o alejar, clic derecho para rotar la cámara y arrastre del objeto para guardar su posición en X/Z al soltar. Haz clic sobre el visor y usa las flechas o WASD para desplazarte.
                 </p>
             </div>
 
@@ -806,8 +816,70 @@
                     const resizeObserver = new ResizeObserver(updateCameraFrame);
                     resizeObserver.observe(container);
 
+                    // Navegación con flechas/WASD — mismo mapeo de teclas que
+                    // el motor del personaje inmersivo (voxel-plaza-engine.js,
+                    // `setMovement`), solo por consistencia visual: este
+                    // editor no usa `VoxelPlazaEngine`, es aditivo y aislado
+                    // a este bloque. `container` (no `window`) recibe los
+                    // eventos, y solo cuando tiene foco (`tabindex` en el
+                    // div de arriba) — así nunca compite con las flechas que
+                    // ya usan los inputs numéricos de Posición/Tamaño/
+                    // Rotación en el panel de propiedades.
+                    const movement = { forward: false, backward: false, left: false, right: false };
+
+                    function setMovement(code, pressed) {
+                        if (code === 'ArrowUp' || code === 'KeyW') movement.forward = pressed;
+                        if (code === 'ArrowDown' || code === 'KeyS') movement.backward = pressed;
+                        if (code === 'ArrowLeft' || code === 'KeyA') movement.left = pressed;
+                        if (code === 'ArrowRight' || code === 'KeyD') movement.right = pressed;
+                    }
+
+                    container.addEventListener('keydown', (event) => {
+                        setMovement(event.code, true);
+
+                        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
+                            event.preventDefault();
+                        }
+                    });
+
+                    container.addEventListener('keyup', (event) => setMovement(event.code, false));
+
+                    const clock = new THREE.Clock();
+                    const panSpeed = 22;
+
+                    function applyKeyboardPan(delta) {
+                        // No mover la cámara si el usuario está arrastrando
+                        // un objeto (`controls.enabled` ya se apaga durante
+                        // el drag, ver los toggles más arriba en este mismo
+                        // bloque).
+                        if (!controls.enabled) {
+                            return;
+                        }
+
+                        const forward = new THREE.Vector3();
+                        camera.getWorldDirection(forward);
+                        forward.y = 0;
+                        forward.normalize();
+                        const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+
+                        const move = new THREE.Vector3();
+                        if (movement.forward) move.add(forward);
+                        if (movement.backward) move.sub(forward);
+                        if (movement.right) move.add(right);
+                        if (movement.left) move.sub(right);
+
+                        if (move.lengthSq() === 0) {
+                            return;
+                        }
+
+                        move.normalize().multiplyScalar(panSpeed * delta);
+                        camera.position.add(move);
+                        controls.target.add(move);
+                    }
+
                     function animate() {
                         requestAnimationFrame(animate);
+                        applyKeyboardPan(clock.getDelta());
                         controls.update();
                         if (selectionHelper) {
                             selectionHelper.update();
@@ -819,7 +891,13 @@
                 })
             "
         >
-            <div id="plaza-spatial-editor-{{ $plaza->id }}" style="width: 100%; min-height: 760px; border-radius: 0.75rem; overflow: hidden; background: #cfe8ff;"></div>
+            <div
+                id="plaza-spatial-editor-{{ $plaza->id }}"
+                tabindex="0"
+                style="width: 100%; min-height: 760px; border-radius: 0.75rem; overflow: hidden; background: #cfe8ff; outline: none;"
+                onfocus="this.style.boxShadow = 'inset 0 0 0 2px #6366f1';"
+                onblur="this.style.boxShadow = 'none';"
+            ></div>
         </div>
     </div>
 

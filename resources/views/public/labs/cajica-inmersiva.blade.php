@@ -186,6 +186,20 @@
                 color: #fff;
             }
 
+            .voxel-lab-avatar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-top: 14px;
+                color: #fff;
+            }
+
+            .voxel-lab-avatar-label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                opacity: 0.75;
+            }
+
             .voxel-lab-status {
                 position: absolute;
                 bottom: 20px;
@@ -265,6 +279,11 @@
                         <span><span class="voxel-lab-key">Esc</span> Liberar el puntero</span>
                     </div>
 
+                    <div class="voxel-lab-avatar">
+                        <span class="voxel-lab-avatar-label">Tu avatar</span>
+                        <x-immersive.avatar-picker />
+                    </div>
+
                     <div class="voxel-lab-actions">
                         <a href="{{ route('buscar', ['municipio' => 'cajica']) }}" class="voxel-lab-button voxel-lab-button--ghost">Volver a la plaza web</a>
                         <button id="cajica-lock-trigger" type="button" class="voxel-lab-button voxel-lab-button--primary">Entrar en modo inmersivo</button>
@@ -278,6 +297,7 @@
 
         <script>
             window.cajicaImmersivePlazaId = @json($immersivePlazaId ?? null);
+            window.cajicaMunicipalitySlug = @json('cajica');
 
             (() => {
                 const toggle = document.getElementById('cajica-panel-toggle');

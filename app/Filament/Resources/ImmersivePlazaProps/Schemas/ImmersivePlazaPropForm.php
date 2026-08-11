@@ -19,6 +19,7 @@ class ImmersivePlazaPropForm
                     ->relationship('plaza', 'name')
                     ->searchable()
                     ->preload()
+                    ->default(fn (): ?int => request()->integer('immersive_plaza_id') ?: null)
                     ->required(),
                 Select::make('object_template_id')
                     ->label('Objeto del catálogo')

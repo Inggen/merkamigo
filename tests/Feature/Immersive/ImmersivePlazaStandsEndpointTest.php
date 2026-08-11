@@ -161,6 +161,125 @@ class ImmersivePlazaStandsEndpointTest extends TestCase
         $this->assertEquals($expectedScale, $data[0]['scale']['z']);
     }
 
+    /**
+     * IMM-032 (activación por proximidad): el indicador "Ver vitrina" en
+     * la escena 3D necesita saber a qué negocio pertenece el stand y a
+     * dónde llevar al hacer clic — antes el endpoint no mandaba nada del
+     * negocio, solo geometría.
+     */
+    public function test_a_live_stand_exposes_its_business_for_the_proximity_indicator(): void
+    {
+        $plaza = $this->makePlaza();
+        $slot = $this->makeSlot($plaza, 'S1');
+        $template = $this->makeTemplate();
+        $business = $this->makeBusiness($plaza->experience->municipality_id);
+
+        StandAssignment::updateOrCreate(['business_id' => $business->id], [
+            'immersive_plaza_id' => $plaza->id,
+            'stand_slot_id' => $slot->id,
+            'object_template_id' => $template->id,
+            'status' => 'publicado',
+        ]);
+
+        $data = $this->getJson("/api/v1/inmersivo/plazas/{$plaza->id}/stands")->json('data');
+
+        $this->assertSame($business->name, $data[0]['business']['name']);
+        $this->assertSame(route('vitrinas.show', $business), $data[0]['business']['vitrina_url']);
+    }
+
+    /**
+     * Color de stand elegido por el emprendedor (editor de vitrina): el
+     * endpoint debe exponerlo para que `applyPrimaryColor()`
+     * (`dynamic-stand-loader.js`) lo aplique en la escena, y debe ser
+     * `null` cuando el negocio nunca eligió uno (el render usa los colores
+     * por defecto de la plantilla).
+     */
+    public function test_a_live_stand_exposes_its_chosen_stand_color(): void
+    {
+        $plaza = $this->makePlaza();
+        $slot = $this->makeSlot($plaza, 'S1');
+        $template = $this->makeTemplate();
+        $business = $this->makeBusiness($plaza->experience->municipality_id);
+        $business->storefront->update(['stand_color' => '#6E5A80']);
+
+        StandAssignment::updateOrCreate(['business_id' => $business->id], [
+            'immersive_plaza_id' => $plaza->id,
+            'stand_slot_id' => $slot->id,
+            'object_template_id' => $template->id,
+            'status' => 'publicado',
+        ]);
+
+        $data = $this->getJson("/api/v1/inmersivo/plazas/{$plaza->id}/stands")->json('data');
+
+        $this->assertSame('#6E5A80', $data[0]['business']['stand_color']);
+    }
+
+    public function test_a_live_stand_without_a_chosen_color_exposes_null(): void
+    {
+        $plaza = $this->makePlaza();
+        $slot = $this->makeSlot($plaza, 'S1');
+        $template = $this->makeTemplate();
+        $business = $this->makeBusiness($plaza->experience->municipality_id);
+
+        StandAssignment::updateOrCreate(['business_id' => $business->id], [
+            'immersive_plaza_id' => $plaza->id,
+            'stand_slot_id' => $slot->id,
+            'object_template_id' => $template->id,
+            'status' => 'publicado',
+        ]);
+
+        $data = $this->getJson("/api/v1/inmersivo/plazas/{$plaza->id}/stands")->json('data');
+
+        $this->assertNull($data[0]['business']['stand_color']);
+    }
+
+    /**
+     * La "persona" que `dynamic-stand-loader.js` planta junto a cada stand
+     * (`attachOwnerFigure`) usa el preset hombre/mujer que el DUEÑO del
+     * negocio (dueño de la `Organization`, no cualquier miembro) eligió
+     * para sí mismo en `/settings/avatar`.
+     */
+    public function test_a_live_stand_exposes_its_owners_chosen_avatar_preset(): void
+    {
+        $plaza = $this->makePlaza();
+        $slot = $this->makeSlot($plaza, 'S1');
+        $template = $this->makeTemplate();
+        $business = $this->makeBusiness($plaza->experience->municipality_id);
+        $owner = $business->organization->owner;
+        $owner->avatar_preset = 'mujer';
+        $owner->save();
+
+        StandAssignment::updateOrCreate(['business_id' => $business->id], [
+            'immersive_plaza_id' => $plaza->id,
+            'stand_slot_id' => $slot->id,
+            'object_template_id' => $template->id,
+            'status' => 'publicado',
+        ]);
+
+        $data = $this->getJson("/api/v1/inmersivo/plazas/{$plaza->id}/stands")->json('data');
+
+        $this->assertSame('mujer', $data[0]['business']['owner_avatar_preset']);
+    }
+
+    public function test_a_live_stand_without_an_owner_avatar_preset_defaults_to_hombre(): void
+    {
+        $plaza = $this->makePlaza();
+        $slot = $this->makeSlot($plaza, 'S1');
+        $template = $this->makeTemplate();
+        $business = $this->makeBusiness($plaza->experience->municipality_id);
+
+        StandAssignment::updateOrCreate(['business_id' => $business->id], [
+            'immersive_plaza_id' => $plaza->id,
+            'stand_slot_id' => $slot->id,
+            'object_template_id' => $template->id,
+            'status' => 'publicado',
+        ]);
+
+        $data = $this->getJson("/api/v1/inmersivo/plazas/{$plaza->id}/stands")->json('data');
+
+        $this->assertSame('hombre', $data[0]['business']['owner_avatar_preset']);
+    }
+
     public function test_a_paused_assignment_does_not_appear(): void
     {
         $plaza = $this->makePlaza();

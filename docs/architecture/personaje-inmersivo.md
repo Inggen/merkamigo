@@ -120,3 +120,4 @@ AABB puro: el jugador es una caja `Box3` centrada en su posición (`radius*2` de
 - `playerStart` / `playerFacing` (punto de aparición) — por plaza, ver `ImmersivePlaza.spawn_point` (IMM-012).
 - `player` / `camera` (overrides parciales de `playerState`/`cameraState`) — el constructor los mezcla con `{...defaults, ...overrides}`, así que un avatar "más grande" o una cámara "más cercana" no requieren tocar esta lógica, solo pasar overrides.
 - Texturas de las 7 cajas del cuerpo — es lo que IMM-030 (avatar Hombre/Mujer) debería variar, no la física ni la animación.
+- Geometría de cabello del preset `mujer` (dos cajas de trenza extra, `buildAvatarBoxes()` en `voxel-plaza-engine.js`) — única excepción de geometría entre presets, deliberadamente acotada al cabello; cuelgan del grupo `body` y siguen su bamboleo/giro sin que `updatePlayerAnimation` sepa que existen (no lee `head`/`hair`, solo `body/leftArm/rightArm/leftLeg/rightLeg/shadow`).

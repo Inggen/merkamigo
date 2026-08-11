@@ -121,19 +121,33 @@
                 color: #fff;
             }
 
+            .voxel-lab-avatar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-top: 14px;
+                color: #fff;
+            }
+
+            .voxel-lab-avatar-label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                opacity: 0.75;
+            }
+
             .voxel-lab-status {
                 position: absolute;
                 bottom: 20px;
                 left: 50%;
                 z-index: 20;
                 transform: translateX(-50%);
-                padding: 10px 14px;
+                padding: 6px 12px;
                 border-radius: 999px;
                 border: 1px solid rgba(255, 255, 255, 0.14);
                 background: rgba(10, 18, 33, 0.68);
                 backdrop-filter: blur(10px);
-                color: rgba(255, 255, 255, 0.88);
-                font-size: 0.92rem;
+                color: rgba(255, 255, 255, 0.72);
+                font-size: 0.7rem;
                 text-align: center;
             }
 
@@ -175,6 +189,11 @@
                         <span><span class="voxel-lab-key">Esc</span> Liberar el puntero</span>
                     </div>
 
+                    <div class="voxel-lab-avatar">
+                        <span class="voxel-lab-avatar-label">Tu avatar</span>
+                        <x-immersive.avatar-picker />
+                    </div>
+
                     <div class="voxel-lab-actions">
                         <a href="{{ route('buscar', ['municipio' => $municipio->slug]) }}" class="voxel-lab-button voxel-lab-button--ghost">Volver a la plaza web</a>
                         <button id="generic-lock-trigger" type="button" class="voxel-lab-button voxel-lab-button--primary">Entrar en modo inmersivo</button>
@@ -189,6 +208,7 @@
         <script>
             const genericBounds = @json($plaza->navigable_bounds);
             window.genericPlazaId = @json($plaza->id);
+            window.genericMunicipalitySlug = @json($municipio->slug);
             window.genericPlazaBounds = genericBounds;
             window.genericPlazaPlane = {
                 centerX: ((genericBounds?.minX ?? -50) + (genericBounds?.maxX ?? 50)) / 2,

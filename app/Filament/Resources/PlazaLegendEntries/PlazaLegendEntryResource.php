@@ -35,6 +35,8 @@ class PlazaLegendEntryResource extends Resource
 
     protected static ?string $navigationLabel = 'Leyenda de colores';
 
+    protected static ?string $navigationParentItem = 'Plazas';
+
     public static function form(Schema $schema): Schema
     {
         return PlazaLegendEntryForm::configure($schema);
