@@ -24,6 +24,7 @@ class VoxelPaletteMatcher
      */
     private const TEXTURE_HEX_COLORS = [
         'plaza' => 0xD3BB8B,
+        'pavement' => 0x676159,
         'stone' => 0xD6C18D,
         'stoneLight' => 0xE5D3A8,
         'white' => 0xF4EBE2,

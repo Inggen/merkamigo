@@ -31,6 +31,38 @@
                     @endif
                 </div>
 
+                <div class="space-y-2">
+                    <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Modo del gizmo en el visor</h4>
+                    <div class="flex gap-1">
+                        <button
+                            type="button"
+                            id="gizmo-mode-translate"
+                            class="gizmo-mode-button flex-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition dark:border-white/10 dark:text-gray-300"
+                            onclick="window.dispatchEvent(new CustomEvent('spatial-editor-set-mode', { detail: { mode: 'translate' } }))"
+                        >
+                            Mover
+                        </button>
+                        <button
+                            type="button"
+                            id="gizmo-mode-rotate"
+                            class="gizmo-mode-button flex-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition dark:border-white/10 dark:text-gray-300"
+                            onclick="window.dispatchEvent(new CustomEvent('spatial-editor-set-mode', { detail: { mode: 'rotate' } }))"
+                        >
+                            Rotar
+                        </button>
+                        @if ($selectedObjectType === 'prop')
+                            <button
+                                type="button"
+                                id="gizmo-mode-scale"
+                                class="gizmo-mode-button flex-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition dark:border-white/10 dark:text-gray-300"
+                                onclick="window.dispatchEvent(new CustomEvent('spatial-editor-set-mode', { detail: { mode: 'scale' } }))"
+                            >
+                                Escalar
+                            </button>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="space-y-3">
                     <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Posición (X, Y, Z)</h4>
                     <div class="grid grid-cols-3 gap-2">
@@ -122,6 +154,30 @@
                     </div>
                 @endif
 
+                @if ($selectedObjectType === 'prop')
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tiling de textura (U, V)</h4>
+                            <button
+                                type="button"
+                                title="Repetición de la textura sobre este elemento — cada instancia puede tener su propio valor aunque compartan el mismo modelo 3D."
+                                aria-label="Repetición de la textura sobre este elemento — cada instancia puede tener su propio valor aunque compartan el mismo modelo 3D."
+                                class="inline-flex items-center justify-center text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-200"
+                            >
+                                <x-filament::icon icon="heroicon-m-information-circle" class="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <x-filament::input.wrapper>
+                                <x-filament::input type="number" min="0.001" step="0.1" wire:model.live.debounce.500ms="selectedObjectForm.tiling.u" />
+                            </x-filament::input.wrapper>
+                            <x-filament::input.wrapper>
+                                <x-filament::input type="number" min="0.001" step="0.1" wire:model.live.debounce.500ms="selectedObjectForm.tiling.v" />
+                            </x-filament::input.wrapper>
+                        </div>
+                    </div>
+                @endif
+
                     @if ($selectedObjectType === 'prop' && ($selectedObjectForm['status'] ?? null))
                         <div class="flex items-center gap-2 text-xs">
                             <span class="text-gray-500 dark:text-gray-400">Estado:</span>
@@ -170,6 +226,25 @@
                             wire:confirm="¿Eliminar este elemento de la plaza?"
                             class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-red-200 text-red-500 transition hover:bg-red-500/10 dark:border-red-500/20 dark:text-red-400"
                             title="Eliminar elemento"
+                        >
+                            <x-filament::icon icon="heroicon-m-trash" class="h-4 w-4" />
+                        </button>
+                    @elseif ($selectedObjectType === 'slot')
+                        <button
+                            type="button"
+                            wire:click="duplicateSlot({{ $selectedObjectId }})"
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-white/5 dark:border-white/10 dark:text-gray-300"
+                            title="Duplicar stand"
+                        >
+                            <x-filament::icon icon="heroicon-m-squares-plus" class="h-4 w-4" />
+                        </button>
+
+                        <button
+                            type="button"
+                            wire:click="deleteSlot({{ $selectedObjectId }})"
+                            wire:confirm="¿Eliminar este stand de la plaza? Si tiene un negocio asignado, la asignación quedará sin stand."
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-red-200 text-red-500 transition hover:bg-red-500/10 dark:border-red-500/20 dark:text-red-400"
+                            title="Eliminar stand"
                         >
                             <x-filament::icon icon="heroicon-m-trash" class="h-4 w-4" />
                         </button>
@@ -231,6 +306,8 @@
             x-init="
                 import('{{ asset('js/lib/voxel-plaza-engine.js') }}').then(async ({ THREE, createStandaloneVoxelTarget, renderObjectByPriority, createAxisLabels }) => {
                     const { OrbitControls } = await import('https://esm.sh/three@0.179.1/examples/jsm/controls/OrbitControls.js');
+                    const { TransformControls } = await import('https://esm.sh/three@0.179.1/examples/jsm/controls/TransformControls.js');
+                    const { applyTiling } = await import('{{ asset('js/lib/texture-tiling-utils.js') }}');
 
                     const container = document.getElementById(@js('plaza-spatial-editor-'.$plaza->id));
                     const sceneState = structuredClone(@js($sceneData));
@@ -261,8 +338,187 @@
                     let boundsOutline = null;
                     let boundsFill = null;
                     let selectionHelper = null;
-                    let dragging = null;
                     let draggingBoundsHandle = null;
+
+                    // Gizmo de transformación (posición/rotación/tamaño) por
+                    // objeto seleccionado — reemplaza el arrastre casero de
+                    // X/Z que había antes. Se construye ANTES del listener
+                    // 'pointerdown' de más abajo a propósito: TransformControls
+                    // registra su propio listener sobre el mismo
+                    // `renderer.domElement` en su constructor (vía `connect`),
+                    // y como los listeners de un mismo evento se disparan en
+                    // orden de registro, para cuando nuestro 'pointerdown'
+                    // corre, `transformControls.dragging` ya refleja si el
+                    // clic fue sobre el gizmo — así evitamos reinterpretar
+                    // ese clic como seleccionar otra cosa o deseleccionar.
+                    const transformControls = new TransformControls(camera, renderer.domElement);
+                    threeScene.add(transformControls.getHelper());
+                    transformControls.setRotationSnap(THREE.MathUtils.degToRad(45));
+
+                    // Snapping/auto-conexión entre objetos (Fase 5):
+                    // heurística de mejor esfuerzo por cajas
+                    // delimitadoras — no es un sistema de conectores reales
+                    // con puntos de anclaje declarados, solo detecta cuándo
+                    // el borde del objeto arrastrado queda muy cerca del
+                    // borde de OTRO objeto (en X o en Z, con solapamiento
+                    // suficiente en el eje perpendicular para no encajar
+                    // objetos que ni siquiera están uno frente al otro) y
+                    // ajusta la posición para que queden borde-con-borde.
+                    // Nunca toca Y ni rotación.
+                    const SNAP_DISTANCE = 0.5;
+
+                    function snapToNeighbors(root) {
+                        if (root.userData?.type !== 'prop' && root.userData?.type !== 'slot') {
+                            return;
+                        }
+
+                        const box = new THREE.Box3().setFromObject(root);
+
+                        for (const neighbor of draggables) {
+                            if (neighbor === root) {
+                                continue;
+                            }
+
+                            const neighborBox = new THREE.Box3().setFromObject(neighbor);
+
+                            const zOverlap = Math.min(box.max.z, neighborBox.max.z) - Math.max(box.min.z, neighborBox.min.z);
+
+                            if (zOverlap > 0) {
+                                if (Math.abs(box.min.x - neighborBox.max.x) < SNAP_DISTANCE) {
+                                    root.position.x += neighborBox.max.x - box.min.x;
+
+                                    return;
+                                }
+
+                                if (Math.abs(box.max.x - neighborBox.min.x) < SNAP_DISTANCE) {
+                                    root.position.x += neighborBox.min.x - box.max.x;
+
+                                    return;
+                                }
+                            }
+
+                            const xOverlap = Math.min(box.max.x, neighborBox.max.x) - Math.max(box.min.x, neighborBox.min.x);
+
+                            if (xOverlap > 0) {
+                                if (Math.abs(box.min.z - neighborBox.max.z) < SNAP_DISTANCE) {
+                                    root.position.z += neighborBox.max.z - box.min.z;
+
+                                    return;
+                                }
+
+                                if (Math.abs(box.max.z - neighborBox.min.z) < SNAP_DISTANCE) {
+                                    root.position.z += neighborBox.min.z - box.max.z;
+
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    transformControls.addEventListener('objectChange', () => {
+                        if (transformControls.getMode() === 'translate' && transformControls.object) {
+                            snapToNeighbors(transformControls.object);
+                        }
+
+                        if (selectionHelper?.object === transformControls.object) {
+                            selectionHelper.update();
+                        }
+                    });
+
+                    transformControls.addEventListener('dragging-changed', (event) => {
+                        controls.enabled = !event.value;
+
+                        // Solo al SOLTAR (value === false) se persiste — el
+                        // arrastre en sí es puramente visual, igual que el
+                        // mecanismo anterior de raycaster casero.
+                        if (event.value || !transformControls.object) {
+                            return;
+                        }
+
+                        const { type, id } = transformControls.object.userData;
+                        const mode = transformControls.getMode();
+
+                        if (mode === 'translate') {
+                            const { x, y, z } = transformControls.object.position;
+
+                            if (type === 'slot') {
+                                $wire.updateSlotPosition(id, x, y, z);
+                            } else if (type === 'spawn') {
+                                $wire.updateSpawnPosition(x, y, z);
+                            } else {
+                                $wire.updatePropPosition(id, x, y, z);
+                            }
+
+                            return;
+                        }
+
+                        if (mode === 'rotate') {
+                            // El eje Y de Three.js ya viene en radianes; el
+                            // backend guarda grados (mismo formato que ya usa
+                            // el resto del editor — inputs numéricos,
+                            // `normalizeRotation()`), así que se convierte
+                            // antes de persistir.
+                            const rotationYDegrees = THREE.MathUtils.radToDeg(transformControls.object.rotation.y);
+
+                            if (type === 'slot') {
+                                $wire.updateSlotRotation(id, rotationYDegrees);
+                            } else if (type === 'spawn') {
+                                $wire.updateSpawnRotation(rotationYDegrees);
+                            } else {
+                                $wire.updatePropRotation(id, rotationYDegrees);
+                            }
+
+                            return;
+                        }
+
+                        // Solo props: el botón Escalar ni siquiera se
+                        // renderiza para slot/spawn (ver `focusSelection`),
+                        // así que este caso no debería alcanzarse para
+                        // otros tipos, pero se guarda igual por si acaso.
+                        if (mode === 'scale' && type === 'prop') {
+                            const { x, y, z } = transformControls.object.scale;
+                            $wire.updatePropScale(id, x, y, z);
+                        }
+                    });
+
+                    const gizmoModeButtonActiveClasses = ['bg-primary-500/10', 'text-primary-600', 'border-primary-500', 'dark:text-primary-400'];
+                    const gizmoModeButtonInactiveClasses = ['text-gray-600', 'border-gray-200', 'dark:text-gray-300', 'dark:border-white/10'];
+
+                    function setActiveGizmoModeButton(mode) {
+                        ['translate', 'rotate', 'scale'].forEach((candidate) => {
+                            const button = document.getElementById(`gizmo-mode-${candidate}`);
+
+                            if (! button) {
+                                return;
+                            }
+
+                            const isActive = candidate === mode;
+                            button.classList.toggle('is-active', isActive);
+                            button.classList.remove(...gizmoModeButtonActiveClasses, ...gizmoModeButtonInactiveClasses);
+                            button.classList.add(...(isActive ? gizmoModeButtonActiveClasses : gizmoModeButtonInactiveClasses));
+                        });
+                    }
+
+                    window.addEventListener('spatial-editor-set-mode', (event) => {
+                        const mode = event.detail.mode;
+
+                        transformControls.setMode(mode);
+                        // El gizmo de rotación de este editor solo expone el
+                        // eje Y a propósito — es el único eje editable hoy
+                        // en el panel de Propiedades (X/Z vienen `disabled`
+                        // ahí también); mostrar círculos que no llevan a
+                        // ningún lado sería confuso. `showX`/`showZ` son
+                        // banderas compartidas entre modos, por eso se
+                        // reafirman cada vez que cambia el modo (no solo en
+                        // rotate) para no dejar las flechas de posición
+                        // ocultas si se venía de rotar.
+                        const restrictToYAxis = mode === 'rotate';
+                        transformControls.showX = ! restrictToYAxis;
+                        transformControls.showZ = ! restrictToYAxis;
+                        setActiveGizmoModeButton(mode);
+                    });
+
+                    setActiveGizmoModeButton(transformControls.getMode());
 
                     function currentBounds() {
                         return sceneState.bounds ?? { minX: -50, maxX: 50, minZ: -50, maxZ: 50 };
@@ -294,6 +550,14 @@
                         return `${type}:${id}`;
                     }
 
+                    // applyTiling() ahora vive en texture-tiling-utils.js
+                    // (importado arriba) — compartido con
+                    // dynamic-stand-loader.js para que el editor y la
+                    // plaza inmersiva real nunca vuelvan a divergir (bug
+                    // real de esta sesión: el editor la aplicaba pero la
+                    // plaza pública nunca la leía, porque cada uno tenía
+                    // su propia copia).
+
                     function registerObject(root, item) {
                         root.userData = {
                             type: item.type,
@@ -302,9 +566,21 @@
                             y: item.position.y,
                             z: item.position.z,
                             label: item.label,
+                            locked: !! item.locked,
                         };
 
+                        // Pedido del usuario: un objeto con candado debe
+                        // poder seleccionarse haciendo clic sobre él en el
+                        // visor 3D (no solo desde la lista lateral), para
+                        // ver su gizmo aunque no se pueda mover — por eso
+                        // entra a `draggables` igual que cualquier otro
+                        // (ese array ya no controla si se puede arrastrar,
+                        // desde que la traslación pasó a `TransformControls`
+                        // — ver comentario de `snapToNeighbors`; el bloqueo
+                        // real vive en `transformControls.enabled`, dentro
+                        // de `focusSelection()`).
                         draggables.push(root);
+
                         objectIndex.set(objectKey(item.type, item.id), root);
                     }
 
@@ -327,6 +603,10 @@
                         if (selectionHelper?.object === root) {
                             threeScene.remove(selectionHelper);
                             selectionHelper = null;
+                        }
+
+                        if (transformControls.object === root) {
+                            transformControls.detach();
                         }
 
                         if (root.parent) {
@@ -509,12 +789,43 @@
                         }
 
                         if (! root) {
+                            transformControls.enabled = true;
+                            transformControls.detach();
+
                             return;
                         }
 
-                        selectionHelper = new THREE.BoxHelper(root, 0xdc2626);
+                        // Pedido del usuario: un objeto con candado sigue
+                        // mostrando el gizmo (para que se vea dónde está y
+                        // qué modo tiene activo), pero no debe poder
+                        // arrastrarse — `transformControls.enabled = false`
+                        // deja el gizmo visible y attachado, solo bloquea
+                        // la interacción de arrastre (Three.js ignora el
+                        // pointerdown sobre sus ejes/planos cuando está
+                        // deshabilitado, así que ni `dragging-changed` ni
+                        // `objectChange` llegan a dispararse).
+                        transformControls.enabled = ! root.userData?.locked;
+
+                        selectionHelper = new THREE.BoxHelper(root, root.userData?.locked ? 0x9ca3af : 0xdc2626);
                         selectionHelper.object = root;
                         threeScene.add(selectionHelper);
+
+                        // El modo Escalar solo aplica a elementos
+                        // (`prop`) — un stand no tiene escala libre (ver
+                        // comentario en `updatePropScale()`, backend). Si
+                        // se venía escalando y se selecciona un slot/spawn,
+                        // se cae de vuelta a Mover en vez de dejar un
+                        // gizmo de escala activo sin forma de guardarlo.
+                        if (transformControls.getMode() === 'scale' && root.userData?.type !== 'prop') {
+                            window.dispatchEvent(new CustomEvent('spatial-editor-set-mode', { detail: { mode: 'translate' } }));
+                        }
+
+                        transformControls.attach(root);
+                        // Livewire vuelve a renderizar el panel de
+                        // Propiedades (y con él, los botones de modo) al
+                        // seleccionar — reaplica el resaltado del modo
+                        // actual sobre los botones recién morfeados.
+                        setActiveGizmoModeButton(transformControls.getMode());
                     }
 
                     function clearSelection() {
@@ -596,6 +907,26 @@
                         root.position.y = item.position.y;
                         root.rotation.y = (item.rotation.y ?? 0) * (Math.PI / 180);
                         registerObject(root, item);
+
+                        if (item.type === 'prop' && item.tiling) {
+                            applyTiling(root, item.tiling, ! item.modelUrl);
+                        }
+
+                        // Pedido del usuario: mostrar hacia dónde apunta el
+                        // frente de un stand — mismo eje/convención que ya
+                        // usa la flecha del punto de aparición un poco más
+                        // arriba (`Vector3(0, 0, 1)` local, rotación Y en
+                        // grados). Al agregarla como hija de `root`, hereda
+                        // su rotación automáticamente: no hace falta
+                        // recalcularla al arrastrar el gizmo de rotación.
+                        if (item.type === 'slot') {
+                            root.add(new THREE.ArrowHelper(
+                                new THREE.Vector3(0, 0, 1),
+                                new THREE.Vector3(0, Math.max(0.8, item.size.y) + 0.2, 0),
+                                Math.min(2.5, Math.max(1.2, item.size.z * 0.6)),
+                                0xf59e0b,
+                            ));
+                        }
                     }
 
                     async function rerenderObject(item) {
@@ -643,6 +974,14 @@
                     updateCameraFrame();
 
                     renderer.domElement.addEventListener('pointerdown', (event) => {
+                        // El clic fue sobre el propio gizmo (TransformControls
+                        // ya lo resolvió en su listener interno, registrado
+                        // antes que este) — no reinterpretarlo como selección
+                        // ni como deseleccionar por clic en vacío.
+                        if (transformControls.dragging) {
+                            return;
+                        }
+
                         updatePointer(event);
                         raycaster.setFromCamera(pointer, camera);
 
@@ -667,30 +1006,10 @@
                         } else if (event.button === 0) {
                             clearSelection();
                         }
-
-                        if (event.button !== 0 || hits.length === 0) {
-                            return;
-                        }
-
-                        dragging = findDraggableRoot(hits[0].object);
-                        controls.enabled = dragging === null;
                     });
 
                     renderer.domElement.addEventListener('pointermove', (event) => {
-                        if (draggingBoundsHandle) {
-                            updatePointer(event);
-                            raycaster.setFromCamera(pointer, camera);
-
-                            const point = new THREE.Vector3();
-
-                            if (raycaster.ray.intersectPlane(groundPlane, point)) {
-                                resizeBoundsFromHandle(draggingBoundsHandle, point);
-                            }
-
-                            return;
-                        }
-
-                        if (! dragging) {
+                        if (! draggingBoundsHandle) {
                             return;
                         }
 
@@ -700,48 +1019,30 @@
                         const point = new THREE.Vector3();
 
                         if (raycaster.ray.intersectPlane(groundPlane, point)) {
-                            dragging.position.x = point.x;
-                            dragging.position.z = point.z;
-
-                            if (selectionHelper?.object === dragging) {
-                                selectionHelper.update();
-                            }
+                            resizeBoundsFromHandle(draggingBoundsHandle, point);
                         }
                     });
 
                     window.addEventListener('pointerup', () => {
-                        if (draggingBoundsHandle) {
-                            draggingBoundsHandle = null;
-                            controls.enabled = true;
-
+                        if (! draggingBoundsHandle) {
                             return;
                         }
 
-                        if (! dragging) {
-                            return;
-                        }
-
-                        const { type, id } = dragging.userData;
-                        const x = dragging.position.x;
-                        const z = dragging.position.z;
-
-                        dragging.userData.x = x;
-                        dragging.userData.z = z;
-
-                        if (type === 'slot') {
-                            $wire.updateSlotPosition(id, x, z);
-                        } else if (type === 'spawn') {
-                            $wire.updateSpawnPosition(x, z);
-                        } else {
-                            $wire.updatePropPosition(id, x, z);
-                        }
-
-                        dragging = null;
+                        draggingBoundsHandle = null;
                         controls.enabled = true;
                     });
 
                     Livewire.on('spatial-editor-select', ({ type, id }) => {
                         focusSelection(objectIndex.get(objectKey(type, id)));
+
+                        requestAnimationFrame(() => {
+                            const listItem = document.getElementById('object-list-item-' + type + '-' + id);
+
+                            listItem?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'nearest',
+                            });
+                        });
                     });
 
                     Livewire.on('spatial-editor-object-updated', async ({ object }) => {
@@ -799,13 +1100,37 @@
                         drawBoundsOutline();
                     });
 
+                    Livewire.on('spatial-editor-tiling-preview', ({ type, id, tiling }) => {
+                        const root = objectIndex.get(objectKey(type, id));
+                        const source = (sceneState.objects ?? []).find((item) => item.type === type && item.id === id);
+
+                        if (root && source) {
+                            applyTiling(root, tiling, ! source.modelUrl);
+                            // Sin esto, la vista previa se perdía si el
+                            // objeto se reconstruía por CUALQUIER otro
+                            // motivo antes de pulsar Guardar props (mover/
+                            // rotar/escalar el mismo objeto, o cualquier
+                            // otro evento que dispare `rerenderObject()`) —
+                            // ese rebuild usa `item.tiling` de `sceneState`,
+                            // que sin este ajuste seguía con el valor viejo
+                            // porque solo Guardar props lo actualizaba.
+                            source.tiling = tiling;
+                        }
+                    });
+
                     Livewire.on('spatial-editor-reject', ({ type, id }) => {
                         const object = objectIndex.get(objectKey(type, id));
                         const source = (sceneState.objects ?? []).find((item) => item.type === type && item.id === id);
 
                         if (object && source) {
                             object.position.x = source.position.x;
+                            object.position.y = source.position.y;
                             object.position.z = source.position.z;
+                            object.rotation.y = (source.rotationY ?? 0) * (Math.PI / 180);
+
+                            if (source.scale) {
+                                object.scale.set(source.scale.x ?? 1, source.scale.y ?? 1, source.scale.z ?? 1);
+                            }
 
                             if (selectionHelper?.object === object) {
                                 selectionHelper.update();
@@ -907,9 +1232,9 @@
         </div>
 
         <div class="mt-4 space-y-4">
-            <div class="space-y-3">
-                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Agregar más elementos</h4>
-                <div class="space-y-2">
+            <div class="space-y-4">
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Agregar elementos</h4>
+                <div class="space-y-4">
                     <x-filament::input.wrapper>
                         <x-filament::input.select wire:model.live="newPropTemplateId">
                             <option value="">Selecciona un elemento</option>
@@ -919,21 +1244,20 @@
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
 
-                    <x-filament::button wire:click="addProp" size="sm">
-                        Agregar elemento
-                    </x-filament::button>
-                </div>
-            </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <x-filament::button wire:click="addProp" size="sm" color="danger">
+                            Objeto 3D
+                        </x-filament::button>
 
-            <div class="space-y-3">
-                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Agregar slot de stand</h4>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Un slot vacío (sin negocio) para dejarlo ubicado en la plaza. No es visible en la sección pública.
-                </p> 
-                <div class="space-y-2">
-                    <x-filament::button wire:click="addSlot" size="sm" color="gray">
-                        Agregar slot
-                    </x-filament::button>
+                        <x-filament::button
+                            wire:click="addSlot"
+                            size="sm"
+                            color="danger"
+                            title="Un slot vacío (sin negocio) para dejarlo ubicado en la plaza. No es visible en la sección pública."
+                        >
+                            Slot stand
+                        </x-filament::button>
+                    </div>
                 </div>
             </div>
 
@@ -942,6 +1266,7 @@
                 <div class="max-h-72 space-y-2 overflow-auto pr-1">
                     @forelse ($sceneData['objects'] ?? [] as $object)
                         <div
+                            id="object-list-item-{{ $object['type'] }}-{{ $object['id'] }}"
                             @class([
                                 'w-full rounded-lg border px-3 py-2 text-left text-sm transition',
                                 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300' => $selectedObjectType === $object['type'] && $selectedObjectId === $object['id'],
@@ -958,18 +1283,16 @@
                                     <div class="mt-1 text-xs opacity-70">X {{ number_format($object['position']['x'], 1) }} · Z {{ number_format($object['position']['z'], 1) }}</div>
                                 </button>
 
-                                @if ($object['type'] === 'prop')
-                                    <div class="flex flex-col items-center gap-1">
-                                        <button
-                                            type="button"
-                                            wire:click="duplicateProp({{ $object['id'] }})"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-primary-500/10 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
-                                            title="Duplicar elemento"
-                                        >
-                                            <x-filament::icon icon="heroicon-m-squares-plus" class="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                @endif
+                                <div class="flex flex-col items-center gap-1">
+                                    <button
+                                        type="button"
+                                        wire:click="toggleObjectLock('{{ $object['type'] }}', {{ $object['id'] }})"
+                                        class="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-primary-500/10 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
+                                        title="{{ $object['locked'] ? 'Desbloquear elemento en el visor 3D' : 'Bloquear elemento en el visor 3D' }}"
+                                    >
+                                        <x-filament::icon :icon="$object['locked'] ? 'heroicon-m-lock-closed' : 'heroicon-m-lock-open'" class="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     @empty
@@ -992,25 +1315,7 @@
                 </div>
             </div>
 
-            <div class="space-y-3">
-                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Límites navegables</h4>
-                <div class="grid grid-cols-2 gap-2">
-                    <x-filament::input.wrapper>
-                        <x-filament::input type="number" step="any" wire:model.live="boundsForm.minX" />
-                    </x-filament::input.wrapper>
-                    <x-filament::input.wrapper>
-                        <x-filament::input type="number" step="any" wire:model.live="boundsForm.maxX" />
-                    </x-filament::input.wrapper>
-                    <x-filament::input.wrapper>
-                        <x-filament::input type="number" step="any" wire:model.live="boundsForm.minZ" />
-                    </x-filament::input.wrapper>
-                    <x-filament::input.wrapper>
-                        <x-filament::input type="number" step="any" wire:model.live="boundsForm.maxZ" />
-                    </x-filament::input.wrapper>
-                </div>
-            </div>
-
-            <x-filament::button color="gray" wire:click="saveSpatialSettings">
+            <x-filament::button color="danger" wire:click="saveSpatialSettings">
                 Guardar configuración
             </x-filament::button>
         </div>

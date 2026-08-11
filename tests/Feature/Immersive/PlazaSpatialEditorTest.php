@@ -109,18 +109,123 @@ class PlazaSpatialEditorTest extends TestCase
             ->assertSee(ImmersiveObjectTemplateResource::getUrl('create'), false);
     }
 
+    public function test_it_can_lock_and_unlock_an_object_for_the_3d_viewer(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('toggleObjectLock', 'prop', $prop->id);
+
+        $locked = collect($component->get('sceneData')['objects'])
+            ->first(fn (array $object): bool => $object['type'] === 'prop' && $object['id'] === $prop->id);
+
+        $this->assertNotNull($locked);
+        $this->assertTrue($locked['locked']);
+
+        $component->call('toggleObjectLock', 'prop', $prop->id);
+
+        $unlocked = collect($component->get('sceneData')['objects'])
+            ->first(fn (array $object): bool => $object['type'] === 'prop' && $object['id'] === $prop->id);
+
+        $this->assertNotNull($unlocked);
+        $this->assertFalse($unlocked['locked']);
+    }
+
+    /**
+     * Bug reportado por el usuario: el candado siempre volvía a aparecer
+     * abierto al recargar la página, porque antes vivía solo en una
+     * propiedad Livewire en memoria (`$lockedObjectKeys`), nunca en BD. La
+     * prueba de arriba solo comprobaba el mismo componente en memoria — esta
+     * simula el "reload" real: releer el modelo directo de BD, y montar un
+     * componente Livewire NUEVO (sin ningún estado compartido con el que
+     * hizo el toggle), igual que pasa al refrescar el navegador.
+     */
+    public function test_locking_an_object_persists_across_a_fresh_page_load(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = $this->makeTemplate();
+        $slot = $this->makeSlot($plaza, 'S1', $template->id);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('toggleObjectLock', 'slot', $slot->id)
+            ->call('toggleObjectLock', 'prop', $prop->id)
+            ->call('toggleObjectLock', 'spawn', -1);
+
+        $this->assertTrue($slot->fresh()->locked);
+        $this->assertTrue($prop->fresh()->locked);
+        $this->assertTrue($plaza->fresh()->spawn_point['locked']);
+
+        $reloaded = collect(
+            Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza->fresh()])->get('sceneData')['objects']
+        );
+
+        $this->assertTrue($reloaded->firstWhere(fn (array $object) => $object['type'] === 'slot')['locked']);
+        $this->assertTrue($reloaded->firstWhere(fn (array $object) => $object['type'] === 'prop')['locked']);
+        $this->assertTrue($reloaded->firstWhere(fn (array $object) => $object['type'] === 'spawn')['locked']);
+    }
+
+    /**
+     * Guardar la posición/rotación del punto de aparición no debe borrar
+     * su candado — todas las escrituras a `spawn_point` reconstruyen el
+     * JSON completo desde cero, así que si alguna olvida preservar
+     * `locked` el bloqueo desaparece silenciosamente en el siguiente
+     * movimiento.
+     */
+    public function test_moving_the_locked_spawn_point_keeps_it_locked(): void
+    {
+        $plaza = $this->makePlaza();
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('toggleObjectLock', 'spawn', -1)
+            ->call('updateSpawnPosition', 3.0, 0.0, 4.0);
+
+        $this->assertTrue($plaza->fresh()->spawn_point['locked']);
+
+        $component->call('updateSpawnRotation', 90.0);
+
+        $this->assertTrue($plaza->fresh()->spawn_point['locked']);
+    }
+
     public function test_update_slot_position_persists_a_valid_position(): void
     {
         $plaza = $this->makePlaza();
         $slot = $this->makeSlot($plaza, 'S1');
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 3.0, 4.0)
+            ->call('updateSlotPosition', $slot->id, 3.0, 0.0, 4.0)
             ->assertNotDispatched('spatial-editor-reject');
 
         $fresh = $slot->fresh();
         $this->assertEquals(3.0, $fresh->world_position['x']);
         $this->assertEquals(4.0, $fresh->world_position['z']);
+    }
+
+    /**
+     * Gizmo de rotación (círculo de eje Y, `TransformControls` en modo
+     * `rotate`): solo se persiste `y`, X/Z quedan como estaban.
+     */
+    public function test_update_slot_rotation_persists_the_y_axis(): void
+    {
+        $plaza = $this->makePlaza();
+        $slot = $this->makeSlot($plaza, 'S1');
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('updateSlotRotation', $slot->id, 45.0)
+            ->assertNotDispatched('spatial-editor-reject');
+
+        $this->assertEquals(45.0, $slot->fresh()->rotation['y']);
     }
 
     public function test_update_slot_position_rejects_a_position_outside_its_zone(): void
@@ -130,7 +235,7 @@ class PlazaSpatialEditorTest extends TestCase
         $originalPosition = $slot->world_position;
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 999.0, 999.0)
+            ->call('updateSlotPosition', $slot->id, 999.0, 0.0, 999.0)
             ->assertDispatched('spatial-editor-reject', type: 'slot', id: $slot->id);
 
         $this->assertSame($originalPosition, $slot->fresh()->world_position);
@@ -149,12 +254,79 @@ class PlazaSpatialEditorTest extends TestCase
         ]);
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updatePropPosition', $prop->id, 999.0, 999.0)
+            ->call('updatePropPosition', $prop->id, 999.0, 0.0, 999.0)
             ->assertNotDispatched('spatial-editor-reject');
 
         $fresh = $prop->fresh();
         $this->assertEquals(999.0, $fresh->world_position['x']);
         $this->assertEquals(999.0, $fresh->world_position['z']);
+    }
+
+    public function test_update_prop_rotation_persists_the_y_axis(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 1, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('updatePropRotation', $prop->id, 90.0)
+            ->assertNotDispatched('spatial-editor-reject');
+
+        $this->assertEquals(90.0, $prop->fresh()->rotation['y']);
+    }
+
+    /**
+     * Gizmo de escala (`TransformControls` en modo `scale`) — solo props,
+     * persiste en `scale_vector` (mismo campo que ya guarda el panel de
+     * Propiedades vía "Guardar props").
+     */
+    public function test_update_prop_scale_persists_the_scale_vector(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 1, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('updatePropScale', $prop->id, 2.0, 1.5, 0.5)
+            ->assertNotDispatched('spatial-editor-reject');
+
+        $fresh = $prop->fresh();
+        $this->assertEquals(2.0, $fresh->scale_vector['x']);
+        $this->assertEquals(1.5, $fresh->scale_vector['y']);
+        $this->assertEquals(0.5, $fresh->scale_vector['z']);
+    }
+
+    public function test_update_prop_scale_clamps_to_the_minimum_dimension(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 1, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('updatePropScale', $prop->id, -1.0, 0.0, 1.0);
+
+        $fresh = $prop->fresh();
+        $this->assertEquals(0.001, $fresh->scale_vector['x']);
+        $this->assertEquals(0.001, $fresh->scale_vector['y']);
+        $this->assertEquals(1.0, $fresh->scale_vector['z']);
     }
 
     public function test_it_can_save_selected_slot_properties_from_the_editor_sidebar(): void
@@ -211,6 +383,54 @@ class PlazaSpatialEditorTest extends TestCase
         $this->assertEquals(90.0, $fresh->rotation['y']);
         $this->assertSame(['x' => 2.0, 'y' => 2.0, 'z' => 3.0], $fresh->scaleVector());
         $this->assertTrue($fresh->collision_enabled);
+    }
+
+    /**
+     * Tiling de textura por instancia (Fase 4): se guarda vía el mismo
+     * panel/botón "Guardar props", en `texture_tiling` — nunca en la
+     * plantilla compartida.
+     */
+    public function test_saving_a_prop_persists_its_texture_tiling(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('selectObject', 'prop', $prop->id)
+            ->set('selectedObjectForm.tiling.u', 3.5)
+            ->set('selectedObjectForm.tiling.v', 2.0)
+            ->call('saveSelectedObject');
+
+        $fresh = $prop->fresh();
+        $this->assertEquals(['u' => 3.5, 'v' => 2.0], $fresh->textureTiling());
+    }
+
+    public function test_a_prop_without_a_chosen_tiling_defaults_to_one_by_one(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        $this->assertEquals(['u' => 1.0, 'v' => 1.0], $prop->textureTiling());
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza]);
+        $scene = collect($component->get('sceneData')['objects'])
+            ->first(fn (array $object): bool => $object['type'] === 'prop' && $object['id'] === $prop->id);
+
+        $this->assertEquals(['u' => 1.0, 'v' => 1.0], $scene['tiling']);
     }
 
     public function test_locked_size_scales_the_other_axes_proportionally(): void
@@ -284,7 +504,7 @@ class PlazaSpatialEditorTest extends TestCase
             ->call('saveSelectedObject');
 
         $this->assertEquals(
-            ['x' => 10.0, 'y' => 1.0, 'z' => 20.0, 'rotationY' => 135.0],
+            ['x' => 10.0, 'y' => 1.0, 'z' => 20.0, 'rotationY' => 135.0, 'locked' => false],
             $plaza->fresh()->spawn_point,
         );
     }
@@ -294,11 +514,21 @@ class PlazaSpatialEditorTest extends TestCase
         $plaza = $this->makePlaza();
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSpawnPosition', 12.5, -8.25);
+            ->call('updateSpawnPosition', 12.5, 0.0, -8.25);
 
         $fresh = $plaza->fresh()->spawn_point;
         $this->assertSame(12.5, $fresh['x']);
         $this->assertSame(-8.25, $fresh['z']);
+    }
+
+    public function test_rotating_the_spawn_marker_updates_its_rotation_y(): void
+    {
+        $plaza = $this->makePlaza();
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('updateSpawnRotation', 135.0);
+
+        $this->assertEquals(135.0, $plaza->fresh()->spawn_point['rotationY']);
     }
 
     public function test_it_can_add_a_new_prop_from_the_editor_sidebar(): void
@@ -321,6 +551,52 @@ class PlazaSpatialEditorTest extends TestCase
         $this->assertEquals(['x' => 0.0, 'y' => 0.0, 'z' => 0.0], $prop->world_position);
     }
 
+    /**
+     * Pedido del usuario: poder duplicar un slot de stand desde el panel
+     * de Propiedades, igual que ya existía para elementos (`duplicateProp`),
+     * y que el duplicado quede a 2 metros de distancia del original (no
+     * apilado encima, como sí hace `duplicateProp` con elementos sueltos).
+     * El duplicado no debe heredar el estado "ocupada"/"reservado" del
+     * original porque no hereda su `StandAssignment` (relación aparte).
+     */
+    public function test_it_can_duplicate_a_stand_slot_from_the_editor_sidebar(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = $this->makeTemplate();
+        $slot = $this->makeSlot($plaza, 'S1', $template->id);
+        $slot->update(['status' => 'ocupada']);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('duplicateSlot', $slot->id)
+            ->assertSet('selectedObjectType', 'slot');
+
+        $duplicate = StandSlot::query()->where('id', '!=', $slot->id)->where('stand_zone_id', $slot->stand_zone_id)->first();
+
+        $this->assertNotNull($duplicate);
+        $this->assertNotSame($slot->code, $duplicate->code);
+        $this->assertSame($template->id, $duplicate->stand_template_id);
+        $this->assertSame('disponible', $duplicate->status);
+        $this->assertEquals($slot->world_position['x'] + $slot->max_width + 2.0, $duplicate->world_position['x']);
+        $this->assertEquals($slot->world_position['z'], $duplicate->world_position['z']);
+
+        $edgeGap = ($duplicate->world_position['x'] - $duplicate->max_width / 2)
+            - ($slot->world_position['x'] + $slot->max_width / 2);
+        $this->assertEqualsWithDelta(2.0, $edgeGap, 0.0001);
+    }
+
+    public function test_it_can_delete_a_stand_slot_from_the_editor_sidebar(): void
+    {
+        $plaza = $this->makePlaza();
+        $slot = $this->makeSlot($plaza, 'S1');
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('selectObject', 'slot', $slot->id)
+            ->call('deleteSlot', $slot->id)
+            ->assertSet('selectedObjectType', null);
+
+        $this->assertNull(StandSlot::query()->find($slot->id));
+    }
+
     public function test_it_ignores_updates_for_objects_that_do_not_belong_to_this_plaza(): void
     {
         $plaza = $this->makePlaza();
@@ -329,7 +605,7 @@ class PlazaSpatialEditorTest extends TestCase
         $originalPosition = $slot->world_position;
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 1.0, 1.0);
+            ->call('updateSlotPosition', $slot->id, 1.0, 0.0, 1.0);
 
         $this->assertSame($originalPosition, $slot->fresh()->world_position);
     }
@@ -348,7 +624,7 @@ class PlazaSpatialEditorTest extends TestCase
         ]);
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updatePropPosition', $prop->id, 1.0, 1.0);
+            ->call('updatePropPosition', $prop->id, 1.0, 0.0, 1.0);
 
         $this->assertSame(['x' => 0, 'y' => 0, 'z' => 0], $prop->fresh()->world_position);
     }

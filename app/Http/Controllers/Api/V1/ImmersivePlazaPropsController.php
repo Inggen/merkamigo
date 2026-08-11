@@ -32,6 +32,11 @@ class ImmersivePlazaPropsController extends Controller
                 'world_position' => $prop->world_position,
                 'rotation' => $prop->rotation,
                 'scale' => $prop->scaleVector(),
+                // Tiling elegido libremente por instancia en el editor
+                // espacial (Fase 4) — sin esto, la plaza inmersiva real
+                // ignoraba el valor guardado y siempre mostraba la
+                // textura sin repetir, aunque el editor sí lo aplicaba.
+                'tiling' => $prop->textureTiling(),
                 'collision_enabled' => (bool) $prop->collision_enabled,
                 // Misma prioridad de renderizado que los stands (IMM-020b):
                 // GLB real > definición generada por IA > forma voxel.

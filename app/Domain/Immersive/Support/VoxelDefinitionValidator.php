@@ -23,7 +23,7 @@ class VoxelDefinitionValidator
      * @var array<int, string>
      */
     public const ALLOWED_TEXTURES = [
-        'plaza', 'stone', 'stoneLight', 'white', 'ochre', 'coral', 'butter',
+        'plaza', 'pavement', 'stone', 'stoneLight', 'white', 'ochre', 'coral', 'butter',
         'roof', 'roofClay', 'wood', 'woodDark', 'leaf', 'mountain', 'glass',
         'trim', 'iron', 'concrete', 'brick', 'water', 'flower', 'cloth', 'skin', 'shirt', 'pants',
         'grass', 'path', 'patina', 'accent', 'brickAccent',

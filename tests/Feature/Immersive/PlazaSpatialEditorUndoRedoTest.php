@@ -86,7 +86,7 @@ class PlazaSpatialEditorUndoRedoTest extends TestCase
         $originalPosition = $slot->world_position;
 
         $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 3.0, 4.0);
+            ->call('updateSlotPosition', $slot->id, 3.0, 0.0, 4.0);
 
         $this->assertEquals(3.0, $slot->fresh()->world_position['x']);
         $this->assertTrue($component->instance()->canUndo());
@@ -103,7 +103,7 @@ class PlazaSpatialEditorUndoRedoTest extends TestCase
         $slot = $this->makeSlot($plaza, 'S1');
 
         $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 3.0, 4.0)
+            ->call('updateSlotPosition', $slot->id, 3.0, 0.0, 4.0)
             ->call('undo');
 
         $component->call('redo');
@@ -196,7 +196,7 @@ class PlazaSpatialEditorUndoRedoTest extends TestCase
         $originalSpawn = $plaza->spawn_point;
 
         $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSpawnPosition', 10.0, 20.0);
+            ->call('updateSpawnPosition', 10.0, 0.0, 20.0);
 
         $this->assertEquals(10.0, $plaza->fresh()->spawn_point['x']);
 
@@ -211,12 +211,12 @@ class PlazaSpatialEditorUndoRedoTest extends TestCase
         $slot = $this->makeSlot($plaza, 'S1');
 
         $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 3.0, 4.0)
+            ->call('updateSlotPosition', $slot->id, 3.0, 0.0, 4.0)
             ->call('undo');
 
         $this->assertTrue($component->instance()->canRedo());
 
-        $component->call('updateSlotPosition', $slot->id, 7.0, 8.0);
+        $component->call('updateSlotPosition', $slot->id, 7.0, 0.0, 8.0);
 
         $this->assertFalse($component->instance()->canRedo());
     }
@@ -243,7 +243,7 @@ class PlazaSpatialEditorUndoRedoTest extends TestCase
         $slot = $this->makeSlot($plaza, 'S1');
 
         $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 999.0, 999.0);
+            ->call('updateSlotPosition', $slot->id, 999.0, 0.0, 999.0);
 
         $this->assertFalse($component->instance()->canUndo());
     }

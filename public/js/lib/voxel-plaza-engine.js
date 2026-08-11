@@ -35,6 +35,7 @@ const sharedGltfLoader = new GLTFLoader();
 
 export const basePalette = {
     plaza: 0xd3bb8b,
+    pavement: 0x676159,
     plazaDark: 0xb49257,
     stone: 0xd6c18d,
     stoneDark: 0xad8557,
@@ -156,6 +157,53 @@ function paintVoxelTexture(base, noise = 18, accent = null, lines = false) {
     return texture;
 }
 
+function paintPavementTexture(base) {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const baseColor = new THREE.Color(base);
+    const block = 8;
+
+    ctx.fillStyle = `#${baseColor.getHexString()}`;
+    ctx.fillRect(0, 0, size, size);
+
+    for (let y = 0; y < size; y += block) {
+        for (let x = 0; x < size; x += block) {
+            const color = baseColor.clone();
+            color.offsetHSL(0, 0, (Math.random() - 0.5) * 0.14);
+            ctx.fillStyle = `#${color.getHexString()}`;
+            ctx.fillRect(x, y, block, block);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+            ctx.fillRect(x, y, block, 1);
+            ctx.fillRect(x, y, 1, block);
+        }
+    }
+
+    ctx.strokeStyle = 'rgba(210, 206, 198, 0.34)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < size; i += block) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, size);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(size, i);
+        ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    return texture;
+}
+
 export function createVoxelTextures(colors) {
     const cache = {};
 
@@ -164,6 +212,7 @@ export function createVoxelTextures(colors) {
     };
 
     make('plaza', colors.plaza, 16, colors.plazaDark, true);
+    cache.pavement = paintPavementTexture(colors.pavement);
     make('stone', colors.stone, 14, colors.stoneDark);
     make('stoneLight', colors.stoneLight, 10, colors.stone);
     make('white', colors.white, 10, 0xd6ccc2);

@@ -1,4 +1,6 @@
 import { THREE, renderObjectByPriority, buildAvatarFigure } from './voxel-plaza-engine.js';
+import { applyStandPrimaryColor } from './stand-color-utils.js';
+import { applyTiling } from './texture-tiling-utils.js';
 
 /**
  * IMM-020b (puente mínimo de stands dinámicos): dibuja, encima de una plaza
@@ -79,6 +81,18 @@ async function loadDynamicObjects(engine, plazaId, endpoint) {
                     engine.syncObjectCollision?.(root, Boolean(object.collision_enabled));
                 }
 
+                if (object.tiling) {
+                    // Elegido libremente por el emprendedor/admin por
+                    // instancia (Fase 4 del editor espacial) — un fallo
+                    // acá nunca debe tumbar la carga del resto de la
+                    // plaza (mismo contrato que el resto de este bloque).
+                    try {
+                        applyTiling(root, object.tiling, ! object.model_url);
+                    } catch {
+                        // Contenido adicional: ver comentario de cabecera.
+                    }
+                }
+
                 if (object.business?.logo_url) {
                     // Insignia flotante con el logo, siempre mirando a la
                     // cámara (Sprite) — funciona igual sin importar si el
@@ -90,7 +104,7 @@ async function loadDynamicObjects(engine, plazaId, endpoint) {
                 }
 
                 if (object.business?.stand_color) {
-                    applyPrimaryColor(root, object.business.stand_color);
+                    applyStandPrimaryColor(root, object.business.stand_color);
                 }
 
                 if (object.business) {
@@ -115,49 +129,6 @@ async function loadDynamicObjects(engine, plazaId, endpoint) {
     }
 
     return results;
-}
-
-/**
- * Color de stand elegido libremente por el emprendedor (editor de vitrina,
- * `⚡vitrina.blade.php`) — se aplica a la malla más grande de `root` en
- * espacio de MUNDO (volumen real, no local), asumiendo que esa es la
- * superficie principal del stand. Funciona igual para GLB, `model_definition`
- * o forma voxel del builder: en los tres casos `root` termina siendo un
- * árbol de `Mesh` con geometría real. No hay ninguna convención de nombre
- * de malla que identifique "la pintable" — esta heurística es deliberada
- * (decisión del usuario, sesión del 2026-08-10) en vez de exigir renombrar
- * mallas en cada `.glb` ya subido.
- */
-function applyPrimaryColor(root, hexColor) {
-    let largestMesh = null;
-    let largestVolume = -1;
-
-    root.traverse((obj) => {
-        if (!obj.isMesh || !obj.geometry) {
-            return;
-        }
-
-        obj.geometry.computeBoundingBox?.();
-        const box = obj.geometry.boundingBox;
-
-        if (!box) {
-            return;
-        }
-
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const worldScale = new THREE.Vector3();
-        obj.getWorldScale(worldScale);
-        const volume = size.x * worldScale.x * size.y * worldScale.y * size.z * worldScale.z;
-
-        if (volume > largestVolume) {
-            largestVolume = volume;
-            largestMesh = obj;
-        }
-    });
-
-    const material = Array.isArray(largestMesh?.material) ? largestMesh.material[0] : largestMesh?.material;
-    material?.color?.set(hexColor);
 }
 
 const logoBadgeSize = 128;
