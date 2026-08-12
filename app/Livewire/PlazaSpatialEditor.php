@@ -48,16 +48,6 @@ class PlazaSpatialEditor extends Component
     private const AUTO_ZONE_NAME = 'Zona general (automática)';
 
     /**
-     * Separación (borde a borde, en metros) entre un slot y su copia al
-     * duplicarlo — pedido explícito del usuario. Un simple "+1" en X/Z
-     * (como usa `duplicateProp()`, sin restricciones geométricas) no
-     * alcanza aquí: `StandSlot` valida solapamiento contra sus vecinos
-     * (`validateAgainstZoneTemplateAndNeighbors()`), así que un offset
-     * pequeño rechazaba la duplicación casi siempre.
-     */
-    private const SLOT_DUPLICATE_GAP = 2.0;
-
-    /**
      * Tope arbitrario y conservador para no dejar crecer sin límite el
      * estado del componente (cada entrada es una foto completa de
      * stands + elementos + configuración de la plaza).
@@ -67,8 +57,6 @@ class PlazaSpatialEditor extends Component
     private static ?bool $supportsScaleVector = null;
 
     private static ?bool $supportsCollisionEnabled = null;
-
-    private static ?bool $supportsTiling = null;
 
     public ImmersivePlaza $plaza;
 
@@ -132,7 +120,6 @@ class PlazaSpatialEditor extends Component
             'hasGlbModel' => (bool) ($object['hasGlbModel'] ?? false),
             'objectEditorUrl' => $object['objectEditorUrl'] ?? null,
             'status' => $object['status'] ?? null,
-            'tiling' => $object['tiling'] ?? null,
         ];
         $this->sizeReference = $object['size'];
 
@@ -172,61 +159,6 @@ class PlazaSpatialEditor extends Component
         }
 
         $this->saveSelectedProp();
-    }
-
-    /**
-     * Antes esto vivía solo en `$lockedObjectKeys`, una propiedad Livewire
-     * en memoria — por eso el candado siempre volvía a aparecer abierto al
-     * recargar la página (bug reportado por el usuario). Ahora persiste en
-     * una columna real (`locked`) en `stand_slots`/`immersive_plaza_props`,
-     * o dentro del JSON `spawn_point` para el punto de aparición, que no
-     * tiene fila propia.
-     */
-    public function toggleObjectLock(string $type, int $id): void
-    {
-        if ($type === 'slot') {
-            $slot = StandSlot::query()->with('zone')->find($id);
-
-            if (! $slot || $slot->zone?->immersive_plaza_id !== $this->plaza->id) {
-                return;
-            }
-
-            try {
-                $slot->update(['locked' => ! $slot->locked]);
-            } catch (ValidationException) {
-                return;
-            }
-        } elseif ($type === 'prop') {
-            $prop = ImmersivePlazaProp::query()->find($id);
-
-            if (! $prop || $prop->immersive_plaza_id !== $this->plaza->id) {
-                return;
-            }
-
-            $prop->update(['locked' => ! $prop->locked]);
-        } elseif ($type === 'spawn') {
-            $spawn = $this->plaza->spawn_point ?? ['x' => 0, 'y' => 0, 'z' => 0, 'rotationY' => 0];
-
-            $this->plaza->update([
-                'spawn_point' => [
-                    'x' => (float) $spawn['x'],
-                    'y' => (float) $spawn['y'],
-                    'z' => (float) $spawn['z'],
-                    'rotationY' => (float) $spawn['rotationY'],
-                    'locked' => ! ($spawn['locked'] ?? false),
-                ],
-            ]);
-        } else {
-            return;
-        }
-
-        $this->reloadSceneData();
-
-        $payload = $this->findObjectData($type, $id);
-
-        if ($payload) {
-            $this->dispatch('spatial-editor-object-updated', object: $payload);
-        }
     }
 
     public function saveSpatialSettings(): void
@@ -270,7 +202,7 @@ class PlazaSpatialEditor extends Component
      * así que no hace falta el patrón de "capturar antes, confirmar solo si
      * no falla" que sí necesitan los stands.
      */
-    public function updateSpawnPosition(float $x, float $y, float $z): void
+    public function updateSpawnPosition(float $x, float $z): void
     {
         $this->commitHistorySnapshot($this->captureSnapshot());
 
@@ -279,29 +211,9 @@ class PlazaSpatialEditor extends Component
         $this->plaza->update([
             'spawn_point' => [
                 'x' => $x,
-                'y' => $y,
+                'y' => (float) $spawn['y'],
                 'z' => $z,
                 'rotationY' => (float) $spawn['rotationY'],
-                'locked' => (bool) ($spawn['locked'] ?? false),
-            ],
-        ]);
-
-        $this->afterObjectSaved('spawn', -1);
-    }
-
-    public function updateSpawnRotation(float $y): void
-    {
-        $this->commitHistorySnapshot($this->captureSnapshot());
-
-        $spawn = $this->plaza->spawn_point ?? ['x' => 0, 'y' => 0, 'z' => 0, 'rotationY' => 0];
-
-        $this->plaza->update([
-            'spawn_point' => [
-                'x' => (float) $spawn['x'],
-                'y' => (float) $spawn['y'],
-                'z' => (float) $spawn['z'],
-                'rotationY' => $y,
-                'locked' => (bool) ($spawn['locked'] ?? false),
             ],
         ]);
 
@@ -320,15 +232,12 @@ class PlazaSpatialEditor extends Component
     {
         $this->commitHistorySnapshot($this->captureSnapshot());
 
-        $spawn = $this->plaza->spawn_point ?? ['x' => 0, 'y' => 0, 'z' => 0, 'rotationY' => 0];
-
         $this->plaza->update([
             'spawn_point' => [
                 'x' => (float) ($this->selectedObjectForm['position']['x'] ?? 0),
                 'y' => (float) ($this->selectedObjectForm['position']['y'] ?? 0),
                 'z' => (float) ($this->selectedObjectForm['position']['z'] ?? 0),
                 'rotationY' => (float) ($this->selectedObjectForm['rotation']['y'] ?? 0),
-                'locked' => (bool) ($spawn['locked'] ?? false),
             ],
         ]);
 
@@ -340,7 +249,7 @@ class PlazaSpatialEditor extends Component
             ->send();
     }
 
-    public function updateSlotPosition(int $slotId, float $x, float $y, float $z): void
+    public function updateSlotPosition(int $slotId, float $x, float $z): void
     {
         $slot = StandSlot::query()->with('template', 'zone')->find($slotId);
 
@@ -357,7 +266,7 @@ class PlazaSpatialEditor extends Component
             $slot->update([
                 'world_position' => [
                     'x' => $x,
-                    'y' => $y,
+                    'y' => $slot->world_position['y'] ?? 0,
                     'z' => $z,
                 ],
             ]);
@@ -377,50 +286,7 @@ class PlazaSpatialEditor extends Component
         $this->afterObjectSaved('slot', $slot->id);
     }
 
-    /**
-     * Rotación desde el gizmo (círculo de eje Y, `TransformControls` en
-     * modo `rotate`, snap de 45° aplicado del lado del cliente) — mismo
-     * patrón de captura/validar/revertir que `updateSlotPosition`. Solo
-     * recibe `y`: X/Z de rotación no son editables todavía en ningún punto
-     * de este editor (ver panel de Propiedades, esos inputs vienen
-     * `disabled`), así que se preservan tal cual estaban.
-     */
-    public function updateSlotRotation(int $slotId, float $y): void
-    {
-        $slot = StandSlot::query()->with('template', 'zone')->find($slotId);
-
-        if (! $slot || $slot->zone?->immersive_plaza_id !== $this->plaza->id) {
-            return;
-        }
-
-        $snapshot = $this->captureSnapshot();
-        $rotation = $this->normalizeRotation($slot->rotation);
-
-        try {
-            $slot->update([
-                'rotation' => [
-                    'x' => $rotation['x'],
-                    'y' => $y,
-                    'z' => $rotation['z'],
-                ],
-            ]);
-        } catch (ValidationException $exception) {
-            $this->dispatch('spatial-editor-reject', type: 'slot', id: $slotId);
-
-            Notification::make()
-                ->title('No se pudo rotar el stand')
-                ->body(collect($exception->errors())->flatten()->first())
-                ->danger()
-                ->send();
-
-            return;
-        }
-
-        $this->commitHistorySnapshot($snapshot);
-        $this->afterObjectSaved('slot', $slot->id);
-    }
-
-    public function updatePropPosition(int $propId, float $x, float $y, float $z): void
+    public function updatePropPosition(int $propId, float $x, float $z): void
     {
         $prop = ImmersivePlazaProp::query()->with('template')->find($propId);
 
@@ -434,7 +300,7 @@ class PlazaSpatialEditor extends Component
             $prop->update([
                 'world_position' => [
                     'x' => $x,
-                    'y' => $y,
+                    'y' => $prop->world_position['y'] ?? 0,
                     'z' => $z,
                 ],
             ]);
@@ -455,94 +321,6 @@ class PlazaSpatialEditor extends Component
         $this->afterObjectSaved('prop', $prop->id);
     }
 
-    /**
-     * Mismo mecanismo que `updateSlotRotation()` — ver ese comentario.
-     */
-    public function updatePropRotation(int $propId, float $y): void
-    {
-        $prop = ImmersivePlazaProp::query()->with('template')->find($propId);
-
-        if (! $prop || $prop->immersive_plaza_id !== $this->plaza->id) {
-            return;
-        }
-
-        $snapshot = $this->captureSnapshot();
-        $rotation = $this->normalizeRotation($prop->rotation);
-
-        try {
-            $prop->update([
-                'rotation' => [
-                    'x' => $rotation['x'],
-                    'y' => $y,
-                    'z' => $rotation['z'],
-                ],
-            ]);
-        } catch (Throwable $exception) {
-            report($exception);
-
-            $this->dispatch('spatial-editor-reject', type: 'prop', id: $propId);
-
-            Notification::make()
-                ->title('No se pudo rotar el elemento')
-                ->danger()
-                ->send();
-
-            return;
-        }
-
-        $this->commitHistorySnapshot($snapshot);
-        $this->afterObjectSaved('prop', $prop->id);
-    }
-
-    /**
-     * Gizmo de escala (`TransformControls` en modo `scale`) — solo para
-     * elementos (`prop`), nunca stands: un stand no tiene escala libre, su
-     * tamaño sale de `max_width`/`max_depth` planas más la altura fija de
-     * la plantilla (ver panel de Propiedades, "la altura se muestra pero
-     * se conserva desde la plantilla actual"). El botón "Escalar" del
-     * visor ni siquiera se muestra para slots/spawn.
-     */
-    public function updatePropScale(int $propId, float $x, float $y, float $z): void
-    {
-        if (! $this->supportsScaleVector()) {
-            return;
-        }
-
-        $prop = ImmersivePlazaProp::query()->with('template')->find($propId);
-
-        if (! $prop || $prop->immersive_plaza_id !== $this->plaza->id) {
-            return;
-        }
-
-        $snapshot = $this->captureSnapshot();
-        $scaleVector = [
-            'x' => max(self::MIN_DIMENSION, $x),
-            'y' => max(self::MIN_DIMENSION, $y),
-            'z' => max(self::MIN_DIMENSION, $z),
-        ];
-
-        try {
-            $prop->update([
-                'scale_vector' => $scaleVector,
-                'scale' => ($scaleVector['x'] + $scaleVector['y'] + $scaleVector['z']) / 3,
-            ]);
-        } catch (Throwable $exception) {
-            report($exception);
-
-            $this->dispatch('spatial-editor-reject', type: 'prop', id: $propId);
-
-            Notification::make()
-                ->title('No se pudo escalar el elemento')
-                ->danger()
-                ->send();
-
-            return;
-        }
-
-        $this->commitHistorySnapshot($snapshot);
-        $this->afterObjectSaved('prop', $prop->id);
-    }
-
     public function render(): View
     {
         return view('livewire.plaza-spatial-editor');
@@ -550,21 +328,6 @@ class PlazaSpatialEditor extends Component
 
     public function updated(string $name, mixed $value): void
     {
-        // Vista previa en vivo del tiling mientras se escribe — el guardado
-        // real sigue requiriendo el botón "Guardar props" (mismo patrón que
-        // posición/tamaño/rotación), esto solo refresca el visor 3D antes.
-        if (str_starts_with($name, 'selectedObjectForm.tiling.') && $this->selectedObjectType === 'prop' && $this->selectedObjectId !== null) {
-            $this->dispatch(
-                'spatial-editor-tiling-preview',
-                type: 'prop',
-                id: $this->selectedObjectId,
-                tiling: [
-                    'u' => (float) ($this->selectedObjectForm['tiling']['u'] ?? 1),
-                    'v' => (float) ($this->selectedObjectForm['tiling']['v'] ?? 1),
-                ],
-            );
-        }
-
         if (! $this->sizeLockEnabled) {
             return;
         }
@@ -823,105 +586,6 @@ class PlazaSpatialEditor extends Component
             ->send();
     }
 
-    /**
-     * Mismo patrón que duplicateProp() — ver ese comentario. El duplicado
-     * nace sin asignación de negocio (`StandAssignment` es una relación
-     * aparte, nunca se copia con `create()`), así que su estado siempre
-     * arranca en "disponible" igual que `addSlot()`, sin importar el
-     * estado del slot original (evita duplicar un slot "ocupado" sin que
-     * en realidad tenga un negocio asignado).
-     */
-    public function duplicateSlot(int $slotId): void
-    {
-        $slot = StandSlot::query()->with('zone')->find($slotId);
-
-        if (! $slot || $slot->zone?->immersive_plaza_id !== $this->plaza->id) {
-            return;
-        }
-
-        $snapshot = $this->captureSnapshot();
-
-        try {
-            $duplicate = $slot->zone->slots()->create([
-                'code' => $this->nextSlotCode(),
-                'stand_template_id' => $slot->stand_template_id,
-                'allowed_category_id' => $slot->allowed_category_id,
-                'world_position' => [
-                    // Desplazamiento solo en X: el duplicado comparte el
-                    // mismo ancho (`max_width`), así que separar los
-                    // centros por `max_width + SLOT_DUPLICATE_GAP` dejando
-                    // Z igual garantiza exactamente 2m libres entre sus
-                    // bordes, sin importar la profundidad de ninguno.
-                    'x' => (float) ($slot->world_position['x'] ?? 0) + $slot->max_width + self::SLOT_DUPLICATE_GAP,
-                    'y' => (float) ($slot->world_position['y'] ?? 0),
-                    'z' => (float) ($slot->world_position['z'] ?? 0),
-                ],
-                'rotation' => $slot->rotation,
-                'max_width' => $slot->max_width,
-                'max_depth' => $slot->max_depth,
-                'orientation_mode' => $slot->orientation_mode,
-                'accessible' => $slot->accessible,
-                'status' => 'disponible',
-                'source' => 'manual',
-            ]);
-        } catch (ValidationException $exception) {
-            Notification::make()
-                ->title('No se pudo duplicar el stand')
-                ->body(collect($exception->errors())->flatten()->first())
-                ->danger()
-                ->send();
-
-            return;
-        }
-
-        $this->commitHistorySnapshot($snapshot);
-        $this->reloadSceneData();
-        $this->selectObject('slot', $duplicate->id);
-
-        $payload = $this->findObjectData('slot', $duplicate->id);
-
-        if ($payload) {
-            $this->dispatch('spatial-editor-object-updated', object: $payload);
-        }
-
-        Notification::make()
-            ->title('Stand duplicado')
-            ->body('Todavía no tiene negocio asignado.')
-            ->success()
-            ->send();
-    }
-
-    /**
-     * Mismo patrón que deleteProp(). `stand_slot_id` en `stand_assignments`
-     * es `nullOnDelete()` (ver migración), así que si el slot tiene un
-     * negocio asignado la asignación no se borra en cascada — queda huérfana
-     * (sin slot) en vez de romper por FK.
-     */
-    public function deleteSlot(int $slotId): void
-    {
-        $slot = StandSlot::query()->with('zone')->find($slotId);
-
-        if (! $slot || $slot->zone?->immersive_plaza_id !== $this->plaza->id) {
-            return;
-        }
-
-        $this->commitHistorySnapshot($this->captureSnapshot());
-
-        $slot->delete();
-
-        if ($this->selectedObjectType === 'slot' && $this->selectedObjectId === $slotId) {
-            $this->clearSelectedObject();
-        }
-
-        $this->reloadSceneData();
-        $this->dispatch('spatial-editor-object-removed', type: 'slot', id: $slotId);
-
-        Notification::make()
-            ->title('Stand eliminado')
-            ->success()
-            ->send();
-    }
-
     private function saveSelectedSlot(): void
     {
         $slot = StandSlot::query()->with('template', 'zone')->find($this->selectedObjectId);
@@ -1000,13 +664,6 @@ class PlazaSpatialEditor extends Component
 
         if ($this->supportsCollisionEnabled()) {
             $attributes['collision_enabled'] = (bool) ($this->selectedObjectForm['collisionEnabled'] ?? false);
-        }
-
-        if ($this->supportsTiling()) {
-            $attributes['texture_tiling'] = [
-                'u' => max(self::MIN_DIMENSION, (float) ($this->selectedObjectForm['tiling']['u'] ?? 1)),
-                'v' => max(self::MIN_DIMENSION, (float) ($this->selectedObjectForm['tiling']['v'] ?? 1)),
-            ];
         }
 
         $snapshot = $this->captureSnapshot();
@@ -1113,10 +770,6 @@ class PlazaSpatialEditor extends Component
 
                 if ($this->supportsCollisionEnabled()) {
                     $state['collision_enabled'] = (bool) $prop->collision_enabled;
-                }
-
-                if ($this->supportsTiling()) {
-                    $state['texture_tiling'] = $prop->texture_tiling;
                 }
 
                 return $state;
@@ -1421,7 +1074,6 @@ class PlazaSpatialEditor extends Component
             'hasGlbModel' => false,
             'objectEditorUrl' => null,
             'status' => null,
-            'locked' => (bool) ($spawn['locked'] ?? false),
             'x' => $position['x'],
             'y' => $position['y'],
             'z' => $position['z'],
@@ -1453,7 +1105,6 @@ class PlazaSpatialEditor extends Component
             'builderKey' => $template?->builder_key,
             'hasGlbModel' => filled($template?->model_path),
             'objectEditorUrl' => $this->objectEditorUrl($template),
-            'locked' => (bool) $slot->locked,
             'x' => $position['x'],
             'y' => $position['y'],
             'z' => $position['z'],
@@ -1491,8 +1142,6 @@ class PlazaSpatialEditor extends Component
             'hasGlbModel' => filled($template?->model_path),
             'objectEditorUrl' => $this->objectEditorUrl($template),
             'status' => $prop->status,
-            'locked' => (bool) $prop->locked,
-            'tiling' => $this->supportsTiling() ? $prop->textureTiling() : null,
             'x' => $position['x'],
             'y' => $position['y'],
             'z' => $position['z'],
@@ -1694,15 +1343,6 @@ class PlazaSpatialEditor extends Component
         }
 
         return self::$supportsCollisionEnabled;
-    }
-
-    private function supportsTiling(): bool
-    {
-        if (self::$supportsTiling === null) {
-            self::$supportsTiling = Schema::hasColumn('immersive_plaza_props', 'texture_tiling');
-        }
-
-        return self::$supportsTiling;
     }
 
     private function legacyCompatibilityMessage(): ?string

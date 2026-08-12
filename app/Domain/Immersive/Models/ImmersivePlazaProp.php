@@ -16,9 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array{x: float, y: float, z: float} $world_position
  * @property array{x: float, y: float, z: float}|null $rotation
  * @property array{x: float, y: float, z: float}|null $scale_vector
- * @property array{u: float, v: float}|null $texture_tiling
  * @property bool $collision_enabled
- * @property bool $locked
  */
 class ImmersivePlazaProp extends Model
 {
@@ -30,11 +28,9 @@ class ImmersivePlazaProp extends Model
         'rotation',
         'scale',
         'scale_vector',
-        'texture_tiling',
         'collision_enabled',
         'source',
         'status',
-        'locked',
     ];
 
     protected function casts(): array
@@ -45,9 +41,7 @@ class ImmersivePlazaProp extends Model
             'rotation' => 'array',
             'scale' => 'float',
             'scale_vector' => 'array',
-            'texture_tiling' => 'array',
             'collision_enabled' => 'boolean',
-            'locked' => 'boolean',
         ];
     }
 
@@ -73,27 +67,6 @@ class ImmersivePlazaProp extends Model
         $scale = (float) ($this->scale ?: 1);
 
         return ['x' => $scale, 'y' => $scale, 'z' => $scale];
-    }
-
-    /**
-     * Repetición de textura efectiva. Nulo (nunca elegido) cae a 1/1 —
-     * mismo tiling que trae el material por defecto.
-     *
-     * @return array{u: float, v: float}
-     */
-    public function textureTiling(): array
-    {
-        if (
-            is_array($this->texture_tiling)
-            && isset($this->texture_tiling['u'], $this->texture_tiling['v'])
-        ) {
-            return [
-                'u' => (float) $this->texture_tiling['u'],
-                'v' => (float) $this->texture_tiling['v'],
-            ];
-        }
-
-        return ['u' => 1.0, 'v' => 1.0];
     }
 
     /**

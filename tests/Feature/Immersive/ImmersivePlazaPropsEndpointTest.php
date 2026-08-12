@@ -146,48 +146,6 @@ class ImmersivePlazaPropsEndpointTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
-    /**
-     * El tiling elegido en el editor espacial (Fase 4) debe llegar a la
-     * plaza pública real — bug real de esta sesión: el editor lo aplicaba
-     * visualmente pero este endpoint nunca lo exponía, así que
-     * `dynamic-stand-loader.js` nunca lo aplicaba en la experiencia
-     * inmersiva de verdad.
-     */
-    public function test_a_prop_exposes_its_chosen_texture_tiling(): void
-    {
-        $plaza = $this->makePlaza();
-        $template = $this->makeTemplate();
-
-        $prop = $plaza->props()->create([
-            'object_template_id' => $template->id,
-            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
-            'rotation' => ['x' => 0, 'y' => 0, 'z' => 0],
-            'status' => 'confirmado',
-        ]);
-        $prop->update(['texture_tiling' => ['u' => 6, 'v' => 3]]);
-
-        $data = $this->getJson("/api/v1/inmersivo/plazas/{$plaza->id}/props")->json('data');
-
-        $this->assertEquals(['u' => 6.0, 'v' => 3.0], $data[0]['tiling']);
-    }
-
-    public function test_a_prop_without_a_chosen_tiling_exposes_one_by_one(): void
-    {
-        $plaza = $this->makePlaza();
-        $template = $this->makeTemplate();
-
-        $plaza->props()->create([
-            'object_template_id' => $template->id,
-            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
-            'rotation' => ['x' => 0, 'y' => 0, 'z' => 0],
-            'status' => 'confirmado',
-        ]);
-
-        $data = $this->getJson("/api/v1/inmersivo/plazas/{$plaza->id}/props")->json('data');
-
-        $this->assertEquals(['u' => 1.0, 'v' => 1.0], $data[0]['tiling']);
-    }
-
     public function test_a_plaza_without_any_props_returns_an_empty_list(): void
     {
         $plaza = $this->makePlaza();

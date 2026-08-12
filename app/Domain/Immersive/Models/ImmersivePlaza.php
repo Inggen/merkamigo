@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * excluidas y calidad viven aquí — no en `ImmersiveExperience` (corrección
  * de arquitectura aplicada junto con IMM-012, ver TODO §4.2).
  *
- * @property array{x: float, y: float, z: float, rotationY: float, locked?: bool}|null $spawn_point
+ * @property array{x: float, y: float, z: float, rotationY: float}|null $spawn_point
  * @property array{minX: float, maxX: float, minZ: float, maxZ: float}|null $navigable_bounds
  * @property array{x: float, z: float}|null $orientation_center
  * @property array<int, array{points: array<int, array{x: float, z: float}>}>|null $excluded_zones
