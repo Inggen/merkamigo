@@ -30,6 +30,11 @@ class VoxelPaletteMatcherTest extends TestCase
         $this->assertSame(['wood'], VoxelPaletteMatcher::nearestTextures(['#725030']));
     }
 
+    public function test_it_matches_the_pavement_gray_to_the_new_pavement_texture(): void
+    {
+        $this->assertSame(['pavement'], VoxelPaletteMatcher::nearestTextures(['#7a746b']));
+    }
+
     public function test_it_deduplicates_colors_that_resolve_to_the_same_texture(): void
     {
         $result = VoxelPaletteMatcher::nearestTextures(['#6d4b30', '#6e4c31']);

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Immersive;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Immersive\Models\ImmersiveExperience;
@@ -95,6 +97,21 @@ class BusinessStandSelectorTest extends TestCase
         return $business;
     }
 
+    private function emprendedorPlan(): Plan
+    {
+        return Plan::create([
+            'slug' => 'emprendedor',
+            'name' => 'Emprendedor',
+            'description' => 'Desbloquea mejores capacidades para tu negocio.',
+            'price_cents' => 1990000,
+            'billing_period' => Plan::MENSUAL,
+            'limits' => ['max_products' => null, 'max_members' => 5, 'max_featured_days' => 7],
+            'trial_days' => 14,
+            'is_active' => true,
+            'position' => 1,
+        ]);
+    }
+
     public function test_owner_sees_the_three_templates_and_current_status(): void
     {
         $experience = $this->makeReadyExperience();
@@ -156,5 +173,89 @@ class BusinessStandSelectorTest extends TestCase
 
         Livewire::test('pages::emprendedores.negocios.mi-stand', ['business' => $business->id])
             ->assertForbidden();
+    }
+
+    public function test_stand_pro_requires_the_entrepreneur_plan(): void
+    {
+        $experience = $this->makeReadyExperience();
+        $standard = ImmersiveObjectTemplate::create([
+            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standBooth',
+            'max_width' => 3.6, 'max_depth' => 3.2, 'max_height' => 2.9, 'status' => 'publicada',
+        ]);
+        $pro = ImmersiveObjectTemplate::create([
+            'name' => 'Stand Pro', 'slug' => 'stand-pro-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standTable',
+            'max_width' => 3.2, 'max_depth' => 2.4, 'max_height' => 2.9, 'status' => 'publicada',
+        ]);
+        $this->makeSlot($experience->plazas->first(), 'S1');
+
+        $business = $this->makeBusiness($experience->municipality_id);
+        $business->update(['status' => 'publicado']);
+
+        $this->assertSame($standard->id, $business->fresh()->standAssignment->object_template_id);
+
+        Livewire::test('pages::emprendedores.negocios.mi-stand', ['business' => $business->id])
+            ->call('chooseTemplate', $pro->id)
+            ->assertHasErrors(['template']);
+
+        $this->assertSame($standard->id, $business->fresh()->standAssignment->object_template_id);
+    }
+
+    public function test_owner_with_entrepreneur_plan_can_choose_stand_pro(): void
+    {
+        $experience = $this->makeReadyExperience();
+        $standard = ImmersiveObjectTemplate::create([
+            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standBooth',
+            'max_width' => 3.6, 'max_depth' => 3.2, 'max_height' => 2.9, 'status' => 'publicada',
+        ]);
+        $pro = ImmersiveObjectTemplate::create([
+            'name' => 'Stand Pro', 'slug' => 'stand-pro-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standTable',
+            'max_width' => 3.2, 'max_depth' => 2.4, 'max_height' => 2.9, 'status' => 'publicada',
+        ]);
+        $this->makeSlot($experience->plazas->first(), 'S1');
+
+        $business = $this->makeBusiness($experience->municipality_id);
+        $business->update(['status' => 'publicado']);
+
+        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $business->organization->owner);
+
+        Livewire::test('pages::emprendedores.negocios.mi-stand', ['business' => $business->id])
+            ->call('chooseTemplate', $pro->id)
+            ->assertHasNoErrors();
+
+        $this->assertSame($pro->id, $business->fresh()->standAssignment->object_template_id);
+        $this->assertNotSame($standard->id, $business->fresh()->standAssignment->object_template_id);
+    }
+
+    public function test_owner_can_set_the_stand_color_from_the_stand_selector_page(): void
+    {
+        $experience = $this->makeReadyExperience();
+        $this->makeTemplates();
+        $this->makeSlot($experience->plazas->first(), 'S1');
+
+        $business = $this->makeBusiness($experience->municipality_id);
+        $business->update(['status' => 'publicado']);
+
+        Livewire::test('pages::emprendedores.negocios.mi-stand', ['business' => $business->id])
+            ->set('stand_color', '#008A2E')
+            ->assertHasNoErrors();
+
+        $this->assertSame('#008A2E', $business->fresh()->storefront->stand_color);
+    }
+
+    public function test_owner_can_clear_the_stand_color_from_the_stand_selector_page(): void
+    {
+        $experience = $this->makeReadyExperience();
+        $this->makeTemplates();
+        $this->makeSlot($experience->plazas->first(), 'S1');
+
+        $business = $this->makeBusiness($experience->municipality_id);
+        $business->update(['status' => 'publicado']);
+        $business->storefront->update(['stand_color' => '#008A2E']);
+
+        Livewire::test('pages::emprendedores.negocios.mi-stand', ['business' => $business->id])
+            ->call('clearStandColor')
+            ->assertHasNoErrors();
+
+        $this->assertNull($business->fresh()->storefront->stand_color);
     }
 }

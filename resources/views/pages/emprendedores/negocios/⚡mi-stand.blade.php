@@ -4,8 +4,10 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Immersive\Actions\AssignBusinessToStand;
 use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Domain\Immersive\Models\StandAssignment;
+use App\Domain\Storefronts\Actions\UpdateStorefront;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -18,9 +20,12 @@ use Livewire\Component;
  * `AssignBusinessToStand`, IMM-022) — solo cambia CUÁL de las plantillas
  * ocupa ese espacio.
  */
-new #[Title('Mi stand en la plaza')] class extends Component {
+new #[Title('Mi stand en la plaza')] class extends Component
+{
     #[Locked]
     public int $businessId;
+
+    public ?string $stand_color = null;
 
     /**
      * Igual que en `⚡vitrina.blade.php`: las peticiones Livewire (elegir
@@ -44,6 +49,7 @@ new #[Title('Mi stand en la plaza')] class extends Component {
         $this->authorize('update', $business);
 
         $this->businessId = $business->id;
+        $this->stand_color = $business->storefront?->stand_color;
     }
 
     #[Computed]
@@ -69,6 +75,31 @@ new #[Title('Mi stand en la plaza')] class extends Component {
             ->get();
     }
 
+    public function hasEntrepreneurPlan(): bool
+    {
+        return $this->business->activePlan()->slug === 'emprendedor';
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function standColorRules(): array
+    {
+        return [
+            'stand_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+        ];
+    }
+
+    public function templateRequiresEntrepreneurPlan(ImmersiveObjectTemplate $template): bool
+    {
+        $slug = str()->lower($template->slug);
+        $name = str()->lower($template->name);
+
+        return str_contains($name, 'stand pro')
+            || str_starts_with($slug, 'stand-pro')
+            || str_contains($slug, '-pro');
+    }
+
     /**
      * Cambiar de plantilla reutiliza el mismo asignador de IMM-022: si el
      * slot actual la soporta, la conserva (mismo stand, sin duplicarlo);
@@ -79,6 +110,17 @@ new #[Title('Mi stand en la plaza')] class extends Component {
         $business = $this->business;
         $this->authorize('update', $business);
 
+        $template = ImmersiveObjectTemplate::where('category', 'stand')
+            ->where('status', 'publicada')
+            ->findOrFail($templateId);
+
+        if ($this->templateRequiresEntrepreneurPlan($template) && ! $this->hasEntrepreneurPlan()) {
+            $this->addError('template', __('Stand Pro solo está disponible con el Plan emprendedor.'));
+            Flux::toast(variant: 'danger', text: __('Stand Pro solo está disponible con el Plan emprendedor.'));
+
+            return;
+        }
+
         $assignment = StandAssignment::firstOrCreate(['business_id' => $business->id]);
         $assignment->update(['object_template_id' => $templateId]);
 
@@ -86,6 +128,29 @@ new #[Title('Mi stand en la plaza')] class extends Component {
         unset($this->assignment, $this->templates);
 
         Flux::toast(variant: 'success', text: __('Tu stand se actualizó.'));
+    }
+
+    public function updatedStandColor(): void
+    {
+        $this->authorize('update', $this->business);
+
+        $validated = Validator::make(
+            ['stand_color' => $this->stand_color],
+            $this->standColorRules(),
+        )->validate();
+
+        app(UpdateStorefront::class)->handle($this->business, $validated, Auth::user());
+    }
+
+    public function clearStandColor(): void
+    {
+        $this->authorize('update', $this->business);
+
+        $this->stand_color = null;
+
+        app(UpdateStorefront::class)->handle($this->business, [
+            'stand_color' => null,
+        ], Auth::user());
     }
 }; ?>
 
@@ -129,18 +194,39 @@ new #[Title('Mi stand en la plaza')] class extends Component {
         @endif
     </div>
 
+    <div class="mb-6 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-700">
+        <flux:label>{{ __('Color de tu stand en la plaza inmersiva (opcional)') }}</flux:label>
+        <div class="mt-1 flex items-center gap-3">
+            <input
+                type="color"
+                wire:model.live.debounce.300ms="stand_color"
+                class="h-10 w-16 cursor-pointer rounded-lg border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
+            />
+            @if ($stand_color)
+                <flux:button size="sm" variant="ghost" wire:click="clearStandColor">
+                    {{ __('Quitar color') }}
+                </flux:button>
+            @endif
+        </div>
+        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            {{ __('Se aplica a tu stand dentro de la experiencia 3D de la plaza. Si no eliges uno, se usa el color por defecto del diseño.') }}
+        </flux:text>
+    </div>
+
     @if ($this->templates->isEmpty())
         <flux:text class="text-zinc-500">{{ __('Todavía no hay plantillas de stand disponibles.') }}</flux:text>
     @else
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2">
             @foreach ($this->templates as $template)
                 @php($isSelected = $assignment?->object_template_id === $template->id)
+                @php($requiresEntrepreneurPlan = $this->templateRequiresEntrepreneurPlan($template))
+                @php($isLockedByPlan = $requiresEntrepreneurPlan && ! $this->hasEntrepreneurPlan())
 
                 <div class="flex flex-col items-center gap-3 rounded-2xl border p-4 text-center {{ $isSelected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-zinc-200 dark:border-zinc-700' }}">
-                    @if ($template->thumbnailUrl())
-                        <img src="{{ $template->thumbnailUrl() }}" alt="{{ $template->name }}" class="h-28 w-full rounded-xl object-cover">
+                    @if ($template->modelPathUrl())
+                        <x-immersive.stand-template-glb-preview :template="$template" stand-color-model="stand_color" />
                     @else
-                        <div class="flex h-28 w-full items-center justify-center rounded-xl bg-zinc-100 text-zinc-400 dark:bg-zinc-800">
+                        <div class="flex aspect-square w-full items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">
                             <flux:icon.cube class="size-8" variant="outline" />
                         </div>
                     @endif
@@ -150,6 +236,13 @@ new #[Title('Mi stand en la plaza')] class extends Component {
 
                     @if ($isSelected)
                         <flux:badge color="green" size="sm">{{ __('Seleccionado') }}</flux:badge>
+                    @elseif ($isLockedByPlan)
+                        <div class="flex flex-col items-center gap-2">
+                            <flux:badge color="amber" size="sm">{{ __('Plan emprendedor') }}</flux:badge>
+                            <flux:button size="sm" variant="ghost" :href="route('emprendedores.negocios.plan', $this->business)" wire:navigate>
+                                {{ __('Desbloquear') }}
+                            </flux:button>
+                        </div>
                     @else
                         <flux:button size="sm" variant="ghost" wire:click="chooseTemplate({{ $template->id }})">
                             {{ __('Elegir') }}

@@ -442,24 +442,6 @@ new #[Title('Editar mi vitrina')] class extends Component {
                     <flux:input wire:model.live.debounce.900ms="cover_alt_text" class="mt-2" :label="__('Texto alternativo de la portada (opcional)')" />
                 </div>
 
-                <div>
-                    <flux:label>{{ __('Color de tu stand en la plaza inmersiva (opcional)') }}</flux:label>
-                    <div class="mt-1 flex items-center gap-3">
-                        <input
-                            type="color"
-                            wire:model.live.debounce.900ms="stand_color"
-                            class="h-10 w-16 cursor-pointer rounded-lg border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
-                        />
-                        @if ($stand_color)
-                            <flux:button size="sm" variant="ghost" wire:click="$set('stand_color', null)">
-                                {{ __('Quitar color') }}
-                            </flux:button>
-                        @endif
-                    </div>
-                    <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ __('Se aplica a tu stand dentro de la experiencia 3D de la plaza. Si no eliges uno, se usa el color por defecto del diseño.') }}
-                    </flux:text>
-                </div>
             </div>
 
             <div x-show="section === 'informacion'" x-cloak class="space-y-4">

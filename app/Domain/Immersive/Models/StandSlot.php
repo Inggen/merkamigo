@@ -19,6 +19,7 @@ use Illuminate\Validation\ValidationException;
  * @property array{x: float, y: float}|null $image_position
  * @property array{x: float, y: float, z: float} $world_position
  * @property array{x: float, y: float, z: float}|null $rotation
+ * @property bool $locked
  */
 class StandSlot extends Model
 {
@@ -36,6 +37,7 @@ class StandSlot extends Model
         'accessible',
         'status',
         'source',
+        'locked',
     ];
 
     protected function casts(): array
@@ -47,6 +49,7 @@ class StandSlot extends Model
             'max_width' => 'float',
             'max_depth' => 'float',
             'accessible' => 'boolean',
+            'locked' => 'boolean',
         ];
     }
 
