@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Domain\Billing\Models\BusinessEntitlement;
+use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\CreateProduct;
@@ -22,7 +23,7 @@ class VitrinaChatApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function publishedBusiness(): \App\Domain\Businesses\Models\Business
+    private function publishedBusiness(): Business
     {
         $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
         $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
