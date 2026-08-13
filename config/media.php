@@ -87,4 +87,13 @@ return [
         'quality' => 85,
     ],
 
+    'site_default_share_image' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+        'max_width' => 1200,
+        'target_extension' => 'webp',
+        'quality' => 86,
+    ],
+
 ];

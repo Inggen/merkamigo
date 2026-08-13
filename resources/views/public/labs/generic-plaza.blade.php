@@ -4,6 +4,7 @@
         @include('partials.head', [
             'title' => "Plaza inmersiva — {$plaza->name}",
             'description' => "Escena inmersiva de {$municipio->name} armada desde los datos de la plaza, sin escena escrita a mano.",
+            'image' => $municipio->coverUrl(),
         ])
         <style>
             body {

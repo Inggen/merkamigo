@@ -2,7 +2,7 @@
     $seoTitle = $title ?? config('app.name', 'Laravel');
     $pageTitle = filled($title ?? null) ? $title.' - '.config('app.name', 'Laravel') : config('app.name', 'Laravel');
     $pageDescription = $description ?? __('Descubre lo local, conecta con tu comunidad. Merkamigo conecta emprendedores locales con compradores cercanos en Bogotá y Sabana Norte.');
-    $pageImage = $image ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
+    $pageImage = $image ?? \App\Domain\Platform\Models\SiteSetting::current()->defaultShareImageUrl() ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
     $canonicalUrl = $canonical ?? url()->full();
     $robotsContent = $robots ?? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
     $pageSchemaType = $pageSchemaType ?? 'WebPage';
