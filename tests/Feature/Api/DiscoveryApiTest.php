@@ -133,7 +133,7 @@ class DiscoveryApiTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Parque Cajicá',
             'slug' => 'parque-cajica',
-            'route_name' => 'labs.cajica-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $plaza = $experience->plazas()->create([
             'name' => 'Plaza principal',
@@ -173,7 +173,7 @@ class DiscoveryApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.immersive_location.plaza_name', 'Plaza principal')
             ->assertJsonPath('data.immersive_location.municipality_slug', 'cajica')
-            ->assertJsonPath('data.immersive_location.travel_url', route('labs.cajica-inmersiva', ['municipio' => 'cajica']));
+            ->assertJsonPath('data.immersive_location.travel_url', route('labs.generic-plaza', ['municipio' => 'cajica']));
     }
 
     public function test_plaza_negocio_show_immersive_location_is_null_without_a_live_stand(): void
@@ -198,7 +198,7 @@ class DiscoveryApiTest extends TestCase
             'municipality_id' => $withExperience->id,
             'name' => 'Parque Cajicá',
             'slug' => 'parque-cajica',
-            'route_name' => 'labs.cajica-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $experience->plazas()->create([
             'name' => 'Plaza principal',
@@ -213,7 +213,7 @@ class DiscoveryApiTest extends TestCase
         $response = $this->getJson(route('api.v1.municipios'))->assertOk();
         $bySlug = array_column($response->json('data'), null, 'slug');
 
-        $this->assertSame(route('labs.cajica-inmersiva', ['municipio' => 'cajica']), $bySlug['cajica']['immersive_lab_url']);
+        $this->assertSame(route('labs.generic-plaza', ['municipio' => 'cajica']), $bySlug['cajica']['immersive_lab_url']);
         $this->assertNull($bySlug['zipaquira']['immersive_lab_url']);
     }
 

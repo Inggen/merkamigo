@@ -14,6 +14,9 @@ Schedule::command('needs:expire-overdue')->daily();
 // 0.6 del TODO: retención de eventos analíticos.
 Schedule::command('analytics:prune-events')->weekly();
 
+// IMM-043 (Fase 4 del TODO inmersivo): retención de eventos de plazas inmersivas.
+Schedule::command('immersive-events:prune')->weekly();
+
 // 3.1 del TODO: recordatorios de renovación de verificación.
 Schedule::command('trust:remind-verification-expiry')->daily();
 

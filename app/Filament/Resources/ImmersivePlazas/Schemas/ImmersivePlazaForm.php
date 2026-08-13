@@ -57,6 +57,13 @@ class ImmersivePlazaForm
                 Repeater::make('excluded_zones')
                     ->label('Zonas excluidas')
                     ->helperText('Rutas, monumentos, accesos o el punto de aparición: ningún slot puede invadir estos polígonos.')
+                    // Oculto a pedido del usuario (2026-08-12): la validación
+                    // real (StandZone/StandSlot::booted()) y el dibujo en
+                    // rojo del editor espacial siguen funcionando igual con
+                    // cualquier `excluded_zones` que ya exista en BD — esto
+                    // solo quita el formulario manual de puntos X/Z de la
+                    // vista, no la funcionalidad ni la columna.
+                    ->hidden()
                     ->schema([
                         Repeater::make('points')
                             ->label('Puntos del polígono')

@@ -33,6 +33,11 @@ class SchemaBuilder
             'publisher' => [
                 '@id' => route('home').'#organization',
             ],
+            'potentialAction' => [
+                '@type' => 'SearchAction',
+                'target' => route('buscar', ['municipio' => 'todos']).'?q={search_term_string}',
+                'query-input' => 'required name=search_term_string',
+            ],
         ]);
     }
 
@@ -84,6 +89,25 @@ class SchemaBuilder
                     'url' => $item['url'] ?? null,
                     'name' => $item['name'] ?? null,
                     'image' => $item['image'] ?? null,
+                ]))
+                ->all(),
+        ]);
+    }
+
+    public static function siteNavigation(array $items, ?string $name = null): array
+    {
+        return self::clean([
+            '@type' => 'ItemList',
+            'name' => $name ?? __('Secciones principales de Merkamigo'),
+            'numberOfItems' => count($items),
+            'itemListElement' => collect($items)
+                ->values()
+                ->map(fn (array $item, int $index) => self::clean([
+                    '@type' => 'SiteNavigationElement',
+                    'position' => $index + 1,
+                    'name' => $item['name'] ?? null,
+                    'description' => $item['description'] ?? null,
+                    'url' => $item['url'] ?? null,
                 ]))
                 ->all(),
         ]);

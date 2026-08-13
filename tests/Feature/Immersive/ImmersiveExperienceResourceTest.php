@@ -140,7 +140,7 @@ class ImmersiveExperienceResourceTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de Chía',
             'slug' => 'chia',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $this->makeReadyPlaza($experience);
 
@@ -168,13 +168,13 @@ class ImmersiveExperienceResourceTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza voxel de Zipaquirá',
             'slug' => 'zipaquira',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $this->makeReadyPlaza($experience);
         $experience->update(['status' => 'publicada']);
 
         $this->assertSame(
-            route('labs.zipa-inmersiva', ['municipio' => (string) $municipality->slug]),
+            route('labs.generic-plaza', ['municipio' => (string) $municipality->slug]),
             $municipality->fresh()->immersiveLabUrl()
         );
     }
@@ -187,7 +187,7 @@ class ImmersiveExperienceResourceTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Borrador sin publicar',
             'slug' => 'sopo-borrador',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
             'status' => 'borrador',
         ]);
 
@@ -202,7 +202,7 @@ class ImmersiveExperienceResourceTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza principal',
             'slug' => 'cota-principal',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $this->makeReadyPlaza($first);
         $first->update(['status' => 'publicada']);
@@ -211,7 +211,7 @@ class ImmersiveExperienceResourceTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza secundaria',
             'slug' => 'cota-secundaria',
-            'route_name' => 'labs.cajica-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $this->makeReadyPlaza($second);
 

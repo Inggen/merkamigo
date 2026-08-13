@@ -2,6 +2,7 @@
 
 namespace App\Domain\Immersive\Models;
 
+use App\Domain\Analytics\Models\ImmersiveEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -82,6 +83,14 @@ class ImmersivePlaza extends Model
     public function props(): HasMany
     {
         return $this->hasMany(ImmersivePlazaProp::class);
+    }
+
+    /**
+     * @return HasMany<ImmersiveEvent, $this>
+     */
+    public function immersiveEvents(): HasMany
+    {
+        return $this->hasMany(ImmersiveEvent::class);
     }
 
     /**

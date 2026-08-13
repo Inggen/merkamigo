@@ -16,30 +16,40 @@
  */
 const DEBOUNCE_MS = 300;
 
-export function attachSearchPanel(engine, stands, { currentMunicipalitySlug = null, vitrinaModal = null } = {}) {
+export function attachSearchPanel(engine, stands, { currentMunicipalitySlug = null, vitrinaModal = null, track = null } = {}) {
     injectStylesOnce();
 
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'vpe-search-toggle';
+    toggle.id = 'vpe-search-toggle';
     toggle.setAttribute('aria-label', 'Buscar en la plaza');
+    toggle.setAttribute('aria-haspopup', 'dialog');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', 'vpe-search-panel');
     toggle.textContent = '🔍';
 
     const panel = document.createElement('div');
     panel.className = 'vpe-search-panel';
+    panel.id = 'vpe-search-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', 'Buscar negocios en la plaza');
     panel.innerHTML = `
         <div class="vpe-search-row">
-            <input type="search" class="vpe-search-input" placeholder="Buscar negocio o producto…" />
+            <label class="vpe-search-visually-hidden" for="vpe-search-input">Buscar negocio o producto</label>
+            <input id="vpe-search-input" type="search" class="vpe-search-input" placeholder="Buscar negocio o producto…" />
         </div>
-        <div class="vpe-search-chips" data-search-categories></div>
+        <div class="vpe-search-chips" data-search-categories role="group" aria-label="Filtrar por categoría"></div>
         <div class="vpe-search-row">
-            <select class="vpe-search-select" data-search-plazas>
+            <label class="vpe-search-visually-hidden" for="vpe-search-plazas">Viajar a otra plaza</label>
+            <select id="vpe-search-plazas" class="vpe-search-select" data-search-plazas>
                 <option value="">Viajar a otra plaza…</option>
             </select>
             <button type="button" class="vpe-search-clear" data-search-clear>Mostrar todos</button>
         </div>
-        <div class="vpe-search-count" data-search-count></div>
-        <div class="vpe-search-results" data-search-results></div>
+        <div class="vpe-search-count" data-search-count aria-live="polite"></div>
+        <div class="vpe-search-results" data-search-results aria-live="polite"></div>
     `;
 
     document.body.appendChild(toggle);
@@ -55,8 +65,74 @@ export function attachSearchPanel(engine, stands, { currentMunicipalitySlug = nu
     let activeCategory = '';
     let debounceTimer = null;
     let fetchToken = 0;
+    let keyBlockerBound = false;
+    let wasLockedBeforeOpen = false;
 
-    toggle.addEventListener('click', () => panel.classList.toggle('is-visible'));
+    // Mismo mecanismo que `stand-vitrina-modal.js` (createVitrinaModal):
+    // Escape cierra, y un listener en fase de captura evita que las teclas
+    // de movimiento (WASD/flechas) lleguen a `bindInput()` del motor
+    // mientras el panel está abierto — sin este bloqueo, escribir "s" en
+    // el buscador también movía al personaje hacia atrás.
+    function onKeyCapture(event) {
+        if (event.type === 'keydown' && event.code === 'Escape') {
+            closePanel();
+        }
+
+        event.stopPropagation();
+    }
+
+    function bindKeyBlocker() {
+        if (keyBlockerBound) {
+            return;
+        }
+
+        keyBlockerBound = true;
+        window.addEventListener('keydown', onKeyCapture, true);
+        window.addEventListener('keyup', onKeyCapture, true);
+    }
+
+    function unbindKeyBlocker() {
+        if (!keyBlockerBound) {
+            return;
+        }
+
+        keyBlockerBound = false;
+        window.removeEventListener('keydown', onKeyCapture, true);
+        window.removeEventListener('keyup', onKeyCapture, true);
+    }
+
+    function openPanel() {
+        panel.classList.add('is-visible');
+        toggle.setAttribute('aria-expanded', 'true');
+
+        wasLockedBeforeOpen = Boolean(document.pointerLockElement);
+
+        if (wasLockedBeforeOpen) {
+            document.exitPointerLock();
+        }
+
+        bindKeyBlocker();
+        input.focus();
+    }
+
+    function closePanel() {
+        panel.classList.remove('is-visible');
+        toggle.setAttribute('aria-expanded', 'false');
+        unbindKeyBlocker();
+        toggle.focus();
+
+        if (wasLockedBeforeOpen) {
+            engine?.pointerLockTarget?.requestPointerLock?.();
+        }
+    }
+
+    toggle.addEventListener('click', () => {
+        if (panel.classList.contains('is-visible')) {
+            closePanel();
+        } else {
+            openPanel();
+        }
+    });
 
     // --- Estado inicial desde la URL (compartible) --------------------
     const initialParams = new URLSearchParams(window.location.search);
@@ -67,7 +143,7 @@ export function attachSearchPanel(engine, stands, { currentMunicipalitySlug = nu
     loadPlazas();
     applyLocalFilter();
     if (input.value || activeCategory) {
-        panel.classList.add('is-visible');
+        openPanel();
         fetchGlobalResults();
     }
 
@@ -80,13 +156,17 @@ export function attachSearchPanel(engine, stands, { currentMunicipalitySlug = nu
                 const category = data.find((c) => c.slug === slug);
                 const label = category ? category.name : 'Todas';
 
-                return `<button type="button" class="vpe-search-chip${slug === activeCategory ? ' is-active' : ''}" data-category="${slug}">${escapeHtml(label)}</button>`;
+                return `<button type="button" class="vpe-search-chip${slug === activeCategory ? ' is-active' : ''}" data-category="${slug}" aria-pressed="${slug === activeCategory ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
             }).join('');
 
             chipsEl.querySelectorAll('[data-category]').forEach((chip) => {
                 chip.addEventListener('click', () => {
                     activeCategory = chip.dataset.category;
-                    chipsEl.querySelectorAll('[data-category]').forEach((c) => c.classList.toggle('is-active', c === chip));
+                    chipsEl.querySelectorAll('[data-category]').forEach((c) => {
+                        const isActive = c === chip;
+                        c.classList.toggle('is-active', isActive);
+                        c.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                    });
                     onFilterChange();
                 });
             });
@@ -127,7 +207,11 @@ export function attachSearchPanel(engine, stands, { currentMunicipalitySlug = nu
     clearButton.addEventListener('click', () => {
         input.value = '';
         activeCategory = '';
-        chipsEl.querySelectorAll('[data-category]').forEach((c) => c.classList.toggle('is-active', c.dataset.category === ''));
+        chipsEl.querySelectorAll('[data-category]').forEach((c) => {
+            const isActive = c.dataset.category === '';
+            c.classList.toggle('is-active', isActive);
+            c.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
         onFilterChange();
     });
 
@@ -135,6 +219,20 @@ export function attachSearchPanel(engine, stands, { currentMunicipalitySlug = nu
         applyLocalFilter();
         updateShareableUrl();
         fetchGlobalResults();
+
+        // IMM-043: la deduplicación del servidor (misma plaza+tipo+
+        // visitante dentro de 30 min) colapsa búsquedas sucesivas de la
+        // misma sesión en un solo evento — a propósito, es la misma
+        // disciplina anti-ruido que ya usa `RegisterAnalyticsEvent`
+        // (contar "hubo búsqueda", no registrar cada tecla como una fila
+        // aparte).
+        if (input.value.trim()) {
+            track?.('search_performed', { metadata: { query: input.value.trim().slice(0, 120) } });
+        }
+
+        if (activeCategory) {
+            track?.('category_filtered', { metadata: { categoria: activeCategory } });
+        }
     }
 
     function applyLocalFilter() {
@@ -278,6 +376,11 @@ function injectStylesOnce() {
         }
 
         .vpe-search-panel.is-visible { display: block; }
+
+        .vpe-search-visually-hidden {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+        }
 
         .vpe-search-row { display: flex; gap: 8px; margin-bottom: 10px; }
         .vpe-search-input, .vpe-search-select {

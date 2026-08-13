@@ -19,19 +19,71 @@
  *    describen "N elementos a lo largo de esta línea/anillo/rectángulo"
  *    y devuelven la lista de posiciones ya calculada.
  *
- * Cada plaza (zipa-plaza-immersive.js, cajica-plaza-immersive.js) solo
- * aporta su propio `layout`: un arreglo declarativo de
- * `{ type, ...opciones }` que describe qué va dónde, más las piezas
- * verdaderamente únicas de ese lugar (por ejemplo, la fachada exacta de
- * una catedral) como builders `custom`.
+ * Hoy el único consumidor es `generic-plaza-immersive.js`, que no describe
+ * ningún `layout` propio a mano: arma la plaza completa a partir de los
+ * datos de una `ImmersivePlaza` (elementos y stands guardados en BD) — el
+ * arreglo declarativo `{ type, ...opciones }` que consume `place()` sigue
+ * siendo el mecanismo que usa el editor espacial del admin para eso mismo.
  */
 import * as THREE from 'https://esm.sh/three@0.179.1';
 import { GLTFLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'https://esm.sh/three@0.179.1/examples/jsm/libs/meshopt_decoder.module.js';
 import { attachPerfMonitor } from './immersive-perf-monitor.js';
 
 export { THREE };
 
+// IMM-041: ningún template real usa hoy un GLB comprimido con Draco/
+// Meshopt (confirmado: `model_url` real siempre es un .glb sin comprimir
+// todavía), así que esto no cambia nada del comportamiento actual — deja
+// el loader compartido listo para cuando se empiece a usar compresión,
+// sin costo si nunca se necesita (el decoder solo se descarga si el GLB
+// realmente trae streams comprimidos). Decodificador Draco alojado en el
+// CDN oficial de Google (mismo que usan los ejemplos propios de Three.js).
 const sharedGltfLoader = new GLTFLoader();
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+sharedGltfLoader.setDRACOLoader(dracoLoader);
+sharedGltfLoader.setMeshoptDecoder(MeshoptDecoder);
+
+/**
+ * IMM-041: las 3 fábricas `material()` de este archivo creaban un
+ * `MeshStandardMaterial` nuevo en cada llamada, aunque dos cajas con la
+ * misma textura y las mismas opciones (`transparent`/`opacity`/`emissive`)
+ * son visualmente idénticas — en una plaza real con ~1.150 mallas
+ * repetidas (árboles, tejas, ventanas de casas) eso significaba miles de
+ * materiales redundantes. `cache` es un `WeakMap` por textura (para no
+ * retener texturas ya descartadas) con un `Map` interno por combinación
+ * de opciones — sin cambiar ningún comportamiento visual, solo reutiliza
+ * la misma instancia cuando la combinación ya se vio antes.
+ */
+function cachedMaterial(cache, texture, extra = {}) {
+    const { transparent = false, opacity = 1, emissive = 0x000000 } = extra;
+    const key = `${transparent}|${opacity}|${emissive}`;
+
+    let byOptions = cache.get(texture);
+
+    if (!byOptions) {
+        byOptions = new Map();
+        cache.set(texture, byOptions);
+    }
+
+    let material = byOptions.get(key);
+
+    if (!material) {
+        material = new THREE.MeshStandardMaterial({
+            map: texture,
+            roughness: 0.94,
+            metalness: 0.03,
+            transparent,
+            opacity,
+            emissive,
+        });
+        byOptions.set(key, material);
+    }
+
+    return material;
+}
 
 export const basePalette = {
     plaza: 0xd3bb8b,
@@ -283,14 +335,10 @@ function createAvatarTextures(presetColors) {
 export function createStandaloneVoxelTarget(palette = basePalette) {
     const world = new THREE.Group();
     const textures = createVoxelTextures(palette);
+    const materialCache = new WeakMap();
 
     function material(texture, extra = {}) {
-        return new THREE.MeshStandardMaterial({
-            map: texture,
-            roughness: 0.94,
-            metalness: 0.03,
-            ...extra,
-        });
+        return cachedMaterial(materialCache, texture, extra);
     }
 
     function addVoxelBox({
@@ -425,6 +473,16 @@ function buildAvatarBoxes(addVoxelBox, group, presetKey) {
 // cuello de botella de rendimiento medido en esta sesión).
 const avatarTexturesCache = new Map();
 
+// IMM-041: caché de materiales a nivel de módulo (no por llamada) — a
+// diferencia del motor principal, `buildAvatarFigure()` se invoca UNA VEZ
+// POR STAND (una plaza con 20 negocios llama esto 20 veces), y las
+// texturas por preset ya son las mismas instancias compartidas
+// (`avatarTexturesCache` arriba) — cachear también el material evita
+// crear ~8 materiales redundantes por cada figura repetida. Nunca se
+// mutan estos materiales (`attachOwnerFigure()` solo posiciona la
+// figura), así que compartirlos entre stands es seguro.
+const avatarMaterialsCache = new WeakMap();
+
 /**
  * Figura de avatar suelta y estática (sin animación, sin física, sin
  * cámara) — para "personas" plantadas en el mundo con un preset propio,
@@ -442,12 +500,7 @@ export function buildAvatarFigure(presetKey = 'hombre') {
     const textures = avatarTexturesCache.get(key);
 
     function material(texture, extra = {}) {
-        return new THREE.MeshStandardMaterial({
-            map: texture,
-            roughness: 0.94,
-            metalness: 0.03,
-            ...extra,
-        });
+        return cachedMaterial(avatarMaterialsCache, texture, extra);
     }
 
     function addVoxelBox({
@@ -495,6 +548,16 @@ export class VoxelPlazaEngine {
         lockTrigger = null,
         palette = basePalette,
         avatarPreset = 'hombre',
+        reducedMotion = false,
+        // IMM-040: sin valor explícito, se mantiene el comportamiento de
+        // siempre (pixelRatioCap 2, sombras encendidas, mapa de sombra
+        // 2048, sin recorte adicional de niebla) — pasar `quality` es
+        // aditivo, ningún llamador existente se ve afectado si no lo hace.
+        quality = { pixelRatioCap: 2, shadows: true, shadowMapSize: 2048, fogFar: Infinity },
+        // IMM-040: distinto de `quality` de arriba (los valores ya
+        // resueltos que aplica el renderer) — este es el selector manual
+        // del panel técnico, reenviado tal cual a `attachPerfMonitor()`.
+        qualityControl = null,
         fog = { color: 0xb6d7f3, near: 78, far: 260 },
         groundSize = 300,
         groundTexture = 'grass',
@@ -508,6 +571,9 @@ export class VoxelPlazaEngine {
         if (!container) {
             throw new Error('VoxelPlazaEngine requiere un contenedor.');
         }
+
+        this.quality = quality;
+        fog = { ...fog, far: Math.min(fog.far, quality.fogFar) };
 
         this.container = container;
         this.lockTrigger = lockTrigger;
@@ -576,9 +642,9 @@ export class VoxelPlazaEngine {
         this.camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 1000);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.quality.pixelRatioCap));
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.enabled = this.quality.shadows;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.setClearColor(skyColor, 1);
@@ -588,12 +654,18 @@ export class VoxelPlazaEngine {
         this.scene.add(this.world);
 
         this.textures = createVoxelTextures(palette);
+        // IMM-041: caché por instancia de motor (no a nivel de módulo,
+        // porque cada plaza usa su propia `palette`/texturas — cachear
+        // entre plazas distintas no aportaría nada y complicaría liberar
+        // memoria al cambiar de escena).
+        this.materialCache = new WeakMap();
         // Independiente de `palette`: solo decide si `buildPlayer()` agrega
         // las cajas de trenza del preset 'mujer' (ver `buildAvatarBoxes`),
         // no qué colores usa (eso ya lo trae `palette` mezclado con
         // `avatarPresets[...]` por quien construye el motor).
         this.avatarPreset = avatarPreset;
-        this.perf = attachPerfMonitor({ renderer: this.renderer, label: 'Plaza voxel' });
+        this.reducedMotion = reducedMotion;
+        this.perf = attachPerfMonitor({ renderer: this.renderer, label: 'Plaza voxel', quality: qualityControl });
 
         this.setupLights();
         this.buildGround();
@@ -622,8 +694,11 @@ export class VoxelPlazaEngine {
         // luces.
         this.sun = new THREE.DirectionalLight(0xfff2d0, 3.1);
         this.sun.position.set(55, 78, 36);
-        this.sun.castShadow = true;
-        this.sun.shadow.mapSize.set(2048, 2048);
+        // IMM-040: `castShadow` sigue el mismo interruptor que
+        // `renderer.shadowMap.enabled` — con sombras apagadas por calidad,
+        // no tiene sentido que la luz siga calculando su mapa de sombra.
+        this.sun.castShadow = this.quality.shadows;
+        this.sun.shadow.mapSize.set(this.quality.shadowMapSize, this.quality.shadowMapSize);
         this.sun.shadow.camera.left = -120;
         this.sun.shadow.camera.right = 120;
         this.sun.shadow.camera.top = 120;
@@ -649,12 +724,7 @@ export class VoxelPlazaEngine {
     }
 
     material(texture, extra = {}) {
-        return new THREE.MeshStandardMaterial({
-            map: texture,
-            roughness: 0.94,
-            metalness: 0.03,
-            ...extra,
-        });
+        return cachedMaterial(this.materialCache, texture, extra);
     }
 
     addCollisionBox(x, y, z, w, h, d) {
@@ -953,6 +1023,13 @@ export class VoxelPlazaEngine {
     }
 
     updateActors(time) {
+        // IMM-042: con movimiento reducido activo, los NPCs se quedan en
+        // su pose base — es la única animación puramente decorativa que
+        // se apaga (nunca updatePlayer/updateCamera/updatePlayerAnimation).
+        if (this.reducedMotion) {
+            return;
+        }
+
         this.animatedActors.forEach((actor) => {
             actor.body.position.y = Math.sin(time * actor.drift + actor.phase) * 0.06;
             actor.group.rotation.y = Math.sin(time * 0.25 + actor.phase) * 0.2;
@@ -1102,8 +1179,17 @@ export class VoxelPlazaEngine {
                 return;
             }
 
-            const deltaX = this.controls.isLocked ? event.movementX : event.clientX - this.controls.lastX;
-            const deltaY = this.controls.isLocked ? event.movementY : event.clientY - this.controls.lastY;
+            // Safari expuso `movementX`/`movementY` con captura de mouse
+            // bajo el prefijo `webkitMovementX`/`webkitMovementY` durante
+            // mucho tiempo (el estándar sin prefijo puede llegar en 0/
+            // undefined ahí) — sin este respaldo, la cámara quedaba
+            // completamente inmóvil en pointer lock en Safari aunque el
+            // cursor sí se ocultara (bug real reportado por el usuario).
+            const movementX = event.movementX || event.webkitMovementX || 0;
+            const movementY = event.movementY || event.webkitMovementY || 0;
+
+            const deltaX = this.controls.isLocked ? movementX : event.clientX - this.controls.lastX;
+            const deltaY = this.controls.isLocked ? movementY : event.clientY - this.controls.lastY;
 
             this.controls.lastX = event.clientX;
             this.controls.lastY = event.clientY;
@@ -1294,8 +1380,8 @@ export class VoxelPlazaEngine {
         const actionButton = document.createElement('button');
         actionButton.type = 'button';
         actionButton.className = 'vpe-btn vpe-btn-action';
-        actionButton.setAttribute('aria-label', 'Acción');
-        actionButton.textContent = '●';
+        actionButton.setAttribute('aria-label', 'Correr');
+        actionButton.textContent = '⚡';
 
         const jumpButton = document.createElement('button');
         jumpButton.type = 'button';
@@ -1309,11 +1395,13 @@ export class VoxelPlazaEngine {
             this.movement.jump = false;
         });
 
-        // Sin función asignada todavía (queda por definir) — por ahora solo
-        // avisa mediante un evento del DOM al soltar, para que cada escena
-        // decida qué hacer sin que el motor conozca esa lógica.
-        bindHoldButton(actionButton, () => {}, () => {
-            this.container.dispatchEvent(new CustomEvent('voxelplaza:action'));
+        // Mismo botón de mantener presionado para correr que ya usa el
+        // teclado (Shift/Mayús, ver `bindInput()`): sostenerlo activa
+        // `this.movement.sprint`, soltarlo lo desactiva.
+        bindHoldButton(actionButton, () => {
+            this.movement.sprint = true;
+        }, () => {
+            this.movement.sprint = false;
         });
 
         buttons.appendChild(actionButton);
@@ -1600,7 +1688,11 @@ export class VoxelPlazaEngine {
     }
 
     animate() {
-        requestAnimationFrame(() => this.animate());
+        // IMM-041: se guarda el id devuelto (antes se descartaba) solo
+        // para poder cancelar el loop desde `dispose()` — el resto del
+        // método, incluidas las llamadas a updatePlayer/updateCamera, no
+        // cambia.
+        this._animationFrameId = requestAnimationFrame(() => this.animate());
 
         const delta = Math.min(this.clock.getDelta(), 0.05);
         const time = this.clock.elapsedTime;
@@ -1629,6 +1721,46 @@ export class VoxelPlazaEngine {
         }
 
         this.animate();
+    }
+
+    /**
+     * IMM-041 (criterio de aceptación: "cambiar de plaza no acumula
+     * escenas, texturas ni memoria"). Hoy cambiar de plaza es una recarga
+     * completa de página (rutas normales, sin `wire:navigate` ni router
+     * del lado del cliente entre plazas) — el navegador ya libera todo
+     * esto solo, así que nada llama a este método todavía. Queda listo
+     * para el día que se introduzca una transición de plaza sin recargar.
+     * No toca `bindInput()`/`bindMobileControls()` (canónicas, no se
+     * rediseñan): si algún día hace falta quitar esos listeners también,
+     * esas dos funciones necesitarán su propio gancho de limpieza aparte.
+     */
+    dispose() {
+        if (this._animationFrameId !== undefined) {
+            cancelAnimationFrame(this._animationFrameId);
+            this._animationFrameId = undefined;
+        }
+
+        this.scene.traverse((object) => {
+            object.geometry?.dispose();
+
+            const materials = Array.isArray(object.material) ? object.material : (object.material ? [object.material] : []);
+            materials.forEach((material) => {
+                material.map?.dispose();
+                material.dispose();
+            });
+        });
+
+        // Texturas del diccionario compartido (`createVoxelTextures`): se
+        // liberan aparte porque no todas están necesariamente asignadas a
+        // un material en la escena en este momento (paleta completa
+        // generada de una vez, no todo color se usa siempre).
+        Object.values(this.textures ?? {}).forEach((texture) => texture.dispose());
+
+        this.renderer.dispose();
+
+        if (this.renderer.domElement.parentElement === this.container) {
+            this.container.removeChild(this.renderer.domElement);
+        }
     }
 }
 
@@ -2150,29 +2282,43 @@ export function buildFromDefinition(engine, {
     return group;
 }
 
-function loadGlbAt(engine, {
+// IMM-041: generaliza al motor compartido el patrón que antes solo existía
+// hardcodeado en `zipa-plaza-immersive.js` (`palmModelTemplate`/
+// `lampModelTemplate` + `.clone(true)`) — dos stands que usan la misma
+// plantilla GLB ya no disparan cada uno su propio fetch+parseo completo,
+// el segundo en adelante solo clona la jerarquía ya parseada. `clone(true)`
+// de Three.js comparte geometría/material por referencia entre clones (no
+// los duplica) — es el mismo motivo por el que `applyStandPrimaryColor()`
+// y `applyTiling()` ya asumen que un GLB puede llegar con textura/material
+// compartido con otras instancias, igual que la ruta voxel.
+const glbTemplateCache = new Map();
+
+function loadGlbTemplate(url) {
+    if (!glbTemplateCache.has(url)) {
+        glbTemplateCache.set(url, new Promise((resolve, reject) => {
+            sharedGltfLoader.load(url, (gltf) => resolve(gltf.scene), undefined, (error) => reject(error));
+        }));
+    }
+
+    return glbTemplateCache.get(url);
+}
+
+async function loadGlbAt(engine, {
     x, y = 0, z, rotation = 0, url,
 }) {
-    return new Promise((resolve, reject) => {
-        sharedGltfLoader.load(
-            url,
-            (gltf) => {
-                const model = gltf.scene;
-                model.position.set(x, y, z);
-                model.rotation.y = rotation;
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                    }
-                });
-                engine.world.add(model);
-                resolve(model);
-            },
-            undefined,
-            (error) => reject(error),
-        );
+    const template = await loadGlbTemplate(url);
+    const model = template.clone(true);
+    model.position.set(x, y, z);
+    model.rotation.y = rotation;
+    model.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
     });
+    engine.world.add(model);
+
+    return model;
 }
 
 function normalizeScaleVector(scale = null) {

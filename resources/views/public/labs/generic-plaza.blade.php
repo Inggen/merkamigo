@@ -31,116 +31,14 @@
                 cursor: none;
             }
 
-            .voxel-lab-hud {
-                position: absolute;
-                top: 24px;
-                left: 24px;
-                z-index: 20;
-                display: grid;
-                gap: 14px;
-                max-width: min(420px, calc(100vw - 48px));
-            }
-
-            .voxel-lab-card {
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                background: rgba(10, 18, 33, 0.72);
-                backdrop-filter: blur(14px);
-                border-radius: 22px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
-                padding: 20px 20px 18px;
-            }
-
-            .voxel-lab-card h1 {
-                margin: 0 0 8px;
-                font-size: clamp(1.6rem, 3vw, 2.2rem);
-                line-height: 1.1;
-            }
-
-            .voxel-lab-card p {
-                margin: 0;
-                color: rgba(255, 255, 255, 0.82);
-                line-height: 1.5;
-            }
-
-            .voxel-lab-controls {
-                display: grid;
-                gap: 10px;
-                margin-top: 16px;
-                color: rgba(255, 255, 255, 0.88);
-                font-size: 0.95rem;
-            }
-
-            .voxel-lab-controls span {
-                display: inline-flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .voxel-lab-key {
-                min-width: 34px;
-                padding: 6px 10px;
-                border-radius: 10px;
-                border: 1px solid rgba(255, 255, 255, 0.16);
-                background: rgba(255, 255, 255, 0.06);
-                text-align: center;
-                font-size: 0.84rem;
-                font-weight: 700;
-            }
-
-            .voxel-lab-actions {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-                margin-top: 18px;
-            }
-
-            .voxel-lab-button {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-                border-radius: 14px;
-                padding: 12px 16px;
-                font-weight: 700;
-                text-decoration: none;
-                transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
-            }
-
-            .voxel-lab-button:hover {
-                transform: translateY(-1px);
-            }
-
-            .voxel-lab-button--primary {
-                background: #d7352a;
-                color: #fff;
-            }
-
-            .voxel-lab-button--ghost {
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                background: rgba(255, 255, 255, 0.04);
-                color: #fff;
-            }
-
-            .voxel-lab-avatar {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin-top: 14px;
-                color: #fff;
-            }
-
-            .voxel-lab-avatar-label {
-                font-size: 0.8rem;
-                font-weight: 600;
-                opacity: 0.75;
-            }
-
             .voxel-lab-status {
                 position: absolute;
                 bottom: 20px;
                 left: 50%;
                 z-index: 20;
                 transform: translateX(-50%);
+                width: max-content;
+                max-width: calc(100vw - 28px);
                 padding: 6px 12px;
                 border-radius: 999px;
                 border: 1px solid rgba(255, 255, 255, 0.14);
@@ -151,21 +49,6 @@
                 text-align: center;
             }
 
-            @media (max-width: 768px) {
-                .voxel-lab-hud {
-                    top: 14px;
-                    left: 14px;
-                    max-width: calc(100vw - 28px);
-                }
-
-                .voxel-lab-status {
-                    left: 14px;
-                    right: 14px;
-                    transform: none;
-                    border-radius: 18px;
-                }
-            }
-
             /* En táctil el motor agrega stick/botones abajo (voxel-plaza-engine.js)
                — subir este aviso para que no quede debajo de esos controles. */
             @media (hover: none) and (pointer: coarse) {
@@ -173,36 +56,119 @@
                     bottom: 150px;
                 }
             }
+
+            /* Aviso de "clic para mirar alrededor": sin esto, nada indica
+               que un solo clic activa el mouse capturado (pointer lock,
+               ver `bindInput()`) — sin esa captura, mover la cámara solo
+               funciona arrastrando con el clic sostenido (modo de
+               respaldo), que se siente como si "hubiera que mantener el
+               clic apretado" para poder mirar alrededor. Un clic en
+               cualquier parte de la escena ya activa la captura
+               (`pointerLockTarget.addEventListener('click', ...)` en el
+               motor); este botón solo hace ese primer clic obvio. Se
+               oculta solo (transición) en cuanto la captura queda activa
+               — `#generic-immersive-scene.is-locked` ya lo marca el motor. */
+            #generic-lock-trigger {
+                position: absolute;
+                top: 20px;
+                left: 50%;
+                z-index: 15;
+                transform: translateX(-50%);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px;
+                border-radius: 999px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                background: rgba(10, 18, 33, 0.68);
+                backdrop-filter: blur(10px);
+                color: #fff;
+                font-family: inherit;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: opacity 0.3s ease;
+            }
+
+            #generic-immersive-scene.is-locked ~ #generic-lock-trigger {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            /* En táctil no hay pointer lock que activar — mirar alrededor
+               ya funciona arrastrando el dedo (ver `onTouchLookMove` en el
+               motor), así que el aviso no aplica ahí. */
+            @media (hover: none) and (pointer: coarse) {
+                #generic-lock-trigger {
+                    display: none;
+                }
+            }
+
+            /* Preloader: HTML/CSS estático, visible desde el primer pintado
+               sin esperar a que Three.js (CDN) ni el resto del módulo
+               carguen — `immersive-preloader.js` solo le agrega la
+               rotación de textos y lo oculta cuando la escena avisa que
+               está lista. */
+            .voxel-preloader {
+                position: absolute;
+                inset: 0;
+                z-index: 30;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 18px;
+                background: radial-gradient(circle at top, rgba(215, 106, 61, 0.22), transparent 32%), #07111f;
+                transition: opacity 0.5s ease;
+            }
+
+            .voxel-preloader.is-hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .voxel-preloader__cube {
+                width: 46px;
+                height: 46px;
+                background: linear-gradient(135deg, #e3342f, #d76a3d);
+                border-radius: 8px;
+                animation: voxel-preloader-spin 1.1s ease-in-out infinite;
+            }
+
+            @keyframes voxel-preloader-spin {
+                0%, 100% {
+                    transform: rotate(0deg) scale(1);
+                }
+                50% {
+                    transform: rotate(180deg) scale(0.82);
+                }
+            }
+
+            .voxel-preloader__text {
+                min-height: 1.4em;
+                margin: 0;
+                padding: 0 20px;
+                font-size: 0.95rem;
+                letter-spacing: 0.02em;
+                color: rgba(255, 255, 255, 0.86);
+                text-align: center;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .voxel-preloader__cube {
+                    animation: none;
+                }
+            }
         </style>
     </head>
     <body>
         <div class="voxel-lab-shell">
-            <div class="voxel-lab-hud" style="display:none;">
-                <div class="voxel-lab-card">
-                    <h1>{{ $plaza->name }}</h1>
-                    <p>Escena armada desde los datos de la plaza — sin código escrito a mano para {{ $municipio->name }}. Haz clic para capturar el mouse y mira alrededor libremente.</p>
-
-                    <div class="voxel-lab-controls">
-                        <span><span class="voxel-lab-key">↑ ↓ ← →</span> Mover al personaje</span>
-                        <span><span class="voxel-lab-key">Espacio</span> Salto suave con gravedad</span>
-                        <span><span class="voxel-lab-key">Mouse</span> Girar la cámara perseguidora</span>
-                        <span><span class="voxel-lab-key">Esc</span> Liberar el puntero</span>
-                    </div>
-
-                    <div class="voxel-lab-avatar">
-                        <span class="voxel-lab-avatar-label">Tu avatar</span>
-                        <x-immersive.avatar-picker />
-                    </div>
-
-                    <div class="voxel-lab-actions">
-                        <a href="{{ route('buscar', ['municipio' => $municipio->slug]) }}" class="voxel-lab-button voxel-lab-button--ghost">Volver a la plaza web</a>
-                        <button id="generic-lock-trigger" type="button" class="voxel-lab-button voxel-lab-button--primary">Entrar en modo inmersivo</button>
-                    </div>
-                </div>
-            </div>
-
             <div id="generic-immersive-scene" aria-label="Escena inmersiva de {{ $plaza->name }}"></div>
+            <button type="button" id="generic-lock-trigger">🖱️ {{ __('Haz clic para mirar alrededor') }}</button>
             <div class="voxel-lab-status">With ♥️ by <a href="https://inggen.com" target="_blank">inggen.com</a></div>
+            <div class="voxel-preloader" id="voxel-preloader" role="status" aria-live="polite">
+                <span class="voxel-preloader__cube" aria-hidden="true"></span>
+                <p class="voxel-preloader__text" id="voxel-preloader-text">{{ __('Cargando la plaza...') }}</p>
+            </div>
         </div>
 
         <script>
@@ -217,6 +183,12 @@
                 depth: Math.max(1, @json($plaza->reference_image_height) ?? ((genericBounds?.maxZ ?? 50) - (genericBounds?.minZ ?? -50))),
             };
             window.genericPlazaSpawn = @json($plaza->spawn_point);
+            // IMM-040: calidad adaptativa — perfil configurado por el admin
+            // para esta plaza (Filament > Plazas > Calidad móvil/escritorio).
+            window.genericPlazaQualityProfile = {
+                mobile: @json($plaza->mobile_quality_profile),
+                desktop: @json($plaza->desktop_quality_profile),
+            };
             window.genericPlazaReferenceImageUrl = @json($plaza->reference_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($plaza->reference_image_path) : null);
         </script>
         <script type="module" src="{{ asset('js/generic-plaza-immersive.js') }}"></script>

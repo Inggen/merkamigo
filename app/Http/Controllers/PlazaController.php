@@ -31,67 +31,10 @@ use Illuminate\Support\Collection;
  */
 class PlazaController extends Controller
 {
-    public function zipaInmersiva(Request $request): View
-    {
-        $municipio = Municipality::query()
-            ->where('slug', 'zipaquira')
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        $immersiveBusinesses = Business::query()
-            ->servesMunicipality($municipio->id)
-            ->where('status', 'publicado')
-            ->whereHas('products', fn ($query) => $query->where('status', 'publicado'))
-            ->with([
-                'storefront',
-                'products' => fn ($query) => $query
-                    ->where('status', 'publicado')
-                    ->orderBy('position'),
-            ])
-            ->orderByDesc('featured_until')
-            ->orderByDesc('created_at')
-            ->take(4)
-            ->get()
-            ->map(function (Business $business): array {
-                return [
-                    'name' => $business->name,
-                    'slug' => $business->slug,
-                    'url' => route('vitrinas.show', $business),
-                    'headline' => $business->storefront?->headline,
-                    'products' => $business->products->take(3)->map(fn (Product $product): array => [
-                        'name' => $product->name,
-                        'price' => $product->price,
-                        'price_type' => $product->price_type,
-                        'is_available' => $product->is_available,
-                        'url' => route('vitrinas.product', [$business, $product]),
-                    ])->values()->all(),
-                ];
-            })
-            ->values();
-
-        return view('public.labs.zipa-inmersiva', [
-            'immersiveBusinesses' => $immersiveBusinesses,
-            'immersivePlazaId' => $this->resolvePrimaryPlazaId($municipio, $request),
-        ]);
-    }
-
-    public function cajicaInmersiva(Request $request): View
-    {
-        $municipio = Municipality::query()
-            ->where('slug', 'cajica')
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        return view('public.labs.cajica-inmersiva', [
-            'immersivePlazaId' => $this->resolvePrimaryPlazaId($municipio, $request),
-        ]);
-    }
-
     /**
-     * Escena inmersiva genérica: a diferencia de zipaInmersiva()/
-     * cajicaInmersiva(), no tiene ninguna geometría fija escrita a mano —
-     * arma el mundo caminable completo (suelo, elementos, stands) a partir
-     * de los datos de la `ImmersivePlaza` resuelta. Ver
+     * Escena inmersiva genérica: arma el mundo caminable completo (suelo,
+     * elementos, stands) a partir de los datos de la `ImmersivePlaza`
+     * resuelta, sin ninguna geometría fija escrita a mano. Ver
      * `public/js/generic-plaza-immersive.js`.
      */
     public function genericPlaza(Municipality $municipio, Request $request): View
@@ -144,11 +87,6 @@ class PlazaController extends Controller
             )
             ->orderBy('order')
             ->first();
-    }
-
-    private function resolvePrimaryPlazaId(Municipality $municipio, Request $request): ?int
-    {
-        return $this->resolvePrimaryPlaza($municipio, $request)?->id;
     }
 
     private function canPreviewDraftExperience(Request $request): bool

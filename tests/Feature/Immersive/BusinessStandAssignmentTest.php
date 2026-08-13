@@ -4,6 +4,7 @@ namespace Tests\Feature\Immersive;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Immersive\Actions\ReleaseBusinessStand;
 use App\Domain\Immersive\Models\ImmersiveExperience;
 use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Domain\Immersive\Models\ImmersivePlaza;
@@ -30,7 +31,7 @@ class BusinessStandAssignmentTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de prueba',
             'slug' => "plaza-{$municipalitySlug}",
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $plaza = $experience->plazas()->create([
             'name' => 'Plaza 1',
@@ -153,6 +154,35 @@ class BusinessStandAssignmentTest extends TestCase
         $recovered = $business->fresh()->standAssignment;
         $this->assertSame('publicado', $recovered->status);
         $this->assertSame($originalSlotId, $recovered->stand_slot_id, 'Debe recuperar el mismo slot que tenía antes de pausarse.');
+    }
+
+    /**
+     * Bug real reportado por un usuario (2026-08-12): su stand funcionó,
+     * luego "desapareció" y quedó en "Sin configurar" en vez de
+     * "Pausado" — `ReleaseBusinessStand` solo miraba `stand_slot_id`
+     * actual para decidir el estado, así que una segunda liberación
+     * seguida (ej. el negocio se guarda dos veces sin estar publicado)
+     * encontraba ese campo ya en null y "olvidaba" que sí tuvo un
+     * espacio antes.
+     */
+    public function test_releasing_a_business_stand_twice_in_a_row_stays_paused(): void
+    {
+        $experience = $this->makeReadyExperience();
+        $this->makeTemplate();
+        $this->makeSlot($experience->plazas->first(), 'S1');
+
+        $business = $this->makeBusiness($experience->municipality_id);
+        $business->update(['status' => 'publicado']);
+
+        $originalSlotId = $business->fresh()->standAssignment->stand_slot_id;
+        $this->assertNotNull($originalSlotId);
+
+        app(ReleaseBusinessStand::class)->handle($business);
+        app(ReleaseBusinessStand::class)->handle($business);
+
+        $paused = $business->fresh()->standAssignment;
+        $this->assertSame('pausado', $paused->status);
+        $this->assertSame($originalSlotId, $paused->previous_slot_id);
     }
 
     public function test_deleting_a_business_releases_its_slot(): void

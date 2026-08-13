@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\BusinessVerificationController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\ImmersivePlazaEventsController;
 use App\Http\Controllers\Api\V1\ImmersivePlazaPropsController;
 use App\Http\Controllers\Api\V1\ImmersivePlazaStandsController;
 use App\Http\Controllers\Api\V1\MetricsController;
@@ -41,6 +42,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::middleware('web')
         ->get('inmersivo/plazas/{plaza}/props', [ImmersivePlazaPropsController::class, 'index'])
         ->name('inmersivo.plazas.props');
+
+    // IMM-043: telemetría de navegación de la plaza inmersiva (entrada,
+    // búsqueda, vitrina abierta, clic a WhatsApp, rendimiento). Throttle
+    // más permisivo que auth (es tráfico legítimo de una sola sesión
+    // navegando), pero acotado para no servir de vector de flood.
+    Route::middleware('throttle:60,1')
+        ->post('inmersivo/plazas/{plaza}/eventos', [ImmersivePlazaEventsController::class, 'store'])
+        ->name('inmersivo.plazas.eventos.store');
 
     // Catálogo público de necesidades abiertas (5.1/2.1 del TODO) — el
     // resto de `needs.*` sigue privado, ver dentro del grupo `auth:sanctum`.

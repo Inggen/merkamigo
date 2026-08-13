@@ -54,81 +54,118 @@ async function loadDynamicObjects(engine, plazaId, endpoint) {
 
         const { data: objects } = await response.json();
 
-        for (const object of (objects ?? [])) {
-            const { x, y = 0, z } = object.world_position ?? {};
-            const rotation = object.rotation?.y ?? 0;
+        // IMM-041: lo estructural (stands, cualquier objeto con GLB real)
+        // se renderiza antes que la decoración de una sola caja (tejas,
+        // pasto, árboles sin GLB) — así lo que define la forma caminable
+        // de la plaza aparece primero, sin esperar a la cola completa de
+        // props menores. Dentro de cada grupo, lotes de concurrencia
+        // acotada (no todo en paralelo de golpe, para no disparar N
+        // fetches de GLB a la vez; tampoco uno por uno como antes).
+        const isStructural = (object) => endpoint === 'stands' || Boolean(object.model_url);
+        const prioritized = [
+            ...(objects ?? []).filter(isStructural),
+            ...(objects ?? []).filter((object) => ! isStructural(object)),
+        ];
 
-            if (x === undefined || z === undefined) {
-                continue;
-            }
+        const BATCH_SIZE = 6;
 
-            const root = await renderObjectByPriority(engine, {
-                x,
-                y,
-                z,
-                rotation,
-                scale: object.scale,
-                modelUrl: object.model_url,
-                modelDefinition: object.model_definition,
-                builderKey: object.builder_key,
+        for (let i = 0; i < prioritized.length; i += BATCH_SIZE) {
+            const batch = prioritized.slice(i, i + BATCH_SIZE);
+            const batchResults = await Promise.all(batch.map((object) => renderDynamicObject(engine, object)));
+
+            batchResults.forEach((entry) => {
+                if (entry) {
+                    results.push(entry);
+                }
             });
-
-            if (root) {
-                root.position.set(x, y, z);
-                root.rotation.y = (rotation * Math.PI) / 180;
-
-                if (object.model_url) {
-                    engine.syncObjectCollision?.(root, Boolean(object.collision_enabled));
-                }
-
-                if (object.tiling) {
-                    // Elegido libremente por el emprendedor/admin por
-                    // instancia (Fase 4 del editor espacial) — un fallo
-                    // acá nunca debe tumbar la carga del resto de la
-                    // plaza (mismo contrato que el resto de este bloque).
-                    try {
-                        applyTiling(root, object.tiling, ! object.model_url);
-                    } catch {
-                        // Contenido adicional: ver comentario de cabecera.
-                    }
-                }
-
-                if (object.business?.logo_url) {
-                    // Insignia flotante con el logo, siempre mirando a la
-                    // cámara (Sprite) — funciona igual sin importar si el
-                    // stand es GLB, `model_definition` o forma voxel, y se
-                    // reconoce desde lejos independientemente del ángulo
-                    // desde el que se camine. Un logo roto/inaccesible
-                    // nunca debe tumbar la carga del resto de la plaza.
-                    attachLogoBadge(engine, root, object.business.logo_url).catch(() => {});
-                }
-
-                if (object.business?.stand_color) {
-                    applyStandPrimaryColor(root, object.business.stand_color);
-                }
-
-                if (object.business) {
-                    // Persona junto al stand, con el preset hombre/mujer
-                    // que el dueño del negocio eligió para sí mismo — un
-                    // fallo acá (ej. `buildAvatarFigure` con datos raros)
-                    // nunca debe tumbar la carga del resto de la plaza.
-                    try {
-                        attachOwnerFigure(engine, root, object.business.owner_avatar_preset);
-                    } catch {
-                        // Contenido adicional: ver comentario de cabecera.
-                    }
-                }
-            }
-
-            if (object.business) {
-                results.push({ position: new THREE.Vector3(x, y, z), business: object.business, root });
-            }
         }
     } catch {
         // Contenido adicional: un fallo aquí nunca debe romper la escena.
     }
 
     return results;
+}
+
+/**
+ * Construye un único objeto dinámico (stand o prop) y le aplica todo lo
+ * que dependa de datos por instancia (colisión, tiling, insignia de logo,
+ * color del stand, figura del dueño). Extraído del bucle de
+ * `loadDynamicObjects()` para poder procesar varios objetos en paralelo
+ * por lote (IMM-041) sin duplicar esta lógica.
+ *
+ * @returns {Promise<{position: THREE.Vector3, business: object, root: THREE.Object3D|null}|null>}
+ */
+async function renderDynamicObject(engine, object) {
+    const { x, y = 0, z } = object.world_position ?? {};
+    const rotation = object.rotation?.y ?? 0;
+
+    if (x === undefined || z === undefined) {
+        return null;
+    }
+
+    const root = await renderObjectByPriority(engine, {
+        x,
+        y,
+        z,
+        rotation,
+        scale: object.scale,
+        modelUrl: object.model_url,
+        modelDefinition: object.model_definition,
+        builderKey: object.builder_key,
+    });
+
+    if (root) {
+        root.position.set(x, y, z);
+        root.rotation.y = (rotation * Math.PI) / 180;
+
+        if (object.model_url) {
+            engine.syncObjectCollision?.(root, Boolean(object.collision_enabled));
+        }
+
+        if (object.tiling) {
+            // Elegido libremente por el emprendedor/admin por instancia
+            // (Fase 4 del editor espacial) — un fallo acá nunca debe
+            // tumbar la carga del resto de la plaza (mismo contrato que
+            // el resto de esta función).
+            try {
+                applyTiling(root, object.tiling);
+            } catch {
+                // Contenido adicional: ver comentario de cabecera del archivo.
+            }
+        }
+
+        if (object.business?.logo_url) {
+            // Insignia flotante con el logo, siempre mirando a la cámara
+            // (Sprite) — funciona igual sin importar si el stand es GLB,
+            // `model_definition` o forma voxel, y se reconoce desde lejos
+            // independientemente del ángulo desde el que se camine. Un
+            // logo roto/inaccesible nunca debe tumbar la carga del resto
+            // de la plaza.
+            attachLogoBadge(engine, root, object.business.logo_url).catch(() => {});
+        }
+
+        if (object.business?.stand_color) {
+            applyStandPrimaryColor(root, object.business.stand_color);
+        }
+
+        if (object.business) {
+            // Persona junto al stand, con el preset hombre/mujer que el
+            // dueño del negocio eligió para sí mismo — un fallo acá (ej.
+            // `buildAvatarFigure` con datos raros) nunca debe tumbar la
+            // carga del resto de la plaza.
+            try {
+                attachOwnerFigure(engine, root, object.business.owner_avatar_preset);
+            } catch {
+                // Contenido adicional: ver comentario de cabecera del archivo.
+            }
+        }
+    }
+
+    if (object.business) {
+        return { position: new THREE.Vector3(x, y, z), business: object.business, root };
+    }
+
+    return null;
 }
 
 const logoBadgeSize = 128;

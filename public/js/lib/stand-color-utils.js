@@ -4,51 +4,89 @@
  * material, cae a la heurística anterior de materiales originalmente
  * rojos. Si `hexColor` viene vacío/null, restaura el color original del
  * GLB.
+ *
+ * IMM-041: los stands construidos por `builder_key` (voxel, no GLB) ahora
+ * pueden compartir el mismo `MeshStandardMaterial` entre varios objetos
+ * (`voxel-plaza-engine.js` cachea materiales por textura+opciones para no
+ * crear miles de instancias redundantes). Mutar `material.color`
+ * directamente en ese material compartido recolorearía TODOS los objetos
+ * que lo usan, no solo este stand — mismo problema que ya resolvió
+ * `texture-tiling-utils.js` clonando texturas. Por eso el material que
+ * realmente se va a recolorear siempre se clona primero y se reasigna a
+ * su malla; solo el GLB (materiales ya exclusivos por instancia, nunca
+ * cacheados) puede mutarse tal cual sin necesidad de clonar.
  */
 export function applyStandPrimaryColor(root, hexColor) {
-    const namedColorMaterials = [];
-    const tintableMaterials = [];
-    const fallbackMaterials = [];
+    const entries = [];
 
     root.traverse((object) => {
         if (! object.isMesh) {
             return;
         }
 
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        const isArray = Array.isArray(object.material);
+        const materials = isArray ? object.material : [object.material];
 
-        materials.forEach((material) => {
+        materials.forEach((material, index) => {
             if (! material?.color) {
                 return;
             }
 
             cacheOriginalColor(material);
-            fallbackMaterials.push(material);
-
-            if ((material.name ?? '').trim().toLowerCase() === 'color') {
-                namedColorMaterials.push(material);
-            }
-
-            if (isOriginallyRed(material)) {
-                tintableMaterials.push(material);
-            }
+            entries.push({ mesh: object, index: isArray ? index : null, material });
         });
     });
 
-    const targetMaterials = namedColorMaterials.length > 0
-        ? namedColorMaterials
-        : (tintableMaterials.length > 0 ? tintableMaterials : fallbackMaterials.slice(0, 1));
+    const namedColorEntries = entries.filter((e) => (e.material.name ?? '').trim().toLowerCase() === 'color');
+    const tintableEntries = entries.filter((e) => isOriginallyRed(e.material));
 
-    fallbackMaterials.forEach((material) => restoreOriginalColor(material));
+    const targetEntries = namedColorEntries.length > 0
+        ? namedColorEntries
+        : (tintableEntries.length > 0 ? tintableEntries : entries.slice(0, 1));
+
+    // Todo lo que no es el objetivo se restaura a su color original tal
+    // cual (nunca se clona: si nadie lo va a recolorear, no hace falta
+    // dejar de compartirlo).
+    const targetMaterials = new Set(targetEntries.map((e) => e.material));
+    entries.forEach(({ material }) => {
+        if (! targetMaterials.has(material)) {
+            restoreOriginalColor(material);
+        }
+    });
 
     if (! hexColor) {
+        targetEntries.forEach(({ material }) => restoreOriginalColor(material));
+
         return;
     }
 
-    targetMaterials.forEach((material) => {
-        material.color.set(hexColor);
-        material.needsUpdate = true;
+    targetEntries.forEach(({ mesh, index, material }) => {
+        const instanceMaterial = cloneForInstance(mesh, index, material);
+        instanceMaterial.color.set(hexColor);
+        instanceMaterial.needsUpdate = true;
     });
+}
+
+/**
+ * Clona el material y lo reasigna a la malla ANTES de mutar su color —
+ * así deja de compartirse con cualquier otro objeto que use el mismo
+ * material cacheado. Llamadas siguientes sobre el mismo `root` encuentran
+ * directamente este clon (ya es el material propio de la malla), sin
+ * volver a clonar.
+ */
+function cloneForInstance(mesh, index, material) {
+    const clone = material.clone();
+    clone.userData = { ...material.userData };
+
+    if (index === null) {
+        mesh.material = clone;
+    } else {
+        const materials = mesh.material.slice();
+        materials[index] = clone;
+        mesh.material = materials;
+    }
+
+    return clone;
 }
 
 function cacheOriginalColor(material) {

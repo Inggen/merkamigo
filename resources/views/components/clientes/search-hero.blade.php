@@ -131,13 +131,16 @@
             </div>
 
             @if ($immersiveUrl)
-                <a
-                    href="{{ $immersiveUrl }}"
-                    class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/16"
-                >
-                    <flux:icon.cube-transparent class="size-4" variant="outline" />
-                    {{ __('Ver experiencia inmersiva') }}
-                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a
+                        href="{{ $immersiveUrl }}"
+                        class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/16"
+                    >
+                        <flux:icon.cube-transparent class="size-4" variant="outline" />
+                        {{ __('Ver experiencia inmersiva') }}
+                    </a>
+
+                </div>
             @endif
         </div>
 

@@ -35,7 +35,7 @@ class ImmersiveExperienceForm
                 Select::make('route_name')
                     ->label('Escena inmersiva')
                     ->options(config('immersive.available_scenes'))
-                    ->helperText('Zipaquirá y Cajicá son escenas con geometría fija ya construida a mano. "Escena genérica" arma el mundo caminable en vivo a partir de esta plaza (zonas, elementos y stands que crees en la sección Plazas) — no requiere código, pero primero debes crear una plaza con sus límites, punto de aparición y elementos.'),
+                    ->helperText(''),
                 Textarea::make('description')
                     ->label('Descripción')
                     ->rows(3),

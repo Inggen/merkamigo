@@ -33,16 +33,31 @@ class DiscoveryController extends Controller
         // para mantener el grafo cacheado simple — `ImmersiveExperience::municipality()`
         // se resuelve con una query normal (barata, una sola fila) cuando
         // `labUrl()` la necesita.
-        $municipalities = Cache::remember('api.v1.municipios', now()->addMinutes(10), fn () => Municipality::where('is_active', true)->with('publishedImmersiveExperience')->orderBy('name')->get());
+        //
+        // Se cachea el array YA RESUELTO por el resource (`->resolve()`),
+        // nunca la `Collection` de modelos Eloquent cruda: cachear objetos
+        // (con producción en Redis) dispara, de forma intermitente y real
+        // en producción, "The script tried to call a method on an
+        // incomplete object... Illuminate\Database\Eloquent\Collection...
+        // unserialize()" — un problema conocido de PHP al deserializar
+        // grafos de objetos con clases con autoload complejo. Un array
+        // plano de escalares no tiene ese riesgo en absoluto.
+        $municipalities = Cache::remember('api.v1.municipios', now()->addMinutes(10), fn () => MunicipalityResource::collection(
+            Municipality::where('is_active', true)->with('publishedImmersiveExperience')->orderBy('name')->get()
+        )->resolve());
 
-        return ApiResponse::response(MunicipalityResource::collection($municipalities));
+        return ApiResponse::response($municipalities);
     }
 
     public function categorias(): JsonResponse
     {
-        $categories = Cache::remember('api.v1.categorias', now()->addMinutes(10), fn () => Category::where('is_active', true)->orderBy('position')->get());
+        // Ver comentario de `municipios()`: mismo motivo para cachear el
+        // array ya resuelto en vez de la `Collection` de modelos.
+        $categories = Cache::remember('api.v1.categorias', now()->addMinutes(10), fn () => CategoryResource::collection(
+            Category::where('is_active', true)->orderBy('position')->get()
+        )->resolve());
 
-        return ApiResponse::response(CategoryResource::collection($categories));
+        return ApiResponse::response($categories);
     }
 
     /**

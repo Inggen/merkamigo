@@ -55,7 +55,7 @@ class ImmersiveExperienceVersioningTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Nombre original',
             'slug' => 'tenjo',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $this->makeReadyPlaza($experience);
 
@@ -82,7 +82,7 @@ class ImmersiveExperienceVersioningTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de Cota',
             'slug' => 'cota',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $plaza = ImmersivePlaza::create([
             'immersive_experience_id' => $experience->id,
@@ -112,7 +112,7 @@ class ImmersiveExperienceVersioningTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de Nemocón',
             'slug' => 'nemocon',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $this->makeReadyPlaza($experience);
         $v1 = $experience->publish($admin);
@@ -139,7 +139,7 @@ class ImmersiveExperienceVersioningTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Nombre v1',
             'slug' => 'tabio',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $this->makeReadyPlaza($experience);
         $v1 = $experience->publish($admin);
@@ -172,7 +172,7 @@ class ImmersiveExperienceVersioningTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de prueba',
             'slug' => 'cota',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $plaza = $this->makeReadyPlaza($experience);
 

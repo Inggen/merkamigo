@@ -21,7 +21,7 @@
  * personaje no se mueva solo mientras el modal está abierto.
  */
 
-export function createVitrinaModal(engine) {
+export function createVitrinaModal(engine, { track = null } = {}) {
     injectStylesOnce();
 
     const overlay = document.createElement('div');
@@ -47,17 +47,64 @@ export function createVitrinaModal(engine) {
     const content = document.createElement('div');
     content.className = 'vpe-vitrina-content';
 
+    const imageLightbox = document.createElement('div');
+    imageLightbox.className = 'vpe-vitrina-image-lightbox';
+    imageLightbox.setAttribute('aria-hidden', 'true');
+
+    const imageLightboxBackdrop = document.createElement('button');
+    imageLightboxBackdrop.type = 'button';
+    imageLightboxBackdrop.className = 'vpe-vitrina-image-lightbox-backdrop';
+    imageLightboxBackdrop.setAttribute('aria-label', 'Cerrar imagen ampliada');
+
+    const imageLightboxFrame = document.createElement('div');
+    imageLightboxFrame.className = 'vpe-vitrina-image-lightbox-frame';
+
+    const imageLightboxClose = document.createElement('button');
+    imageLightboxClose.type = 'button';
+    imageLightboxClose.className = 'vpe-vitrina-image-lightbox-close';
+    imageLightboxClose.setAttribute('aria-label', 'Cerrar imagen ampliada');
+    imageLightboxClose.innerHTML = '&times;';
+
+    const imageLightboxImage = document.createElement('img');
+    imageLightboxImage.className = 'vpe-vitrina-image-lightbox-image';
+    imageLightboxImage.alt = '';
+
+    imageLightboxFrame.appendChild(imageLightboxClose);
+    imageLightboxFrame.appendChild(imageLightboxImage);
+    imageLightbox.appendChild(imageLightboxBackdrop);
+    imageLightbox.appendChild(imageLightboxFrame);
+
     panel.appendChild(closeButton);
     panel.appendChild(content);
     overlay.appendChild(backdrop);
     overlay.appendChild(panel);
+    overlay.appendChild(imageLightbox);
     document.body.appendChild(overlay);
 
     let requestToken = 0;
     let keyBlockerBound = false;
     let wasLockedBeforeOpen = false;
 
+    function openImageZoom(src, alt = '') {
+        if (!src) {
+            return;
+        }
+
+        imageLightboxImage.src = src;
+        imageLightboxImage.alt = alt;
+        imageLightbox.classList.add('is-visible');
+        imageLightbox.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeImageZoom() {
+        imageLightbox.classList.remove('is-visible');
+        imageLightbox.setAttribute('aria-hidden', 'true');
+        imageLightboxImage.removeAttribute('src');
+        imageLightboxImage.alt = '';
+    }
+
     function close() {
+        closeImageZoom();
         overlay.classList.remove('is-visible');
         unbindKeyBlocker();
 
@@ -92,6 +139,15 @@ export function createVitrinaModal(engine) {
 
     function onKeyCapture(event) {
         if (event.type === 'keydown' && event.code === 'Escape') {
+            if (imageLightbox.classList.contains('is-visible')) {
+                closeImageZoom();
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                return;
+            }
+
             close();
         }
 
@@ -102,6 +158,8 @@ export function createVitrinaModal(engine) {
 
     backdrop.addEventListener('click', close);
     closeButton.addEventListener('click', close);
+    imageLightboxBackdrop.addEventListener('click', closeImageZoom);
+    imageLightboxClose.addEventListener('click', closeImageZoom);
 
     async function open(business) {
         requestToken += 1;
@@ -134,8 +192,14 @@ export function createVitrinaModal(engine) {
             const { data: businessData } = await businessRes.json();
             const { data: products } = productsRes.ok ? await productsRes.json() : { data: [] };
 
+            // IMM-043: solo cuenta como "vitrina abierta" una carga que
+            // realmente resolvió — un intento fallido (ver el catch de
+            // abajo) no cuenta como apertura real.
+            track?.('vitrina_opened', { businessId: businessData.id });
+
             content.innerHTML = renderLoaded(businessData, products ?? []);
             bindContentHandlers(businessData);
+            bindProductViewTracking(products ?? [], businessData.id);
         } catch {
             if (thisRequest === requestToken) {
                 content.innerHTML = renderError(business);
@@ -160,7 +224,59 @@ export function createVitrinaModal(engine) {
             }
         });
 
+        content.querySelector('[data-vitrina-whatsapp]')?.addEventListener('click', () => {
+            track?.('whatsapp_click', { businessId: businessData.id });
+        });
+
         bindCarousel();
+        bindImageZoom();
+    }
+
+    function bindImageZoom() {
+        content.querySelectorAll('[data-vitrina-zoom-src]').forEach((trigger) => {
+            trigger.addEventListener('click', () => {
+                openImageZoom(trigger.dataset.vitrinaZoomSrc, trigger.dataset.vitrinaZoomAlt ?? '');
+            });
+        });
+    }
+
+    /**
+     * IMM-043: "producto visto" solo cuenta cuando la tarjeta realmente
+     * entra al viewport del carrusel (no al abrir el modal, ni por estar
+     * en el DOM sin haberse desplazado hasta ahí) — un `IntersectionObserver`
+     * acotado al propio contenedor del modal, desconectado al cerrar/
+     * reabrir para no acumular observadores de aperturas anteriores.
+     */
+    function bindProductViewTracking(products, businessId) {
+        if (! track || ! products.length) {
+            return;
+        }
+
+        const cards = content.querySelectorAll('[data-vitrina-carousel] [data-product-id]');
+
+        if (! cards.length) {
+            return;
+        }
+
+        const seen = new Set();
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (! entry.isIntersecting) {
+                    return;
+                }
+
+                const productId = entry.target.dataset.productId;
+
+                if (seen.has(productId)) {
+                    return;
+                }
+
+                seen.add(productId);
+                track('product_viewed', { businessId, productId: Number(productId) });
+            });
+        }, { root: content, threshold: 0.6 });
+
+        cards.forEach((card) => observer.observe(card));
     }
 
     function bindCarousel() {
@@ -232,7 +348,7 @@ function renderLoaded(business, products) {
                 ${business.headline || business.description ? `<p class="vpe-vitrina-description">${escapeHtml(business.headline || business.description)}</p>` : ''}
                 ${metaItems ? `<div class="vpe-vitrina-meta">${metaItems}</div>` : ''}
             </div>
-            ${business.cover_url ? `<img class="vpe-vitrina-cover" src="${escapeHtml(business.cover_url)}" alt="">` : ''}
+            ${business.cover_url ? `<button type="button" class="vpe-vitrina-image-trigger vpe-vitrina-cover-trigger" data-vitrina-zoom-src="${escapeHtml(business.cover_url)}" data-vitrina-zoom-alt="${escapeHtml(business.name)}"><img class="vpe-vitrina-cover" src="${escapeHtml(business.cover_url)}" alt="${escapeHtml(business.name)}"></button>` : ''}
         </div>
 
         <hr class="vpe-vitrina-divider">
@@ -278,7 +394,7 @@ function renderLoaded(business, products) {
 
         <div class="vpe-vitrina-actions">
             ${business.whatsapp_number ? `
-                <a class="vpe-vitrina-btn vpe-vitrina-btn-whatsapp" href="${escapeHtml(business.url)}/whatsapp" target="_blank" rel="noopener">
+                <a class="vpe-vitrina-btn vpe-vitrina-btn-whatsapp" data-vitrina-whatsapp href="${escapeHtml(business.url)}/whatsapp" target="_blank" rel="noopener">
                     <span class="vpe-vitrina-btn-icon">💬</span>
                     <span class="vpe-vitrina-btn-text">
                         <span class="vpe-vitrina-btn-label">WhatsApp</span>
@@ -310,8 +426,8 @@ function renderProductCard(product) {
     const photo = product.photos?.[0];
 
     return `
-        <div class="vpe-vitrina-card">
-            ${photo ? `<img src="${escapeHtml(photo)}" alt="">` : '<div class="vpe-vitrina-card-placeholder"></div>'}
+        <div class="vpe-vitrina-card" data-product-id="${product.id}">
+            ${photo ? `<button type="button" class="vpe-vitrina-image-trigger vpe-vitrina-card-image-trigger" data-vitrina-zoom-src="${escapeHtml(photo)}" data-vitrina-zoom-alt="${escapeHtml(product.name)}"><img src="${escapeHtml(photo)}" alt="${escapeHtml(product.name)}"></button>` : '<div class="vpe-vitrina-card-placeholder"></div>'}
             <div class="vpe-vitrina-card-caption">
                 <div class="vpe-vitrina-card-name">${escapeHtml(product.name)}</div>
                 <div class="vpe-vitrina-card-price">${formatPrice(product)}</div>
@@ -419,6 +535,64 @@ function injectStylesOnce() {
             animation: vpe-vitrina-spin 0.8s linear infinite;
         }
 
+        .vpe-vitrina-image-lightbox {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .vpe-vitrina-image-lightbox.is-visible {
+            display: flex;
+        }
+
+        .vpe-vitrina-image-lightbox-backdrop {
+            position: absolute;
+            inset: 0;
+            border: none;
+            background: rgba(10, 12, 18, 0.84);
+            cursor: pointer;
+        }
+
+        .vpe-vitrina-image-lightbox-frame {
+            position: relative;
+            z-index: 1;
+            width: min(92vw, 1100px);
+            max-height: calc(92vh - 40px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vpe-vitrina-image-lightbox-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            border: none;
+            background: rgba(255, 255, 255, 0.92);
+            color: #1f2430;
+            font-size: 1.7rem;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+        }
+
+        .vpe-vitrina-image-lightbox-image {
+            display: block;
+            max-width: 100%;
+            max-height: calc(92vh - 40px);
+            border-radius: 18px;
+            object-fit: contain;
+            background: #fff;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+        }
+
         @keyframes vpe-vitrina-spin { to { transform: rotate(360deg); } }
 
         .vpe-vitrina-header { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 4px; padding-right: 34px; }
@@ -441,7 +615,19 @@ function injectStylesOnce() {
 
         .vpe-vitrina-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; font-size: 0.82rem; color: #4b5160; }
 
-        .vpe-vitrina-cover { width: 240px; height: 140px; border-radius: 14px; object-fit: cover; flex-shrink: 0; }
+        .vpe-vitrina-image-trigger {
+            padding: 0;
+            border: none;
+            background: transparent;
+            cursor: zoom-in;
+        }
+
+        .vpe-vitrina-cover-trigger {
+            width: 240px;
+            flex-shrink: 0;
+        }
+
+        .vpe-vitrina-cover { width: 240px; height: 140px; border-radius: 14px; object-fit: cover; flex-shrink: 0; display: block; }
 
         .vpe-vitrina-divider { border: none; border-top: 1px solid #eceef1; margin: 20px 0 16px; }
 
@@ -466,6 +652,11 @@ function injectStylesOnce() {
         .vpe-vitrina-card {
             position: relative; flex: 0 0 auto; width: 190px; height: 240px;
             border-radius: 16px; overflow: hidden; background: #f0f1f4; scroll-snap-align: start;
+        }
+        .vpe-vitrina-card-image-trigger {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
         .vpe-vitrina-card img, .vpe-vitrina-card-placeholder { width: 100%; height: 100%; object-fit: cover; display: block; }
         .vpe-vitrina-card-caption {

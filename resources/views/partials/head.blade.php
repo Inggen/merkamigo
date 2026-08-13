@@ -7,9 +7,52 @@
     $robotsContent = $robots ?? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
     $pageSchemaType = $pageSchemaType ?? 'WebPage';
     $pageSchemaData = $pageSchemaData ?? [];
+    $mainNavigationSchema = \App\Support\Seo\SchemaBuilder::siteNavigation([
+        [
+            'name' => __('Inicio'),
+            'description' => __('Portada de Merkamigo con acceso a negocios, productos y municipios.'),
+            'url' => route('home'),
+        ],
+        [
+            'name' => __('Municipios'),
+            'description' => __('Explora los municipios activos y sus plazas digitales.'),
+            'url' => route('municipios'),
+        ],
+        [
+            'name' => __('Categorías'),
+            'description' => __('Navega por categorías de negocios, productos y servicios.'),
+            'url' => route('categorias'),
+        ],
+        [
+            'name' => __('Plaza'),
+            'description' => __('Busca negocios, productos y servicios en la plaza pública de Merkamigo.'),
+            'url' => route('buscar'),
+        ],
+        [
+            'name' => __('Pídelo'),
+            'description' => __('Publica o explora solicitudes para recibir propuestas de negocios cercanos.'),
+            'url' => route('pidelo'),
+        ],
+        [
+            'name' => __('Cómo funciona'),
+            'description' => __('Conoce cómo comprar, vender y conectar dentro de Merkamigo.'),
+            'url' => route('como-funciona'),
+        ],
+        [
+            'name' => __('Soporte'),
+            'description' => __('Encuentra ayuda, preguntas frecuentes y canales de soporte.'),
+            'url' => route('soporte'),
+        ],
+        [
+            'name' => __('Crear vitrina'),
+            'description' => __('Crea tu vitrina digital para publicar tu negocio en tu comunidad.'),
+            'url' => route('emprendedores.bienvenida'),
+        ],
+    ]);
     $schemaGraph = array_values(array_filter([
         \App\Support\Seo\SchemaBuilder::organization(),
         \App\Support\Seo\SchemaBuilder::website(),
+        $mainNavigationSchema,
         \App\Support\Seo\SchemaBuilder::webPage($seoTitle, $pageDescription, $canonicalUrl, array_merge([
             'type' => $pageSchemaType,
             'image' => $pageImage,

@@ -34,6 +34,53 @@ const LEVEL_LABELS = {
     unknown: '—',
 };
 
+const QUALITY_TIER_OPTIONS = [
+    { tier: null, label: 'Auto' },
+    { tier: 'ligero', label: 'Ligero' },
+    { tier: 'equilibrado', label: 'Equilibrado' },
+    { tier: 'alto', label: 'Alto' },
+];
+
+/**
+ * IMM-040: fila de botones "Auto / Ligero / Equilibrado / Alto" dentro del
+ * panel técnico — mismo lugar donde ya vive todo lo relacionado a
+ * rendimiento. `quality.isOverride` distingue "automático" (ninguna
+ * elección manual guardada) de tener un nivel fijado a mano.
+ */
+function buildQualitySelector({ currentTier, isOverride, onSelect }) {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `
+        display: flex;
+        gap: 4px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.14);
+        pointer-events: auto;
+    `;
+
+    QUALITY_TIER_OPTIONS.forEach(({ tier, label }) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = label;
+        const isActive = tier === null ? ! isOverride : (isOverride && tier === currentTier);
+        button.style.cssText = `
+            flex: 1;
+            font: inherit;
+            font-size: 10px;
+            padding: 4px 2px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.24);
+            cursor: pointer;
+            background: ${isActive ? '#d7352a' : 'transparent'};
+            color: #fff;
+        `;
+        button.addEventListener('click', () => onSelect(tier));
+        wrapper.appendChild(button);
+    });
+
+    return wrapper;
+}
+
 function formatBytes(bytes) {
     if (bytes === null || bytes === undefined) {
         return '—';
@@ -42,7 +89,7 @@ function formatBytes(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function detectDeviceProfile() {
+export function detectDeviceProfile() {
     const params = new URLSearchParams(window.location.search);
     const forced = params.get('perfProfile');
 
@@ -59,6 +106,13 @@ function detectDeviceProfile() {
 export function attachPerfMonitor({
     renderer,
     label = 'Experiencia inmersiva',
+    // IMM-040: control manual de calidad — inyectado desde afuera (en vez
+    // de importar `immersive-quality.js` aquí) para no crear un import
+    // circular (ese módulo ya importa `detectDeviceProfile` de este
+    // archivo). `currentTier` es el nivel efectivo actual (después de
+    // resolver override/dispositivo); `onSelect(tier)` recibe `null` para
+    // "Automático" o uno de `ligero|equilibrado|alto` para fijarlo a mano.
+    quality = null,
 }) {
     const params = new URLSearchParams(window.location.search);
     const profile = detectDeviceProfile();
@@ -93,6 +147,17 @@ export function attachPerfMonitor({
         pointer-events: none;
         white-space: pre;
     `;
+
+    // Nodo de texto aparte del panel: `render()` solo reescribe esto, para
+    // que el selector de calidad (agregado una sola vez debajo) no se
+    // borre en cada muestra (~cada 500ms).
+    const metricsText = document.createElement('div');
+    root.appendChild(metricsText);
+
+    if (quality) {
+        root.appendChild(buildQualitySelector(quality));
+    }
+
     document.body.appendChild(root);
 
     const setVisible = (visible) => {
@@ -175,7 +240,7 @@ export function attachPerfMonitor({
             `Veredicto   ${LEVEL_LABELS[budget.overall]}`,
         ];
 
-        root.textContent = lines.join('\n');
+        metricsText.textContent = lines.join('\n');
         root.style.borderColor = LEVEL_COLORS[budget.overall];
     }
 

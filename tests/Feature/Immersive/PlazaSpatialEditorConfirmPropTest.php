@@ -28,7 +28,7 @@ class PlazaSpatialEditorConfirmPropTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de prueba',
             'slug' => 'plaza-zipaquira-'.uniqid(),
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $plaza = $experience->plazas()->create([
             'name' => 'Plaza 1',

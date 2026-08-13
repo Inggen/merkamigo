@@ -101,6 +101,31 @@
             />
         @endif
 
+        @if ($businesses->isNotEmpty())
+            <div class="mb-4 flex items-center justify-between">
+                <flux:heading size="lg">
+                    @if ($category)
+                        {{ __('Negocios en :categoria', ['categoria' => $category->name]) }}
+                    @elseif ($near)
+                        {{ __('Cerca de ti') }}
+                    @else
+                        {{ __('Nuevos en la plaza') }}
+                    @endif
+                </flux:heading>
+                <flux:link :href="route('buscar', ['municipio' => $municipio->slug])" wire:navigate class="shrink-0 text-sm">{{ __('Ver todos →') }}</flux:link>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($businesses as $business)
+                    <x-business-card :business="$business" />
+                @endforeach
+            </div>
+
+            <div class="mt-8">
+                {{ $businesses->links() }}
+            </div>
+        @endif
+
         <div class="mb-10 overflow-hidden rounded-[28px] border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
             <div class="grid gap-0 lg:grid-cols-2">
                 <div class="flex flex-col justify-center gap-4 p-6 sm:p-8">
@@ -157,31 +182,6 @@
                 @endif
             </div>
         </div>
-
-        @if ($businesses->isNotEmpty())
-            <div class="mb-4 flex items-center justify-between">
-                <flux:heading size="lg">
-                    @if ($category)
-                        {{ __('Negocios en :categoria', ['categoria' => $category->name]) }}
-                    @elseif ($near)
-                        {{ __('Cerca de ti') }}
-                    @else
-                        {{ __('Nuevos en la plaza') }}
-                    @endif
-                </flux:heading>
-                <flux:link :href="route('buscar', ['municipio' => $municipio->slug])" wire:navigate class="shrink-0 text-sm">{{ __('Ver todos →') }}</flux:link>
-            </div>
-
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ($businesses as $business)
-                    <x-business-card :business="$business" />
-                @endforeach
-            </div>
-
-            <div class="mt-8">
-                {{ $businesses->links() }}
-            </div>
-        @endif
 
         @if ($products->isNotEmpty())
             <div class="mt-10">

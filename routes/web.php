@@ -98,9 +98,7 @@ Route::post('soporte/solicitud', [SupportTicketController::class, 'store'])
     ->name('soporte.solicitud.guardar');
 Route::view('preguntas-frecuentes', 'public.preguntas-frecuentes', ['faqs' => config('faq.preguntas')])
     ->name('preguntas-frecuentes');
-Route::get('labs/zipa-inmersiva', [PlazaController::class, 'zipaInmersiva'])->name('labs.zipa-inmersiva');
-Route::get('labs/cajica-inmersiva', [PlazaController::class, 'cajicaInmersiva'])->name('labs.cajica-inmersiva');
-Route::get('labs/plaza/{municipio:slug}', [PlazaController::class, 'genericPlaza'])->name('labs.generic-plaza');
+Route::get('exp/plaza/{municipio:slug}', [PlazaController::class, 'genericPlaza'])->name('labs.generic-plaza');
 Route::get('sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 // Wompi (4.2 del TODO): retorno del checkout y webhook, ambos públicos —

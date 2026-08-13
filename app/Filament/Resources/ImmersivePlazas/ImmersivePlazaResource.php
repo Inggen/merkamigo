@@ -67,27 +67,6 @@ class ImmersivePlazaResource extends Resource
     }
 
     /**
-     * IMM-010 — previsualización real: la plaza, con sus zonas/slots/
-     * elementos, superpuestos sobre la imagen de referencia. No depende de
-     * la migración de Zipaquirá al motor 3D compartido (IMM-003) ni de un
-     * visor Three.js — es una lectura directa de los mismos datos que ya
-     * valida `SpatialGeometry`.
-     */
-    public static function previewAction(): Action
-    {
-        return Action::make('preview')
-            ->label('Vista previa')
-            ->icon(Heroicon::OutlinedEye)
-            ->color('gray')
-            ->modalHeading(fn (ImmersivePlaza $record): string => "Vista previa — {$record->name}")
-            ->modalContent(fn (ImmersivePlaza $record) => view('filament.immersive.plaza-preview', [
-                'plaza' => $record->loadMissing(['zones.slots', 'props.template']),
-            ]))
-            ->modalSubmitAction(false)
-            ->modalCancelActionLabel('Cerrar');
-    }
-
-    /**
      * Pedido explícito del usuario: "el botón de vista previa" debe dejarlo
      * entrar y caminar la experiencia real, no solo ver el plano 2D de
      * arriba. Abre la escena tal cual quedaría antes de publicar

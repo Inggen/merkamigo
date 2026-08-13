@@ -8,17 +8,19 @@ import { THREE } from './voxel-plaza-engine.js';
  * aplicaba pero la plaza real nunca la leía, porque cada uno tenía su
  * propia copia y solo una se actualizó).
  *
- * Dos rutas de material muy distintas:
- * - GLB (`isSharedTexture=false`): cada carga de `GLTFLoader` ya crea
- *   materiales/texturas propios de esa instancia (sin caché entre
- *   cargas) — se puede mutar `texture.repeat` directo, sin clonar.
- * - Voxel (`model_definition`/`builderKey`, `isSharedTexture=true`): las
- *   texturas SÍ están compartidas por nombre entre todos los objetos de
- *   la escena (`createVoxelTextures`, un solo diccionario) — mutar
- *   `.repeat` directo afectaría a cualquier otro objeto que use la misma
- *   clave de textura. Se clona antes.
+ * IMM-041: los materiales pueden compartirse entre varios objetos (voxel
+ * los comparte por nombre desde siempre vía `createVoxelTextures`; GLB
+ * también desde que `loadGlbTemplate()` cachea la plantilla parseada por
+ * URL y clona la jerarquía con `.clone(true)`, que comparte material por
+ * referencia). Clonar solo la textura y mutar `material.map` en el
+ * material compartido reajustaba el tiling de TODOS los objetos que
+ * usan ese material, no solo el editado (bug real reportado por el
+ * usuario: cambiar el tiling de un piso/andén reajustaba otros elementos
+ * — mismo problema que ya resolvió `stand-color-utils.js` con el color).
+ * Por eso el material también se clona y se reasigna a la malla antes de
+ * mutar su `.map`, dejando de compartirse con cualquier otro objeto.
  */
-export function applyTiling(root, tiling, isSharedTexture) {
+export function applyTiling(root, tiling) {
     if (! tiling) {
         return;
     }
@@ -28,22 +30,27 @@ export function applyTiling(root, tiling, isSharedTexture) {
             return;
         }
 
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        const isArray = Array.isArray(child.material);
+        const materials = isArray ? child.material : [child.material];
 
-        materials.forEach((material) => {
+        const nextMaterials = materials.map((material) => {
             if (! material?.map) {
-                return;
+                return material;
             }
 
-            const texture = isSharedTexture ? material.map.clone() : material.map;
+            const texture = material.map.clone();
             texture.repeat.set(tiling.u ?? 1, tiling.v ?? 1);
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
             texture.needsUpdate = true;
 
-            if (isSharedTexture) {
-                material.map = texture;
-            }
+            const instanceMaterial = material.clone();
+            instanceMaterial.map = texture;
+            instanceMaterial.needsUpdate = true;
+
+            return instanceMaterial;
         });
+
+        child.material = isArray ? nextMaterials : nextMaterials[0];
     });
 }

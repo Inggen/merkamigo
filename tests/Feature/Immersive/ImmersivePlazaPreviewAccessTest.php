@@ -39,7 +39,7 @@ class ImmersivePlazaPreviewAccessTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza en borrador',
             'slug' => 'plaza-borrador',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
         $experience->plazas()->create([
             'name' => 'Plaza 1',
@@ -55,15 +55,14 @@ class ImmersivePlazaPreviewAccessTest extends TestCase
 
     public function test_a_draft_experience_is_not_visible_without_the_preview_flag(): void
     {
-        $experience = $this->makeDraftExperienceWithActivePlaza();
+        $this->makeDraftExperienceWithActivePlaza();
 
         $admin = User::factory()->create();
         $this->assignPlatformRole($admin, 'admin');
         $this->actingAs($admin);
 
-        $this->get(route('labs.zipa-inmersiva'))
-            ->assertOk()
-            ->assertViewHas('immersivePlazaId', null);
+        $this->get(route('labs.generic-plaza', ['municipio' => 'zipaquira']))
+            ->assertNotFound();
     }
 
     public function test_an_admin_can_preview_a_draft_experience_with_the_preview_flag(): void
@@ -74,9 +73,9 @@ class ImmersivePlazaPreviewAccessTest extends TestCase
         $this->assignPlatformRole($admin, 'admin');
         $this->actingAs($admin);
 
-        $this->get(route('labs.zipa-inmersiva', ['preview' => 1]))
+        $this->get(route('labs.generic-plaza', ['municipio' => 'zipaquira', 'preview' => 1]))
             ->assertOk()
-            ->assertViewHas('immersivePlazaId', $experience->plazas->first()->id);
+            ->assertViewHas('plaza', fn ($plaza) => $plaza->id === $experience->plazas->first()->id);
     }
 
     public function test_a_regular_authenticated_user_cannot_preview_a_draft_experience(): void
@@ -86,18 +85,16 @@ class ImmersivePlazaPreviewAccessTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $this->get(route('labs.zipa-inmersiva', ['preview' => 1]))
-            ->assertOk()
-            ->assertViewHas('immersivePlazaId', null);
+        $this->get(route('labs.generic-plaza', ['municipio' => 'zipaquira', 'preview' => 1]))
+            ->assertNotFound();
     }
 
     public function test_a_guest_cannot_preview_a_draft_experience(): void
     {
         $this->makeDraftExperienceWithActivePlaza();
 
-        $this->get(route('labs.zipa-inmersiva', ['preview' => 1]))
-            ->assertOk()
-            ->assertViewHas('immersivePlazaId', null);
+        $this->get(route('labs.generic-plaza', ['municipio' => 'zipaquira', 'preview' => 1]))
+            ->assertNotFound();
     }
 
     public function test_a_published_experience_still_resolves_normally_without_the_preview_flag(): void
@@ -105,8 +102,8 @@ class ImmersivePlazaPreviewAccessTest extends TestCase
         $experience = $this->makeDraftExperienceWithActivePlaza();
         $experience->update(['status' => 'publicada']);
 
-        $this->get(route('labs.zipa-inmersiva'))
+        $this->get(route('labs.generic-plaza', ['municipio' => 'zipaquira']))
             ->assertOk()
-            ->assertViewHas('immersivePlazaId', $experience->plazas->first()->id);
+            ->assertViewHas('plaza', fn ($plaza) => $plaza->id === $experience->plazas->first()->id);
     }
 }

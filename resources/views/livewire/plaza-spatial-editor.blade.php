@@ -909,7 +909,7 @@
                         registerObject(root, item);
 
                         if (item.type === 'prop' && item.tiling) {
-                            applyTiling(root, item.tiling, ! item.modelUrl);
+                            applyTiling(root, item.tiling);
                         }
 
                         // Pedido del usuario: mostrar hacia dónde apunta el
@@ -1105,7 +1105,7 @@
                         const source = (sceneState.objects ?? []).find((item) => item.type === type && item.id === id);
 
                         if (root && source) {
-                            applyTiling(root, tiling, ! source.modelUrl);
+                            applyTiling(root, tiling);
                             // Sin esto, la vista previa se perdía si el
                             // objeto se reconstruía por CUALQUIER otro
                             // motivo antes de pulsar Guardar props (mover/

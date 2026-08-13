@@ -6,7 +6,6 @@ use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Immersive\Models\ImmersiveExperience;
 use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Filament\Resources\ImmersiveExperiences\Pages\ListImmersiveExperiences;
-use App\Filament\Resources\ImmersivePlazas\Pages\ListImmersivePlazas;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -42,7 +41,7 @@ class ImmersiveExperienceDuplicationAndPreviewTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de Gachancipá',
             'slug' => 'gachancipa',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
 
         $plaza = $experience->plazas()->create([
@@ -166,7 +165,7 @@ class ImmersiveExperienceDuplicationAndPreviewTest extends TestCase
             'municipality_id' => $municipality->id,
             'name' => 'Plaza de Tocancipá',
             'slug' => 'tocancipa',
-            'route_name' => 'labs.zipa-inmersiva',
+            'route_name' => 'labs.generic-plaza',
         ]);
 
         // Plaza sin límites navegables: no cuenta como "lista".
@@ -223,47 +222,5 @@ class ImmersiveExperienceDuplicationAndPreviewTest extends TestCase
         }
 
         $this->assertDatabaseCount('experience_versions', 0);
-    }
-
-    public function test_the_preview_renders_zones_slots_and_props_over_the_reference_image(): void
-    {
-        $experience = $this->buildExperienceWithLayout();
-        $plaza = $experience->plazas->first()->load(['zones.slots', 'props.template']);
-
-        $html = view('filament.immersive.plaza-preview', ['plaza' => $plaza])->render();
-
-        $this->assertStringContainsString('<polygon', $html);
-        $this->assertStringContainsString('<circle', $html);
-        $this->assertStringContainsString('<rect', $html);
-        $this->assertStringContainsString('Zona norte', $html);
-    }
-
-    public function test_the_preview_handles_a_plaza_without_navigable_bounds_gracefully(): void
-    {
-        $municipality = Municipality::create(['name' => 'Nemocón', 'slug' => 'nemocon-2']);
-        $experience = ImmersiveExperience::create([
-            'municipality_id' => $municipality->id,
-            'name' => 'Plaza sin configurar',
-            'slug' => 'sin-configurar',
-        ]);
-        $plaza = $experience->plazas()->create(['name' => 'Plaza 1']);
-
-        $html = view('filament.immersive.plaza-preview', ['plaza' => $plaza])->render();
-
-        $this->assertStringContainsString('todavía no tiene límites navegables', $html);
-    }
-
-    public function test_the_preview_action_is_visible_on_the_plazas_list(): void
-    {
-        $admin = User::factory()->create();
-        $this->assignPlatformRole($admin, 'admin');
-        $this->actingAs($admin);
-
-        $experience = $this->buildExperienceWithLayout();
-        $plaza = $experience->plazas->first();
-
-        Livewire::test(ListImmersivePlazas::class)
-            ->assertTableActionExists('preview')
-            ->assertTableActionVisible('preview', $plaza);
     }
 }
