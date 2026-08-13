@@ -487,7 +487,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 </flux:select>
 
                 @if ($this->attributeOptions->isNotEmpty())
-                    <flux:checkbox.group wire:model.live="attributes" :label="__('Atributos')">
+                    <flux:checkbox.group wire:model.live="business_attributes" :label="__('Atributos')">
                         <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
                             @foreach ($this->attributeOptions as $option)
                                 <flux:checkbox value="{{ $option->slug }}" :label="$option->name" />

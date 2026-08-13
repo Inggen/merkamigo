@@ -36,7 +36,7 @@ class ClientesController extends Controller
             ->when($municipalityId, fn ($query) => $query->where('municipality_id', $municipalityId))
             ->with(['category', 'storefront'])
             ->latest('created_at')
-            ->take(6)
+            ->take(8)
             ->get();
 
         $products = Product::query()
