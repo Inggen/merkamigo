@@ -187,11 +187,23 @@ new #[Title('Impulsa tu negocio')] class extends Component {
 
             <div class="space-y-3">
                 @foreach ($this->otherProducts as $product)
+                    @php
+                        $icon = match ($product->kind) {
+                            \App\Domain\Billing\Models\BillingProduct::KIT_ARRANCA_BONITO => 'gift',
+                            \App\Domain\Billing\Models\BillingProduct::ENTITLEMENT => 'sparkles',
+                            default => 'photo',
+                        };
+                        $buttonLabel = match ($product->kind) {
+                            \App\Domain\Billing\Models\BillingProduct::KIT_ARRANCA_BONITO => __('Comprar kit'),
+                            \App\Domain\Billing\Models\BillingProduct::ENTITLEMENT => __('Activar'),
+                            default => __('Solicitar ayuda'),
+                        };
+                    @endphp
                     <div class="flex flex-col gap-4 rounded-2xl border border-zinc-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
                         <div class="flex items-start gap-4">
                             <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-950">
                                 <flux:icon
-                                    :icon="$product->kind === \App\Domain\Billing\Models\BillingProduct::KIT_ARRANCA_BONITO ? 'gift' : 'photo'"
+                                    :icon="$icon"
                                     variant="outline"
                                     class="size-6 text-brand-600 dark:text-brand-400"
                                 />
@@ -219,7 +231,7 @@ new #[Title('Impulsa tu negocio')] class extends Component {
                                 variant="primary"
                                 :href="route('emprendedores.negocios.impulsar.checkout', ['business' => $this->business, 'billingProduct' => $product])"
                             >
-                                {{ $product->kind === \App\Domain\Billing\Models\BillingProduct::KIT_ARRANCA_BONITO ? __('Comprar kit') : __('Solicitar ayuda') }}
+                                {{ $buttonLabel }}
                             </flux:button>
                         </div>
                     </div>

@@ -230,6 +230,93 @@ export function createVitrinaModal(engine, { track = null } = {}) {
 
         bindCarousel();
         bindImageZoom();
+        bindChat(businessData);
+    }
+
+    /**
+     * Chat con IA de la vitrina (solo si `business.available_ai_chat`,
+     * ver `Business::canUseAiChatbot()`). Sin estado en el servidor: el
+     * historial vive en esta clausura mientras el modal está abierto y se
+     * reenvía completo en cada mensaje (`AnswerBusinessChatQuestion` lo
+     * usa como contexto, no lo persiste).
+     */
+    function bindChat(businessData) {
+        const form = content.querySelector('[data-vitrina-chat-form]');
+        const input = content.querySelector('[data-vitrina-chat-input]');
+        const messages = content.querySelector('[data-vitrina-chat-messages]');
+        const submitButton = form?.querySelector('button[type="submit"]');
+
+        if (!form || !input || !messages) {
+            return;
+        }
+
+        const history = [];
+        let sending = false;
+
+        function appendBubble(role, text) {
+            const bubble = document.createElement('div');
+            bubble.className = `vpe-vitrina-chat-bubble vpe-vitrina-chat-bubble-${role}`;
+            bubble.textContent = text;
+            messages.appendChild(bubble);
+            messages.scrollTop = messages.scrollHeight;
+
+            return bubble;
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const question = input.value.trim();
+
+            if (!question || sending) {
+                return;
+            }
+
+            sending = true;
+            input.value = '';
+            input.disabled = true;
+            if (submitButton) submitButton.disabled = true;
+
+            appendBubble('user', question);
+            const typingBubble = appendBubble('assistant', 'Escribiendo…');
+            typingBubble.classList.add('is-typing');
+
+            track?.('vitrina_chat_message_sent', { businessId: businessData.id });
+
+            try {
+                const response = await fetch(`/api/v1/plaza/negocios/${businessData.slug}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                    body: JSON.stringify({ question, history }),
+                });
+
+                const { data } = response.ok ? await response.json() : { data: null };
+
+                typingBubble.remove();
+
+                if (data?.answer) {
+                    appendBubble('assistant', data.answer);
+                    history.push({ role: 'user', content: question });
+                    history.push({ role: 'assistant', content: data.answer });
+
+                    // Solo se reenvían los últimos turnos — suficiente para
+                    // dar continuidad sin acumular un contexto sin límite.
+                    while (history.length > 12) {
+                        history.shift();
+                    }
+                } else {
+                    appendBubble('assistant', 'No pude responder en este momento. Escríbele directo al negocio para que te ayude.');
+                }
+            } catch {
+                typingBubble.remove();
+                appendBubble('assistant', 'No pude responder en este momento. Escríbele directo al negocio para que te ayude.');
+            } finally {
+                sending = false;
+                input.disabled = false;
+                if (submitButton) submitButton.disabled = false;
+                input.focus();
+            }
+        });
     }
 
     function bindImageZoom() {
@@ -377,6 +464,8 @@ function renderLoaded(business, products) {
             </div>
         ` : '<p class="vpe-vitrina-empty">Este negocio todavía no tiene productos publicados.</p>'}
 
+        ${business.available_ai_chat ? renderChatSection() : ''}
+
         ${business.hours_note ? `
             <div class="vpe-vitrina-hours-row">
                 <span class="vpe-vitrina-hours-icon">🕐</span>
@@ -419,6 +508,36 @@ function renderLoaded(business, products) {
         </div>
 
         <p class="vpe-vitrina-footer">🤍 Apoya lo local, impulsa nuestra comunidad</p>
+    `;
+}
+
+function renderChatSection() {
+    return `
+        <hr class="vpe-vitrina-divider">
+
+        <div class="vpe-vitrina-section-head">
+            <div class="vpe-vitrina-section-title-group">
+                <span class="vpe-vitrina-section-icon">🤖</span>
+                <h3 class="vpe-vitrina-section-title">Pregúntale al negocio</h3>
+            </div>
+        </div>
+
+        <div class="vpe-vitrina-chat">
+            <div class="vpe-vitrina-chat-messages" data-vitrina-chat-messages>
+                <div class="vpe-vitrina-chat-bubble vpe-vitrina-chat-bubble-assistant">👋 ¿Qué quieres saber? Puedo contarte sobre productos, precios, horarios y más.</div>
+            </div>
+            <form class="vpe-vitrina-chat-form" data-vitrina-chat-form>
+                <input
+                    type="text"
+                    class="vpe-vitrina-chat-input"
+                    data-vitrina-chat-input
+                    placeholder="Escribe tu pregunta…"
+                    maxlength="400"
+                    autocomplete="off"
+                >
+                <button type="submit" class="vpe-vitrina-chat-send" aria-label="Enviar pregunta">➤</button>
+            </form>
+        </div>
     `;
 }
 
@@ -693,6 +812,42 @@ function injectStylesOnce() {
             background: #f7f7f9; border-radius: 10px; padding: 10px 12px; margin: 0;
         }
 
+        .vpe-vitrina-chat {
+            display: flex; flex-direction: column; gap: 10px;
+            border: 1px solid #eceef1; border-radius: 16px; padding: 14px;
+            background: #fafafb;
+        }
+        .vpe-vitrina-chat-messages {
+            display: flex; flex-direction: column; gap: 8px;
+            max-height: 220px; overflow-y: auto; padding-right: 2px;
+        }
+        .vpe-vitrina-chat-bubble {
+            max-width: 82%; padding: 8px 12px; border-radius: 14px;
+            font-size: 0.85rem; line-height: 1.4; white-space: pre-line;
+        }
+        .vpe-vitrina-chat-bubble-assistant {
+            align-self: flex-start; background: #fff; border: 1px solid #eceef1;
+            color: #333a45; border-bottom-left-radius: 4px;
+        }
+        .vpe-vitrina-chat-bubble-user {
+            align-self: flex-end; background: #d7352a; color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .vpe-vitrina-chat-bubble.is-typing { opacity: 0.6; font-style: italic; }
+        .vpe-vitrina-chat-form { display: flex; gap: 8px; }
+        .vpe-vitrina-chat-input {
+            flex: 1; min-width: 0; padding: 10px 14px;
+            border-radius: 999px; border: 1px solid #d8dae0;
+            font-size: 0.88rem; font-family: inherit;
+        }
+        .vpe-vitrina-chat-input:disabled { opacity: 0.6; }
+        .vpe-vitrina-chat-send {
+            width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px;
+            border: none; background: #d7352a; color: #fff;
+            font-size: 1rem; cursor: pointer;
+        }
+        .vpe-vitrina-chat-send:disabled { opacity: 0.6; cursor: default; }
+
         .vpe-vitrina-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
         .vpe-vitrina-btn {
             flex: 1; min-width: 180px; display: flex; align-items: center; gap: 10px;
@@ -711,7 +866,7 @@ function injectStylesOnce() {
 
         @media (max-width: 720px) {
             .vpe-vitrina-panel { padding: 20px; border-radius: 16px; }
-            .vpe-vitrina-cover { display: none; }
+            .vpe-vitrina-cover-trigger { display: none; }
             .vpe-vitrina-logo { width: 56px; height: 56px; }
             .vpe-vitrina-name { font-size: 1.15rem; }
             .vpe-vitrina-card { width: 150px; height: 190px; }

@@ -21,6 +21,8 @@ class Plan extends Model
 
     public const PAGO_UNICO = 'pago_unico';
 
+    public const EMPRENDEDOR = 'emprendedor';
+
     protected $fillable = [
         'slug',
         'name',

@@ -599,7 +599,10 @@ export class VoxelPlazaEngine {
             mouseSensitivity: 0.0026,
             // Multiplicador aparte del de mouse: un arrastre de dedo cubre
             // muchos más píxeles que un `movementX` de mouse, y el usuario
-            // final lo puede ajustar (ver bindTouchSensitivitySettings()).
+            // final lo puede ajustar desde el menú de "Configuración de
+            // pantalla" del header (`display-settings-panel.js`), que lee/
+            // escribe este mismo `controls.touchSensitivity` y llama a
+            // `persistTouchSensitivity()` de aquí abajo.
             touchSensitivity: this.loadTouchSensitivity(),
         };
 
@@ -1409,61 +1412,7 @@ export class VoxelPlazaEngine {
 
         wrapper.appendChild(joystick);
         wrapper.appendChild(buttons);
-        wrapper.appendChild(this.buildTouchSensitivitySettings());
         this.container.appendChild(wrapper);
-    }
-
-    /**
-     * Botón de engranaje + panel con una barra para graduar qué tan rápido
-     * gira la cámara al arrastrar el dedo — pedido explícito del usuario,
-     * separado del stick/botones porque es configuración, no movimiento.
-     * Se recuerda entre visitas (localStorage), por dispositivo.
-     */
-    buildTouchSensitivitySettings() {
-        const settings = document.createElement('div');
-        settings.className = 'vpe-settings';
-
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'vpe-settings-toggle';
-        toggle.setAttribute('aria-label', 'Configuración de cámara');
-        toggle.textContent = '⚙';
-
-        const panel = document.createElement('div');
-        panel.className = 'vpe-settings-panel';
-
-        const label = document.createElement('label');
-        label.className = 'vpe-settings-label';
-        label.textContent = 'Sensibilidad de cámara';
-
-        const slider = document.createElement('input');
-        slider.type = 'range';
-        slider.min = '0.4';
-        slider.max = '2.2';
-        slider.step = '0.05';
-        slider.value = String(this.controls.touchSensitivity);
-        slider.className = 'vpe-settings-slider';
-
-        slider.addEventListener('input', () => {
-            const value = Number.parseFloat(slider.value);
-            this.controls.touchSensitivity = value;
-            this.persistTouchSensitivity(value);
-        });
-
-        // Evita que arrastrar la barra también arrastre/gire la cámara
-        // (están sobre el mismo lienzo).
-        slider.addEventListener('pointerdown', (event) => event.stopPropagation());
-
-        toggle.addEventListener('click', () => {
-            panel.classList.toggle('is-open');
-        });
-
-        label.appendChild(slider);
-        panel.appendChild(label);
-        settings.appendChild(toggle);
-        settings.appendChild(panel);
-
-        return settings;
     }
 
     loadTouchSensitivity() {
@@ -1515,9 +1464,10 @@ export class VoxelPlazaEngine {
                 height: 108px;
                 border-radius: 999px;
                 border: 1px solid rgba(255, 255, 255, 0.28);
-                background: rgba(10, 18, 33, 0.32);
+                background: rgba(10, 18, 33, 0.1);
                 pointer-events: auto;
                 touch-action: none;
+                backdrop-filter: blur(10px);
                 -webkit-tap-highlight-color: transparent;
                 transition: background 160ms ease, border-color 160ms ease;
             }
@@ -1564,10 +1514,11 @@ export class VoxelPlazaEngine {
                 height: 58px;
                 border-radius: 999px;
                 border: 1px solid rgba(255, 255, 255, 0.28);
-                background: rgba(10, 18, 33, 0.32);
+                background: rgba(10, 18, 33, 0.1);
                 color: rgba(255, 255, 255, 0.75);
                 font-size: 1.05rem;
                 display: flex;
+                backdrop-filter: blur(10px);
                 align-items: center;
                 justify-content: center;
                 transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
@@ -1584,69 +1535,6 @@ export class VoxelPlazaEngine {
                 width: 68px;
                 height: 68px;
                 font-size: 1.3rem;
-            }
-
-            .vpe-settings {
-                position: absolute;
-                top: 50%;
-                right: max(14px, env(safe-area-inset-right, 0px) + 10px);
-                transform: translateY(-50%);
-                pointer-events: auto;
-                display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-                gap: 10px;
-            }
-
-            .vpe-settings-toggle {
-                touch-action: none;
-                -webkit-tap-highlight-color: transparent;
-                width: 42px;
-                height: 42px;
-                border-radius: 999px;
-                border: 1px solid rgba(255, 255, 255, 0.28);
-                background: rgba(10, 18, 33, 0.32);
-                color: rgba(255, 255, 255, 0.75);
-                font-size: 1.05rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 160ms ease, border-color 160ms ease;
-            }
-
-            .vpe-settings-panel {
-                max-width: 0;
-                max-height: 0;
-                overflow: hidden;
-                opacity: 0;
-                border-radius: 16px;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                background: rgba(10, 18, 33, 0.62);
-                backdrop-filter: blur(10px);
-                transition: opacity 160ms ease, max-width 160ms ease, max-height 160ms ease, padding 160ms ease;
-            }
-
-            .vpe-settings-panel.is-open {
-                max-width: 220px;
-                max-height: 90px;
-                opacity: 1;
-                padding: 12px 14px;
-            }
-
-            .vpe-settings-label {
-                display: block;
-                white-space: nowrap;
-                font-size: 0.76rem;
-                color: rgba(255, 255, 255, 0.82);
-                font-family: sans-serif;
-            }
-
-            .vpe-settings-slider {
-                touch-action: pan-x;
-                display: block;
-                width: 180px;
-                margin-top: 8px;
-                accent-color: rgba(255, 255, 255, 0.85);
             }
 
             @media (min-width: 900px) {

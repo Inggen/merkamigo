@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Billing\Models\BillingProduct;
+use App\Domain\Billing\Models\BusinessEntitlement;
 use Illuminate\Database\Seeder;
 
 /**
@@ -70,6 +71,18 @@ class BillingProductSeeder extends Seeder
                 'price_cents' => 9990000,
                 'kind' => BillingProduct::KIT_ARRANCA_BONITO,
                 'payload' => ['days' => 14],
+                'is_active' => true,
+            ],
+        );
+
+        BillingProduct::query()->updateOrCreate(
+            ['slug' => 'asistente-ia'],
+            [
+                'name' => 'Asistente IA para tu vitrina',
+                'description' => 'Un chat con inteligencia artificial en tu vitrina que responde al instante las preguntas de tus visitantes, usando la información real de tu negocio y tus productos.',
+                'price_cents' => 4990000,
+                'kind' => BillingProduct::ENTITLEMENT,
+                'payload' => ['entitlement_key' => BusinessEntitlement::AI_CHATBOT, 'expires_in_days' => null],
                 'is_active' => true,
             ],
         );

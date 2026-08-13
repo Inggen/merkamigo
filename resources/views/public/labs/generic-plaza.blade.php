@@ -22,6 +22,51 @@
                 background: radial-gradient(circle at top, rgba(215, 106, 61, 0.22), transparent 32%), #07111f;
             }
 
+            /* Mismo header que el resto de la app (`cliente-nav.blade.php`:
+               logo + acciones + cuenta), adaptado al fondo oscuro de la
+               escena — flota encima del canvas sin taparlo (altura fija,
+               el resto del layout no depende de ella). */
+            .voxel-lab-header {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 20;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 16px;
+                background: linear-gradient(to bottom, rgba(7, 17, 31, 0.82), rgba(7, 17, 31, 0));
+            }
+
+            .voxel-lab-header-logo {
+                display: flex;
+                align-items: center;
+                flex-shrink: 0;
+            }
+
+            .voxel-lab-header-logo svg {
+                height: 34px;
+                width: auto;
+            }
+
+            .voxel-lab-header-actions {
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .voxel-lab-header-account {
+                flex-shrink: 0;
+                margin-left: 4px;
+            }
+
+            @media (max-width: 480px) {
+                .voxel-lab-header { padding: 8px 12px; }
+                .voxel-lab-header-logo svg { height: 28px; }
+            }
+
             #generic-immersive-scene {
                 width: 100%;
                 height: 100%;
@@ -41,10 +86,10 @@
                 width: max-content;
                 max-width: calc(100vw - 28px);
                 padding: 6px 12px;
-                border-radius: 999px;
+                /*border-radius: 999px;
                 border: 1px solid rgba(255, 255, 255, 0.14);
-                background: rgba(10, 18, 33, 0.68);
-                backdrop-filter: blur(10px);
+                background: rgba(10, 18, 33, 0.20);
+                backdrop-filter: blur(10px);*/
                 color: rgba(255, 255, 255, 0.72);
                 font-size: 0.7rem;
                 text-align: center;
@@ -54,7 +99,7 @@
                — subir este aviso para que no quede debajo de esos controles. */
             @media (hover: none) and (pointer: coarse) {
                 .voxel-lab-status {
-                    bottom: 150px;
+                    bottom: 10px;
                 }
             }
 
@@ -71,7 +116,7 @@
                — `#generic-immersive-scene.is-locked` ya lo marca el motor. */
             #generic-lock-trigger {
                 position: absolute;
-                top: 20px;
+                top: 74px;
                 left: 50%;
                 z-index: 15;
                 transform: translateX(-50%);
@@ -163,6 +208,42 @@
     </head>
     <body>
         <div class="voxel-lab-shell">
+            <header class="voxel-lab-header">
+                <a href="{{ route('home') }}" class="voxel-lab-header-logo" aria-label="{{ __('Ir al inicio de Merkamigo') }}" title="{{ __('Merkamigo') }}">
+                    <x-app-logo-icon />
+                </a>
+
+                {{-- `stand-search-panel.js` (buscador/filtros) y
+                     `display-settings-panel.js` (calidad gráfica) insertan
+                     aquí sus botones — así viven en el mismo header en vez
+                     de flotar sueltos por la pantalla. --}}
+                <div class="voxel-lab-header-actions" id="generic-header-actions"></div>
+
+                @auth
+                    <flux:dropdown position="bottom" align="end" class="voxel-lab-header-account">
+                        <flux:profile
+                            :avatar="auth()->user()->avatarUrl()"
+                            :initials="auth()->user()->initials()"
+                            circle
+                            :chevron="false"
+                        />
+                        <flux:menu>
+                            <flux:menu.item :href="route('profile.edit')" icon="user-circle" wire:navigate>{{ __('Mi cuenta') }}</flux:menu.item>
+                            <flux:menu.item :href="route('clientes.favoritos')" icon="heart" wire:navigate>{{ __('Favoritos') }}</flux:menu.item>
+                            <flux:menu.separator />
+                            <x-experience-switch-menu />
+                            <flux:menu.separator />
+                            <form method="POST" action="{{ route('logout') }}" class="w-full">
+                                @csrf
+                                <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full cursor-pointer">
+                                    {{ __('Cerrar sesión') }}
+                                </flux:menu.item>
+                            </form>
+                        </flux:menu>
+                    </flux:dropdown>
+                @endauth
+            </header>
+
             <div id="generic-immersive-scene" aria-label="Escena inmersiva de {{ $plaza->name }}"></div>
             <button type="button" id="generic-lock-trigger">🖱️ {{ __('Haz clic para mirar alrededor') }}</button>
             <div class="voxel-lab-status">With ♥️ by <a href="https://inggen.com" target="_blank">inggen.com</a></div>
@@ -192,6 +273,11 @@
             };
             window.genericPlazaReferenceImageUrl = @json($plaza->reference_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($plaza->reference_image_path) : null);
         </script>
-        <script type="module" src="{{ asset('js/generic-plaza-immersive.js') }}"></script>
+        {{-- `?v=` con la fecha de modificación evita que el navegador siga
+             sirviendo una copia en caché de este script (y de los módulos
+             que importa) después de un cambio — estos archivos viven en
+             `public/js`, fuera del pipeline de Vite, así que no reciben
+             el hash automático de los assets compilados. --}}
+        <script type="module" src="{{ asset('js/generic-plaza-immersive.js') }}?v={{ filemtime(public_path('js/generic-plaza-immersive.js')) }}"></script>
     </body>
 </html>

@@ -19,14 +19,20 @@ import { applyTiling } from './texture-tiling-utils.js';
  * vive en `renderObjectByPriority()` (`voxel-plaza-engine.js`) — mismo
  * código que usa el editor espacial del admin, para que nunca diverjan.
  *
- * `loadDynamicStands()` además devuelve un registro `{ position, business, root }`
- * por cada stand con negocio real (IMM-032: `position`/`business` los
- * consume `attachStandProximity()`, `stand-proximity.js`, para el
- * indicador "Ver vitrina"; IMM-034: `root`, el objeto 3D ya construido,
- * lo usa `attachSearchPanel()`, `stand-search-panel.js`, para ocultar/
- * mostrar stands al filtrar sin nunca tocar su posición). Los elementos
- * de plaza (`loadDynamicProps`) nunca traen `business`, así que ese
- * registro siempre queda vacío para ellos.
+ * `loadDynamicStands()` además devuelve un registro
+ * `{ position, business, root, logoSprite, ownerFigure }` por cada stand
+ * con negocio real (IMM-032: `position`/`business` los consume
+ * `attachStandProximity()`, `stand-proximity.js`, para el indicador "Ver
+ * vitrina" — que además ignora cualquier stand con `root.visible === false`;
+ * IMM-034: `root`/`logoSprite`/`ownerFigure`, los tres objetos 3D ya
+ * construidos, los usa `attachSearchPanel()`, `stand-search-panel.js`,
+ * para ocultar/mostrar el stand COMPLETO al filtrar — booth, insignia de
+ * logo y figura del dueño a la vez, sin nunca tocar su posición). La
+ * insignia y la figura se agregan a `engine.world` de forma independiente
+ * al `root` (ver `attachLogoBadge`/`attachOwnerFigure` más abajo), así que
+ * sin esta referencia explícita quedarían visibles aunque el stand se
+ * oculte. Los elementos de plaza (`loadDynamicProps`) nunca traen
+ * `business`, así que ese registro siempre queda vacío para ellos.
  */
 export async function loadDynamicStands(engine, plazaId) {
     return loadDynamicObjects(engine, plazaId, 'stands');
@@ -93,7 +99,7 @@ async function loadDynamicObjects(engine, plazaId, endpoint) {
  * `loadDynamicObjects()` para poder procesar varios objetos en paralelo
  * por lote (IMM-041) sin duplicar esta lógica.
  *
- * @returns {Promise<{position: THREE.Vector3, business: object, root: THREE.Object3D|null}|null>}
+ * @returns {Promise<{position: THREE.Vector3, business: object, root: THREE.Object3D|null, logoSprite: THREE.Sprite|null, ownerFigure: THREE.Object3D|null}|null>}
  */
 async function renderDynamicObject(engine, object) {
     const { x, y = 0, z } = object.world_position ?? {};
@@ -113,6 +119,15 @@ async function renderDynamicObject(engine, object) {
         modelDefinition: object.model_definition,
         builderKey: object.builder_key,
     });
+
+    // Construido ANTES de disparar `attachLogoBadge`/`attachOwnerFigure`
+    // para que ambos puedan guardar aquí el `Sprite`/figura que crean —
+    // ninguno de los dos vive como hijo de `root` (ver sus comentarios),
+    // así que sin esta referencia `stand-search-panel.js` no tendría cómo
+    // ocultarlos junto con el stand al filtrar.
+    const record = object.business
+        ? { position: new THREE.Vector3(x, y, z), business: object.business, root, logoSprite: null, ownerFigure: null }
+        : null;
 
     if (root) {
         root.position.set(x, y, z);
@@ -140,8 +155,18 @@ async function renderDynamicObject(engine, object) {
             // `model_definition` o forma voxel, y se reconoce desde lejos
             // independientemente del ángulo desde el que se camine. Un
             // logo roto/inaccesible nunca debe tumbar la carga del resto
-            // de la plaza.
-            attachLogoBadge(engine, root, object.business.logo_url).catch(() => {});
+            // de la plaza. Sigue sin bloquear el resto de la función (el
+            // stand queda listo sin esperar la descarga de la imagen); el
+            // sprite se engancha al registro apenas resuelve, así que un
+            // filtro aplicado antes de que cargue simplemente no tiene aún
+            // nada que ocultar (se cubre el caso en `applyLocalFilter`).
+            attachLogoBadge(engine, root, object.business.logo_url)
+                .then((sprite) => {
+                    if (record) {
+                        record.logoSprite = sprite;
+                    }
+                })
+                .catch(() => {});
         }
 
         if (object.business?.stand_color) {
@@ -154,18 +179,14 @@ async function renderDynamicObject(engine, object) {
             // `buildAvatarFigure` con datos raros) nunca debe tumbar la
             // carga del resto de la plaza.
             try {
-                attachOwnerFigure(engine, root, object.business.owner_avatar_preset);
+                record.ownerFigure = attachOwnerFigure(engine, root, object.business.owner_avatar_preset);
             } catch {
                 // Contenido adicional: ver comentario de cabecera del archivo.
             }
         }
     }
 
-    if (object.business) {
-        return { position: new THREE.Vector3(x, y, z), business: object.business, root };
-    }
-
-    return null;
+    return record;
 }
 
 const logoBadgeSize = 128;
@@ -240,6 +261,8 @@ async function attachLogoBadge(engine, root, logoUrl) {
     // pero se conserva la posición vertical donde ya estaba el círculo.
     sprite.position.set(boxCenter.x, root.position.y + height + 4.1, boxCenter.z);
     engine.world.add(sprite);
+
+    return sprite;
 }
 
 /**
@@ -266,6 +289,8 @@ function attachOwnerFigure(engine, root, presetKey) {
     figure.position.set(box.max.x + 0.9, root.position.y, boxCenter.z);
     figure.rotation.y = root.rotation.y;
     engine.world.add(figure);
+
+    return figure;
 }
 
 function loadImage(url) {

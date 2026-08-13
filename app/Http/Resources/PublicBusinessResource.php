@@ -40,6 +40,7 @@ class PublicBusinessResource extends JsonResource
             'hours_note' => $this->hoursNote(),
             'is_open_now' => $this->isOpenNow(),
             'is_featured' => $this->isFeatured(),
+            'available_ai_chat' => $this->canUseAiChatbot(),
             'has_verified_badge' => $this->hasVerifiedBadge(),
             'verified_badge_label' => $this->verifiedBadgeLabel(),
             'url' => route('vitrinas.show', $this->resource),

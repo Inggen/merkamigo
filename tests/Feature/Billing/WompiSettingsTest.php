@@ -67,6 +67,55 @@ class WompiSettingsTest extends TestCase
         ]);
     }
 
+    public function test_saved_secrets_are_never_prefilled_back_into_the_form(): void
+    {
+        WompiSetting::create([
+            'active_env' => 'sandbox',
+            'sandbox_public_key' => 'pub_test_abc',
+            'sandbox_private_key' => 'prv_test_abc',
+            'sandbox_integrity_secret' => 'integrity_test_abc',
+            'sandbox_events_secret' => 'events_test_abc',
+        ]);
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(WompiSettings::class)
+            ->assertSet('data.sandbox_public_key', 'pub_test_abc')
+            ->assertSet('data.sandbox_private_key', null)
+            ->assertSet('data.sandbox_integrity_secret', null)
+            ->assertSet('data.sandbox_events_secret', null);
+    }
+
+    public function test_saving_again_with_blank_secret_fields_does_not_erase_the_saved_secrets(): void
+    {
+        WompiSetting::create([
+            'active_env' => 'sandbox',
+            'sandbox_public_key' => 'pub_test_abc',
+            'sandbox_private_key' => 'prv_test_abc',
+            'sandbox_integrity_secret' => 'integrity_test_abc',
+            'sandbox_events_secret' => 'events_test_abc',
+        ]);
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        // Simula recargar la página (los secretos llegan en null, como en
+        // `mount()`) y guardar sin haber vuelto a escribirlos.
+        Livewire::test(WompiSettings::class)
+            ->fillForm(['sandbox_public_key' => 'pub_test_abc_actualizada'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $setting = WompiSetting::query()->firstOrFail();
+        $this->assertSame('pub_test_abc_actualizada', $setting->sandbox_public_key);
+        $this->assertSame('prv_test_abc', $setting->getRawOriginal('sandbox_private_key'));
+        $this->assertSame('integrity_test_abc', $setting->getRawOriginal('sandbox_integrity_secret'));
+        $this->assertSame('events_test_abc', $setting->getRawOriginal('sandbox_events_secret'));
+    }
+
     public function test_a_regular_business_owner_cannot_access_the_settings_page(): void
     {
         $owner = User::factory()->create();

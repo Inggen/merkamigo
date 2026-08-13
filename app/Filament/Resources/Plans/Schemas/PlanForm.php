@@ -10,6 +10,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
+use Filament\Support\RawJs;
 
 class PlanForm
 {
@@ -25,9 +26,16 @@ class PlanForm
                 Textarea::make('description')
                     ->columnSpanFull(),
                 TextInput::make('price_cents')
-                    ->label('Precio (en centavos COP, vacío = gratuito)')
+                    ->label('Precio (COP, vacío = gratuito)')
                     ->numeric()
-                    ->helperText('Ej: 1990000 = $19.900 COP. Déjalo vacío para un plan gratuito.'),
+                    ->mask(RawJs::make("\$money(\$input, ',', '.', 0)"))
+                    ->stripCharacters('.')
+                    // El campo se escribe/muestra en pesos (ej. 19.900);
+                    // `price_cents` sigue guardando centavos porque Wompi
+                    // exige `amount_in_cents` en su API.
+                    ->formatStateUsing(fn (?int $state): ?int => filled($state) ? intdiv($state, 100) : null)
+                    ->dehydrateStateUsing(fn ($state) => filled($state) ? ((int) $state) * 100 : null)
+                    ->helperText('Ej: 19.900 = $19.900 COP. Déjalo vacío para un plan gratuito.'),
                 Select::make('billing_period')
                     ->label('Periodicidad')
                     ->options([

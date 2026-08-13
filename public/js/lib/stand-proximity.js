@@ -7,7 +7,10 @@
  * `updatePlayer`/`updateCamera`/`bindInput`.
  *
  * Recibe el registro que ya devuelve `loadDynamicStands()`
- * (`dynamic-stand-loader.js`): `[{ position: THREE.Vector3, business }]`.
+ * (`dynamic-stand-loader.js`): `[{ position: THREE.Vector3, business, root }]`.
+ * Ignora cualquier stand con `root.visible === false` — un stand oculto
+ * por `stand-search-panel.js` (filtro/búsqueda) no debe poder activar el
+ * indicador "Ver vitrina" aunque el personaje pase por su posición.
  */
 import { THREE } from './voxel-plaza-engine.js';
 
@@ -33,6 +36,14 @@ export function attachStandProximity(engine, stands, { radius = DEFAULT_RADIUS, 
         let bestScore = -Infinity;
 
         for (const stand of stands) {
+            // Un stand oculto por el filtro de `stand-search-panel.js`
+            // (`stand.root.visible = false`) no debe seguir siendo
+            // candidato al indicador "Ver vitrina" — si el booth ya no se
+            // ve, tampoco debería poder "sentirse" caminando por ahí.
+            if (stand.root && !stand.root.visible) {
+                continue;
+            }
+
             const toStand = stand.position.clone().sub(playerPos);
             toStand.y = 0;
             const distance = toStand.length();

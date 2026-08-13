@@ -29,6 +29,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('plaza/negocios/{business:slug}/productos', [DiscoveryController::class, 'products'])->name('plaza.negocios.productos');
     Route::get('plaza/negocios/{business:slug}/productos/{product}', [DiscoveryController::class, 'product'])->name('plaza.negocios.productos.show');
 
+    // Chat con IA de la vitrina (solo negocios con `canUseAiChatbot()`):
+    // throttle más estricto que el resto de descubrimiento porque cada
+    // mensaje dispara una llamada pagada a OpenAI, no solo una consulta.
+    Route::middleware('throttle:15,1')
+        ->post('plaza/negocios/{business:slug}/chat', [DiscoveryController::class, 'chat'])
+        ->name('plaza.negocios.chat');
+
     // IMM-020b — puente mínimo de stands dinámicos: qué stand está
     // realmente ocupado en una plaza inmersiva publicada, y con qué
     // plantilla, para que las escenas fijas por municipio (decisión de

@@ -6,11 +6,31 @@
  * de prioridad de renderizado (GLB > definición IA > forma voxel) que ya
  * usa el editor espacial del admin — así nunca divergen.
  */
+// Sin `?v=` a propósito: `voxel-plaza-engine.js` lo importan también
+// `dynamic-stand-loader.js`, `stand-proximity.js` y `texture-tiling-utils.js`
+// (este último compartido además con el editor espacial del admin) — todos
+// deben resolver la MISMA URL de módulo o el navegador lo carga dos veces
+// como instancias separadas (clases distintas, caché de texturas
+// duplicada). Tras tocar este archivo, si hace falta forzar la
+// re-descarga, hay que renombrar/mover el archivo, no agregar `?v=` aquí
+// solo.
 import { THREE, VoxelPlazaEngine, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js';
-import { loadDynamicStands, loadDynamicProps } from './lib/dynamic-stand-loader.js';
-import { attachStandProximity } from './lib/stand-proximity.js';
-import { createVitrinaModal } from './lib/stand-vitrina-modal.js';
-import { attachSearchPanel } from './lib/stand-search-panel.js';
+// `?v=2` fuerza la re-descarga tras el fix de logo/atendedor/proximidad
+// que sigue sin ocultarse al filtrar un stand — bump este número si
+// vuelves a tocar `dynamic-stand-loader.js`.
+import { loadDynamicStands, loadDynamicProps } from './lib/dynamic-stand-loader.js?v=2';
+// `?v=2` idem — `attachStandProximity` ahora ignora stands ocultos.
+import { attachStandProximity } from './lib/stand-proximity.js?v=2';
+// `?v=2` fuerza a refrescar la copia en caché del navegador tras el fix
+// del recorte de texto en móvil — bump este número si vuelves a tocar
+// `stand-vitrina-modal.js` y necesitas que los navegadores lo re-descarguen.
+import { createVitrinaModal } from './lib/stand-vitrina-modal.js?v=2';
+// `?v=4` fuerza la re-descarga tras mover el botón de búsqueda al header
+// compartido — bump este número si vuelves a tocar `stand-search-panel.js`.
+import { attachSearchPanel } from './lib/stand-search-panel.js?v=4';
+// `?v=2` fuerza la re-descarga tras agregar la sección de sensibilidad
+// de cámara al menú.
+import { attachDisplaySettingsPanel } from './lib/display-settings-panel.js?v=2';
 import { loadAvatarPreference } from './lib/avatar-preference.js';
 import { loadReducedMotionPreference } from './lib/reduced-motion-preference.js';
 import { createTracker, schedulePerformanceSample } from './lib/immersive-tracking.js';
@@ -21,6 +41,7 @@ const preloader = createPreloader();
 
 const container = document.getElementById('generic-immersive-scene');
 const lockTrigger = document.getElementById('generic-lock-trigger');
+const headerActions = document.getElementById('generic-header-actions');
 
 if (!container) {
     throw new Error('Generic immersive container not found.');
@@ -43,6 +64,18 @@ const spawn = window.genericPlazaSpawn ?? { x: 0, z: 0 };
 
 const qualityTier = resolveQualityTier(window.genericPlazaQualityProfile ?? {});
 
+// Compartido entre el motor (panel técnico oculto, `?perf=1`/tecla "P") y
+// el botón de engranaje del header (`display-settings-panel.js`) — mismo
+// estado, misma acción al elegir un nivel, dos puertas de entrada.
+const qualityControl = {
+    currentTier: qualityTier,
+    isOverride: loadQualityOverride() !== null,
+    onSelect: (tier) => {
+        saveQualityOverride(tier);
+        window.location.reload();
+    },
+};
+
 const engine = new VoxelPlazaEngine({
     container,
     lockTrigger,
@@ -52,19 +85,16 @@ const engine = new VoxelPlazaEngine({
     avatarPreset: loadAvatarPreference(),
     reducedMotion: loadReducedMotionPreference(),
     quality: getQualitySettings(qualityTier),
-    qualityControl: {
-        currentTier: qualityTier,
-        isOverride: loadQualityOverride() !== null,
-        onSelect: (tier) => {
-            saveQualityOverride(tier);
-            window.location.reload();
-        },
-    },
+    qualityControl,
     groundSize,
     movementBounds: bounds,
     playerStart: { x: spawn.x ?? 0, z: spawn.z ?? 0 },
     playerFacing: spawn.rotationY ?? 0,
 });
+
+if (headerActions) {
+    attachDisplaySettingsPanel(qualityControl, { container: headerActions, engine });
+}
 
 // IMM-040: si el rendimiento real cae en crítico varias muestras seguidas
 // y el visitante no eligió un nivel a mano, se degrada un nivel y se
@@ -112,7 +142,7 @@ loadDynamicStands(engine, window.genericPlazaId).then((stands) => {
     attachStandProximity(engine, stands, {
         onOpen: (business) => genericVitrinaModal.open(business),
     });
-    attachSearchPanel(engine, stands, { currentMunicipalitySlug: window.genericMunicipalitySlug, vitrinaModal: genericVitrinaModal, track });
+    attachSearchPanel(engine, stands, { currentMunicipalitySlug: window.genericMunicipalitySlug, vitrinaModal: genericVitrinaModal, track, container: headerActions });
 
     return loadDynamicProps(engine, window.genericPlazaId);
 }).finally(() => {

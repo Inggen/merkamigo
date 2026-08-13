@@ -2,6 +2,7 @@
 
 namespace App\Domain\Businesses\Models;
 
+use App\Domain\Billing\Models\BusinessEntitlement;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Models\Subscription;
 use App\Domain\Discovery\Concerns\Favoritable;
@@ -282,6 +283,31 @@ class Business extends Model
     public function isFeatured(): bool
     {
         return $this->featured_until !== null && $this->featured_until->isFuture();
+    }
+
+    /**
+     * @return HasMany<BusinessEntitlement, $this>
+     */
+    public function entitlements(): HasMany
+    {
+        return $this->hasMany(BusinessEntitlement::class);
+    }
+
+    public function hasEntitlement(string $key): bool
+    {
+        return $this->entitlements
+            ->where('key', $key)
+            ->contains(fn (BusinessEntitlement $entitlement) => $entitlement->isActive());
+    }
+
+    /**
+     * El chatbot con IA de la vitrina requiere el plan Emprendedor o el
+     * add-on correspondiente comprado en "Impulsa tu negocio" (ver
+     * `BusinessEntitlement::AI_CHATBOT`).
+     */
+    public function canUseAiChatbot(): bool
+    {
+        return $this->activePlan()->slug === Plan::EMPRENDEDOR || $this->hasEntitlement(BusinessEntitlement::AI_CHATBOT);
     }
 
     public function currentVerification(): ?BusinessVerification

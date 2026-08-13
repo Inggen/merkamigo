@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Storefronts\Actions\AnswerBusinessChatQuestion;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\MunicipalityResource;
@@ -116,6 +117,38 @@ class DiscoveryController extends Controller
             ->withQueryString();
 
         return ApiResponse::paginated($products, ProductResource::class);
+    }
+
+    /**
+     * Chat con IA de la vitrina — solo negocios con
+     * `Business::canUseAiChatbot()` (plan Emprendedor o el add-on
+     * correspondiente comprado en "Impulsa tu negocio"). Sin historial
+     * persistido en el servidor: el cliente reenvía los últimos turnos
+     * en cada mensaje (ver `AnswerBusinessChatQuestion`).
+     */
+    public function chat(Request $request, Business $business): JsonResponse
+    {
+        abort_unless($business->isPublished(), 404);
+        abort_unless($business->canUseAiChatbot(), 403);
+
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:400'],
+            'history' => ['nullable', 'array', 'max:12'],
+            'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
+            'history.*.content' => ['required_with:history', 'string', 'max:800'],
+        ]);
+
+        $answer = app(AnswerBusinessChatQuestion::class)->handle(
+            $business,
+            $validated['question'],
+            $validated['history'] ?? [],
+        );
+
+        if ($answer === null) {
+            return ApiResponse::response(['answer' => null], status: 503);
+        }
+
+        return ApiResponse::response(['answer' => $answer]);
     }
 
     public function product(Business $business, string $product): JsonResponse

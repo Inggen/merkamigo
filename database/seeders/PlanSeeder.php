@@ -57,6 +57,7 @@ class PlanSeeder extends Seeder
                     'Hasta 5 colaboradores en el equipo',
                     'Destacados en la Plaza hasta 7 días',
                     'Copiloto de WhatsApp para promociones',
+                    'Asistente con IA en tu vitrina',
                 ],
                 'trial_days' => 14,
                 'is_active' => true,

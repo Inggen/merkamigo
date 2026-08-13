@@ -19,6 +19,15 @@ class BillingProduct extends Model
 
     public const KIT_ARRANCA_BONITO = 'kit_arranca_bonito';
 
+    /**
+     * Desbloqueo genérico de una capacidad (ver `BusinessEntitlement`):
+     * el `payload` indica qué clave otorga (`entitlement_key`) y, si
+     * vence, cuántos días dura (`expires_in_days`, null = permanente).
+     * Un solo kind reutilizable para cualquier add-on futuro de este
+     * tipo, sin tener que agregar un kind nuevo por cada uno.
+     */
+    public const ENTITLEMENT = 'entitlement';
+
     protected $fillable = [
         'slug',
         'name',
