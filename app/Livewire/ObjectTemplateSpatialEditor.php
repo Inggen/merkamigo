@@ -4,14 +4,18 @@ namespace App\Livewire;
 
 use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Domain\Immersive\Support\Exceptions\VoxelDefinitionValidationException;
+use App\Domain\Immersive\Support\VoxelDefinitionBounds;
 use App\Domain\Immersive\Support\VoxelDefinitionValidator;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Livewire\Component;
 
 class ObjectTemplateSpatialEditor extends Component
 {
     private const MIN_DIMENSION = 0.001;
+
+    private const DEFAULT_GLOW_COLOR = '#ffd873';
 
     /**
      * Tope arbitrario y conservador para no dejar crecer sin límite el
@@ -34,6 +38,26 @@ class ObjectTemplateSpatialEditor extends Component
 
     /** @var array<string, float|int> */
     public array $sizeReference = [];
+
+    /**
+     * Pedido del usuario: agrupar cajas para moverlas/rotarlas/escalarlas
+     * juntas con el gizmo, renombrar el grupo y bloquear/desbloquear todos
+     * sus miembros a la vez. Igual que `$selectedBoxIndex`, mutuamente
+     * excluyente con él — seleccionar una caja limpia el grupo y viceversa.
+     */
+    public ?string $selectedGroupId = null;
+
+    /** @var array<string, mixed> */
+    public array $selectedGroupForm = [];
+
+    /**
+     * Índices de cajas marcadas (checkbox en la lista, o Shift+clic en el
+     * visor) para agruparlas con `createGroup()` — selección efímera, no
+     * forma parte de la definición ni del historial de deshacer.
+     *
+     * @var array<int, int>
+     */
+    public array $selectedForGrouping = [];
 
     public string $maxWidthForm = '1';
 
@@ -68,6 +92,10 @@ class ObjectTemplateSpatialEditor extends Component
             return;
         }
 
+        $this->selectedGroupId = null;
+        $this->selectedGroupForm = [];
+        $this->selectedForGrouping = [];
+
         $this->selectedBoxIndex = $index;
         $this->selectedBoxForm = [
             'label' => $box['label'],
@@ -76,6 +104,10 @@ class ObjectTemplateSpatialEditor extends Component
             'rotation' => $box['rotation'],
             'texture' => $box['texture'],
             'collidable' => (bool) $box['collidable'],
+            'locked' => (bool) $box['locked'],
+            'tiling' => $box['tiling'],
+            'glowEnabled' => $box['emissive'] !== null,
+            'glowColor' => $box['emissive'] ?? self::DEFAULT_GLOW_COLOR,
         ];
         $this->sizeReference = $box['size'];
 
@@ -87,6 +119,304 @@ class ObjectTemplateSpatialEditor extends Component
         $this->selectedBoxIndex = null;
         $this->selectedBoxForm = [];
         $this->sizeReference = [];
+    }
+
+    /**
+     * Marca o desmarca una caja para agruparla — pedido del usuario. Cada
+     * checkbox manda su nuevo estado explícito (`$event.target.checked`),
+     * no "alternar la actual" (`wire:click="toggleX()"` calculando el
+     * siguiente estado contra el último snapshot sincronizado): con varias
+     * cajas marcadas rápido, dos peticiones en vuelo podían basarse en el
+     * mismo snapshot viejo y una pisaba el resultado de la otra, perdiendo
+     * marcas aunque los checkboxes se vieran marcados en pantalla (bug
+     * reportado por el usuario). Mandar la intención explícita hace que
+     * cada petición sea idempotente sin importar en qué orden lleguen.
+     */
+    public function setGroupingSelection(int $index, bool $selected): void
+    {
+        if ($selected) {
+            if (! in_array($index, $this->selectedForGrouping, true)) {
+                $this->selectedForGrouping[] = $index;
+            }
+
+            return;
+        }
+
+        $this->selectedForGrouping = array_values(array_diff($this->selectedForGrouping, [$index]));
+    }
+
+    /**
+     * Pedido del usuario: agrupar varias cajas para editarlas juntas con el
+     * gizmo. El reagrupamiento visual real (mover cada malla bajo un
+     * `THREE.Group` temporal conservando su transform) lo hace el
+     * navegador — aquí solo se anota el `groupId` en cada caja elegida y se
+     * declara el grupo en `definition.groups`.
+     */
+    public function createGroup(): void
+    {
+        if (count($this->selectedForGrouping) < 2) {
+            Notification::make()
+                ->title('Selecciona al menos 2 cajas para agrupar')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $definition = $this->definition();
+        $boxes = $definition['boxes'] ?? [];
+        $groupId = (string) Str::random(10);
+
+        // `selectedForGrouping` llega desde checkboxes HTML (`wire:model`
+        // ligado al mismo array) — sus valores son strings aunque el
+        // índice real de la caja sea entero.
+        foreach ($this->selectedForGrouping as $index) {
+            $index = (int) $index;
+
+            if (isset($boxes[$index]) && is_array($boxes[$index])) {
+                $boxes[$index]['groupId'] = $groupId;
+            }
+        }
+
+        $definition['boxes'] = $boxes;
+        $definition['groups'] = [
+            ...($definition['groups'] ?? []),
+            ['id' => $groupId, 'name' => 'Grupo '.(count($definition['groups'] ?? []) + 1)],
+        ];
+
+        if (! $this->validateCandidateDefinition($definition)) {
+            return;
+        }
+
+        if (! $this->persistDefinition($definition)) {
+            return;
+        }
+
+        $this->selectedForGrouping = [];
+        $this->selectGroup($groupId);
+
+        Notification::make()
+            ->title('Grupo creado')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Disuelve el grupo seleccionado — las cajas siguen existiendo tal cual
+     * estaban, solo pierden su `groupId`.
+     */
+    public function ungroupSelected(): void
+    {
+        if ($this->selectedGroupId === null) {
+            return;
+        }
+
+        $groupId = $this->selectedGroupId;
+        $definition = $this->definition();
+        $boxes = $definition['boxes'] ?? [];
+
+        foreach ($boxes as $index => $box) {
+            if (is_array($box) && ($box['groupId'] ?? null) === $groupId) {
+                unset($boxes[$index]['groupId']);
+            }
+        }
+
+        $definition['boxes'] = array_values($boxes);
+        $definition['groups'] = collect($definition['groups'] ?? [])
+            ->reject(fn (array $group): bool => ($group['id'] ?? null) === $groupId)
+            ->values()
+            ->all();
+
+        if (! $this->validateCandidateDefinition($definition)) {
+            return;
+        }
+
+        if (! $this->persistDefinition($definition)) {
+            return;
+        }
+
+        $this->clearSelectedGroup();
+        $this->dispatch('object-editor-select-group', groupId: null, boxIndices: []);
+
+        Notification::make()
+            ->title('Grupo disuelto')
+            ->body('Las cajas siguen ahí, ya no están agrupadas.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Pedido del usuario: duplicar un grupo completo — copia todas sus
+     * cajas (con el mismo desplazamiento +0.5 en X/Z que usa
+     * `duplicateSelectedBox()`) dentro de un grupo NUEVO, dejando el
+     * original intacto.
+     */
+    public function duplicateSelectedGroup(): void
+    {
+        if ($this->selectedGroupId === null) {
+            return;
+        }
+
+        $definition = $this->definition();
+        $boxes = $definition['boxes'] ?? [];
+        $sourceGroupId = $this->selectedGroupId;
+
+        $memberBoxes = collect($boxes)
+            ->filter(fn ($box): bool => is_array($box) && ($box['groupId'] ?? null) === $sourceGroupId)
+            ->values();
+
+        if ($memberBoxes->isEmpty()) {
+            return;
+        }
+
+        $newGroupId = (string) Str::random(10);
+        $sourceGroupName = collect($definition['groups'] ?? [])
+            ->firstWhere('id', $sourceGroupId)['name'] ?? 'Grupo';
+
+        $duplicatedBoxes = $memberBoxes->map(function (array $box) use ($newGroupId): array {
+            $box['x'] = (float) ($box['x'] ?? 0) + 0.5;
+            $box['z'] = (float) ($box['z'] ?? 0) + 0.5;
+            // Mismo criterio que `duplicateSelectedBox()`: el duplicado
+            // nace desbloqueado para que el admin pueda ajustarlo de
+            // inmediato, aunque el original (o sus cajas) estén bloqueados.
+            $box['locked'] = false;
+            $box['groupId'] = $newGroupId;
+
+            return $box;
+        })->values()->all();
+
+        $definition['boxes'] = [...$boxes, ...$duplicatedBoxes];
+        $definition['groups'] = [
+            ...($definition['groups'] ?? []),
+            ['id' => $newGroupId, 'name' => "{$sourceGroupName} (copia)"],
+        ];
+
+        if (! $this->validateCandidateDefinition($definition)) {
+            return;
+        }
+
+        if (! $this->persistDefinition($definition)) {
+            return;
+        }
+
+        $this->selectGroup($newGroupId);
+
+        Notification::make()
+            ->title('Grupo duplicado')
+            ->success()
+            ->send();
+    }
+
+    public function selectGroup(string $groupId): void
+    {
+        $group = collect($this->sceneData['groups'] ?? [])->first(fn (array $group): bool => $group['id'] === $groupId);
+
+        if (! $group) {
+            return;
+        }
+
+        $this->selectedBoxIndex = null;
+        $this->selectedBoxForm = [];
+        $this->selectedForGrouping = [];
+
+        $this->selectedGroupId = $groupId;
+        $this->selectedGroupForm = ['name' => $group['name']];
+
+        $this->dispatch('object-editor-select-group', groupId: $groupId, boxIndices: $group['boxIndices']);
+    }
+
+    public function clearSelectedGroup(): void
+    {
+        $this->selectedGroupId = null;
+        $this->selectedGroupForm = [];
+    }
+
+    public function renameSelectedGroup(): void
+    {
+        if ($this->selectedGroupId === null) {
+            return;
+        }
+
+        $name = trim((string) ($this->selectedGroupForm['name'] ?? ''));
+
+        if ($name === '') {
+            Notification::make()
+                ->title('El grupo necesita un nombre')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $definition = $this->definition();
+        $definition['groups'] = collect($definition['groups'] ?? [])
+            ->map(function (array $group) use ($name): array {
+                if (($group['id'] ?? null) === $this->selectedGroupId) {
+                    $group['name'] = $name;
+                }
+
+                return $group;
+            })
+            ->values()
+            ->all();
+
+        if (! $this->validateCandidateDefinition($definition)) {
+            return;
+        }
+
+        if (! $this->persistDefinition($definition)) {
+            return;
+        }
+
+        Notification::make()
+            ->title('Grupo renombrado')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Candado del grupo — bloquea o desbloquea TODOS sus miembros de una
+     * vez. Mismo criterio que `toggleBoxLock()`: no pasa por deshacer/
+     * rehacer ni por la validación de bounds, bloquear no cambia geometría.
+     * Si ALGUNO de los miembros ya está bloqueado, la próxima pulsación
+     * bloquea el resto (en vez de exigir que estén todos en el mismo
+     * estado para poder actuar).
+     */
+    public function toggleGroupLock(string $groupId): void
+    {
+        $definition = $this->definition();
+        $boxes = $definition['boxes'] ?? [];
+        $memberIndices = collect($boxes)
+            ->filter(fn ($box): bool => is_array($box) && ($box['groupId'] ?? null) === $groupId)
+            ->keys();
+
+        if ($memberIndices->isEmpty()) {
+            return;
+        }
+
+        $allLocked = $memberIndices->every(fn (int $index): bool => (bool) ($boxes[$index]['locked'] ?? false));
+        $nextState = ! $allLocked;
+
+        foreach ($memberIndices as $index) {
+            $boxes[$index]['locked'] = $nextState;
+        }
+
+        $definition['boxes'] = $boxes;
+
+        $this->template->update([
+            'model_definition' => $definition,
+            'ai_draft_definition' => $definition,
+        ]);
+
+        $this->reloadSceneData();
+
+        $group = collect($this->sceneData['groups'] ?? [])->first(fn (array $group): bool => $group['id'] === $groupId);
+
+        $this->dispatch(
+            'object-editor-select-group',
+            groupId: $groupId,
+            boxIndices: $group['boxIndices'] ?? [],
+        );
     }
 
     public function addBox(): void
@@ -142,6 +472,13 @@ class ObjectTemplateSpatialEditor extends Component
 
         $source['x'] = (float) ($source['x'] ?? 0) + 0.5;
         $source['z'] = (float) ($source['z'] ?? 0) + 0.5;
+        // El duplicado nace desbloqueado aunque el original esté bloqueado
+        // — mismo criterio que `duplicateProp()` en el editor de plaza,
+        // para que el admin pueda ajustarlo de inmediato. Tampoco hereda el
+        // grupo del original: agrupar es una acción explícita del usuario,
+        // no algo que deba pasar solo por duplicar una caja.
+        $source['locked'] = false;
+        unset($source['groupId']);
         $boxes[] = $source;
         $definition['boxes'] = $boxes;
 
@@ -229,8 +566,18 @@ class ObjectTemplateSpatialEditor extends Component
             'h' => max(self::MIN_DIMENSION, (float) ($this->selectedBoxForm['size']['y'] ?? self::MIN_DIMENSION)),
             'd' => max(self::MIN_DIMENSION, (float) ($this->selectedBoxForm['size']['z'] ?? self::MIN_DIMENSION)),
             'texture' => (string) ($this->selectedBoxForm['texture'] ?? 'stone'),
+            'rotationX' => (float) ($this->selectedBoxForm['rotation']['x'] ?? 0),
             'rotationY' => (float) ($this->selectedBoxForm['rotation']['y'] ?? 0),
+            'rotationZ' => (float) ($this->selectedBoxForm['rotation']['z'] ?? 0),
             'collidable' => (bool) ($this->selectedBoxForm['collidable'] ?? false),
+            'locked' => (bool) ($this->selectedBoxForm['locked'] ?? false),
+            'tiling' => [
+                'u' => max(self::MIN_DIMENSION, (float) ($this->selectedBoxForm['tiling']['u'] ?? 1)),
+                'v' => max(self::MIN_DIMENSION, (float) ($this->selectedBoxForm['tiling']['v'] ?? 1)),
+            ],
+            'emissive' => ($this->selectedBoxForm['glowEnabled'] ?? false)
+                ? (string) ($this->selectedBoxForm['glowColor'] ?? self::DEFAULT_GLOW_COLOR)
+                : null,
         ];
 
         $definition['boxes'] = array_values($boxes);
@@ -256,7 +603,106 @@ class ObjectTemplateSpatialEditor extends Component
             ->send();
     }
 
-    public function updateBoxPosition(int $index, float $x, float $z): void
+    /**
+     * Gizmo en modo Mover (`TransformControls`, sin restricción de eje) —
+     * pedido del usuario: mismas propiedades que el editor de plaza, pero
+     * las cajas sí se mueven libre en Y (antes solo X/Z, arrastre casero
+     * sobre un plano en el suelo).
+     */
+    public function updateBoxPosition(int $index, float $x, float $y, float $z): void
+    {
+        $this->applyBoxTransform($index, function (array &$box) use ($x, $y, $z): void {
+            $box['x'] = $x;
+            $box['y'] = $y;
+            $box['z'] = $z;
+        });
+    }
+
+    /**
+     * Gizmo en modo Rotar — pedido del usuario: a diferencia del editor de
+     * plaza (rotación restringida a Y), aquí no hay límite en ningún eje.
+     */
+    public function updateBoxRotation(int $index, float $x, float $y, float $z): void
+    {
+        $this->applyBoxTransform($index, function (array &$box) use ($x, $y, $z): void {
+            $box['rotationX'] = $x;
+            $box['rotationY'] = $y;
+            $box['rotationZ'] = $z;
+        });
+    }
+
+    /**
+     * Gizmo en modo Escalar. Una caja no tiene un multiplicador de escala
+     * separado como un `prop` de plaza (`scale_vector` sobre un modelo
+     * base) — su tamaño ES `w`/`h`/`d`, así que "escalar" multiplica esas
+     * dimensiones directamente por el factor que dejó el gizmo (que arranca
+     * en 1 en cada intento, porque `renderDefinition()` siempre reconstruye
+     * la caja desde `w`/`h`/`d` con escala 1).
+     */
+    public function updateBoxScale(int $index, float $scaleX, float $scaleY, float $scaleZ): void
+    {
+        $this->applyBoxTransform($index, function (array &$box) use ($scaleX, $scaleY, $scaleZ): void {
+            $box['w'] = max(self::MIN_DIMENSION, (float) ($box['w'] ?? 1) * $scaleX);
+            $box['h'] = max(self::MIN_DIMENSION, (float) ($box['h'] ?? 1) * $scaleY);
+            $box['d'] = max(self::MIN_DIMENSION, (float) ($box['d'] ?? 1) * $scaleZ);
+        });
+    }
+
+    /**
+     * Gizmo aplicado a un GRUPO completo — pedido del usuario. El navegador
+     * hace el reagrupamiento real: reparenta cada malla bajo un
+     * `THREE.Group` temporal con `Object3D.attach()` (conserva el transform
+     * mundial de cada caja), deja que el gizmo mueva/rote/escale ese grupo,
+     * y al soltar ya manda aquí la posición/rotación/tamaño resuelto de
+     * CADA caja — un solo `persistDefinition()` para todo el grupo, un solo
+     * registro en el historial de deshacer (no uno por caja).
+     *
+     * @param  array<int, array<string, mixed>>  $updates  [{index, x, y, z, rotationX, rotationY, rotationZ, w?, h?, d?}, ...]
+     */
+    public function updateGroupBoxes(string $groupId, array $updates): void
+    {
+        $definition = $this->definition();
+        $boxes = $definition['boxes'] ?? [];
+
+        foreach ($updates as $update) {
+            $index = (int) ($update['index'] ?? -1);
+
+            if (! isset($boxes[$index]) || ! is_array($boxes[$index])) {
+                continue;
+            }
+
+            foreach (['x', 'y', 'z', 'rotationX', 'rotationY', 'rotationZ'] as $field) {
+                if (array_key_exists($field, $update)) {
+                    $boxes[$index][$field] = (float) $update[$field];
+                }
+            }
+
+            foreach (['w', 'h', 'd'] as $field) {
+                if (array_key_exists($field, $update)) {
+                    $boxes[$index][$field] = max(self::MIN_DIMENSION, (float) $update[$field]);
+                }
+            }
+        }
+
+        $definition['boxes'] = $boxes;
+
+        if (! $this->persistDefinition($definition)) {
+            $this->dispatch('object-editor-reject', index: null);
+
+            return;
+        }
+
+        $group = collect($this->sceneData['groups'] ?? [])->first(fn (array $group): bool => $group['id'] === $groupId);
+
+        if ($group) {
+            $this->dispatch('object-editor-select-group', groupId: $groupId, boxIndices: $group['boxIndices']);
+        }
+    }
+
+    /**
+     * @param  callable  $mutate  recibe la caja por referencia y la modifica in-place
+     */
+    private function applyBoxTransform(int $index, callable $mutate): void
     {
         $definition = $this->definition();
         $boxes = $definition['boxes'] ?? [];
@@ -265,15 +711,8 @@ class ObjectTemplateSpatialEditor extends Component
             return;
         }
 
-        $boxes[$index]['x'] = $x;
-        $boxes[$index]['z'] = $z;
+        $mutate($boxes[$index]);
         $definition['boxes'] = array_values($boxes);
-
-        if (! $this->validateCandidateDefinition($definition)) {
-            $this->dispatch('object-editor-reject', index: $index);
-
-            return;
-        }
 
         if (! $this->persistDefinition($definition)) {
             $this->dispatch('object-editor-reject', index: $index);
@@ -292,6 +731,38 @@ class ObjectTemplateSpatialEditor extends Component
         }
     }
 
+    /**
+     * Candado para bloquear una caja en el visor — mismo comportamiento que
+     * `toggleObjectLock()` del editor de plaza: no pasa por el historial de
+     * deshacer/rehacer (bloquear/desbloquear no es una edición de
+     * contenido) ni por la validación de bounds (no cambia geometría).
+     */
+    public function toggleBoxLock(int $index): void
+    {
+        $definition = $this->definition();
+        $boxes = $definition['boxes'] ?? [];
+
+        if (! isset($boxes[$index]) || ! is_array($boxes[$index])) {
+            return;
+        }
+
+        $boxes[$index]['locked'] = ! ($boxes[$index]['locked'] ?? false);
+        $definition['boxes'] = $boxes;
+
+        $this->template->update([
+            'model_definition' => $definition,
+            'ai_draft_definition' => $definition,
+        ]);
+
+        $this->reloadSceneData();
+
+        $payload = $this->findBoxData($index);
+
+        if ($payload) {
+            $this->dispatch('object-editor-box-updated', box: $payload);
+        }
+    }
+
     public function toggleSizeLock(): void
     {
         $this->sizeLockEnabled = ! $this->sizeLockEnabled;
@@ -300,6 +771,21 @@ class ObjectTemplateSpatialEditor extends Component
 
     public function updated(string $name, mixed $value): void
     {
+        // Vista previa en vivo del tiling mientras se escribe — mismo
+        // patrón que `PlazaSpatialEditor`: el guardado real sigue
+        // requiriendo el botón "Guardar props", esto solo refresca el
+        // visor 3D antes.
+        if (str_starts_with($name, 'selectedBoxForm.tiling.') && $this->selectedBoxIndex !== null) {
+            $this->dispatch(
+                'object-editor-tiling-preview',
+                index: $this->selectedBoxIndex,
+                tiling: [
+                    'u' => (float) ($this->selectedBoxForm['tiling']['u'] ?? 1),
+                    'v' => (float) ($this->selectedBoxForm['tiling']['v'] ?? 1),
+                ],
+            );
+        }
+
         if (! $this->sizeLockEnabled || ! str_starts_with($name, 'selectedBoxForm.size.')) {
             return;
         }
@@ -345,9 +831,9 @@ class ObjectTemplateSpatialEditor extends Component
      * Pedido del usuario: los campos de tamaño máximo son editables a mano
      * (no solo informativos) — sirven para reservar más huella de la que
      * las cajas actuales ocupan, o para achicarla antes de seguir editando.
-     * `persistDefinition()` los sigue recalculando automáticamente cada vez
-     * que cambian las cajas, así que ambos caminos terminan aquí y
-     * mantienen sincronizados el formulario y el recuadro rojo del visor.
+     * Ya no se recalculan solos al cambiar las cajas (ver
+     * `applyValidatedDefinition()`); solo cambian aquí o al pulsar el botón
+     * "Ajustar al contenido" (`recalculateMaxSize()`).
      */
     public function updatedMaxWidthForm(mixed $value): void
     {
@@ -403,13 +889,33 @@ class ObjectTemplateSpatialEditor extends Component
     private function buildSceneData(): array
     {
         $definition = $this->definition();
+        $boxes = collect($definition['boxes'] ?? [])
+            ->values()
+            ->map(fn (array $box, int $index): array => $this->describeBox($box, $index));
+
+        // Pedido del usuario: agrupar cajas. Los grupos se listan a partir
+        // de las cajas ya descritas (no del `groupId` crudo) para no
+        // duplicar la lógica de qué caja pertenece a cuál — un grupo sin
+        // ninguna caja apuntándolo (ej. se borró la última) simplemente no
+        // aparece, aunque `pruneEmptyGroups()` ya debería haberlo limpiado.
+        $groups = collect($definition['groups'] ?? [])
+            ->map(function (array $group) use ($boxes): array {
+                $members = $boxes->filter(fn (array $box): bool => ($box['groupId'] ?? null) === ($group['id'] ?? null));
+
+                return [
+                    'id' => (string) ($group['id'] ?? ''),
+                    'name' => (string) ($group['name'] ?? 'Grupo'),
+                    'boxIndices' => $members->pluck('index')->values()->all(),
+                    'locked' => $members->isNotEmpty() && $members->every(fn (array $box): bool => $box['locked']),
+                ];
+            })
+            ->filter(fn (array $group): bool => $group['boxIndices'] !== [])
+            ->values();
 
         return [
             'definition' => $definition,
-            'boxes' => collect($definition['boxes'] ?? [])
-                ->values()
-                ->map(fn (array $box, int $index): array => $this->describeBox($box, $index))
-                ->all(),
+            'boxes' => $boxes->all(),
+            'groups' => $groups->all(),
             'maxSize' => [
                 'width' => max(self::MIN_DIMENSION, (float) $this->template->max_width),
                 'depth' => max(self::MIN_DIMENSION, (float) $this->template->max_depth),
@@ -429,6 +935,13 @@ class ObjectTemplateSpatialEditor extends Component
             'label' => 'Caja '.($index + 1),
             'texture' => (string) ($box['texture'] ?? 'stone'),
             'collidable' => (bool) ($box['collidable'] ?? false),
+            'locked' => (bool) ($box['locked'] ?? false),
+            'groupId' => $box['groupId'] ?? null,
+            'tiling' => [
+                'u' => (float) ($box['tiling']['u'] ?? 1),
+                'v' => (float) ($box['tiling']['v'] ?? 1),
+            ],
+            'emissive' => $box['emissive'] ?? null,
             'position' => [
                 'x' => (float) ($box['x'] ?? 0),
                 'y' => (float) ($box['y'] ?? 0),
@@ -439,15 +952,19 @@ class ObjectTemplateSpatialEditor extends Component
                 'y' => max(self::MIN_DIMENSION, (float) ($box['h'] ?? 1)),
                 'z' => max(self::MIN_DIMENSION, (float) ($box['d'] ?? 1)),
             ],
+            // Pedido del usuario: sin límite de rotación en X/Z (a
+            // diferencia de `PlazaSpatialEditor`, que sí los fuerza a 0).
             'rotation' => [
-                'x' => 0.0,
+                'x' => (float) ($box['rotationX'] ?? 0),
                 'y' => (float) ($box['rotationY'] ?? 0),
-                'z' => 0.0,
+                'z' => (float) ($box['rotationZ'] ?? 0),
             ],
             'x' => (float) ($box['x'] ?? 0),
             'y' => (float) ($box['y'] ?? 0),
             'z' => (float) ($box['z'] ?? 0),
+            'rotationX' => (float) ($box['rotationX'] ?? 0),
             'rotationY' => (float) ($box['rotationY'] ?? 0),
+            'rotationZ' => (float) ($box['rotationZ'] ?? 0),
         ];
     }
 
@@ -500,16 +1017,14 @@ class ObjectTemplateSpatialEditor extends Component
      */
     private function persistDefinition(array $definition): bool
     {
-        $bounds = $this->validateDefinitionOrNotify($definition, 'No se pudo guardar el objeto');
-
-        if ($bounds === null) {
+        if ($this->validateDefinitionOrNotify($definition, 'No se pudo guardar el objeto') === null) {
             return false;
         }
 
         $this->pushHistory($this->undoStack, $this->definition());
         $this->redoStack = [];
 
-        $this->applyValidatedDefinition($definition, $bounds);
+        $this->applyValidatedDefinition($definition);
 
         return true;
     }
@@ -523,18 +1038,22 @@ class ObjectTemplateSpatialEditor extends Component
      */
     private function restoreDefinition(array $definition): bool
     {
-        $bounds = $this->validateDefinitionOrNotify($definition, 'No se pudo restaurar ese estado');
-
-        if ($bounds === null) {
+        if ($this->validateDefinitionOrNotify($definition, 'No se pudo restaurar ese estado') === null) {
             return false;
         }
 
-        $this->applyValidatedDefinition($definition, $bounds);
+        $this->applyValidatedDefinition($definition);
 
         return true;
     }
 
     /**
+     * Valida y, de paso, confirma que las cajas caben dentro del tamaño
+     * máximo actual de la plantilla (`VoxelDefinitionValidator` compara
+     * contra `$this->template->max_*`) — el valor de retorno solo se usa
+     * como señal de éxito/fracaso, el tamaño máximo ya no se recalcula a
+     * partir de él (ver `applyValidatedDefinition()`).
+     *
      * @param  array<string, mixed>  $definition
      * @return array{width: float, depth: float, height: float}|null
      */
@@ -554,25 +1073,79 @@ class ObjectTemplateSpatialEditor extends Component
     }
 
     /**
+     * Pedido del usuario: el tamaño máximo ya NO se recalcula solo al
+     * cambiar las cajas — queda como lo dejó el admin (a mano o con el
+     * botón "Ajustar al contenido" de `recalculateMaxSize()`).
+     *
      * @param  array<string, mixed>  $definition
-     * @param  array{width: float, depth: float, height: float}  $bounds
      */
-    private function applyValidatedDefinition(array $definition, array $bounds): void
+    private function applyValidatedDefinition(array $definition): void
     {
+        $definition = $this->pruneEmptyGroups($definition);
+
         $this->template->update([
             'model_definition' => $definition,
             'ai_draft_definition' => $definition,
+        ]);
+
+        $this->reloadSceneData();
+        $this->dispatch('object-editor-definition-updated', definition: $this->sceneData['definition']);
+    }
+
+    /**
+     * Limpia entradas de `groups` que ya se quedaron sin ninguna caja
+     * apuntándolas (ej. se borró la última caja del grupo, o se desagrupó
+     * a mano pero algo dejó el registro suelto) — evita que se acumulen
+     * metadatos huérfanos en `model_definition`. Corre después de validar,
+     * así que solo QUITA entradas — nunca puede introducir una referencia
+     * inválida nueva.
+     *
+     * @param  array<string, mixed>  $definition
+     * @return array<string, mixed>
+     */
+    private function pruneEmptyGroups(array $definition): array
+    {
+        $groups = $definition['groups'] ?? [];
+
+        if ($groups === []) {
+            return $definition;
+        }
+
+        $referencedIds = collect($definition['boxes'] ?? [])
+            ->filter(fn ($box): bool => is_array($box) && filled($box['groupId'] ?? null))
+            ->pluck('groupId')
+            ->unique();
+
+        $definition['groups'] = collect($groups)
+            ->filter(fn (array $group): bool => $referencedIds->contains($group['id'] ?? null))
+            ->values()
+            ->all();
+
+        return $definition;
+    }
+
+    /**
+     * Pedido del usuario: el ajuste automático del tamaño máximo a la huella
+     * real de las cajas deja de pasar solo — ahora requiere pulsar este
+     * botón ("Ajustar al contenido" en Opciones).
+     */
+    public function recalculateMaxSize(): void
+    {
+        $bounds = VoxelDefinitionBounds::calculate($this->definition());
+
+        $this->template->update([
             'max_width' => $bounds['width'],
             'max_depth' => $bounds['depth'],
             'max_height' => $bounds['height'],
         ]);
 
         $this->reloadSceneData();
-        $this->dispatch('object-editor-definition-updated', definition: $this->sceneData['definition']);
-        // Las cajas también recalculan el tamaño máximo (huella real) — sin
-        // este dispatch el recuadro rojo del visor se quedaba desactualizado
-        // hasta tocar a mano un campo de tamaño máximo.
         $this->dispatch('object-editor-max-size-updated', maxSize: $this->sceneData['maxSize']);
+
+        Notification::make()
+            ->title('Tamaño máximo ajustado a las cajas actuales')
+            ->success()
+            ->send();
     }
 
     /**

@@ -55,6 +55,42 @@ class SiteSettingsTest extends TestCase
         Storage::disk('public')->assertExists($setting->default_share_image_path);
     }
 
+    public function test_an_admin_can_upload_the_branding_images(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm([
+                'logo_path' => UploadedFile::fake()->image('logo.png'),
+                'logo_mono_path' => UploadedFile::fake()->image('logo-mono.png'),
+                'apple_touch_icon_path' => UploadedFile::fake()->image('apple-touch-icon.png'),
+                'login_background_path' => UploadedFile::fake()->image('login-bg.png'),
+                'footer_background_path' => UploadedFile::fake()->image('footer-bg.jpg'),
+                'main_search_background_path' => UploadedFile::fake()->image('search-bg.jpg'),
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $setting = SiteSetting::query()->firstOrFail();
+
+        $this->assertNotNull($setting->logoUrl());
+        $this->assertNotNull($setting->logoMonoUrl());
+        $this->assertNotNull($setting->appleTouchIconUrl());
+        $this->assertNotNull($setting->loginBackgroundUrl());
+        $this->assertNotNull($setting->footerBackgroundUrl());
+        $this->assertNotNull($setting->mainSearchBackgroundUrl());
+        Storage::disk('public')->assertExists($setting->logo_path);
+        Storage::disk('public')->assertExists($setting->logo_mono_path);
+        Storage::disk('public')->assertExists($setting->apple_touch_icon_path);
+        Storage::disk('public')->assertExists($setting->login_background_path);
+        Storage::disk('public')->assertExists($setting->footer_background_path);
+        Storage::disk('public')->assertExists($setting->main_search_background_path);
+    }
+
     public function test_a_regular_user_cannot_access_the_site_settings_page(): void
     {
         $owner = User::factory()->create();

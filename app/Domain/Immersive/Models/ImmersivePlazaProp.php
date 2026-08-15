@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array{x: float, y: float, z: float}|null $rotation
  * @property array{x: float, y: float, z: float}|null $scale_vector
  * @property array{u: float, v: float}|null $texture_tiling
+ * @property bool $texture_tiling_locked
  * @property bool $collision_enabled
  * @property bool $locked
  */
@@ -31,6 +32,7 @@ class ImmersivePlazaProp extends Model
         'scale',
         'scale_vector',
         'texture_tiling',
+        'texture_tiling_locked',
         'collision_enabled',
         'source',
         'status',
@@ -46,6 +48,7 @@ class ImmersivePlazaProp extends Model
             'scale' => 'float',
             'scale_vector' => 'array',
             'texture_tiling' => 'array',
+            'texture_tiling_locked' => 'boolean',
             'collision_enabled' => 'boolean',
             'locked' => 'boolean',
         ];

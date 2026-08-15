@@ -195,6 +195,7 @@ class ImmersiveExperience extends Model
                 'excluded_zones' => $plaza->excluded_zones,
                 'mobile_quality_profile' => $plaza->mobile_quality_profile,
                 'desktop_quality_profile' => $plaza->desktop_quality_profile,
+                'fog' => $plaza->fog,
             ])->all(),
         ];
     }
@@ -279,6 +280,7 @@ class ImmersiveExperience extends Model
                 'excluded_zones' => $plazaSnapshot['excluded_zones'] ?? null,
                 'mobile_quality_profile' => $plazaSnapshot['mobile_quality_profile'] ?? $plaza->mobile_quality_profile,
                 'desktop_quality_profile' => $plazaSnapshot['desktop_quality_profile'] ?? $plaza->desktop_quality_profile,
+                'fog' => $plazaSnapshot['fog'] ?? $plaza->fog,
             ]);
         }
 
@@ -323,6 +325,7 @@ class ImmersiveExperience extends Model
                     'reference_image_width' => $plaza->reference_image_width,
                     'reference_image_height' => $plaza->reference_image_height,
                     'legend_image_path' => $plaza->legend_image_path,
+                    'fog' => $plaza->fog,
                 ]);
 
                 foreach ($plaza->zones as $zone) {

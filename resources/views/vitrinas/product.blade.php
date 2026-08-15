@@ -50,6 +50,21 @@
         x-data="{
             tab: 'descripcion',
             quantity: 1,
+            // Bug real reportado por el usuario: en el navegador de
+            // escritorio los enlaces `https://wa.me/...`,
+            // `facebook.com/sharer/...`, etc. sí abren el diálogo de
+            // compartir esperado, pero en Safari/iOS cada app suele
+            // interceptar esas URLs vía universal links y abrir su feed
+            // normal en vez del compositor de compartir (o, en el caso de
+            // Instagram, ni siquiera existe una URL de compartir — el botón
+            // solo abría instagram.com). El Web Share API nativo
+            // (`navigator.share`) delega en el propio sistema operativo,
+            // que sí sabe abrir el compositor correcto de cada app
+            // instalada — está soportado en todos los navegadores móviles
+            // relevantes (Safari iOS desde 12.2) pero no en la mayoría de
+            // navegadores de escritorio, por eso la fila de íconos por red
+            // se mantiene como respaldo cuando no está disponible.
+            shareSupported: typeof navigator !== 'undefined' && !! navigator.share,
             gallery: @js($galleryItems),
             activeImage: @js($gallery->first()?->url() ?? $pageImage),
             activeAlt: @js($gallery->first()?->alt_text ?? $product->name),
@@ -360,11 +375,22 @@
                             <img src="{{ route('vitrinas.qr.product', [$business, $product]) }}" alt="QR" class="size-28 shrink-0 rounded-2xl border border-zinc-200 bg-white p-2 dark:border-zinc-700" loading="lazy" decoding="async">
                             <p class="max-w-32 text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">{{ __('Escanea para compartir') }}</p>
                         </div>
-                        <div
-                            class="a2a_kit a2a_kit_size_32 flex flex-wrap items-center justify-center gap-3"
-                            data-a2a-url="{{ $productUrl }}"
-                            data-a2a-title="{{ $product->name.' · '.$business->name }}"
-                        >
+                        <div x-show="shareSupported" x-cloak>
+                            <button
+                                type="button"
+                                x-on:click="navigator.share({
+                                        title: @js($product->name.' · '.$business->name),
+                                        text: @js($product->name.' · '.$business->name),
+                                        url: @js($productUrl),
+                                    }).then(() => fetch('{{ route('vitrinas.compartir.product', [$business, $product]) }}', { method: 'POST' })).catch(() => {})"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
+                            >
+                                <flux:icon.share class="size-5" variant="outline" />
+                                {{ __('Compartir') }}
+                            </button>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-center gap-3" x-show="! shareSupported" x-cloak>
                             <a
                                 href="https://wa.me/?text={{ urlencode($product->name.' · '.$business->name.' '.$productUrl) }}"
                                 target="_blank"

@@ -53,7 +53,20 @@ class ImmersivePlazaForm
                     ->image()
                     ->disk('public')
                     ->directory('immersive-plazas')
-                    ->helperText('El cuadro de convenciones (color → tipo de objeto) por separado del plano. La acción "Detectar leyenda" del encabezado lee los colores de esta imagen.'),
+                    ->helperText('El cuadro de convenciones (color → tipo de objeto) por separado del plano. La acción "Detectar leyenda" del encabezado lee los colores de esta imagen.')
+                    // Oculto a pedido del usuario (2026-08-14) — mismo
+                    // criterio que `excluded_zones`: la acción "Detectar
+                    // leyenda" y todo lo que ya dependa de un
+                    // `legend_image_path` existente en BD siguen
+                    // funcionando igual, esto solo quita el campo de subida
+                    // de la vista.
+                    ->hidden(),
+                FileUpload::make('sky_image_path')
+                    ->label('Imagen de cielo (panorámica 360°)')
+                    ->image()
+                    ->disk('public')
+                    ->directory('immersive-plazas')
+                    ->helperText('Foto panorámica equirectangular (360°, relación de aspecto 2:1) usada como fondo del cielo en la experiencia 3D. Si no se sube ninguna, se usa el color de cielo por defecto.'),
                 Repeater::make('excluded_zones')
                     ->label('Zonas excluidas')
                     ->helperText('Rutas, monumentos, accesos o el punto de aparición: ningún slot puede invadir estos polígonos.')

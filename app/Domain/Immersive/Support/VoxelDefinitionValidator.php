@@ -69,6 +69,8 @@ class VoxelDefinitionValidator
             $errors = [...$errors, ...$this->validateBox($index, $box)];
         }
 
+        $errors = [...$errors, ...$this->validateGroups($definition['groups'] ?? null, $boxes)];
+
         if ($errors !== []) {
             throw new VoxelDefinitionValidationException($errors);
         }
@@ -130,16 +132,102 @@ class VoxelDefinitionValidator
             $errors[] = "La caja #{$index}: \"texture\" debe ser una de: ".implode(', ', self::ALLOWED_TEXTURES).'.';
         }
 
-        if (array_key_exists('rotationY', $box)) {
-            if (! is_numeric($box['rotationY'])) {
-                $errors[] = "La caja #{$index}: \"rotationY\" debe ser numérico.";
-            } elseif (! is_finite((float) $box['rotationY'])) {
-                $errors[] = "La caja #{$index}: \"rotationY\" debe ser un número finito.";
+        // Pedido del usuario: las cajas rotan libre en los 3 ejes (el gizmo
+        // del editor ya no restringe X/Z) — `rotationX`/`rotationZ` son tan
+        // opcionales como `rotationY` siempre lo fue (compatibilidad con
+        // definiciones viejas que solo tienen esta última).
+        foreach (['rotationX', 'rotationY', 'rotationZ'] as $field) {
+            if (! array_key_exists($field, $box)) {
+                continue;
+            }
+
+            if (! is_numeric($box[$field])) {
+                $errors[] = "La caja #{$index}: \"{$field}\" debe ser numérico.";
+            } elseif (! is_finite((float) $box[$field])) {
+                $errors[] = "La caja #{$index}: \"{$field}\" debe ser un número finito.";
             }
         }
 
         if (array_key_exists('collidable', $box) && ! is_bool($box['collidable'])) {
             $errors[] = "La caja #{$index}: \"collidable\" debe ser verdadero o falso.";
+        }
+
+        if (array_key_exists('locked', $box) && ! is_bool($box['locked'])) {
+            $errors[] = "La caja #{$index}: \"locked\" debe ser verdadero o falso.";
+        }
+
+        if (array_key_exists('tiling', $box) && $box['tiling'] !== null) {
+            $tiling = $box['tiling'];
+            $u = is_array($tiling) ? ($tiling['u'] ?? null) : null;
+            $v = is_array($tiling) ? ($tiling['v'] ?? null) : null;
+
+            if (! is_numeric($u) || ! is_numeric($v) || (float) $u <= 0 || (float) $v <= 0) {
+                $errors[] = "La caja #{$index}: \"tiling\" debe traer \"u\" y \"v\" numéricos mayores que cero.";
+            }
+        }
+
+        if (array_key_exists('groupId', $box) && $box['groupId'] !== null && (! is_string($box['groupId']) || $box['groupId'] === '')) {
+            $errors[] = "La caja #{$index}: \"groupId\" debe ser un texto no vacío o nulo.";
+        }
+
+        // Pedido del usuario: dar la impresión de que una caja está
+        // iluminada (ej. el bombillo de un farol) sin necesitar una luz
+        // real en la escena — color emisivo opcional, `null` = apagado.
+        if (array_key_exists('emissive', $box) && $box['emissive'] !== null
+            && (! is_string($box['emissive']) || ! preg_match('/^#[0-9a-fA-F]{6}$/', $box['emissive']))) {
+            $errors[] = "La caja #{$index}: \"emissive\" debe ser un color hexadecimal (#rrggbb) o nulo.";
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Pedido del usuario: agrupar cajas del editor de objeto para mover/
+     * rotar/escalar juntas con el gizmo. `groups` es una lista de
+     * `{id, name}` a nivel de la definición; cada caja solo guarda el `id`
+     * del grupo al que pertenece (`groupId`) — aquí se valida que ambos
+     * lados calcen (ningún `groupId` de caja apunta a un grupo inexistente).
+     *
+     * @param  array<int, mixed>  $boxes
+     * @return array<int, string>
+     */
+    private function validateGroups(mixed $groups, array $boxes): array
+    {
+        $groups ??= [];
+
+        if (! is_array($groups)) {
+            return ['"groups" debe ser una lista.'];
+        }
+
+        $errors = [];
+        $ids = [];
+
+        foreach ($groups as $groupIndex => $group) {
+            if (! is_array($group) || ! is_string($group['id'] ?? null) || $group['id'] === '') {
+                $errors[] = "El grupo #{$groupIndex}: \"id\" debe ser un texto no vacío.";
+
+                continue;
+            }
+
+            if (! is_string($group['name'] ?? null) || trim($group['name']) === '') {
+                $errors[] = "El grupo #{$groupIndex}: \"name\" debe ser un texto no vacío.";
+            }
+
+            if (in_array($group['id'], $ids, true)) {
+                $errors[] = "El grupo #{$groupIndex}: \"id\" duplicado ({$group['id']}).";
+
+                continue;
+            }
+
+            $ids[] = $group['id'];
+        }
+
+        foreach ($boxes as $boxIndex => $box) {
+            $groupId = is_array($box) ? ($box['groupId'] ?? null) : null;
+
+            if ($groupId !== null && is_string($groupId) && ! in_array($groupId, $ids, true)) {
+                $errors[] = "La caja #{$boxIndex}: \"groupId\" ({$groupId}) no corresponde a ningún grupo declarado.";
+            }
         }
 
         return $errors;

@@ -16,6 +16,12 @@ class SiteSetting extends Model
 
     protected $fillable = [
         'default_share_image_path',
+        'login_background_path',
+        'footer_background_path',
+        'apple_touch_icon_path',
+        'main_search_background_path',
+        'logo_path',
+        'logo_mono_path',
     ];
 
     public static function current(): self
@@ -25,8 +31,41 @@ class SiteSetting extends Model
 
     public function defaultShareImageUrl(): ?string
     {
-        return $this->default_share_image_path
-            ? Storage::disk('public')->url($this->default_share_image_path)
-            : null;
+        return $this->urlFor($this->default_share_image_path);
+    }
+
+    public function loginBackgroundUrl(): ?string
+    {
+        return $this->urlFor($this->login_background_path);
+    }
+
+    public function footerBackgroundUrl(): ?string
+    {
+        return $this->urlFor($this->footer_background_path);
+    }
+
+    public function appleTouchIconUrl(): ?string
+    {
+        return $this->urlFor($this->apple_touch_icon_path);
+    }
+
+    public function mainSearchBackgroundUrl(): ?string
+    {
+        return $this->urlFor($this->main_search_background_path);
+    }
+
+    public function logoUrl(): ?string
+    {
+        return $this->urlFor($this->logo_path);
+    }
+
+    public function logoMonoUrl(): ?string
+    {
+        return $this->urlFor($this->logo_mono_path);
+    }
+
+    private function urlFor(?string $path): ?string
+    {
+        return $path ? Storage::disk('public')->url($path) : null;
     }
 }

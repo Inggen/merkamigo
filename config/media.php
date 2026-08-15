@@ -96,4 +96,43 @@ return [
         'quality' => 86,
     ],
 
+    // Imágenes de marca del singleton de configuración del sitio. Se
+    // suben tal cual (sin pasar por `MediaUploader`) para preservar SVG.
+
+    'site_login_background' => [
+        'mimes' => ['png', 'svg', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_footer_background' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_apple_touch_icon' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 1024,
+        'max_files' => 1,
+    ],
+
+    'site_main_search_background' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_logo' => [
+        'mimes' => ['png', 'svg', 'webp'],
+        'max_kb' => 1024,
+        'max_files' => 1,
+    ],
+
+    'site_logo_mono' => [
+        'mimes' => ['png', 'svg', 'webp'],
+        'max_kb' => 1024,
+        'max_files' => 1,
+    ],
+
 ];

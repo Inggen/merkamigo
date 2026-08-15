@@ -138,4 +138,50 @@ class ImmersiveObjectTemplate extends Model
     {
         return $this->hasMany(ImmersivePlazaProp::class, 'object_template_id');
     }
+
+    /**
+     * Pedido del usuario: duplicar un elemento del catálogo para partir de
+     * uno existente en vez de configurar todo desde cero. A diferencia de
+     * `ImmersiveExperience::duplicate()`, esta plantilla no tiene hijos
+     * propios que clonar (`slots()`/`props()` son referencias ENTRANTES de
+     * otras tablas, no composición) — copiar los campos propios basta.
+     */
+    public function duplicate(): self
+    {
+        return self::create([
+            'name' => "{$this->name} (copia)",
+            'slug' => $this->nextAvailableSlug(),
+            'builder_key' => $this->builder_key,
+            'asset_input_mode' => $this->asset_input_mode,
+            'model_definition' => $this->model_definition,
+            'ai_draft_definition' => $this->ai_draft_definition,
+            'ai_reference_images' => $this->ai_reference_images,
+            'ai_instruction_log' => $this->ai_instruction_log,
+            'category' => $this->category,
+            'max_width' => $this->max_width,
+            'max_depth' => $this->max_depth,
+            'max_height' => $this->max_height,
+            'max_boxes' => $this->max_boxes,
+            'front_axis_rotation' => $this->front_axis_rotation ?? 0,
+            'thumbnail_path' => $this->thumbnail_path,
+            'allowed_colors' => $this->allowed_colors,
+            'model_path' => $this->model_path,
+            'lod_config' => $this->lod_config,
+            'status' => 'borrador',
+        ]);
+    }
+
+    private function nextAvailableSlug(): string
+    {
+        $base = "{$this->slug}-copia";
+        $slug = $base;
+        $suffix = 2;
+
+        while (self::where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
+    }
 }

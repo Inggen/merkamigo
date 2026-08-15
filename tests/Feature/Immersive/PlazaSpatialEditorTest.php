@@ -10,6 +10,7 @@ use App\Domain\Immersive\Models\StandSlot;
 use App\Filament\Resources\ImmersiveObjectTemplates\ImmersiveObjectTemplateResource;
 use App\Livewire\PlazaSpatialEditor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -404,12 +405,128 @@ class PlazaSpatialEditorTest extends TestCase
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
             ->call('selectObject', 'prop', $prop->id)
+            ->call('toggleTilingLock', $prop->id)
             ->set('selectedObjectForm.tiling.u', 3.5)
             ->set('selectedObjectForm.tiling.v', 2.0)
             ->call('saveSelectedObject');
 
         $fresh = $prop->fresh();
         $this->assertEquals(['u' => 3.5, 'v' => 2.0], $fresh->textureTiling());
+    }
+
+    /**
+     * Pedido del usuario: el tiling queda bloqueado (cerrado) por defecto —
+     * cambiarlo sin desbloquear antes no debe persistir nada, para no
+     * perder el que trae el objeto desde que fue creado.
+     */
+    public function test_saving_a_prop_with_tiling_locked_does_not_change_the_stored_tiling(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+            'texture_tiling' => ['u' => 1.0, 'v' => 1.0],
+        ]);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('selectObject', 'prop', $prop->id)
+            ->set('selectedObjectForm.tiling.u', 9.0)
+            ->set('selectedObjectForm.tiling.v', 9.0)
+            ->call('saveSelectedObject');
+
+        $this->assertEquals(['u' => 1.0, 'v' => 1.0], $prop->fresh()->textureTiling());
+    }
+
+    public function test_new_props_start_with_tiling_locked(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        $this->assertTrue($prop->fresh()->texture_tiling_locked);
+    }
+
+    public function test_toggle_tiling_lock_flips_the_flag_and_persists(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+        ]);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('toggleTilingLock', $prop->id);
+
+        $this->assertFalse($prop->fresh()->texture_tiling_locked);
+    }
+
+    /**
+     * Pedido del usuario: botón junto al de info para restaurar el tiling
+     * a su valor por defecto (1×1) sin tener que borrar los campos a mano.
+     */
+    public function test_reset_selected_tiling_sets_the_form_back_to_one_by_one(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+            'texture_tiling' => ['u' => 1.0, 'v' => 1.0],
+        ]);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('selectObject', 'prop', $prop->id)
+            ->call('toggleTilingLock', $prop->id)
+            ->set('selectedObjectForm.tiling.u', 5.0)
+            ->set('selectedObjectForm.tiling.v', 7.0)
+            ->call('resetSelectedTiling');
+
+        $component->assertSet('selectedObjectForm.tiling.u', 1.0);
+        $component->assertSet('selectedObjectForm.tiling.v', 1.0);
+        $component->assertDispatched('spatial-editor-tiling-preview');
+
+        // Solo toca el formulario en pantalla — sigue haciendo falta
+        // "Guardar props" para persistirlo.
+        $this->assertEquals(['u' => 1.0, 'v' => 1.0], $prop->fresh()->textureTiling());
+    }
+
+    public function test_reset_selected_tiling_does_nothing_while_locked(): void
+    {
+        $plaza = $this->makePlaza();
+        $template = ImmersiveObjectTemplate::create([
+            'name' => 'Banca', 'slug' => 'banca-'.uniqid(), 'category' => 'construccion', 'builder_key' => 'bench',
+            'max_width' => 2, 'max_depth' => 1, 'max_height' => 1, 'status' => 'publicada',
+        ]);
+        $prop = $plaza->props()->create([
+            'object_template_id' => $template->id,
+            'world_position' => ['x' => 0, 'y' => 0, 'z' => 0],
+            'texture_tiling' => ['u' => 3.0, 'v' => 3.0],
+        ]);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->call('selectObject', 'prop', $prop->id)
+            ->call('resetSelectedTiling');
+
+        $component->assertSet('selectedObjectForm.tiling.u', 3.0);
+        $component->assertSet('selectedObjectForm.tiling.v', 3.0);
+        $component->assertNotDispatched('spatial-editor-tiling-preview');
     }
 
     public function test_a_prop_without_a_chosen_tiling_defaults_to_one_by_one(): void
@@ -484,6 +601,184 @@ class PlazaSpatialEditorTest extends TestCase
             ->call('saveSpatialSettings');
 
         $this->assertEquals(['minX' => -80.0, 'maxX' => 90.0, 'minZ' => -70.0, 'maxZ' => 95.0], $plaza->fresh()->navigable_bounds);
+    }
+
+    /**
+     * Pedido del usuario: controlar la niebla (fog) de la escena por
+     * plaza, como parte de la misma configuración espacial.
+     */
+    public function test_a_plaza_without_configured_fog_falls_back_to_the_engine_default(): void
+    {
+        $plaza = $this->makePlaza();
+
+        $this->assertSame(
+            ['enabled' => true, 'color' => '#b6d7f3', 'near' => 78.0, 'far' => 260.0],
+            $plaza->fogSettings(),
+        );
+    }
+
+    /**
+     * Pedido del usuario: previsualizar en el editor espacial la imagen de
+     * cielo que se sube desde "Editar Plaza" (Filament) — de solo lectura
+     * acá, pero visible para que el admin no tenga que salir a comprobarla.
+     */
+    public function test_scene_data_exposes_the_sky_image_url_when_configured(): void
+    {
+        $plaza = $this->makePlaza();
+        $plaza->update(['sky_image_path' => 'immersive-plazas/cielo-360.webp']);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza]);
+
+        $this->assertSame(
+            Storage::disk('public')->url('immersive-plazas/cielo-360.webp'),
+            $component->get('sceneData')['skyImageUrl'],
+        );
+    }
+
+    public function test_scene_data_sky_image_url_is_null_without_one_configured(): void
+    {
+        $plaza = $this->makePlaza();
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza]);
+
+        $this->assertNull($component->get('sceneData')['skyImageUrl']);
+    }
+
+    /**
+     * Pedido del usuario: activar/desactivar el fondo equirectangular sin
+     * borrar la imagen ya subida en "Editar Plaza".
+     */
+    public function test_disabling_the_sky_image_hides_it_without_deleting_the_upload(): void
+    {
+        $plaza = $this->makePlaza();
+        $plaza->update(['sky_image_path' => 'immersive-plazas/cielo-360.webp']);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->assertSet('skyImageEnabledForm', true)
+            ->set('skyImageEnabledForm', false)
+            ->call('saveSpatialSettings');
+
+        $fresh = $plaza->fresh();
+        $this->assertFalse($fresh->sky_image_enabled);
+        $this->assertSame('immersive-plazas/cielo-360.webp', $fresh->sky_image_path);
+        $this->assertNull($fresh->skyImageUrl());
+        $this->assertNull($component->get('sceneData')['skyImageUrl']);
+    }
+
+    public function test_re_enabling_the_sky_image_shows_it_again(): void
+    {
+        $plaza = $this->makePlaza();
+        $plaza->update(['sky_image_path' => 'immersive-plazas/cielo-360.webp', 'sky_image_enabled' => false]);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->assertSet('skyImageEnabledForm', false)
+            ->set('skyImageEnabledForm', true)
+            ->call('saveSpatialSettings');
+
+        $this->assertTrue($plaza->fresh()->sky_image_enabled);
+        $this->assertNotNull($component->get('sceneData')['skyImageUrl']);
+    }
+
+    public function test_undo_restores_the_previous_sky_image_enabled_state(): void
+    {
+        $plaza = $this->makePlaza();
+        $plaza->update(['sky_image_path' => 'immersive-plazas/cielo-360.webp']);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->set('skyImageEnabledForm', false)
+            ->call('saveSpatialSettings');
+
+        $component->call('undo');
+
+        $this->assertTrue($plaza->fresh()->sky_image_enabled);
+    }
+
+    /**
+     * Pedido del usuario: poder girar el fondo equirectangular hasta 360°
+     * (ej. para alinear el horizonte de la imagen con la plaza).
+     */
+    public function test_saving_the_sky_rotation_persists_it_and_exposes_it_in_scene_data(): void
+    {
+        $plaza = $this->makePlaza();
+        $plaza->update(['sky_image_path' => 'immersive-plazas/cielo-360.webp']);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->assertSet('skyRotationForm', 0.0)
+            ->set('skyRotationForm', 220)
+            ->call('saveSpatialSettings');
+
+        $this->assertSame(220.0, $plaza->fresh()->sky_rotation);
+        $this->assertSame(220.0, $component->get('sceneData')['skyRotation']);
+    }
+
+    /**
+     * `fmod()` conserva el signo del dividendo en PHP — sin el ajuste
+     * manual, un valor negativo (ej. escrito a mano en el input numérico)
+     * se guardaría fuera de [0, 360).
+     */
+    public function test_the_sky_rotation_is_normalized_into_a_0_to_360_range(): void
+    {
+        $plaza = $this->makePlaza();
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->set('skyRotationForm', 400)
+            ->call('saveSpatialSettings');
+        $this->assertSame(40.0, $plaza->fresh()->sky_rotation);
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza->fresh()])
+            ->set('skyRotationForm', -30)
+            ->call('saveSpatialSettings');
+        $this->assertSame(330.0, $plaza->fresh()->sky_rotation);
+    }
+
+    public function test_undo_restores_the_previous_sky_rotation(): void
+    {
+        $plaza = $this->makePlaza();
+        $plaza->update(['sky_rotation' => 90]);
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->set('skyRotationForm', 200)
+            ->call('saveSpatialSettings');
+
+        $component->call('undo');
+
+        $this->assertSame(90.0, $plaza->fresh()->sky_rotation);
+    }
+
+    public function test_it_can_save_the_fog_settings_from_the_editor_sidebar(): void
+    {
+        $plaza = $this->makePlaza();
+
+        Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->set('fogForm.enabled', false)
+            ->set('fogForm.color', '#334455')
+            ->set('fogForm.near', 20)
+            ->set('fogForm.far', 120)
+            ->call('saveSpatialSettings');
+
+        $this->assertSame(
+            ['enabled' => false, 'color' => '#334455', 'near' => 20.0, 'far' => 120.0],
+            $plaza->fresh()->fogSettings(),
+        );
+    }
+
+    public function test_undo_restores_the_previous_fog_settings(): void
+    {
+        $plaza = $this->makePlaza();
+
+        $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
+            ->set('fogForm.enabled', false)
+            ->set('fogForm.color', '#334455')
+            ->set('fogForm.near', 20)
+            ->set('fogForm.far', 120)
+            ->call('saveSpatialSettings');
+
+        $component->call('undo');
+
+        $this->assertSame(
+            ['enabled' => true, 'color' => '#b6d7f3', 'near' => 78.0, 'far' => 260.0],
+            $plaza->fresh()->fogSettings(),
+        );
     }
 
     /**

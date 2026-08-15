@@ -70,4 +70,49 @@ class VoxelDefinitionBoundsTest extends TestCase
 
         $this->assertSame(['width' => 0.0, 'depth' => 0.0, 'height' => 0.0], $bounds);
     }
+
+    /**
+     * Pedido del usuario: las cajas ya no restringen su rotación a Y — el
+     * bounding box tiene que reflejar también rotationX/rotationZ. Una caja
+     * de 1x1x2 acostada 90° sobre X queda "parada" en el otro sentido: su
+     * alto pasa a ser la dimensión que antes era la profundidad.
+     */
+    public function test_box_rotated_90_degrees_on_x_swaps_height_and_depth(): void
+    {
+        $bounds = VoxelDefinitionBounds::calculate([
+            'boxes' => [
+                ['x' => 0, 'y' => 1, 'z' => 0, 'w' => 1, 'h' => 1, 'd' => 2, 'texture' => 'wood', 'rotationX' => M_PI / 2],
+            ],
+        ]);
+
+        $this->assertEqualsWithDelta(1.0, $bounds['width'], 0.01);
+        $this->assertEqualsWithDelta(1.0, $bounds['depth'], 0.01);
+        // Centro en y=1, mitad de la dimensión larga (ahora vertical) = 1 →
+        // desde el suelo: 1 (centro) + 1 (mitad) = 2.
+        $this->assertEqualsWithDelta(2.0, $bounds['height'], 0.01);
+    }
+
+    /**
+     * Sin rotationX/rotationZ en la caja (compatibilidad con definiciones
+     * viejas que solo traen rotationY), el resultado no cambia frente al
+     * mismo caso sin esas claves.
+     */
+    public function test_missing_rotation_x_and_z_default_to_zero(): void
+    {
+        $withKeys = VoxelDefinitionBounds::calculate([
+            'boxes' => [
+                ['x' => 0, 'y' => 0.5, 'z' => 0, 'w' => 2, 'h' => 1, 'd' => 2, 'texture' => 'wood', 'rotationX' => 0, 'rotationY' => M_PI / 4, 'rotationZ' => 0],
+            ],
+        ]);
+
+        $withoutKeys = VoxelDefinitionBounds::calculate([
+            'boxes' => [
+                ['x' => 0, 'y' => 0.5, 'z' => 0, 'w' => 2, 'h' => 1, 'd' => 2, 'texture' => 'wood', 'rotationY' => M_PI / 4],
+            ],
+        ]);
+
+        $this->assertEqualsWithDelta($withoutKeys['width'], $withKeys['width'], 0.0001);
+        $this->assertEqualsWithDelta($withoutKeys['depth'], $withKeys['depth'], 0.0001);
+        $this->assertEqualsWithDelta($withoutKeys['height'], $withKeys['height'], 0.0001);
+    }
 }

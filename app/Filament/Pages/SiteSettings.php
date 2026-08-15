@@ -59,6 +59,60 @@ class SiteSettings extends Page
                     ->imageResizeMode('contain')
                     ->imageResizeTargetWidth((string) config('media.site_default_share_image.max_width'))
                     ->imageResizeTargetHeight((string) config('media.site_default_share_image.max_width')),
+
+                FileUpload::make('logo_path')
+                    ->label('Logo')
+                    ->helperText('Logo principal del sitio.')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp'])
+                    ->disk('public')
+                    ->directory('site')
+                    ->maxSize(config('media.site_logo.max_kb')),
+
+                FileUpload::make('logo_mono_path')
+                    ->label('Logo monocromático')
+                    ->helperText('Versión de un solo color del logo, usada sobre fondos oscuros o de color.')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp'])
+                    ->disk('public')
+                    ->directory('site')
+                    ->maxSize(config('media.site_logo_mono.max_kb')),
+
+                FileUpload::make('apple_touch_icon_path')
+                    ->label('Apple touch icon')
+                    ->helperText('Ícono usado al agregar el sitio a la pantalla de inicio en dispositivos Apple.')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                    ->disk('public')
+                    ->directory('site')
+                    ->maxSize(config('media.site_apple_touch_icon.max_kb')),
+
+                FileUpload::make('login_background_path')
+                    ->label('Fondo del login de administración')
+                    ->helperText('Imagen de fondo de la pantalla de acceso al panel de administración.')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp'])
+                    ->disk('public')
+                    ->directory('site')
+                    ->maxSize(config('media.site_login_background.max_kb')),
+
+                FileUpload::make('footer_background_path')
+                    ->label('Fondo del pie de página')
+                    ->helperText('Imagen de fondo del pie de página del sitio.')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                    ->disk('public')
+                    ->directory('site')
+                    ->maxSize(config('media.site_footer_background.max_kb')),
+
+                FileUpload::make('main_search_background_path')
+                    ->label('Fondo del buscador principal')
+                    ->helperText('Imagen de fondo detrás del buscador principal del sitio.')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                    ->disk('public')
+                    ->directory('site')
+                    ->maxSize(config('media.site_main_search_background.max_kb')),
             ])
             ->statePath('data');
     }

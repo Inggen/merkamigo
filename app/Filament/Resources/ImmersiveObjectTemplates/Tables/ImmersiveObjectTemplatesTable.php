@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\ImmersiveObjectTemplates\Tables;
 
+use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Filament\Resources\ImmersiveObjectTemplates\ImmersiveObjectTemplateResource;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -74,6 +76,7 @@ class ImmersiveObjectTemplatesTable
                     ->icon(Heroicon::OutlinedSparkles)
                     ->color('gray')
                     ->url(fn ($record) => ImmersiveObjectTemplateResource::getUrl('generar-ia', ['record' => $record])),
+                self::duplicateAction(),
                 EditAction::make(),
             ])
             ->toolbarActions([
@@ -81,5 +84,31 @@ class ImmersiveObjectTemplatesTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Pedido del usuario: duplicar un elemento del catálogo. Mismo patrón
+     * que `ImmersiveExperiencesTable::duplicateAction()` — copia borrador
+     * nueva vía `ImmersiveObjectTemplate::duplicate()` y lleva directo a
+     * editarla.
+     */
+    private static function duplicateAction(): Action
+    {
+        return Action::make('duplicate')
+            ->label('Duplicar')
+            ->icon(Heroicon::OutlinedDocumentDuplicate)
+            ->color('gray')
+            ->requiresConfirmation()
+            ->modalDescription('Crea una copia en borrador con los mismos campos.')
+            ->action(function (ImmersiveObjectTemplate $record) {
+                $copy = $record->duplicate();
+
+                Notification::make()
+                    ->title("Duplicado como \"{$copy->name}\"")
+                    ->success()
+                    ->send();
+
+                return redirect(ImmersiveObjectTemplateResource::getUrl('edit', ['record' => $copy]));
+            });
     }
 }

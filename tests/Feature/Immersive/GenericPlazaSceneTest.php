@@ -6,6 +6,7 @@ use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Immersive\Models\ImmersiveExperience;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -87,6 +88,65 @@ class GenericPlazaSceneTest extends TestCase
             ->assertOk()
             ->assertViewHas('plaza', fn ($plaza) => $plaza->id === $experience->plazas->first()->id)
             ->assertViewHas('municipio', fn ($resolvedMunicipio) => $resolvedMunicipio->id === $municipality->id);
+    }
+
+    /**
+     * Pedido del usuario: imagen de cielo (spheremap/equirectangular) por
+     * plaza, configurable desde "Editar Plaza" — sin imagen configurada,
+     * la variable expuesta debe ser nula (la escena se ve como siempre).
+     */
+    public function test_it_exposes_a_null_sky_image_url_when_none_is_configured(): void
+    {
+        $municipality = $this->makeMunicipality();
+        $experience = $this->makeExperienceWithActivePlaza($municipality);
+        $experience->update(['status' => 'publicada']);
+
+        $this->get(route('labs.generic-plaza', ['municipio' => $municipality->slug]))
+            ->assertOk()
+            ->assertSee('window.genericPlazaSkyImageUrl = null;', false);
+    }
+
+    public function test_it_exposes_the_configured_sky_image_url(): void
+    {
+        $municipality = $this->makeMunicipality();
+        $experience = $this->makeExperienceWithActivePlaza($municipality);
+        $experience->update(['status' => 'publicada']);
+        $experience->plazas->first()->update(['sky_image_path' => 'immersive-plazas/cielo-360.webp']);
+
+        $url = Storage::disk('public')->url('immersive-plazas/cielo-360.webp');
+
+        // `@json()` escapa las barras (`\/`) al codificar el string — se
+        // compara contra esa misma forma, no la URL cruda.
+        $this->get(route('labs.generic-plaza', ['municipio' => $municipality->slug]))
+            ->assertOk()
+            ->assertSee('window.genericPlazaSkyImageUrl = '.json_encode($url).';', false);
+    }
+
+    /**
+     * Pedido del usuario: poder girar el fondo equirectangular hasta 360°
+     * desde el editor espacial — la escena pública debe reflejar ese giro.
+     */
+    public function test_it_exposes_the_configured_sky_rotation(): void
+    {
+        $municipality = $this->makeMunicipality();
+        $experience = $this->makeExperienceWithActivePlaza($municipality);
+        $experience->update(['status' => 'publicada']);
+        $experience->plazas->first()->update(['sky_rotation' => 275.5]);
+
+        $this->get(route('labs.generic-plaza', ['municipio' => $municipality->slug]))
+            ->assertOk()
+            ->assertSee('window.genericPlazaSkyRotation = 275.5;', false);
+    }
+
+    public function test_it_exposes_a_zero_sky_rotation_by_default(): void
+    {
+        $municipality = $this->makeMunicipality();
+        $experience = $this->makeExperienceWithActivePlaza($municipality);
+        $experience->update(['status' => 'publicada']);
+
+        $this->get(route('labs.generic-plaza', ['municipio' => $municipality->slug]))
+            ->assertOk()
+            ->assertSee('window.genericPlazaSkyRotation = 0;', false);
     }
 
     public function test_a_draft_experience_returns_404_without_the_preview_flag(): void

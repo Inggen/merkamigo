@@ -199,4 +199,166 @@ class VoxelDefinitionValidatorTest extends TestCase
             'boxes' => [],
         ], $this->template());
     }
+
+    /**
+     * Pedido del usuario: rotación libre en los 3 ejes — rotationX/Z son
+     * tan opcionales como rotationY siempre lo fue.
+     */
+    public function test_it_accepts_rotation_on_all_three_axes(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['rotationX' => M_PI / 3, 'rotationZ' => M_PI / 6])],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
+
+    public function test_it_rejects_a_non_finite_rotation_x(): void
+    {
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['rotationX' => -1e400])],
+        ], $this->template());
+    }
+
+    public function test_it_accepts_a_locked_box(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['locked' => true])],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
+
+    public function test_it_rejects_a_non_boolean_locked_value(): void
+    {
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['locked' => 'yes'])],
+        ], $this->template());
+    }
+
+    public function test_it_accepts_a_valid_tiling(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['tiling' => ['u' => 2, 'v' => 0.5]])],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
+
+    public function test_it_rejects_a_tiling_with_a_non_positive_value(): void
+    {
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['tiling' => ['u' => 0, 'v' => 1]])],
+        ], $this->template());
+    }
+
+    public function test_it_accepts_a_valid_emissive_color(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['emissive' => '#ffd873'])],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
+
+    public function test_it_accepts_a_null_emissive_color(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['emissive' => null])],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
+
+    public function test_it_rejects_an_emissive_value_that_is_not_a_hex_color(): void
+    {
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['emissive' => 'yellow'])],
+        ], $this->template());
+    }
+
+    /**
+     * Pedido del usuario: agrupar cajas — `groupId` por caja y `groups` a
+     * nivel de definición.
+     */
+    public function test_it_accepts_boxes_grouped_under_a_declared_group(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [
+                $this->validBox(['groupId' => 'g1']),
+                $this->validBox(['x' => 1, 'groupId' => 'g1']),
+            ],
+            'groups' => [['id' => 'g1', 'name' => 'Techo']],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
+
+    public function test_it_rejects_a_box_group_id_that_is_not_declared(): void
+    {
+        try {
+            (new VoxelDefinitionValidator)->validate([
+                'version' => 1,
+                'boxes' => [$this->validBox(['groupId' => 'ghost'])],
+                'groups' => [],
+            ], $this->template());
+
+            $this->fail('Se esperaba VoxelDefinitionValidationException.');
+        } catch (VoxelDefinitionValidationException $exception) {
+            $this->assertStringContainsString('groupId', implode(' ', $exception->errors()));
+        }
+    }
+
+    public function test_it_rejects_a_group_without_a_name(): void
+    {
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['groupId' => 'g1'])],
+            'groups' => [['id' => 'g1', 'name' => '']],
+        ], $this->template());
+    }
+
+    public function test_it_rejects_duplicate_group_ids(): void
+    {
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['groupId' => 'g1'])],
+            'groups' => [
+                ['id' => 'g1', 'name' => 'Uno'],
+                ['id' => 'g1', 'name' => 'Dos'],
+            ],
+        ], $this->template());
+    }
+
+    public function test_it_accepts_a_definition_without_any_groups(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox()],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
 }

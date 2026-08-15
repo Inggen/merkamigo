@@ -28,6 +28,50 @@ class SeoMarkupTest extends TestCase
             ->assertSee(route('vitrinas.show', $business), false);
     }
 
+    /**
+     * Bug real reportado por el usuario en iPhone/Safari: los íconos de
+     * redes sociales de la vitrina pública se veían invisibles (el círculo
+     * de fondo sí, el ícono no) porque el `<svg>` no traía su propio
+     * `width`/`height` — solo el `<span>` que lo envolvía tenía el tamaño
+     * por CSS. Safari no le da tamaño por defecto a un SVG así, a
+     * diferencia de otros navegadores.
+     */
+    public function test_the_storefront_renders_social_icons_with_an_explicit_svg_size(): void
+    {
+        [$business] = $this->publishedBusinessWithProduct('producto');
+        $business->update(['social_links' => [
+            'facebook' => 'https://facebook.com/panaderiapublica',
+            'instagram' => 'https://instagram.com/panaderiapublica',
+        ]]);
+
+        $this->get(route('vitrinas.show', $business))
+            ->assertOk()
+            ->assertSee('Síguenos en redes')
+            ->assertSee('<svg width="100%" height="100%"', false);
+    }
+
+    /**
+     * Bug real reportado por el usuario: en iPhone/Safari, los enlaces de
+     * "Comparte este producto" (wa.me, sharer.php, instagram.com) suelen
+     * ser interceptados por la app correspondiente y abren su feed normal
+     * en vez del compositor de compartir — o, en el caso de Instagram, ni
+     * siquiera había una URL de compartir real. El Web Share API nativo
+     * (`navigator.share`) delega en el propio sistema operativo; la fila de
+     * íconos por red sigue existiendo como respaldo para navegadores sin
+     * soporte (`shareSupported` se evalúa en el cliente, así que ambos
+     * bloques quedan en el HTML — Alpine decide cuál mostrar).
+     */
+    public function test_the_product_page_renders_both_the_native_share_button_and_the_per_network_fallback(): void
+    {
+        [$business, $product] = $this->publishedBusinessWithProduct('producto');
+
+        $this->get(route('vitrinas.product', [$business, $product]))
+            ->assertOk()
+            ->assertSee('navigator.share', false)
+            ->assertSee('shareSupported', false)
+            ->assertSee('wa.me', false);
+    }
+
     public function test_the_public_product_page_renders_product_or_service_schema(): void
     {
         [$productBusiness, $product] = $this->publishedBusinessWithProduct('producto');

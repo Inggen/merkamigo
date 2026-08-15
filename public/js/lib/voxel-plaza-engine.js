@@ -30,6 +30,7 @@ import { GLTFLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/GL
 import { DRACOLoader } from 'https://esm.sh/three@0.179.1/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'https://esm.sh/three@0.179.1/examples/jsm/libs/meshopt_decoder.module.js';
 import { attachPerfMonitor } from './immersive-perf-monitor.js';
+import { applyTiling } from './texture-tiling-utils.js';
 
 export { THREE };
 
@@ -343,7 +344,7 @@ export function createStandaloneVoxelTarget(palette = basePalette) {
 
     function addVoxelBox({
         x, y, z, w, h, d, texture = 'stone', group = world, castShadow = true, receiveShadow = true,
-        opacity = 1, emissive = 0x000000, rotationY = 0,
+        opacity = 1, emissive = 0x000000, rotationX = 0, rotationY = 0, rotationZ = 0,
     }) {
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(w, h, d),
@@ -351,7 +352,11 @@ export function createStandaloneVoxelTarget(palette = basePalette) {
         );
 
         mesh.position.set(x, y, z);
-        mesh.rotation.y = rotationY;
+        // `rotationX`/`rotationZ` son opcionales (por defecto 0, igual que
+        // antes) — solo el editor de cajas de un objeto los usa, para el
+        // resto de llamadores (personaje, builders estándar, suelo) esto se
+        // comporta exactamente igual que antes.
+        mesh.rotation.set(rotationX, rotationY, rotationZ);
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
         group.add(mesh);
@@ -640,7 +645,12 @@ export class VoxelPlazaEngine {
         };
 
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.Fog(fog.color, fog.near, fog.far);
+        // Pedido del usuario: niebla configurable por plaza (`fog.enabled`
+        // en falso la apaga del todo) — sin esa clave, el comportamiento de
+        // siempre se mantiene igual.
+        if (fog.enabled !== false) {
+            this.scene.fog = new THREE.Fog(fog.color, fog.near, fog.far);
+        }
 
         this.camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -2153,7 +2163,7 @@ export function buildFromDefinition(engine, {
     engine.world.add(group);
 
     (definition?.boxes ?? []).forEach((box) => {
-        engine.addVoxelBox({
+        const mesh = engine.addVoxelBox({
             x: box.x,
             y: box.y,
             z: box.z,
@@ -2163,8 +2173,21 @@ export function buildFromDefinition(engine, {
             texture: box.texture,
             rotationY: box.rotationY ?? 0,
             collidable: Boolean(box.collidable),
+            emissive: box.emissive ? parseInt(box.emissive.slice(1), 16) : 0x000000,
             group,
         });
+
+        // Bug real reportado por el usuario: el tiling elegido por caja en
+        // el editor de objeto (`box.tiling`) nunca se aplicaba fuera de ese
+        // editor — un objeto recién agregado a una plaza (o en la escena
+        // pública) siempre se veía con la textura sin repetir, aunque la
+        // plantilla sí tuviera un tiling guardado. `applyTiling()` clona
+        // textura y material antes de mutar (ver texture-tiling-utils.js),
+        // así que aplicarlo aquí por caja no afecta otras cajas/objetos que
+        // compartan la misma textura base.
+        if (box.tiling) {
+            applyTiling(mesh, box.tiling);
+        }
     });
 
     return group;

@@ -37,10 +37,17 @@
         || filled($business->hoursNote())
         || $business->hasVerifiedBadge()
         || $recommendationCount > 0;
+    // Safari (iOS) no le da tamaño por defecto a un `<svg>` sin `width`/
+    // `height` propios cuando solo el `<span>` que lo envuelve trae el
+    // tamaño por CSS (`size-6`/`size-4`) — el ícono queda invisible aunque
+    // el círculo de fondo sí se vea (bug real reportado por el usuario en
+    // iPhone/Safari, no reproducible en Chrome). `width="100%" height="100%"`
+    // en el propio `<svg>` lo hace depender del tamaño del contenedor en
+    // cualquier navegador, en vez de su tamaño intrínseco por defecto.
     $socialIcons = [
-        'facebook' => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7h2.3l.4-3h-2.7V9.1c0-.9.3-1.6 1.6-1.6H16V4.8c-.5-.1-1.3-.2-2.2-.2-2.2 0-3.8 1.3-3.8 4V11H7.8v3H10V21h3.5Z"/></svg>',
-        'instagram' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>',
-        'tiktok' => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.7 3c.2 1.8 1.2 3.3 2.9 4.2 1 .5 2 .8 3.1.8v2.8c-1.4 0-2.7-.3-4-.9v5.8c0 3-2.4 5.3-5.4 5.3s-5.4-2.4-5.4-5.3 2.4-5.3 5.4-5.3c.3 0 .6 0 .9.1V13a3.8 3.8 0 0 0-.9-.1c-1.5 0-2.7 1.2-2.7 2.7s1.2 2.7 2.7 2.7 2.8-1.1 2.8-2.7V3h2.6Z"/></svg>',
+        'facebook' => '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7h2.3l.4-3h-2.7V9.1c0-.9.3-1.6 1.6-1.6H16V4.8c-.5-.1-1.3-.2-2.2-.2-2.2 0-3.8 1.3-3.8 4V11H7.8v3H10V21h3.5Z"/></svg>',
+        'instagram' => '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>',
+        'tiktok' => '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.7 3c.2 1.8 1.2 3.3 2.9 4.2 1 .5 2 .8 3.1.8v2.8c-1.4 0-2.7-.3-4-.9v5.8c0 3-2.4 5.3-5.4 5.3s-5.4-2.4-5.4-5.3 2.4-5.3 5.4-5.3c.3 0 .6 0 .9.1V13a3.8 3.8 0 0 0-.9-.1c-1.5 0-2.7 1.2-2.7 2.7s1.2 2.7 2.7 2.7 2.8-1.1 2.8-2.7V3h2.6Z"/></svg>',
     ];
 @endphp
 

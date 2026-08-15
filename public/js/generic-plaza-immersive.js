@@ -90,6 +90,11 @@ const engine = new VoxelPlazaEngine({
     movementBounds: bounds,
     playerStart: { x: spawn.x ?? 0, z: spawn.z ?? 0 },
     playerFacing: spawn.rotationY ?? 0,
+    // Pedido del usuario: niebla configurable por plaza desde el editor
+    // espacial — `window.genericPlazaFog` siempre trae las 4 claves
+    // (`ImmersivePlaza::fogSettings()` normaliza contra el mismo default
+    // que trae el motor si nunca se configuró).
+    fog: window.genericPlazaFog,
 });
 
 if (headerActions) {
@@ -128,6 +133,27 @@ if (window.genericPlazaReferenceImageUrl) {
     ground.position.set(centerX, 0.03, centerZ);
     ground.receiveShadow = true;
     engine.world.add(ground);
+}
+
+// Pedido del usuario: imagen de cielo panorámica (spheremap/equirectangular)
+// configurable por plaza desde "Editar Plaza" — mismo tipo de imagen que
+// usaban las plazas hardcodeadas de Zipaquirá/Cajicá (una esfera invertida
+// con `EquirectangularReflectionMapping` posicionada a mano), pero aquí se
+// aplica directo como `scene.background`: Three.js ya sabe renderizar un
+// fondo equirectangular correctamente desde cualquier ángulo de cámara, sin
+// geometría ni posición que ajustar por plaza. Sin imagen configurada, la
+// escena se ve exactamente como hasta ahora (el color de cielo plano de
+// `VoxelPlazaEngine`).
+if (window.genericPlazaSkyImageUrl) {
+    new THREE.TextureLoader().load(window.genericPlazaSkyImageUrl, (texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        engine.scene.background = texture;
+        // Pedido del usuario: poder girar el fondo hasta 360° desde el
+        // editor espacial (ej. para alinear el horizonte de la imagen con
+        // la plaza) — mismo `sky_rotation` que previsualiza ese editor.
+        engine.scene.backgroundRotation = new THREE.Euler(0, THREE.MathUtils.degToRad(window.genericPlazaSkyRotation ?? 0), 0);
+    });
 }
 
 const track = createTracker(window.genericPlazaId);

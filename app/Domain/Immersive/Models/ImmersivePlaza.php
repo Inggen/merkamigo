@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * IMM-012 del TODO inmersivo: una plaza es una instancia de capacidad
@@ -19,9 +20,23 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property array{minX: float, maxX: float, minZ: float, maxZ: float}|null $navigable_bounds
  * @property array{x: float, z: float}|null $orientation_center
  * @property array<int, array{points: array<int, array{x: float, z: float}>}>|null $excluded_zones
+ * @property array{enabled: bool, color: string, near: float, far: float}|null $fog
  */
 class ImmersivePlaza extends Model
 {
+    /**
+     * Mismo valor por defecto que trae `VoxelPlazaEngine` cuando no se le
+     * pasa una opción `fog` propia (`public/js/lib/voxel-plaza-engine.js`)
+     * — así una plaza sin configurar (`fog` nulo) se ve exactamente igual
+     * que antes de que existiera este control.
+     */
+    private const DEFAULT_FOG = [
+        'enabled' => true,
+        'color' => '#b6d7f3',
+        'near' => 78.0,
+        'far' => 260.0,
+    ];
+
     protected $fillable = [
         'immersive_experience_id',
         'name',
@@ -40,6 +55,10 @@ class ImmersivePlaza extends Model
         'reference_image_width',
         'reference_image_height',
         'legend_image_path',
+        'fog',
+        'sky_image_path',
+        'sky_image_enabled',
+        'sky_rotation',
     ];
 
     protected function casts(): array
@@ -50,6 +69,45 @@ class ImmersivePlaza extends Model
             'orientation_center' => 'array',
             'excluded_zones' => 'array',
             'published_at' => 'datetime',
+            'fog' => 'array',
+            'sky_image_enabled' => 'boolean',
+            'sky_rotation' => 'float',
+        ];
+    }
+
+    /**
+     * Pedido del usuario: activar/desactivar el fondo con textura
+     * equirectangular sin borrar la imagen ya subida en "Editar Plaza".
+     * Centraliza la misma condición que antes se repetía en
+     * `generic-plaza.blade.php` y `PlazaSpatialEditor` (ahora que además
+     * de "¿hay imagen?" hay que revisar "¿está activada?").
+     */
+    public function skyImageUrl(): ?string
+    {
+        if (! $this->sky_image_enabled || blank($this->sky_image_path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->sky_image_path);
+    }
+
+    /**
+     * Pedido del usuario: controlar la niebla de la escena por plaza desde
+     * el editor espacial. Normaliza contra `DEFAULT_FOG` para que una fila
+     * sin configurar (o con solo alguna clave presente) siempre devuelva
+     * las 4 claves completas.
+     *
+     * @return array{enabled: bool, color: string, near: float, far: float}
+     */
+    public function fogSettings(): array
+    {
+        $fog = is_array($this->fog) ? $this->fog : [];
+
+        return [
+            'enabled' => (bool) ($fog['enabled'] ?? self::DEFAULT_FOG['enabled']),
+            'color' => (string) ($fog['color'] ?? self::DEFAULT_FOG['color']),
+            'near' => (float) ($fog['near'] ?? self::DEFAULT_FOG['near']),
+            'far' => (float) ($fog['far'] ?? self::DEFAULT_FOG['far']),
         ];
     }
 

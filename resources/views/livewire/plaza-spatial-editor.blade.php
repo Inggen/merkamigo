@@ -37,7 +37,7 @@
                         <button
                             type="button"
                             id="gizmo-mode-translate"
-                            class="gizmo-mode-button flex-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition dark:border-white/10 dark:text-gray-300"
+                            class="gizmo-mode-button flex-1 rounded-md border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 transition dark:border-red-500/30 dark:text-red-400"
                             onclick="window.dispatchEvent(new CustomEvent('spatial-editor-set-mode', { detail: { mode: 'translate' } }))"
                         >
                             Mover
@@ -45,7 +45,7 @@
                         <button
                             type="button"
                             id="gizmo-mode-rotate"
-                            class="gizmo-mode-button flex-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition dark:border-white/10 dark:text-gray-300"
+                            class="gizmo-mode-button flex-1 rounded-md border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 transition dark:border-red-500/30 dark:text-red-400"
                             onclick="window.dispatchEvent(new CustomEvent('spatial-editor-set-mode', { detail: { mode: 'rotate' } }))"
                         >
                             Rotar
@@ -54,7 +54,7 @@
                             <button
                                 type="button"
                                 id="gizmo-mode-scale"
-                                class="gizmo-mode-button flex-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition dark:border-white/10 dark:text-gray-300"
+                                class="gizmo-mode-button flex-1 rounded-md border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 transition dark:border-red-500/30 dark:text-red-400"
                                 onclick="window.dispatchEvent(new CustomEvent('spatial-editor-set-mode', { detail: { mode: 'scale' } }))"
                             >
                                 Escalar
@@ -157,22 +157,40 @@
                 @if ($selectedObjectType === 'prop')
                     <div class="space-y-3">
                         <div class="flex items-center gap-2">
-                            <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tiling de textura (U, V)</h4>
+                            <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tiling de textura (U,V)</h4>
+
                             <button
                                 type="button"
-                                title="Repetición de la textura sobre este elemento — cada instancia puede tener su propio valor aunque compartan el mismo modelo 3D."
-                                aria-label="Repetición de la textura sobre este elemento — cada instancia puede tener su propio valor aunque compartan el mismo modelo 3D."
+                                wire:click="toggleTilingLock({{ $selectedObjectId }})"
+                                @if ($selectedObjectForm['tilingLocked'] ?? true)
+                                    wire:confirm="Si desbloqueas y cambias el tiling en el Editor espacial (3D), se perderá el tiling original que trae este objeto desde que fue creado. ¿Deseas continuar?"
+                                @endif
+                                title="{{ ($selectedObjectForm['tilingLocked'] ?? true) ? 'Desbloquear tiling para editarlo aquí' : 'Bloquear tiling (reserva el valor actual)' }}"
                                 class="inline-flex items-center justify-center text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-200"
                             >
-                                <x-filament::icon icon="heroicon-m-information-circle" class="h-4 w-4" />
+                                <x-filament::icon :icon="($selectedObjectForm['tilingLocked'] ?? true) ? 'heroicon-m-lock-closed' : 'heroicon-m-lock-open'" class="h-4 w-4" />
                             </button>
+
+                            <button
+                                type="button"
+                                wire:click="resetSelectedTiling"
+                                @disabled($selectedObjectForm['tilingLocked'] ?? true)
+                                title="Restaurar el tiling por defecto del objeto (1×1)"
+                                class="inline-flex items-center justify-center text-zinc-400 transition hover:text-zinc-600 disabled:pointer-events-none disabled:opacity-30 dark:hover:text-zinc-200"
+                            >
+                                <x-filament::icon icon="heroicon-m-arrow-path" class="h-4 w-4" />
+                            </button>
+
+                            <x-info-popover>
+                                Repetición de la textura sobre este elemento — cada instancia puede tener su propio valor aunque compartan el mismo modelo 3D. Bloqueada por defecto para no perder la que trae el objeto desde que fue creado.
+                            </x-info-popover>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <x-filament::input.wrapper>
-                                <x-filament::input type="number" min="0.001" step="0.1" wire:model.live.debounce.500ms="selectedObjectForm.tiling.u" />
+                                <x-filament::input type="number" min="0.001" step="0.1" wire:model.live.debounce.500ms="selectedObjectForm.tiling.u" :disabled="$selectedObjectForm['tilingLocked'] ?? true" />
                             </x-filament::input.wrapper>
                             <x-filament::input.wrapper>
-                                <x-filament::input type="number" min="0.001" step="0.1" wire:model.live.debounce.500ms="selectedObjectForm.tiling.v" />
+                                <x-filament::input type="number" min="0.001" step="0.1" wire:model.live.debounce.500ms="selectedObjectForm.tiling.v" :disabled="$selectedObjectForm['tilingLocked'] ?? true" />
                             </x-filament::input.wrapper>
                         </div>
                     </div>
@@ -320,6 +338,47 @@
 
                     const threeScene = new THREE.Scene();
                     threeScene.background = new THREE.Color(0xcfe8ff);
+
+                    // Pedido del usuario: niebla configurable por plaza,
+                    // previsualizada aquí igual que en la plaza real
+                    // (`VoxelPlazaEngine` recibe el mismo `fog` — ver
+                    // `generic-plaza-immersive.js`).
+                    function applyFog(fog) {
+                        threeScene.fog = fog?.enabled === false
+                            ? null
+                            : new THREE.Fog(fog?.color ?? '#b6d7f3', fog?.near ?? 78, fog?.far ?? 260);
+                    }
+
+                    // Pedido del usuario: previsualizar aquí la imagen de
+                    // cielo (spheremap/equirectangular) que se sube desde
+                    // 'Editar Plaza' (Filament) — de solo lectura, esta
+                    // pantalla no la edita. Mismo `scene.background` que
+                    // aplica `generic-plaza-immersive.js` en la experiencia
+                    // real. Sin imagen configurada, el visor sigue
+                    // mostrando el color de fondo plano de siempre.
+                    // Pedido del usuario: poder girar el fondo hasta 360°
+                    // (ej. para alinear el horizonte de la imagen con la
+                    // plaza) — separada de `applySky()` para que arrastrar
+                    // el slider solo gire la textura ya cargada, sin
+                    // recargarla en cada evento `input`.
+                    function applySkyRotation(rotationDegrees) {
+                        threeScene.backgroundRotation = new THREE.Euler(0, THREE.MathUtils.degToRad(rotationDegrees ?? 0), 0);
+                    }
+
+                    function applySky(url, rotationDegrees) {
+                        if (! url) {
+                            threeScene.background = new THREE.Color(0xcfe8ff);
+
+                            return;
+                        }
+
+                        new THREE.TextureLoader().load(url, (texture) => {
+                            texture.mapping = THREE.EquirectangularReflectionMapping;
+                            texture.colorSpace = THREE.SRGBColorSpace;
+                            threeScene.background = texture;
+                            applySkyRotation(rotationDegrees);
+                        });
+                    }
 
                     const renderer = new THREE.WebGLRenderer({ antialias: true });
                     renderer.shadowMap.enabled = true;
@@ -481,8 +540,8 @@
                         }
                     });
 
-                    const gizmoModeButtonActiveClasses = ['bg-primary-500/10', 'text-primary-600', 'border-primary-500', 'dark:text-primary-400'];
-                    const gizmoModeButtonInactiveClasses = ['text-gray-600', 'border-gray-200', 'dark:text-gray-300', 'dark:border-white/10'];
+                    const gizmoModeButtonActiveClasses = ['bg-red-600', 'text-white', 'border-red-600', 'dark:bg-red-600', 'dark:text-white'];
+                    const gizmoModeButtonInactiveClasses = ['text-red-600', 'border-red-200', 'dark:text-red-400', 'dark:border-red-500/30'];
 
                     function setActiveGizmoModeButton(mode) {
                         ['translate', 'rotate', 'scale'].forEach((candidate) => {
@@ -965,6 +1024,8 @@
 
                     buildGround();
                     drawBoundsOutline();
+                    applyFog(sceneState.fog);
+                    applySky(sceneState.skyImageUrl, sceneState.skyRotation);
 
                     const zoneColors = [0x2563eb, 0x16a34a, 0xd97706, 0x9333ea, 0xdc2626, 0x0891b2];
                     (sceneState.zones ?? []).forEach((zone, index) => drawPolygon(zone.polygon?.points ?? [], zoneColors[index % zoneColors.length]));
@@ -1092,12 +1153,24 @@
                         }
                     });
 
-                    Livewire.on('spatial-editor-settings-updated', ({ bounds, plane }) => {
+                    Livewire.on('spatial-editor-settings-updated', ({ bounds, plane, fog, skyImageUrl, skyRotation }) => {
                         sceneState.bounds = bounds ?? sceneState.bounds;
                         sceneState.plane = plane ?? sceneState.plane;
+                        sceneState.fog = fog ?? sceneState.fog;
+                        sceneState.skyImageUrl = skyImageUrl ?? null;
+                        sceneState.skyRotation = skyRotation ?? 0;
 
                         buildGround();
                         drawBoundsOutline();
+                        applyFog(sceneState.fog);
+                        applySky(sceneState.skyImageUrl, sceneState.skyRotation);
+                    });
+
+                    // Vista previa en vivo del ángulo mientras se arrastra
+                    // el slider — no recarga la textura, solo gira la ya
+                    // cargada (ver `applySkyRotation()`).
+                    window.addEventListener('spatial-editor-sky-rotation-preview', (event) => {
+                        applySkyRotation(event.detail.skyRotation);
                     });
 
                     Livewire.on('spatial-editor-tiling-preview', ({ type, id, tiling }) => {
@@ -1313,6 +1386,74 @@
                         <x-filament::input type="number" step="any" wire:model.live="imageDimensionsForm.height" />
                     </x-filament::input.wrapper>
                 </div>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <label class="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            wire:model.live="fogForm.enabled"
+                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900"
+                        >
+                        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Niebla de la escena</h4>
+                    </label>
+
+                    <x-info-popover>
+                        "Cerca" y "lejos" son la distancia desde la cámara donde la niebla empieza y donde ya cubre todo por completo. Afecta la plaza real, no solo este editor.
+                    </x-info-popover>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <label class="block text-xs text-gray-500 dark:text-gray-400">
+                        Color
+                        <x-filament::input.wrapper>
+                            <input type="color" wire:model.live="fogForm.color" class="h-9 w-full cursor-pointer rounded-md border-0 bg-transparent p-0" :disabled="! ($fogForm['enabled'] ?? true)" />
+                        </x-filament::input.wrapper>
+                    </label>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400">
+                        Cerca (m)
+                        <x-filament::input.wrapper>
+                            <x-filament::input type="number" min="0" step="1" wire:model.live="fogForm.near" :disabled="! ($fogForm['enabled'] ?? true)" />
+                        </x-filament::input.wrapper>
+                    </label>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400">
+                        Lejos (m)
+                        <x-filament::input.wrapper>
+                            <x-filament::input type="number" min="0" step="1" wire:model.live="fogForm.far" :disabled="! ($fogForm['enabled'] ?? true)" />
+                        </x-filament::input.wrapper>
+                    </label>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <label class="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            wire:model.live="skyImageEnabledForm"
+                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900"
+                        >
+                        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Fondo con textura equirectangular</h4>
+                    </label>
+
+                    <x-info-popover>
+                        Activa o desactiva la imagen de cielo (cubemap/spheremap) subida en "Editar Plaza", sin borrarla. Sin ninguna imagen cargada, este check no tiene efecto.
+                    </x-info-popover>
+                </div>
+
+                <label class="block text-xs text-gray-500 dark:text-gray-400">
+                    Rotación del fondo ({{ (int) round($skyRotationForm) }}°)
+                    <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        step="1"
+                        wire:model.live.debounce.150ms="skyRotationForm"
+                        @disabled(! $skyImageEnabledForm)
+                        class="mt-1 w-full accent-primary-600 disabled:opacity-40"
+                    >
+                </label>
             </div>
 
             <x-filament::button color="danger" wire:click="saveSpatialSettings">

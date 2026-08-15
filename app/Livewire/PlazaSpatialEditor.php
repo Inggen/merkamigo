@@ -70,6 +70,8 @@ class PlazaSpatialEditor extends Component
 
     private static ?bool $supportsTiling = null;
 
+    private static ?bool $supportsTilingLock = null;
+
     public ImmersivePlaza $plaza;
 
     /** @var array<string, mixed> */
@@ -92,6 +94,22 @@ class PlazaSpatialEditor extends Component
 
     /** @var array<string, float|int|null> */
     public array $imageDimensionsForm = [];
+
+    /** @var array<string, mixed> */
+    public array $fogForm = [];
+
+    /**
+     * Pedido del usuario: activar/desactivar el fondo con textura
+     * equirectangular (spheremap) sin borrar la imagen ya subida en
+     * "Editar Plaza" — el checkbox debajo de "Niebla de la escena".
+     */
+    public bool $skyImageEnabledForm = true;
+
+    /**
+     * Pedido del usuario: poder girar el fondo con textura equirectangular
+     * hasta 360 grados — mismo checkbox de arriba, un slider al lado.
+     */
+    public float $skyRotationForm = 0.0;
 
     public ?int $newPropTemplateId = null;
 
@@ -133,6 +151,7 @@ class PlazaSpatialEditor extends Component
             'objectEditorUrl' => $object['objectEditorUrl'] ?? null,
             'status' => $object['status'] ?? null,
             'tiling' => $object['tiling'] ?? null,
+            'tilingLocked' => (bool) ($object['tilingLocked'] ?? true),
         ];
         $this->sizeReference = $object['size'];
 
@@ -229,6 +248,37 @@ class PlazaSpatialEditor extends Component
         }
     }
 
+    /**
+     * Candado del tiling de un elemento — cerrado por defecto (pedido del
+     * usuario) para no perder por accidente el que trae desde que fue
+     * creado. El Blade solo pide confirmación (`wire:confirm`) al
+     * desbloquear, nunca al volver a cerrar, así que este método no
+     * necesita distinguir el sentido: si ya está bloqueado, la advertencia
+     * ya se mostró en el navegador antes de llegar aquí.
+     */
+    public function toggleTilingLock(int $propId): void
+    {
+        $prop = ImmersivePlazaProp::query()->find($propId);
+
+        if (! $prop || $prop->immersive_plaza_id !== $this->plaza->id || ! $this->supportsTilingLock()) {
+            return;
+        }
+
+        $prop->update(['texture_tiling_locked' => ! $prop->texture_tiling_locked]);
+
+        $this->reloadSceneData();
+
+        if ($this->selectedObjectType === 'prop' && $this->selectedObjectId === $propId) {
+            $this->selectedObjectForm['tilingLocked'] = (bool) $prop->texture_tiling_locked;
+        }
+
+        $payload = $this->findObjectData('prop', $propId);
+
+        if ($payload) {
+            $this->dispatch('spatial-editor-object-updated', object: $payload);
+        }
+    }
+
     public function saveSpatialSettings(): void
     {
         $this->commitHistorySnapshot($this->captureSnapshot());
@@ -246,6 +296,14 @@ class PlazaSpatialEditor extends Component
             'reference_image_height' => filled($this->imageDimensionsForm['height'] ?? null)
                 ? (float) $this->imageDimensionsForm['height']
                 : null,
+            'fog' => [
+                'enabled' => (bool) ($this->fogForm['enabled'] ?? true),
+                'color' => (string) ($this->fogForm['color'] ?? '#b6d7f3'),
+                'near' => max(0.0, (float) ($this->fogForm['near'] ?? 78)),
+                'far' => max(0.0, (float) ($this->fogForm['far'] ?? 260)),
+            ],
+            'sky_image_enabled' => $this->skyImageEnabledForm,
+            'sky_rotation' => $this->normalizeSkyRotation($this->skyRotationForm),
         ]);
 
         $this->plaza->refresh();
@@ -255,12 +313,28 @@ class PlazaSpatialEditor extends Component
             'spatial-editor-settings-updated',
             bounds: $this->sceneData['bounds'],
             plane: $this->sceneData['plane'],
+            fog: $this->sceneData['fog'],
+            skyImageUrl: $this->sceneData['skyImageUrl'],
+            skyRotation: $this->sceneData['skyRotation'],
         );
 
         Notification::make()
             ->title('Configuración espacial guardada')
             ->success()
             ->send();
+    }
+
+    /**
+     * Mantiene el ángulo siempre dentro de [0, 360) — `fmod()` conserva el
+     * signo del dividendo en PHP, así que un valor negativo (ej. escrito a
+     * mano en el input) necesita el ajuste extra para no quedar en
+     * (-360, 0].
+     */
+    private function normalizeSkyRotation(float $degrees): float
+    {
+        $normalized = fmod($degrees, 360);
+
+        return $normalized < 0 ? $normalized + 360 : $normalized;
     }
 
     /**
@@ -548,12 +622,53 @@ class PlazaSpatialEditor extends Component
         return view('livewire.plaza-spatial-editor');
     }
 
+    /**
+     * Botón "restaurar tiling por defecto" — pedido del usuario, junto al
+     * de info. Vuelve los campos U/V del formulario a 1×1 (sin repetición,
+     * el valor neutro con el que se ve la textura tal cual viene el
+     * objeto). Solo toca el formulario en pantalla y la previsualización
+     * del visor — "Guardar props" sigue siendo el único que persiste,
+     * igual que el resto de este panel. No hace nada con el candado
+     * cerrado (los campos ya vienen `disabled` ahí de todas formas).
+     */
+    public function resetSelectedTiling(): void
+    {
+        if ($this->selectedObjectType !== 'prop' || $this->selectedObjectId === null || ($this->selectedObjectForm['tilingLocked'] ?? true)) {
+            return;
+        }
+
+        $this->selectedObjectForm['tiling'] = ['u' => 1.0, 'v' => 1.0];
+
+        $this->dispatch(
+            'spatial-editor-tiling-preview',
+            type: 'prop',
+            id: $this->selectedObjectId,
+            tiling: ['u' => 1.0, 'v' => 1.0],
+        );
+    }
+
     public function updated(string $name, mixed $value): void
     {
+        // Vista previa en vivo del ángulo del fondo mientras se arrastra el
+        // slider — el guardado real sigue requiriendo "Guardar
+        // configuración" (mismo patrón que el tiling de abajo).
+        if ($name === 'skyRotationForm') {
+            $this->dispatch('spatial-editor-sky-rotation-preview', skyRotation: $this->normalizeSkyRotation((float) $value));
+        }
+
         // Vista previa en vivo del tiling mientras se escribe — el guardado
         // real sigue requiriendo el botón "Guardar props" (mismo patrón que
         // posición/tamaño/rotación), esto solo refresca el visor 3D antes.
-        if (str_starts_with($name, 'selectedObjectForm.tiling.') && $this->selectedObjectType === 'prop' && $this->selectedObjectId !== null) {
+        // Los inputs ya vienen `disabled` con el candado cerrado, pero esta
+        // guarda es defensiva: sin ella un evento `updated` fuera de ese
+        // camino normal podría previsualizar un tiling que después
+        // `saveSelectedProp()` de todas formas no va a persistir.
+        if (
+            str_starts_with($name, 'selectedObjectForm.tiling.')
+            && $this->selectedObjectType === 'prop'
+            && $this->selectedObjectId !== null
+            && ! ($this->selectedObjectForm['tilingLocked'] ?? true)
+        ) {
             $this->dispatch(
                 'spatial-editor-tiling-preview',
                 type: 'prop',
@@ -1002,7 +1117,11 @@ class PlazaSpatialEditor extends Component
             $attributes['collision_enabled'] = (bool) ($this->selectedObjectForm['collisionEnabled'] ?? false);
         }
 
-        if ($this->supportsTiling()) {
+        // Pedido del usuario: el tiling solo se persiste para elementos con
+        // el candado desbloqueado — con el candado cerrado (por defecto) se
+        // reserva el que trae el objeto desde que fue creado, aunque el
+        // formulario cargue algún valor (los inputs ya vienen `disabled`).
+        if ($this->supportsTiling() && ! ($this->selectedObjectForm['tilingLocked'] ?? true)) {
             $attributes['texture_tiling'] = [
                 'u' => max(self::MIN_DIMENSION, (float) ($this->selectedObjectForm['tiling']['u'] ?? 1)),
                 'v' => max(self::MIN_DIMENSION, (float) ($this->selectedObjectForm['tiling']['v'] ?? 1)),
@@ -1126,6 +1245,9 @@ class PlazaSpatialEditor extends Component
                 'navigable_bounds' => $this->plaza->navigable_bounds,
                 'reference_image_width' => $this->plaza->reference_image_width,
                 'reference_image_height' => $this->plaza->reference_image_height,
+                'fog' => $this->plaza->fog,
+                'sky_image_enabled' => $this->plaza->sky_image_enabled,
+                'sky_rotation' => $this->plaza->sky_rotation,
             ],
         ];
     }
@@ -1193,6 +1315,9 @@ class PlazaSpatialEditor extends Component
             'spatial-editor-settings-updated',
             bounds: $this->sceneData['bounds'],
             plane: $this->sceneData['plane'],
+            fog: $this->sceneData['fog'],
+            skyImageUrl: $this->sceneData['skyImageUrl'],
+            skyRotation: $this->sceneData['skyRotation'],
         );
     }
 
@@ -1292,6 +1417,10 @@ class PlazaSpatialEditor extends Component
             'width' => $this->plaza->reference_image_width,
             'height' => $this->plaza->reference_image_height,
         ];
+
+        $this->fogForm = $this->plaza->fogSettings();
+        $this->skyImageEnabledForm = (bool) $this->plaza->sky_image_enabled;
+        $this->skyRotationForm = (float) ($this->plaza->sky_rotation ?? 0);
     }
 
     private function reloadSceneData(): void
@@ -1317,7 +1446,14 @@ class PlazaSpatialEditor extends Component
         return [
             'bounds' => $plaza->navigable_bounds,
             'plane' => $this->planeData($plaza),
+            'fog' => $plaza->fogSettings(),
             'referenceImageUrl' => $plaza->reference_image_path ? Storage::disk('public')->url($plaza->reference_image_path) : null,
+            // Pedido del usuario: previsualizar acá la imagen de cielo que
+            // se sube desde "Editar Plaza" (Filament) — la imagen en sí es
+            // de solo lectura acá, pero el checkbox de abajo (Opciones) sí
+            // controla si se aplica o no (`sky_image_enabled`).
+            'skyImageUrl' => $plaza->skyImageUrl(),
+            'skyRotation' => (float) ($plaza->sky_rotation ?? 0),
             // La zona invisible de `defaultStandZone()` no se dibuja: no es
             // una zona real que el admin haya delimitado, es solo el
             // contenedor técnico que le da `stand_zone_id` a los slots
@@ -1493,6 +1629,10 @@ class PlazaSpatialEditor extends Component
             'status' => $prop->status,
             'locked' => (bool) $prop->locked,
             'tiling' => $this->supportsTiling() ? $prop->textureTiling() : null,
+            // Sin la columna todavía migrada, se trata como bloqueado (el
+            // default más seguro) en vez de permitir editar un tiling que
+            // de todas formas `saveSelectedProp()` no va a poder persistir.
+            'tilingLocked' => $this->supportsTilingLock() ? (bool) $prop->texture_tiling_locked : true,
             'x' => $position['x'],
             'y' => $position['y'],
             'z' => $position['z'],
@@ -1703,6 +1843,15 @@ class PlazaSpatialEditor extends Component
         }
 
         return self::$supportsTiling;
+    }
+
+    private function supportsTilingLock(): bool
+    {
+        if (self::$supportsTilingLock === null) {
+            self::$supportsTilingLock = Schema::hasColumn('immersive_plaza_props', 'texture_tiling_locked');
+        }
+
+        return self::$supportsTilingLock;
     }
 
     private function legacyCompatibilityMessage(): ?string

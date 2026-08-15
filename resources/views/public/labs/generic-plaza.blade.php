@@ -93,6 +93,7 @@
                 color: rgba(255, 255, 255, 0.72);
                 font-size: 0.7rem;
                 text-align: center;
+                text-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
             }
 
             /* En táctil el motor agrega stick/botones abajo (voxel-plaza-engine.js)
@@ -271,7 +272,16 @@
                 mobile: @json($plaza->mobile_quality_profile),
                 desktop: @json($plaza->desktop_quality_profile),
             };
+            // Pedido del usuario: niebla configurable por plaza desde el
+            // editor espacial (Opciones > Niebla de la escena).
+            window.genericPlazaFog = @json($plaza->fogSettings());
             window.genericPlazaReferenceImageUrl = @json($plaza->reference_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($plaza->reference_image_path) : null);
+            // Pedido del usuario: imagen de cielo panorámica (spheremap)
+            // por plaza, cargada desde "Editar Plaza" — nula si no se
+            // configuró ninguna, y la escena se ve como hasta ahora.
+            window.genericPlazaSkyImageUrl = @json($plaza->skyImageUrl());
+            // Pedido del usuario: poder girar ese fondo hasta 360°.
+            window.genericPlazaSkyRotation = @json((float) ($plaza->sky_rotation ?? 0));
         </script>
         {{-- `?v=` con la fecha de modificación evita que el navegador siga
              sirviendo una copia en caché de este script (y de los módulos
