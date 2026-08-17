@@ -19,6 +19,10 @@
 
     $recommendations = $business->publishedRecommendations();
     $recommendationCount = $recommendations->count();
+    // Mismo fix que en vitrinas/show.blade.php: las estrellas eran fijas,
+    // sin ningún dato real detrás.
+    $ratedRecommendations = $recommendations->whereNotNull('rating');
+    $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
     $paymentMethods = collect(preg_split('/[\r\n,]+/', (string) $business->payment_info))
         ->map(fn ($item) => trim($item))
         ->filter()
@@ -213,14 +217,14 @@
                                 @endforeach
                             </div>
 
-                            @if ($recommendationCount > 0)
+                            @if ($averageRating !== null)
                                 <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                                     <div class="flex items-center gap-0.5 text-rose-500">
-                                        @for ($i = 0; $i < 5; $i++)
-                                            <flux:icon.star class="size-4 fill-current" />
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <flux:icon.star class="size-4" :variant="$i <= round($averageRating) ? 'solid' : 'outline'" />
                                         @endfor
                                     </div>
-                                    <span>{{ __(':count reseñas', ['count' => $recommendationCount]) }}</span>
+                                    <span>{{ number_format($averageRating, 1) }} · {{ __(':count reseñas', ['count' => $recommendationCount]) }}</span>
                                 </div>
                             @endif
                         </div>
@@ -300,18 +304,20 @@
 
                         <div x-show="tab === 'resenas'" x-cloak>
                             @if ($recommendations->isEmpty())
-                                <x-states.empty title="{{ __('Todavía no hay reseñas') }}" description="{{ __('Las recomendaciones aparecerán cuando existan interacciones elegibles y moderadas.') }}" />
+                                <x-states.empty title="{{ __('Todavía no hay reseñas') }}" description="{{ __('Sé el primero en dejar tu opinión sobre este negocio.') }}" />
                             @else
                                 <div class="space-y-4">
                                     @foreach ($recommendations as $recommendation)
                                         <article class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
                                             <div class="flex flex-wrap items-center gap-2">
                                                 <span class="font-semibold text-zinc-950 dark:text-white">{{ $recommendation->authorUser?->name ?? __('Cliente verificado') }}</span>
-                                                <div class="flex items-center gap-0.5 text-rose-500">
-                                                    @for ($i = 0; $i < 5; $i++)
-                                                        <flux:icon.star class="size-3.5 fill-current" />
-                                                    @endfor
-                                                </div>
+                                                @if ($recommendation->rating)
+                                                    <div class="flex items-center gap-0.5 text-rose-500">
+                                                        @for ($i = 1; $i <= 5; $i++)
+                                                            <flux:icon.star class="size-3.5" :variant="$i <= $recommendation->rating ? 'solid' : 'outline'" />
+                                                        @endfor
+                                                    </div>
+                                                @endif
                                             </div>
                                             <p class="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $recommendation->body }}</p>
                                             @if ($recommendation->business_response)

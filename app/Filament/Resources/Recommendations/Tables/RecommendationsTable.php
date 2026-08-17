@@ -22,6 +22,7 @@ class RecommendationsTable
             ->columns([
                 TextColumn::make('business.name')->label('Negocio')->searchable(),
                 TextColumn::make('authorUser.name')->label('Autor')->placeholder('Sin cuenta'),
+                TextColumn::make('rating')->label('Calificación')->suffix('/5')->placeholder('Sin calificar')->sortable(),
                 TextColumn::make('status')
                     ->label('Estado')
                     ->badge()

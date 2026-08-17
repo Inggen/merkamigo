@@ -5,7 +5,7 @@
     'categoryId' => null,
     'categorySlug' => null,
     'query' => '',
-    'title' => __('Descubre lo local, conecta con tu comunidad'),
+    'title' => __('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad'),
     'description' => null,
     'near' => null,
     'showImmersiveCta' => false,
@@ -14,7 +14,14 @@
 @php
     $selectedCategoryId = $categoryId ?? $category?->id;
     $selectedCategorySlug = $categorySlug ?? $category?->slug;
-    $fallbackBackground = asset('images/backgrounds/fondo-buscador-principal.webp');
+    // Pedido del usuario: el título del hero siempre en dos líneas, una
+    // debajo de la otra, en vez de depender del salto de línea natural
+    // (que cambia de punto de quiebre según el ancho de pantalla). Corta en
+    // el primer ". " — si un título personalizado no trae ese patrón, se
+    // muestra tal cual, en una sola línea.
+    $titleHtml = new \Illuminate\Support\HtmlString(str_replace('. ', ".<br>\n", e($title)));
+    $fallbackBackground = \App\Domain\Platform\Models\SiteSetting::current()->mainSearchBackgroundUrl()
+        ?? asset('images/backgrounds/fondo-buscador-principal.webp');
     $allMunicipalitiesLabel = __('Todos');
     $fallbackMedia = ['type' => 'image', 'url' => $fallbackBackground];
 
@@ -27,7 +34,7 @@
             : __('Mostrando :municipio. Apoya negocios de tu area y encuentra lo que necesitas, cerca de ti.', [
                 'municipio' => $municipality->name,
             ]))
-        : __('Busca negocios, productos y servicios por municipio o cerca de ti.');
+        : __('Miles de negocios, productos y servicios cerca de ti.');
 
     // El fondo del hero debe venir del municipio configurado en admin.
     // No reemplazar por assets inmersivos hardcodeados ni por fondos mock.
@@ -124,7 +131,7 @@
     <div class="relative z-10 mx-auto max-w-7xl px-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <h1 class="font-heading text-3xl font-semibold text-white sm:text-4xl">{{ $title }}</h1>
+                <h1 class="font-heading text-3xl font-semibold text-white sm:text-4xl">{{ $titleHtml }}</h1>
                 <flux:text class="mt-2 max-w-xl text-brand-100">
                     {{ $description }}
                 </flux:text>

@@ -134,19 +134,19 @@
 
             <div class="grid grid-cols-3 gap-2">
                 <label class="block text-xs text-gray-500 dark:text-gray-400">
-                    Ancho máximo (m)
+                    Ancho (m)
                     <x-filament::input.wrapper>
                         <x-filament::input type="number" min="0.001" step="0.001" wire:model.live="maxWidthForm" />
                     </x-filament::input.wrapper>
                 </label>
                 <label class="block text-xs text-gray-500 dark:text-gray-400">
-                    Profundidad máxima (m)
+                    Profun (m)
                     <x-filament::input.wrapper>
                         <x-filament::input type="number" min="0.001" step="0.001" wire:model.live="maxDepthForm" />
                     </x-filament::input.wrapper>
                 </label>
                 <label class="block text-xs text-gray-500 dark:text-gray-400">
-                    Alto máximo (m)
+                    Alto (m)
                     <x-filament::input.wrapper>
                         <x-filament::input type="number" min="0.001" step="0.001" wire:model.live="maxHeightForm" />
                     </x-filament::input.wrapper>
@@ -871,10 +871,12 @@
     </div>
 
     <div class="fi-section rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900">
-        <h3 class="text-sm font-semibold text-gray-950 dark:text-white">Propiedades</h3>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Selecciona una caja o un grupo desde la lista, o haz clic sobre el visor para editar una caja.
-        </p>
+        <div class="flex items-center gap-1">
+            <h3 class="text-sm font-semibold text-gray-950 dark:text-white">Propiedades</h3>
+            <x-info-popover>
+                Selecciona una caja o un grupo desde la lista, o haz clic sobre el visor para editar una caja.
+            </x-info-popover>
+        </div>
 
         @if ($selectedGroupId !== null)
             @php $selectedGroup = collect($sceneData['groups'] ?? [])->firstWhere('id', $selectedGroupId); @endphp
@@ -1042,8 +1044,12 @@
                 </div>
 
                 <div class="space-y-3">
-                    <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Rotación (X, Y, Z)</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Sin límite de eje, una caja puede rotar libre en X/Y/Z.</p>
+                    <div class="flex items-center gap-1">
+                        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Rotación (X, Y, Z)</h4>
+                        <x-info-popover>
+                            Sin límite de eje, una caja puede rotar libre en X/Y/Z.
+                        </x-info-popover>
+                    </div>
                     <div class="grid grid-cols-3 gap-2">
                         <x-filament::input.wrapper><x-filament::input type="number" step="0.001" wire:model.live="selectedBoxForm.rotation.x" /></x-filament::input.wrapper>
                         <x-filament::input.wrapper><x-filament::input type="number" step="0.001" wire:model.live="selectedBoxForm.rotation.y" /></x-filament::input.wrapper>

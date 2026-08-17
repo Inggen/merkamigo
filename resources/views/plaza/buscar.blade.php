@@ -37,10 +37,10 @@
         :query="$query"
         :near="$near"
         :show-immersive-cta="$selectedMunicipality !== null"
-        :title="__('Descubre lo local, conecta con tu comunidad')"
+        :title="__('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad')"
         :description="$selectedMunicipality
             ? __('Mostrando :municipio. Apoya negocios de tu area y encuentra lo que necesitas, cerca de ti.', ['municipio' => $selectedMunicipality->name])
-            : __('Busca negocios, productos y servicios por municipio o cerca de ti.')"
+            : __('Miles de negocios, productos y servicios cerca de ti.')"
     />
 
     <div class="mx-auto max-w-7xl px-6 py-8">

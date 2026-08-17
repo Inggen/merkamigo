@@ -93,19 +93,19 @@ class ImmersiveObjectTemplateForm
                 ->visible(fn (Get $get): bool => $get('asset_input_mode') === 'model_3d')
                 ->helperText('Si hay un GLB cargado, se usa en la escena por encima de cualquier otra cosa.'),
             TextInput::make('max_width')
-                ->label('Ancho máximo (m)')
+                ->label('Ancho (m)')
                 ->numeric()
                 ->step('0.001')
                 ->minValue(0.001)
                 ->hidden(),
             TextInput::make('max_depth')
-                ->label('Profundidad máxima (m)')
+                ->label('Profundidad (m)')
                 ->numeric()
                 ->step('0.001')
                 ->minValue(0.001)
                 ->hidden(),
             TextInput::make('max_height')
-                ->label('Alto máximo (m)')
+                ->label('Alto (m)')
                 ->numeric()
                 ->step('0.001')
                 ->minValue(0.001)

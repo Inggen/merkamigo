@@ -28,6 +28,12 @@
     $galleryPhotos = $products->flatMap(fn ($product) => $product->media)->take(6)->values();
     $recommendations = $business->publishedRecommendations();
     $recommendationCount = $recommendations->count();
+    // Pedido del usuario: las 5 estrellas de "Opiniones de clientes" eran
+    // fijas, sin ningún dato real detrás. Recomendaciones de antes de que
+    // existiera la calificación (`rating`) quedan fuera del promedio en
+    // vez de contar como si tuvieran 0 estrellas.
+    $ratedRecommendations = $recommendations->whereNotNull('rating');
+    $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
     $featuredProducts = $products->take(6);
     $socialLinks = collect(array_filter($business->social_links ?? []));
     $hasSidebarContent = filled($business->whatsapp_number)
@@ -65,7 +71,18 @@
     ]"
     :schema-graph="$schemaGraph"
 >
-    <div x-data="{ tab: 'inicio' }" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div
+        x-data="{
+            tab: 'inicio',
+            // Bug real reportado por el usuario en la página de producto
+            // (ver `product.blade.php`): en Safari/iOS, apps como Instagram
+            // interceptan las URLs manuales de compartir y abren su feed
+            // normal en vez del compositor. El Web Share API nativo
+            // (`navigator.share`) delega en el propio sistema operativo —
+            // mismo criterio acá para compartir la vitrina completa.
+            shareSupported: typeof navigator !== 'undefined' && !! navigator.share,
+        }"
+        class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
         <nav class="mb-5 flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
             <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>
             <span>›</span>
@@ -255,10 +272,12 @@
                         </div>
 
                         <div x-show="tab === 'opiniones'" x-cloak>
+                            <livewire:submit-opinion-form :business="$business" :key="'submit-opinion-'.$business->id" />
+
                             @if ($recommendations->isEmpty())
                                 <x-states.empty
                                     title="{{ __('Todavía no hay opiniones') }}"
-                                    description="{{ __('Las recomendaciones aparecerán cuando existan interacciones elegibles y moderadas.') }}"
+                                    description="{{ __('Sé el primero en dejar tu opinión sobre este negocio.') }}"
                                 />
                             @else
                                 <div class="space-y-4">
@@ -268,6 +287,15 @@
                                                 <span class="text-sm font-semibold text-zinc-950 dark:text-white">
                                                     {{ $recommendation->authorUser?->name ?? __('Cliente verificado') }}
                                                 </span>
+
+                                                @if ($recommendation->rating)
+                                                    <div class="flex items-center gap-0.5 text-amber-500">
+                                                        @for ($i = 1; $i <= 5; $i++)
+                                                            <flux:icon.star class="size-3.5" :variant="$i <= $recommendation->rating ? 'solid' : 'outline'" />
+                                                        @endfor
+                                                    </div>
+                                                @endif
+
                                                 @foreach ($recommendation->tags ?? [] as $tag)
                                                     <flux:badge size="sm" color="zinc">{{ $tag }}</flux:badge>
                                                 @endforeach
@@ -402,7 +430,22 @@
                             <p class="max-w-32 text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">{{ __('Escanea para compartir') }}</p>
                         </div>
 
-                        <div class="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800">
+                        <div x-show="shareSupported" x-cloak>
+                            <button
+                                type="button"
+                                x-on:click="navigator.share({
+                                        title: @js($business->name),
+                                        text: @js($business->name),
+                                        url: @js(route('vitrinas.show', $business)),
+                                    }).then(() => fetch('{{ route('vitrinas.compartir', $business) }}', { method: 'POST' })).catch(() => {})"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
+                            >
+                                <flux:icon.share class="size-5" variant="outline" />
+                                {{ __('Compartir') }}
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800" x-show="! shareSupported" x-cloak>
                             <span class="min-w-0 flex-1 text-sm leading-5 text-zinc-500 break-words dark:text-zinc-300">{{ parse_url(route('vitrinas.show', $business), PHP_URL_HOST) . parse_url(route('vitrinas.show', $business), PHP_URL_PATH) }}</span>
                             <button
                                 type="button"
@@ -468,11 +511,18 @@
                         <div class="text-4xl font-semibold tracking-tight text-zinc-950 dark:text-white">{{ $recommendationCount > 0 ? $recommendationCount : 0 }}</div>
                         <div class="pb-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('opiniones publicadas') }}</div>
                     </div>
-                    <div class="mt-3 flex items-center gap-0.5 text-amber-500">
-                        @for ($i = 0; $i < 5; $i++)
-                            <flux:icon.star class="size-5 fill-current" />
-                        @endfor
-                    </div>
+                    @if ($averageRating !== null)
+                        <div class="mt-3 flex items-center gap-2">
+                            <div class="flex items-center gap-0.5 text-amber-500">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <flux:icon.star class="size-5" :variant="$i <= round($averageRating) ? 'solid' : 'outline'" />
+                                @endfor
+                            </div>
+                            <span class="text-sm font-medium text-zinc-600 dark:text-zinc-300">{{ number_format($averageRating, 1) }}</span>
+                        </div>
+                    @else
+                        <p class="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Todavía sin calificaciones.') }}</p>
+                    @endif
                     <button type="button" x-on:click="tab = 'opiniones'" class="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-brand-200 px-4 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-200 dark:hover:bg-brand-500/10">
                         {{ __('Ver todas las opiniones') }}
                     </button>

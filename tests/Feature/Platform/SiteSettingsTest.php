@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Js;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -89,6 +90,41 @@ class SiteSettingsTest extends TestCase
         Storage::disk('public')->assertExists($setting->login_background_path);
         Storage::disk('public')->assertExists($setting->footer_background_path);
         Storage::disk('public')->assertExists($setting->main_search_background_path);
+    }
+
+    /**
+     * Pedido del usuario: poder cambiar la imagen de fondo del buscador
+     * principal (el hero de "Descubre lo mejor de tu municipio...") desde
+     * Configuración del sitio. `main_search_background_path` ya existía en
+     * el formulario, pero nada la usaba todavía — `search-hero.blade.php`
+     * seguía sirviendo un asset estático hardcodeado como único fallback.
+     */
+    public function test_the_search_hero_falls_back_to_the_static_asset_without_a_configured_background(): void
+    {
+        $this->get(route('buscar'))
+            ->assertOk()
+            ->assertSee((string) Js::from(asset('images/backgrounds/fondo-buscador-principal.webp')), false);
+    }
+
+    public function test_the_search_hero_uses_the_configured_background_when_set(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm(['main_search_background_path' => UploadedFile::fake()->image('search-bg.jpg')])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $url = SiteSetting::current()->mainSearchBackgroundUrl();
+
+        $this->get(route('buscar'))
+            ->assertOk()
+            ->assertSee((string) Js::from($url), false)
+            ->assertDontSee((string) Js::from(asset('images/backgrounds/fondo-buscador-principal.webp')), false);
     }
 
     public function test_a_regular_user_cannot_access_the_site_settings_page(): void

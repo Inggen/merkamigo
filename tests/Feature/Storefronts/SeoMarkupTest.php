@@ -72,6 +72,25 @@ class SeoMarkupTest extends TestCase
             ->assertSee('wa.me', false);
     }
 
+    /**
+     * Pedido del usuario: quitar el enlace de "Comparte esta vitrina" (ya
+     * redundante una vez que existe el botón nativo de compartir) y usar,
+     * en su lugar, el mismo botón "Compartir" (`navigator.share`) de la
+     * página de producto — la fila con la URL cruda y su botón de copiar
+     * sigue existiendo solo como respaldo para navegadores sin soporte.
+     */
+    public function test_the_storefront_renders_the_native_share_button_and_the_url_fallback(): void
+    {
+        [$business] = $this->publishedBusinessWithProduct('producto');
+
+        $this->get(route('vitrinas.show', $business))
+            ->assertOk()
+            ->assertSee('Comparte esta vitrina')
+            ->assertSee('navigator.share', false)
+            ->assertSee('shareSupported', false)
+            ->assertSee(route('vitrinas.compartir', $business), false);
+    }
+
     public function test_the_public_product_page_renders_product_or_service_schema(): void
     {
         [$productBusiness, $product] = $this->publishedBusinessWithProduct('producto');

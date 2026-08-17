@@ -22,7 +22,7 @@ class SubmitRecommendation
     /**
      * @param  array<int, string>  $tags
      */
-    public function handle(OrderConfirmation $order, User $actor, string $body, array $tags = []): Recommendation
+    public function handle(OrderConfirmation $order, User $actor, string $body, int $rating, array $tags = []): Recommendation
     {
         if ($order->status !== OrderConfirmation::COMPLETADO) {
             throw new InvalidArgumentException('Solo puedes recomendar un pedido ya completado.');
@@ -37,9 +37,10 @@ class SubmitRecommendation
         }
 
         $validated = Validator::make(
-            ['body' => $body, 'tags' => $tags],
+            ['body' => $body, 'rating' => $rating, 'tags' => $tags],
             [
                 'body' => ['required', 'string', 'max:500', new NoLinks],
+                'rating' => ['required', 'integer', 'between:'.Recommendation::MIN_RATING.','.Recommendation::MAX_RATING],
                 'tags' => ['array'],
                 'tags.*' => ['string', 'in:'.implode(',', Recommendation::SUGGESTED_TAGS)],
             ],
@@ -51,6 +52,7 @@ class SubmitRecommendation
             'author_user_id' => $actor->id,
             'status' => Recommendation::PENDIENTE,
             'body' => $validated['body'],
+            'rating' => $validated['rating'],
             'tags' => $validated['tags'],
         ]);
     }

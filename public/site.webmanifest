@@ -1,7 +1,7 @@
 {
     "name": "Merkamigo",
     "short_name": "Merkamigo",
-    "description": "Descubre lo local, conecta con tu comunidad.",
+    "description": "Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#F4F4F4",

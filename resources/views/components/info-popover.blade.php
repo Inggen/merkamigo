@@ -1,3 +1,15 @@
+@props([
+    'placement' => 'bottom-right',
+])
+
+@php
+    $panelClasses = match ($placement) {
+        'left' => 'right-full top-1/2 mr-2 -translate-y-1/2',
+        'bottom-left' => 'left-0 top-full mt-2',
+        default => 'right-0 top-full mt-2',
+    };
+@endphp
+
 {{--
     Botón de info con popover — pedido del usuario: el `title`/`aria-label`
     de un botón (tooltip nativo del navegador) no se notaba como que
@@ -21,7 +33,10 @@
         x-show="open"
         x-cloak
         x-transition
-        class="absolute right-0 top-full z-20 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-600 shadow-lg dark:border-white/10 dark:bg-gray-800 dark:text-gray-300"
+        @class([
+            'absolute z-20 w-64 rounded-lg border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-600 shadow-lg dark:border-white/10 dark:bg-gray-800 dark:text-gray-300',
+            $panelClasses,
+        ])
     >
         {{ $slot }}
     </div>

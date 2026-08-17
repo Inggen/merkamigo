@@ -96,36 +96,6 @@
             />
         </div>
 
-        <section class="mb-10">
-            <div class="mb-4 flex items-center justify-between">
-                <flux:heading size="lg">{{ __('Explora Merkamigo') }}</flux:heading>
-                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Accesos rápidos a las secciones principales') }}</flux:text>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                @foreach ($featuredSections as $section)
-                    <a
-                        href="{{ $section['url'] }}"
-                        wire:navigate
-                        class="group rounded-3xl border border-zinc-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-brand-500/50"
-                    >
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <h2 class="text-lg font-semibold tracking-tight text-zinc-950 transition group-hover:text-brand-700 dark:text-white dark:group-hover:text-brand-300">
-                                    {{ $section['name'] }}
-                                </h2>
-                                <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-                                    {{ $section['description'] }}
-                                </p>
-                            </div>
-
-                            <span class="mt-1 text-brand-500 transition group-hover:translate-x-0.5">→</span>
-                        </div>
-                    </a>
-                @endforeach
-            </div>
-        </section>
-
         <div id="nuevos-en-la-plaza" class="mb-4 flex scroll-mt-24 items-center justify-between">
             <flux:heading size="lg">{{ __('Nuevos en la plaza') }}</flux:heading>
             <flux:link :href="$municipality ? route('buscar', ['municipio' => $municipality->slug]) : route('buscar', ['municipio' => 'todos'])" wire:navigate class="text-sm">{{ __('Ver toda la plaza →') }}</flux:link>
@@ -229,5 +199,35 @@
                 <img src="{{ asset('images/fondo-login-admin.svg') }}" alt="" class="hidden w-full shrink-0 opacity-50 sm:block" style="max-width: 700px" loading="lazy">
             </div>
         </div>
+
+        <section class="mt-10">
+            <div class="mb-4 flex items-center justify-between">
+                <flux:heading size="lg">{{ __('Explora Merkamigo') }}</flux:heading>
+                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Accesos rápidos a las secciones principales') }}</flux:text>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                @foreach ($featuredSections as $section)
+                    <a
+                        href="{{ $section['url'] }}"
+                        wire:navigate
+                        class="group rounded-3xl border border-zinc-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-brand-500/50"
+                    >
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 class="text-lg font-semibold tracking-tight text-zinc-950 transition group-hover:text-brand-700 dark:text-white dark:group-hover:text-brand-300">
+                                    {{ $section['name'] }}
+                                </h2>
+                                <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                                    {{ $section['description'] }}
+                                </p>
+                            </div>
+
+                            <span class="mt-1 text-brand-500 transition group-hover:translate-x-0.5">→</span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </section>
     </div>
 </x-layouts::cliente>

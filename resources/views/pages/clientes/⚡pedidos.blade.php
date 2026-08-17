@@ -21,6 +21,8 @@ new #[Title('Mis pedidos')] class extends Component {
 
     public string $recommendation_body = '';
 
+    public ?int $recommendation_rating = null;
+
     /** @var array<int, string> */
     public array $recommendation_tags = [];
 
@@ -77,21 +79,29 @@ new #[Title('Mis pedidos')] class extends Component {
     {
         $this->recommendingOrderId = $orderId;
         $this->recommendation_body = '';
+        $this->recommendation_rating = null;
         $this->recommendation_tags = [];
     }
 
     public function cancelRecommend(): void
     {
-        $this->reset(['recommendingOrderId', 'recommendation_body', 'recommendation_tags']);
+        $this->reset(['recommendingOrderId', 'recommendation_body', 'recommendation_rating', 'recommendation_tags']);
     }
 
     public function submitRecommendation(): void
     {
+        if ($this->recommendation_rating === null) {
+            $this->addError('recommendation_rating', __('Elige una calificación de 1 a 5 estrellas.'));
+
+            return;
+        }
+
         try {
             app(SubmitRecommendation::class)->handle(
                 $this->ownedOrder($this->recommendingOrderId),
                 Auth::user(),
                 $this->recommendation_body,
+                $this->recommendation_rating,
                 $this->recommendation_tags,
             );
 
@@ -171,6 +181,8 @@ new #[Title('Mis pedidos')] class extends Component {
                             </flux:text>
                         @elseif ($recommendingOrderId === $order->id)
                             <div class="mt-4 space-y-3 rounded-xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-900 dark:bg-brand-950">
+                                <x-star-rating-picker wire-model="recommendation_rating" :value="$recommendation_rating" :label="__('Tu calificación')" />
+
                                 <flux:textarea wire:model="recommendation_body" :label="__('Cuéntale a otros cómo te fue')" rows="3" maxlength="500" required />
 
                                 <flux:checkbox.group wire:model="recommendation_tags" :label="__('Etiquetas (opcional)')">

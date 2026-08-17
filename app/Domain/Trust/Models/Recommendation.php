@@ -21,8 +21,19 @@ class Recommendation extends Model
     public const OCULTA = 'oculta';
 
     /**
+     * Pedido del usuario: el resumen de "Opiniones de clientes" de la
+     * vitrina mostraba 5 estrellas fijas sin ningún dato real detrás — de
+     * ahí la calificación simple de 1 a 5 (sin decimales ni escalas más
+     * complejas, que era la única restricción que existía originalmente
+     * sobre las puntuaciones numéricas).
+     */
+    public const MIN_RATING = 1;
+
+    public const MAX_RATING = 5;
+
+    /**
      * Etiquetas sugeridas al recomendar (3.3 del TODO: "texto corto y
-     * etiquetas útiles", sin puntuaciones numéricas complejas).
+     * etiquetas útiles").
      *
      * @var array<int, string>
      */
@@ -39,6 +50,7 @@ class Recommendation extends Model
         'author_user_id',
         'status',
         'body',
+        'rating',
         'tags',
         'business_response',
         'published_at',
@@ -50,6 +62,7 @@ class Recommendation extends Model
     {
         return [
             'tags' => 'array',
+            'rating' => 'integer',
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
         ];

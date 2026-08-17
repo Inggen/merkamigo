@@ -2,7 +2,7 @@
 
 <div class="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900">
     <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="block">
-        <div class="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+        <div class="relative aspect-[16/9] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
             @if ($business->storefront?->coverUrl())
                 <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
             @elseif ($business->logoUrl())

@@ -48,11 +48,11 @@ class StandSlotForm
                         TextInput::make('rotation.z')->label('Z')->numeric()->default(0),
                     ]),
                 TextInput::make('max_width')
-                    ->label('Ancho máximo (m)')
+                    ->label('Ancho (m)')
                     ->numeric()
                     ->required(),
                 TextInput::make('max_depth')
-                    ->label('Profundidad máxima (m)')
+                    ->label('Profundidad (m)')
                     ->numeric()
                     ->required(),
                 Select::make('orientation_mode')

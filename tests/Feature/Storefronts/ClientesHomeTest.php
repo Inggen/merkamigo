@@ -19,6 +19,18 @@ class ClientesHomeTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Pedido del usuario: el título del hero siempre en dos líneas, una
+     * debajo de la otra, en vez de depender del salto de línea natural.
+     */
+    public function test_the_search_hero_title_breaks_into_two_lines(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Descubre lo mejor de tu municipio.<br>', false)
+            ->assertDontSee('Descubre lo mejor de tu municipio. Compra local', false);
+    }
+
     public function test_a_client_without_a_preferred_municipality_is_asked_to_choose_one(): void
     {
         Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
@@ -29,7 +41,7 @@ class ClientesHomeTest extends TestCase
             ->get(route('clientes.home'))
             ->assertOk()
             ->assertSee('Cajicá')
-            ->assertSee(__('Busca negocios, productos y servicios por municipio o cerca de ti.'));
+            ->assertSee(__('Miles de negocios, productos y servicios cerca de ti.'));
     }
 
     public function test_choosing_a_municipality_persists_it_and_shows_its_published_businesses(): void

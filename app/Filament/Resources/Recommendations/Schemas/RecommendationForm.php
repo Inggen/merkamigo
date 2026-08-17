@@ -21,6 +21,13 @@ class RecommendationForm
                     Recommendation::OCULTA => 'Oculta',
                 ])
                 ->required(),
+            Select::make('rating')
+                ->label('Calificación')
+                ->options(array_combine(
+                    range(Recommendation::MIN_RATING, Recommendation::MAX_RATING),
+                    range(Recommendation::MIN_RATING, Recommendation::MAX_RATING),
+                ))
+                ->placeholder('Sin calificar'),
             Textarea::make('body')->label('Recomendación')->required()->columnSpanFull(),
             TagsInput::make('tags')->label('Etiquetas'),
             Textarea::make('business_response')->label('Respuesta del negocio')->columnSpanFull(),

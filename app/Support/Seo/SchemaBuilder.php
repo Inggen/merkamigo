@@ -145,10 +145,12 @@ class SchemaBuilder
             ->values()
             ->all();
         $storeUrl = route('vitrinas.show', $business);
-        $reviews = $business->publishedRecommendations()
+        $publishedRecommendations = $business->publishedRecommendations();
+        $reviews = $publishedRecommendations
             ->take(5)
             ->map(fn (Recommendation $recommendation) => self::review($recommendation, $business))
             ->all();
+        $ratedRecommendations = $publishedRecommendations->whereNotNull('rating');
 
         return self::clean([
             '@type' => 'Store',
@@ -174,6 +176,13 @@ class SchemaBuilder
             'sameAs' => array_values(array_filter($business->social_links ?? [])),
             'openingHoursSpecification' => self::openingHours($business),
             'review' => $reviews === [] ? null : $reviews,
+            'aggregateRating' => $ratedRecommendations->isEmpty() ? null : [
+                '@type' => 'AggregateRating',
+                'ratingValue' => round($ratedRecommendations->avg('rating'), 1),
+                'reviewCount' => $ratedRecommendations->count(),
+                'bestRating' => Recommendation::MAX_RATING,
+                'worstRating' => Recommendation::MIN_RATING,
+            ],
             'hasOfferCatalog' => $products->isEmpty() ? null : [
                 '@type' => 'OfferCatalog',
                 'name' => __('Catálogo de :business', ['business' => $business->name]),
@@ -253,6 +262,16 @@ class SchemaBuilder
             'author' => [
                 '@type' => 'Person',
                 'name' => $recommendation->authorUser?->name ?? __('Cliente verificado'),
+            ],
+            // Nulo para recomendaciones de antes de que existiera la
+            // calificación (pedido del usuario) — `self::clean()` quita la
+            // clave completa en ese caso, en vez de mandar un `reviewRating`
+            // sin `ratingValue`.
+            'reviewRating' => $recommendation->rating === null ? null : [
+                '@type' => 'Rating',
+                'ratingValue' => $recommendation->rating,
+                'bestRating' => Recommendation::MAX_RATING,
+                'worstRating' => Recommendation::MIN_RATING,
             ],
             'reviewBody' => $recommendation->body,
             'datePublished' => $recommendation->published_at?->toDateString(),

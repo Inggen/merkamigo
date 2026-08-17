@@ -43,15 +43,15 @@
 
                 <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <label class="text-xs text-gray-500 dark:text-gray-400">
-                        Ancho máximo (m)
+                        Ancho (m)
                         <input wire:model.blur="maxWidth" type="number" step="0.001" min="0.001" class="fi-input mt-1 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800" />
                     </label>
                     <label class="text-xs text-gray-500 dark:text-gray-400">
-                        Profundidad máxima (m)
+                        Profundidad (m)
                         <input wire:model.blur="maxDepth" type="number" step="0.001" min="0.001" class="fi-input mt-1 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800" />
                     </label>
                     <label class="text-xs text-gray-500 dark:text-gray-400">
-                        Alto máximo (m)
+                        Alto (m)
                         <input wire:model.blur="maxHeight" type="number" step="0.001" min="0.001" class="fi-input mt-1 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800" />
                     </label>
                     <label class="text-xs text-gray-500 dark:text-gray-400">
