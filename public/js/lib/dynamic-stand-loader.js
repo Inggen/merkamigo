@@ -1,4 +1,4 @@
-import { THREE, renderObjectByPriority, buildAvatarFigure } from './voxel-plaza-engine.js';
+import { THREE, renderObjectByPriority, buildAvatarFigure } from './voxel-plaza-engine.js?v=1';
 import { applyStandPrimaryColor } from './stand-color-utils.js';
 import { applyTiling } from './texture-tiling-utils.js';
 
@@ -132,6 +132,20 @@ async function renderDynamicObject(engine, object) {
     if (root) {
         root.position.set(x, y, z);
         root.rotation.y = (rotation * Math.PI) / 180;
+
+        // Pedido del usuario: la "barrera de colisión" se ve azul con
+        // bordes en el editor (para saber dónde queda), pero en la
+        // experiencia inmersiva real debe ser invisible — el bloqueo del
+        // paso sigue intacto porque esto solo apaga el render
+        // (`this.collisions` de VoxelPlazaEngine no depende de
+        // `mesh.visible`). El editor espacial de plaza NUNCA llama esta
+        // función (construye su propio preview aparte), así que ahí la
+        // barrera sigue viéndose.
+        root.traverse((child) => {
+            if (child.userData?.isCollisionBarrier) {
+                child.visible = false;
+            }
+        });
 
         if (object.model_url) {
             engine.syncObjectCollision?.(root, Boolean(object.collision_enabled));

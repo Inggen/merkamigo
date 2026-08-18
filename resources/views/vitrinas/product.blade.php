@@ -136,7 +136,7 @@
                 <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
                     <div class="self-start space-y-4 p-4 dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
                         <h1 class="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-3xl sm:leading-[1.02]">{{ $product->name }}</h1>
-                        <div class="group relative overflow-hidden rounded-[24px] bg-zinc-100 dark:bg-zinc-800">
+                        <div class="group relative overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
                             <div class="aspect-[4/3]">
                                 @if ($gallery->isNotEmpty())
                                     <button
@@ -288,7 +288,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex flex-wrap gap-6 border-b border-zinc-200 px-5 pt-5 text-sm font-semibold dark:border-zinc-800 sm:px-6">
                         <button type="button" x-on:click="tab = 'descripcion'" :class="tab === 'descripcion' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Descripción') }}</button>
                         <button type="button" x-on:click="tab = 'resenas'" :class="tab === 'resenas' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Reseñas') }}{{ $recommendationCount > 0 ? ' ('.$recommendationCount.')' : '' }}</button>
@@ -362,7 +362,7 @@
 
             <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
                 @if ($paymentMethods->isNotEmpty())
-                    <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                         <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Métodos de pago') }}</h3>
                         <div class="mt-4 grid grid-cols-2 gap-3">
                             @foreach ($paymentMethods as $method)
@@ -374,7 +374,7 @@
                     </div>
                 @endif
 
-                <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte este producto') }}</h3>
                     <div class="mt-4 space-y-5">
                         <div class="flex items-center justify-center gap-4">
@@ -449,7 +449,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex items-center gap-3">
                             <div class="flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950">
@@ -507,7 +507,7 @@
                 <button type="button" x-on:click="closeLightbox()" class="absolute inset-0 cursor-zoom-out" aria-label="{{ __('Cerrar galería') }}"></button>
 
                 <div class="relative z-10 w-full max-w-5xl">
-                    <div class="relative overflow-hidden rounded-[28px] bg-white/5 shadow-2xl backdrop-blur-sm">
+                    <div class="relative overflow-hidden rounded-xl  bg-white/5 shadow-2xl backdrop-blur-sm">
                         <button
                             type="button"
                             x-on:click="closeLightbox()"

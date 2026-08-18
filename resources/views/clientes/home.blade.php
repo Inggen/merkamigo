@@ -116,7 +116,7 @@
             </div>
         @endif
 
-        <div class="mt-8 rounded-[28px] border border-rose-100 bg-rose-50/60 p-6 dark:border-rose-900/40 dark:bg-rose-950/20 sm:p-8">
+        <div class="mt-8 rounded-xl  border border-rose-100 bg-rose-50/60 p-6 dark:border-rose-900/40 dark:bg-rose-950/20 sm:p-8">
             <div class="max-w-2xl">
                 <span class="flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
                     <flux:icon.chat-bubble-left-right variant="outline" class="size-6" />
@@ -132,7 +132,7 @@
         </div>
 
         @if ($openNeeds->isNotEmpty())
-            <div class="mt-10 rounded-[28px] border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900 sm:p-8">
+            <div class="mt-10 rounded-xl  border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900 sm:p-8">
                 <div class="mb-4 flex items-center justify-between gap-3">
                     <flux:heading size="base">
                         {{ $municipality ? __('Solicitudes activas en :municipio', ['municipio' => $municipality->name]) : __('Solicitudes activas') }}
@@ -185,7 +185,7 @@
             </div>
         @endif
 
-        <div class="mt-10 overflow-hidden rounded-[28px] border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div class="mt-10 overflow-hidden rounded-xl  border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
             <div class="flex flex-col items-center gap-6 p-8 sm:flex-row sm:justify-between sm:p-10">
                 <div class="max-w-lg text-center sm:text-left">
                     <flux:heading size="lg">{{ __('Haz visible tu negocio en tu comunidad') }}</flux:heading>
@@ -211,7 +211,7 @@
                     <a
                         href="{{ $section['url'] }}"
                         wire:navigate
-                        class="group rounded-3xl border border-zinc-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-brand-500/50"
+                        class="group rounded-xl border border-zinc-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-brand-500/50"
                     >
                         <div class="flex items-start justify-between gap-4">
                             <div>

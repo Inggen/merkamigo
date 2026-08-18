@@ -771,6 +771,14 @@ class ObjectTemplateSpatialEditor extends Component
 
     public function updated(string $name, mixed $value): void
     {
+        // Pedido del usuario: la textura "barrera de colisión" es
+        // estrictamente colisionante — el servidor ya lo exige al guardar
+        // (`VoxelDefinitionValidator`), esto solo evita que el admin se
+        // tope con ese error: al elegirla, marca el candado de una vez.
+        if ($name === 'selectedBoxForm.texture' && $value === VoxelDefinitionValidator::COLLISION_BARRIER_TEXTURE) {
+            $this->selectedBoxForm['collidable'] = true;
+        }
+
         // Vista previa en vivo del tiling mientras se escribe — mismo
         // patrón que `PlazaSpatialEditor`: el guardado real sigue
         // requiriendo el botón "Guardar props", esto solo refresca el

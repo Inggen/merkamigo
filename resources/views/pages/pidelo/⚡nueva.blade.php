@@ -263,7 +263,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                                         $refs.photoInput.dispatchEvent(new Event('change', { bubbles: true }));
                                     "
                                     x-bind:class="isDragging ? 'border-brand-500 bg-brand-50/40 dark:border-brand-400 dark:bg-brand-500/10' : ''"
-                                    class="block cursor-pointer rounded-[24px] border-2 border-dashed border-zinc-300 bg-white px-6 py-10 text-center transition hover:border-brand-400 hover:bg-brand-50/30 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-brand-500 dark:hover:bg-zinc-900"
+                                    class="block cursor-pointer rounded-xl border-2 border-dashed border-zinc-300 bg-white px-6 py-10 text-center transition hover:border-brand-400 hover:bg-brand-50/30 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-brand-500 dark:hover:bg-zinc-900"
                                 >
                                     <span class="mx-auto mb-4 flex size-16 items-center justify-center rounded-3xl bg-zinc-100 text-brand-600 dark:bg-zinc-800 dark:text-brand-400">
                                         <flux:icon.photo class="size-8" variant="outline" />
@@ -330,7 +330,7 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
                         </div>
                     </div>
                 @else
-                    <div class="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
+                    <div class="rounded-xl  border border-zinc-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
                         <div class="mb-6 flex items-center gap-3">
                             <span class="flex size-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">✓</span>
                             <h2 class="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-100">{{ __('Revisa tu solicitud') }}</h2>

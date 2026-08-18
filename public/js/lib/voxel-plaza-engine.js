@@ -298,8 +298,33 @@ export function createVoxelTextures(colors) {
     make('patina', colors.patina, 12, colors.patinaDark, true);
     make('accent', colors.accent, 10, 0x8f120a);
     make('brickAccent', colors.brickAccent ?? 0xe6e0d3, 8, colors.stone);
+    // Pedido del usuario: "tipo de objeto especial" estrictamente
+    // colisionante — azul claro semitransparente con bordes en azul más
+    // fuerte (ver `COLLISION_BARRIER_TEXTURE`/`addCollisionBarrierEdges()`
+    // más abajo). Color fijo, no parte de la paleta de la plaza: no tiene
+    // sentido "personalizar" el aspecto de un bloqueador invisible.
+    cache[COLLISION_BARRIER_TEXTURE] = paintVoxelTexture(0x93c5fd, 6, 0x60a5fa, false);
 
     return cache;
+}
+
+/**
+ * Pedido del usuario: un objeto "estrictamente colisionante" — semi-
+ * transparente azul claro con bordes marcados en azul más fuerte, para
+ * que se note en el editor que ahí hay una barrera invisible en la
+ * experiencia real. `VoxelDefinitionValidator` exige en el servidor que
+ * cualquier caja con esta textura sea `collidable`, así que el aspecto
+ * especial y el bloqueo del paso siempre van de la mano.
+ */
+const COLLISION_BARRIER_TEXTURE = 'collisionBarrier';
+const COLLISION_BARRIER_OPACITY = 0.35;
+const COLLISION_BARRIER_EDGE_COLOR = 0x1d4ed8;
+
+function addCollisionBarrierEdges(mesh) {
+    mesh.add(new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry),
+        new THREE.LineBasicMaterial({ color: COLLISION_BARRIER_EDGE_COLOR }),
+    ));
 }
 
 /**
@@ -346,9 +371,14 @@ export function createStandaloneVoxelTarget(palette = basePalette) {
         x, y, z, w, h, d, texture = 'stone', group = world, castShadow = true, receiveShadow = true,
         opacity = 1, emissive = 0x000000, rotationX = 0, rotationY = 0, rotationZ = 0,
     }) {
+        const isCollisionBarrier = texture === COLLISION_BARRIER_TEXTURE;
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(w, h, d),
-            material(textures[texture], { transparent: opacity < 1, opacity, emissive }),
+            material(textures[texture], {
+                transparent: isCollisionBarrier || opacity < 1,
+                opacity: isCollisionBarrier ? COLLISION_BARRIER_OPACITY : opacity,
+                emissive,
+            }),
         );
 
         mesh.position.set(x, y, z);
@@ -360,6 +390,10 @@ export function createStandaloneVoxelTarget(palette = basePalette) {
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
         group.add(mesh);
+
+        if (isCollisionBarrier) {
+            addCollisionBarrierEdges(mesh);
+        }
 
         return mesh;
     }
@@ -841,31 +875,81 @@ export class VoxelPlazaEngine {
         receiveShadow = true,
         opacity = 1,
         emissive = 0x000000,
+        rotationX = 0,
         rotationY = 0,
+        rotationZ = 0,
     }) {
+        const isCollisionBarrier = texture === COLLISION_BARRIER_TEXTURE;
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(w, h, d),
             this.material(this.textures[texture], {
-                transparent: opacity < 1,
-                opacity,
+                transparent: isCollisionBarrier || opacity < 1,
+                opacity: isCollisionBarrier ? COLLISION_BARRIER_OPACITY : opacity,
                 emissive,
             }),
         );
 
         mesh.position.set(x, y, z);
-        mesh.rotation.y = rotationY;
+        // `rotationX`/`rotationZ` son opcionales (por defecto 0, igual que
+        // antes) — el resto de llamadores (personaje, builders estándar,
+        // suelo) nunca los usan, así que esto no cambia nada para ellos.
+        // Bug real reportado por el usuario: el editor de objeto (3D) ya
+        // rota libre en los 3 ejes (`createStandaloneVoxelTarget` de más
+        // abajo), pero este método — el que usa `buildFromDefinition()`
+        // para instanciar el objeto en una plaza real — solo aplicaba
+        // `rotationY`, así que cualquier caja rotada en X/Z se veía
+        // "derecha" (sin su rotación) apenas se colocaba en la plaza.
+        mesh.rotation.set(rotationX, rotationY, rotationZ);
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
         group.add(mesh);
+
+        if (isCollisionBarrier) {
+            addCollisionBarrierEdges(mesh);
+            // Pedido del usuario: visible mientras se edita/coloca la
+            // plaza (para saber dónde queda la barrera), pero invisible en
+            // la experiencia inmersiva real — `dynamic-stand-loader.js` la
+            // apaga buscando esta marca, sin tocar `this.collisions`.
+            mesh.userData.isCollisionBarrier = true;
+        }
 
         if (collidable) {
             // Las colisiones estáticas deben usar coordenadas de mundo: muchos
             // edificios viven dentro de grupos rotados alrededor de la plaza.
             mesh.updateWorldMatrix(true, false);
-            this.collisions.push(new THREE.Box3().setFromObject(mesh));
+            const box = new THREE.Box3().setFromObject(mesh);
+            // Pedido del usuario: "la barrera permite que el personaje
+            // pase" — bug real. `renderObjectByPriority()` construye el
+            // objeto (con esta caja ya colisionando) y SOLO DESPUÉS le
+            // aplica el escalado del prop (`applyScaleToObject`) — si el
+            // admin estira la barrera con el gizmo de Escalar, la malla
+            // visible crecía pero esta caja de colisión, calculada antes
+            // de escalar, se quedaba con el tamaño original. Guardar la
+            // referencia acá permite que `refreshBoxCollisions()` la
+            // recalcule después de aplicar el escalado, sin duplicarla.
+            mesh.userData.collisionBox = box;
+            this.collisions.push(box);
         }
 
         return mesh;
+    }
+
+    /**
+     * Recalcula en el sitio (sin duplicar entradas) la caja de colisión de
+     * cada malla colisionable dentro de `root` — ver el comentario de más
+     * arriba en `addVoxelBox()`. Se llama después de aplicar cualquier
+     * transform externo (el escalado de un prop) que `addVoxelBox` no
+     * pudo tener en cuenta porque todavía no existía en ese momento.
+     */
+    refreshBoxCollisions(root) {
+        root.traverse((child) => {
+            if (!child.isMesh || !child.userData.collisionBox) {
+                return;
+            }
+
+            child.updateWorldMatrix(true, false);
+            child.userData.collisionBox.setFromObject(child);
+        });
     }
 
     createColorTexture(hex) {
@@ -2171,7 +2255,9 @@ export function buildFromDefinition(engine, {
             h: box.h,
             d: box.d,
             texture: box.texture,
+            rotationX: box.rotationX ?? 0,
             rotationY: box.rotationY ?? 0,
+            rotationZ: box.rotationZ ?? 0,
             collidable: Boolean(box.collidable),
             emissive: box.emissive ? parseInt(box.emissive.slice(1), 16) : 0x000000,
             group,
@@ -2248,10 +2334,18 @@ function normalizeScaleVector(scale = null) {
     return { x: 1, y: 1, z: 1 };
 }
 
-function applyScaleToObject(object, scale = null) {
+function applyScaleToObject(engine, object, scale = null) {
     const vector = normalizeScaleVector(scale);
 
     object.scale.set(vector.x, vector.y, vector.z);
+
+    // Pedido del usuario: "la barrera permite que el personaje pase" —
+    // `addVoxelBox()` ya registró la colisión de cada caja ANTES de que
+    // este escalado existiera, así que quedaba con el tamaño original sin
+    // importar cuánto se estirara el objeto visualmente. Recalcularla
+    // acá, después de escalar, la deja alineada con lo que realmente se
+    // ve (ver `refreshBoxCollisions()`).
+    engine.refreshBoxCollisions?.(object);
 
     return object;
 }
@@ -2269,7 +2363,7 @@ export async function renderObjectByPriority(engine, {
 }) {
     if (modelUrl) {
         try {
-            return applyScaleToObject(await loadGlbAt(engine, {
+            return applyScaleToObject(engine, await loadGlbAt(engine, {
                 x,
                 y,
                 z,
@@ -2284,7 +2378,7 @@ export async function renderObjectByPriority(engine, {
     }
 
     if (modelDefinition) {
-        return applyScaleToObject(buildFromDefinition(engine, {
+        return applyScaleToObject(engine, buildFromDefinition(engine, {
             x,
             y,
             z,
@@ -2294,7 +2388,7 @@ export async function renderObjectByPriority(engine, {
     }
 
     if (builderKey && builders[builderKey]) {
-        return applyScaleToObject(callBuilderAsSingleObject(engine, builders[builderKey], {
+        return applyScaleToObject(engine, callBuilderAsSingleObject(engine, builders[builderKey], {
             x,
             y,
             z,

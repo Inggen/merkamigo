@@ -68,6 +68,7 @@ class ImmersiveObjectTemplatesTable
                         'fuente' => 'Fuente',
                         'monumento' => 'Monumento',
                         'personaje' => 'Personaje',
+                        'barrera' => 'Barrera de colisión',
                     ]),
             ])
             ->recordActions([

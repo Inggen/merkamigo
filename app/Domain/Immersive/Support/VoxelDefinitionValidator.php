@@ -26,8 +26,18 @@ class VoxelDefinitionValidator
         'plaza', 'pavement', 'stone', 'stoneLight', 'white', 'ochre', 'coral', 'butter',
         'roof', 'roofClay', 'wood', 'woodDark', 'leaf', 'mountain', 'glass',
         'trim', 'iron', 'concrete', 'brick', 'water', 'flower', 'cloth', 'skin', 'shirt', 'pants',
-        'grass', 'path', 'patina', 'accent', 'brickAccent',
+        'grass', 'path', 'patina', 'accent', 'brickAccent', 'collisionBarrier',
     ];
+
+    /**
+     * Pedido del usuario: un "tipo de objeto especial" estrictamente
+     * colisionante (semitransparente azul claro, bordes en azul más
+     * fuerte — ver `createVoxelTextures()`/`addCollisionBarrierEdges()` en
+     * voxel-plaza-engine.js). Bloquear el paso es el único propósito de
+     * esta textura, así que una caja que la use SIEMPRE debe ser
+     * `collidable` — no queda a criterio del admin, se valida acá.
+     */
+    public const COLLISION_BARRIER_TEXTURE = 'collisionBarrier';
 
     public function __construct(
         private readonly int $maxBoxes = 40,
@@ -150,6 +160,10 @@ class VoxelDefinitionValidator
 
         if (array_key_exists('collidable', $box) && ! is_bool($box['collidable'])) {
             $errors[] = "La caja #{$index}: \"collidable\" debe ser verdadero o falso.";
+        }
+
+        if (($box['texture'] ?? null) === self::COLLISION_BARRIER_TEXTURE && ($box['collidable'] ?? false) !== true) {
+            $errors[] = "La caja #{$index}: una caja con textura \"".self::COLLISION_BARRIER_TEXTURE.'" es estrictamente colisionante — "collidable" debe ser verdadero.';
         }
 
         if (array_key_exists('locked', $box) && ! is_bool($box['locked'])) {

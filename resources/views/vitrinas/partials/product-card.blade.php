@@ -3,7 +3,7 @@
     $showBusinessName = $showBusinessName ?? false;
 @endphp
 
-<div class="group relative overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+<div class="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
     <a href="{{ route('vitrinas.product', [$business, $product]) }}" class="block" wire:navigate>
         <div class="relative aspect-[4/3] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
             @if ($photo)

@@ -125,7 +125,7 @@
             </h2>
 
             @if ($filteredNeeds->isEmpty())
-                <div class="mt-5 rounded-[28px] border border-zinc-200 bg-white px-8 py-12 text-center shadow-[0_18px_60px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="mt-5 rounded-xl  border border-zinc-200 bg-white px-8 py-12 text-center shadow-[0_18px_60px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="mx-auto flex size-14 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
                         <flux:icon.document-text class="size-8" variant="outline" />
                     </div>

@@ -95,7 +95,7 @@
 
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <section class="space-y-6">
-                <article class="overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <article class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="relative aspect-[16/10] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800 sm:aspect-[16/6]">
                         @if ($business->storefront?->coverUrl())
                             <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}" loading="eager" decoding="async">
@@ -148,7 +148,7 @@
                     </div>
                 </article>
 
-                <div class="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 px-5 pt-5 dark:border-zinc-800 sm:px-6">
                         <div class="flex flex-wrap gap-6 text-sm font-semibold">
                             <button type="button" x-on:click="tab = 'inicio'" :class="tab === 'inicio' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Inicio') }}</button>
@@ -394,7 +394,7 @@
 
             <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
                 @if ($business->whatsapp_number)
-                    <a href="{{ route('vitrinas.whatsapp', $business) }}" target="_blank" class="block rounded-[24px] bg-brand-600 p-5 text-white shadow-sm transition hover:bg-brand-700">
+                    <a href="{{ route('vitrinas.whatsapp', $business) }}" target="_blank" class="block rounded-xl  bg-brand-600 p-5 text-white shadow-sm transition hover:bg-brand-700">
                         <div class="flex items-center gap-3">
                             <span class="inline-flex size-11 items-center justify-center rounded-2xl bg-white/15">
                                 <flux:icon.chat-bubble-left-right class="size-6" />
@@ -408,7 +408,7 @@
                 @endif
 
                 @if ($business->payment_info)
-                    <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                         <div class="flex items-center gap-3">
                             <span class="inline-flex size-10 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                                 <flux:icon.credit-card class="size-5" />
@@ -422,7 +422,7 @@
                     </div>
                 @endif
 
-                <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte esta vitrina') }}</h3>
                     <div class="mt-4 space-y-4">
                         <div class="flex items-center gap-4">
@@ -460,7 +460,7 @@
                 </div>
 
                 @if ($socialLinks->isNotEmpty())
-                    <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                         <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Síguenos en redes') }}</h3>
                         <div class="mt-5 flex flex-wrap items-center justify-center gap-5">
                             @foreach ($socialLinks as $network => $link)
@@ -485,7 +485,7 @@
                 @endif
 
                 @if ($business->hoursNote() || $business->hasStructuredSchedule())
-                    <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                         <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Horario de atención') }}</h3>
 
                         @if ($business->hoursNote())
@@ -505,7 +505,7 @@
                     </div>
                 @endif
 
-                <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Opiniones de clientes') }}</h3>
                     <div class="mt-4 flex items-end gap-3">
                         <div class="text-4xl font-semibold tracking-tight text-zinc-950 dark:text-white">{{ $recommendationCount > 0 ? $recommendationCount : 0 }}</div>
@@ -529,7 +529,7 @@
                 </div>
 
                 @unless ($hasSidebarContent)
-                    <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                         <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Información del negocio') }}</h3>
                         <p class="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ __('Esta vitrina irá mostrando más detalles a medida que el negocio complete su información pública.') }}</p>
                     </div>

@@ -6,19 +6,20 @@
  * de prioridad de renderizado (GLB > definición IA > forma voxel) que ya
  * usa el editor espacial del admin — así nunca divergen.
  */
-// Sin `?v=` a propósito: `voxel-plaza-engine.js` lo importan también
-// `dynamic-stand-loader.js`, `stand-proximity.js` y `texture-tiling-utils.js`
-// (este último compartido además con el editor espacial del admin) — todos
-// deben resolver la MISMA URL de módulo o el navegador lo carga dos veces
-// como instancias separadas (clases distintas, caché de texturas
-// duplicada). Tras tocar este archivo, si hace falta forzar la
-// re-descarga, hay que renombrar/mover el archivo, no agregar `?v=` aquí
-// solo.
-import { THREE, VoxelPlazaEngine, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js';
-// `?v=2` fuerza la re-descarga tras el fix de logo/atendedor/proximidad
-// que sigue sin ocultarse al filtrar un stand — bump este número si
-// vuelves a tocar `dynamic-stand-loader.js`.
-import { loadDynamicStands, loadDynamicProps } from './lib/dynamic-stand-loader.js?v=2';
+// `voxel-plaza-engine.js` lo importan también `dynamic-stand-loader.js`,
+// `stand-proximity.js`, `texture-tiling-utils.js` y varias vistas del
+// editor espacial del admin — todos deben resolver la MISMA URL de módulo
+// o el navegador lo carga dos veces como instancias separadas (clases
+// distintas, caché de texturas duplicada). Por eso el `?v=` de acá SIEMPRE
+// tiene que coincidir exactamente con el de cada uno de esos archivos —
+// bump los 8 sitios juntos, nunca solo este (bug real: un fix de colisión
+// nunca le llegó al usuario porque el navegador siguió sirviendo la copia
+// vieja cacheada de este archivo sin `?v=`).
+import { THREE, VoxelPlazaEngine, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js?v=1';
+// `?v=3` fuerza la re-descarga tras esconder la barrera de colisión en la
+// experiencia real (`renderDynamicObject`) — bump este número si vuelves a
+// tocar `dynamic-stand-loader.js`.
+import { loadDynamicStands, loadDynamicProps } from './lib/dynamic-stand-loader.js?v=3';
 // `?v=2` idem — `attachStandProximity` ahora ignora stands ocultos.
 import { attachStandProximity } from './lib/stand-proximity.js?v=2';
 // `?v=2` fuerza a refrescar la copia en caché del navegador tras el fix

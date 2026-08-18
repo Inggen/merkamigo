@@ -31,6 +31,46 @@ class ClientesHomeTest extends TestCase
             ->assertDontSee('Descubre lo mejor de tu municipio. Compra local', false);
     }
 
+    /**
+     * Pedido del usuario: la fila de categorías en una sola línea (sin
+     * envolver en grilla), con un botón "Ver más" que despliega las que no
+     * caben — solo las primeras `visibleCount` (8 por defecto) se ven
+     * directo en la fila.
+     */
+    public function test_the_category_row_shows_a_dropdown_for_categories_beyond_the_visible_count(): void
+    {
+        foreach (range(1, 10) as $i) {
+            Category::create(['name' => "Categoría {$i}", 'slug' => "categoria-{$i}", 'is_active' => true]);
+        }
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk()
+            ->assertSee(__('Ver más'))
+            ->assertSee('Categoría 1')
+            ->assertSee('Categoría 8');
+
+        // Las últimas 2 (9 y 10) solo deben estar dentro del desplegable
+        // "Ver más", no en la fila visible.
+        $inlineCount = substr_count($response->getContent(), 'aria-label="Ver Categoría 9"');
+        $this->assertSame(0, $inlineCount);
+    }
+
+    /**
+     * Pedido del usuario: "Ver más" siempre debe estar — sin categorías
+     * de sobra es un enlace directo a la página completa de categorías,
+     * no un desplegable vacío.
+     */
+    public function test_the_category_row_shows_ver_mas_as_a_plain_link_when_everything_fits(): void
+    {
+        Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee(__('Ver más'))
+            ->assertSee(route('categorias'), false);
+    }
+
     public function test_a_client_without_a_preferred_municipality_is_asked_to_choose_one(): void
     {
         Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);

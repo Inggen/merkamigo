@@ -173,6 +173,30 @@ class ObjectTemplateSpatialEditorGizmoTest extends TestCase
         $this->assertNull($box['emissive']);
     }
 
+    /**
+     * Pedido del usuario: "tipo de objeto especial" estrictamente
+     * colisionante — el servidor ya lo exige al guardar
+     * (`VoxelDefinitionValidator`), esto solo evita que el admin se tope
+     * con ese error: elegir la textura marca el candado de colisión de
+     * una vez, en vez de dejarlo desmarcado por defecto.
+     */
+    public function test_choosing_the_collision_barrier_texture_checks_collidable_automatically(): void
+    {
+        $this->makeAdmin();
+        $template = $this->makeTemplate();
+
+        Livewire::test(ObjectTemplateSpatialEditor::class, ['template' => $template])
+            ->call('selectBox', 0)
+            ->assertSet('selectedBoxForm.collidable', false)
+            ->set('selectedBoxForm.texture', 'collisionBarrier')
+            ->assertSet('selectedBoxForm.collidable', true)
+            ->call('saveSelectedBox');
+
+        $box = $template->fresh()->model_definition['boxes'][0];
+        $this->assertSame('collisionBarrier', $box['texture']);
+        $this->assertTrue($box['collidable']);
+    }
+
     public function test_duplicating_a_locked_box_creates_an_unlocked_copy(): void
     {
         $this->makeAdmin();

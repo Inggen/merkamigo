@@ -107,12 +107,11 @@ class StandSlot extends Model
             'depth' => $this->max_depth,
         ];
 
-        if (! SpatialGeometry::polygonContainsRectangle($zone->polygon, $footprint)) {
-            throw ValidationException::withMessages([
-                'world_position' => 'La huella del slot sale del polígono de su zona.',
-            ]);
-        }
-
+        // Pedido del usuario: el admin necesita poder mover un stand libre
+        // dentro de la plaza sin que el polígono de la zona se lo impida
+        // ("necesito que los stands no tengan restricción") — el resto de
+        // reglas (zonas excluidas, tamaño máximo de la plantilla,
+        // separación entre vecinos) se mantienen intactas.
         $plaza = $zone->plaza;
 
         foreach ($plaza->excluded_zones ?? [] as $excluded) {

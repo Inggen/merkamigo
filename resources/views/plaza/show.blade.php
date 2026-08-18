@@ -126,7 +126,7 @@
             </div>
         @endif
 
-        <div class="mb-10 overflow-hidden rounded-[28px] border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div class="mb-10 overflow-hidden rounded-xl  border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
             <div class="grid gap-0 lg:grid-cols-2">
                 <div class="flex flex-col justify-center gap-4 p-6 sm:p-8">
                     <span class="flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
@@ -213,7 +213,7 @@
             </div>
         @endif
 
-        <div class="mt-10 overflow-hidden rounded-[28px] border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div class="mt-10 overflow-hidden rounded-xl  border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
             <div class="flex flex-col items-center gap-6 p-8 sm:flex-row sm:justify-between sm:p-10">
                 <div class="max-w-lg text-center sm:text-left">
                     <flux:heading size="lg">{{ __('Haz visible tu negocio en tu comunidad') }}</flux:heading>

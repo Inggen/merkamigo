@@ -12,7 +12,7 @@
  * por `stand-search-panel.js` (filtro/búsqueda) no debe poder activar el
  * indicador "Ver vitrina" aunque el personaje pase por su posición.
  */
-import { THREE } from './voxel-plaza-engine.js';
+import { THREE } from './voxel-plaza-engine.js?v=1';
 
 const DEFAULT_RADIUS = 6;
 const DEFAULT_HOLD_MS = 220;

@@ -234,16 +234,20 @@ class PlazaSpatialEditorUndoRedoTest extends TestCase
     }
 
     /**
-     * Un movimiento rechazado por validación (fuera de la zona) nunca debe
-     * generar una entrada de historial — no hay nada real que deshacer.
+     * Un movimiento rechazado por validación (solapa a un vecino) nunca
+     * debe generar una entrada de historial — no hay nada real que
+     * deshacer. El check de "fuera del polígono de su zona" se quitó
+     * (pedido del usuario: los stands ya no tienen esa restricción), así
+     * que este test usa el solapamiento entre slots, que sigue vigente.
      */
     public function test_a_rejected_move_does_not_add_to_history(): void
     {
         $plaza = $this->makePlaza();
         $slot = $this->makeSlot($plaza, 'S1');
+        $neighbor = $this->makeSlot($plaza, 'S2');
 
         $component = Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
-            ->call('updateSlotPosition', $slot->id, 999.0, 0.0, 999.0);
+            ->call('updateSlotPosition', $slot->id, $neighbor->world_position['x'], 0.0, $neighbor->world_position['z']);
 
         $this->assertFalse($component->instance()->canUndo());
     }

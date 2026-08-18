@@ -229,17 +229,24 @@ class PlazaSpatialEditorTest extends TestCase
         $this->assertEquals(45.0, $slot->fresh()->rotation['y']);
     }
 
-    public function test_update_slot_position_rejects_a_position_outside_its_zone(): void
+    /**
+     * Pedido del usuario: el admin necesita poder mover un stand libre por
+     * la plaza sin que el polígono de su zona se lo impida — el check de
+     * "la huella sale del polígono de su zona" se quitó de
+     * `StandSlot::validateAgainstZoneTemplateAndNeighbors()`.
+     */
+    public function test_update_slot_position_persists_without_the_zone_polygon_restriction(): void
     {
         $plaza = $this->makePlaza();
         $slot = $this->makeSlot($plaza, 'S1');
-        $originalPosition = $slot->world_position;
 
         Livewire::test(PlazaSpatialEditor::class, ['plaza' => $plaza])
             ->call('updateSlotPosition', $slot->id, 999.0, 0.0, 999.0)
-            ->assertDispatched('spatial-editor-reject', type: 'slot', id: $slot->id);
+            ->assertNotDispatched('spatial-editor-reject');
 
-        $this->assertSame($originalPosition, $slot->fresh()->world_position);
+        $fresh = $slot->fresh();
+        $this->assertSame(999.0, (float) $fresh->world_position['x']);
+        $this->assertSame(999.0, (float) $fresh->world_position['z']);
     }
 
     public function test_update_prop_position_persists_without_geometric_restrictions(): void

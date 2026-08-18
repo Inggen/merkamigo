@@ -295,6 +295,45 @@ class VoxelDefinitionValidatorTest extends TestCase
     }
 
     /**
+     * Pedido del usuario: "tipo de objeto especial" estrictamente
+     * colisionante — una caja con la textura "barrera de colisión" nunca
+     * debe poder guardarse sin `collidable`, sea cual sea lo que el admin
+     * haya marcado en el checkbox.
+     */
+    public function test_it_accepts_a_collision_barrier_box_that_is_collidable(): void
+    {
+        $bounds = (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['texture' => VoxelDefinitionValidator::COLLISION_BARRIER_TEXTURE, 'collidable' => true])],
+        ], $this->template());
+
+        $this->assertIsFloat($bounds['width']);
+    }
+
+    public function test_it_rejects_a_collision_barrier_box_that_is_not_collidable(): void
+    {
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$this->validBox(['texture' => VoxelDefinitionValidator::COLLISION_BARRIER_TEXTURE, 'collidable' => false])],
+        ], $this->template());
+    }
+
+    public function test_it_rejects_a_collision_barrier_box_without_a_collidable_flag_at_all(): void
+    {
+        $box = $this->validBox(['texture' => VoxelDefinitionValidator::COLLISION_BARRIER_TEXTURE]);
+        unset($box['collidable']);
+
+        $this->expectException(VoxelDefinitionValidationException::class);
+
+        (new VoxelDefinitionValidator)->validate([
+            'version' => 1,
+            'boxes' => [$box],
+        ], $this->template());
+    }
+
+    /**
      * Pedido del usuario: agrupar cajas — `groupId` por caja y `groups` a
      * nivel de definición.
      */

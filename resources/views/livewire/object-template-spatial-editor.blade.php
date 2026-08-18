@@ -197,7 +197,7 @@
             wire:ignore
             x-data="{}"
             x-init="
-                import('{{ asset('js/lib/voxel-plaza-engine.js') }}').then(async ({ THREE, createStandaloneVoxelTarget, createAxisLabels }) => {
+                import('{{ asset('js/lib/voxel-plaza-engine.js') }}?v=1').then(async ({ THREE, createStandaloneVoxelTarget, createAxisLabels }) => {
                     const { OrbitControls } = await import('https://esm.sh/three@0.179.1/examples/jsm/controls/OrbitControls.js');
                     const { TransformControls } = await import('https://esm.sh/three@0.179.1/examples/jsm/controls/TransformControls.js');
                     const { applyTiling } = await import('{{ asset('js/lib/texture-tiling-utils.js') }}');

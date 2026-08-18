@@ -65,6 +65,7 @@ class ImmersiveObjectTemplateForm
                     'fuente' => 'Fuente',
                     'monumento' => 'Monumento',
                     'personaje' => 'Personaje',
+                    'barrera' => 'Barrera de colisión',
                 ])
                 ->default('stand')
                 ->required()
