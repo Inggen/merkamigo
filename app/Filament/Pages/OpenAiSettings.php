@@ -51,7 +51,7 @@ class OpenAiSettings extends Page
             'enabled' => $setting->enabled,
             'entrepreneur_copilot_enabled' => $setting->entrepreneur_copilot_enabled,
             'model' => $setting->model,
-            'api_key' => null,
+            'api_key' => $setting->getRawOriginal('api_key'),
             'base_url' => $setting->base_url ?: $setting->baseUrl(),
             'timeout_seconds' => $setting->timeout_seconds ?: $setting->timeoutSeconds(),
             'max_output_tokens' => $setting->max_output_tokens,
@@ -90,7 +90,7 @@ class OpenAiSettings extends Page
                             ->password()
                             ->revealable()
                             ->placeholder('sk-...')
-                            ->helperText('Solo llena este campo si quieres crear o reemplazar la llave guardada. Debe ser una clave secreta de OpenAI y normalmente empieza por sk-.'),
+                            ->helperText('Se muestra la llave actual. Si vacías el campo y guardas, se conserva; si lo cambias, se reemplaza. Debe ser una clave secreta de OpenAI y normalmente empieza por sk-.'),
                         TextInput::make('base_url')
                             ->label('URL base')
                             ->url()

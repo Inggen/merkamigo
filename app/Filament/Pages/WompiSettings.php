@@ -44,11 +44,7 @@ class WompiSettings extends Page
     }
 
     /**
-     * Claves privadas y secretos: `WompiSetting::$hidden` las excluye de
-     * `attributesToArray()`, así que nunca se rellenan en el formulario
-     * (se quedan en null aunque ya estén guardadas) — mismo patrón que
-     * `OpenAiSettings::mount()` para no exponer secretos de vuelta al
-     * admin. `save()` conserva el valor guardado si el campo llega vacío.
+     * `save()` conserva el valor guardado si el campo llega vacío.
      *
      * @var array<int, string>
      */
@@ -68,13 +64,13 @@ class WompiSettings extends Page
         $this->form->fill([
             'active_env' => $setting->active_env,
             'sandbox_public_key' => $setting->sandbox_public_key,
-            'sandbox_private_key' => null,
-            'sandbox_integrity_secret' => null,
-            'sandbox_events_secret' => null,
+            'sandbox_private_key' => $setting->getRawOriginal('sandbox_private_key'),
+            'sandbox_integrity_secret' => $setting->getRawOriginal('sandbox_integrity_secret'),
+            'sandbox_events_secret' => $setting->getRawOriginal('sandbox_events_secret'),
             'production_public_key' => $setting->production_public_key,
-            'production_private_key' => null,
-            'production_integrity_secret' => null,
-            'production_events_secret' => null,
+            'production_private_key' => $setting->getRawOriginal('production_private_key'),
+            'production_integrity_secret' => $setting->getRawOriginal('production_integrity_secret'),
+            'production_events_secret' => $setting->getRawOriginal('production_events_secret'),
         ]);
     }
 
@@ -92,7 +88,7 @@ class WompiSettings extends Page
                     ->required(),
 
                 Section::make('Credenciales de pruebas (sandbox)')
-                    ->description('Nunca mueven dinero real. Las llaves públicas de Wompi en sandbox empiezan con "pub_test_". Por seguridad, los secretos guardados no se muestran de vuelta: deja el campo vacío para conservar el actual, o llénalo para reemplazarlo.')
+                    ->description('Nunca mueven dinero real. Las llaves públicas de Wompi en sandbox empiezan con "pub_test_". Si vacías un secreto y guardas, se conserva el actual; si lo cambias, se reemplaza.')
                     ->columns(2)
                     ->components([
                         TextInput::make('sandbox_public_key')->label('Llave pública'),
@@ -102,7 +98,7 @@ class WompiSettings extends Page
                     ]),
 
                 Section::make('Credenciales de producción')
-                    ->description('Estas sí procesan cobros reales. Las llaves públicas de Wompi en producción empiezan con "pub_prod_". Por seguridad, los secretos guardados no se muestran de vuelta: deja el campo vacío para conservar el actual, o llénalo para reemplazarlo.')
+                    ->description('Estas sí procesan cobros reales. Las llaves públicas de Wompi en producción empiezan con "pub_prod_". Si vacías un secreto y guardas, se conserva el actual; si lo cambias, se reemplaza.')
                     ->columns(2)
                     ->components([
                         TextInput::make('production_public_key')->label('Llave pública'),

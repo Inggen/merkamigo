@@ -16,7 +16,8 @@ use Livewire\Component;
  * humano, tarjetas de totales con comparación contra la semana anterior y
  * un gráfico simple de visitas/clics a WhatsApp por día.
  */
-new #[Title('Métricas')] class extends Component {
+new #[Title('Métricas')] class extends Component
+{
     #[Locked]
     public int $businessId;
 
@@ -164,10 +165,12 @@ new #[Title('Métricas')] class extends Component {
         <flux:subheading class="mb-4">{{ __('Visitas por día') }}</flux:subheading>
         <div class="flex h-32 items-end gap-2">
             @foreach ($metrics['views_by_day'] as $day)
-                <div class="flex flex-1 flex-col items-center gap-1">
-                    <div class="w-full rounded-t bg-brand-500" style="height: {{ max(4, ($day['count'] / $maxViews) * 100) }}%"></div>
-                    <flux:text class="text-xs text-zinc-400">{{ $day['label'] }}</flux:text>
-                </div>
+                <div class="flex-1 rounded-t bg-brand-500" style="height: {{ max(4, ($day['count'] / $maxViews) * 100) }}%" title="{{ $day['count'] }}"></div>
+            @endforeach
+        </div>
+        <div class="mt-1 flex gap-2">
+            @foreach ($metrics['views_by_day'] as $day)
+                <flux:text class="flex-1 text-center text-xs text-zinc-400">{{ $day['label'] }}</flux:text>
             @endforeach
         </div>
     </div>
@@ -176,10 +179,12 @@ new #[Title('Métricas')] class extends Component {
         <flux:subheading class="mb-4">{{ __('Contactos por WhatsApp por día') }}</flux:subheading>
         <div class="flex h-32 items-end gap-2">
             @foreach ($metrics['whatsapp_clicks_by_day'] as $day)
-                <div class="flex flex-1 flex-col items-center gap-1">
-                    <div class="w-full rounded-t bg-emerald-500" style="height: {{ max(4, ($day['count'] / $maxWhatsapp) * 100) }}%"></div>
-                    <flux:text class="text-xs text-zinc-400">{{ $day['label'] }}</flux:text>
-                </div>
+                <div class="flex-1 rounded-t bg-emerald-500" style="height: {{ max(4, ($day['count'] / $maxWhatsapp) * 100) }}%" title="{{ $day['count'] }}"></div>
+            @endforeach
+        </div>
+        <div class="mt-1 flex gap-2">
+            @foreach ($metrics['whatsapp_clicks_by_day'] as $day)
+                <flux:text class="flex-1 text-center text-xs text-zinc-400">{{ $day['label'] }}</flux:text>
             @endforeach
         </div>
     </div>

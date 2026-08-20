@@ -72,6 +72,22 @@ class OpenAiSettingsTest extends TestCase
         $this->assertSame(180, $setting->timeout_seconds);
     }
 
+    public function test_the_saved_api_key_is_prefilled_back_into_the_form(): void
+    {
+        OpenAiSetting::create([
+            'enabled' => true,
+            'api_key' => 'sk-existing',
+            'model' => 'gpt-test',
+        ]);
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(OpenAiSettings::class)
+            ->assertSet('data.api_key', 'sk-existing');
+    }
+
     public function test_an_admin_cannot_save_a_non_openai_api_key(): void
     {
         $admin = User::factory()->create();

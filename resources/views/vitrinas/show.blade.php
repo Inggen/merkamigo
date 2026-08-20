@@ -537,4 +537,6 @@
             </aside>
         </div>
     </div>
+
+    <x-storefront-chat-widget :business="$business" />
 </x-layouts::cliente>

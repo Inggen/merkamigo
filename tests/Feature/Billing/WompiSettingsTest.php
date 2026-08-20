@@ -67,7 +67,7 @@ class WompiSettingsTest extends TestCase
         ]);
     }
 
-    public function test_saved_secrets_are_never_prefilled_back_into_the_form(): void
+    public function test_saved_secrets_are_prefilled_back_into_the_form(): void
     {
         WompiSetting::create([
             'active_env' => 'sandbox',
@@ -83,9 +83,9 @@ class WompiSettingsTest extends TestCase
 
         Livewire::test(WompiSettings::class)
             ->assertSet('data.sandbox_public_key', 'pub_test_abc')
-            ->assertSet('data.sandbox_private_key', null)
-            ->assertSet('data.sandbox_integrity_secret', null)
-            ->assertSet('data.sandbox_events_secret', null);
+            ->assertSet('data.sandbox_private_key', 'prv_test_abc')
+            ->assertSet('data.sandbox_integrity_secret', 'integrity_test_abc')
+            ->assertSet('data.sandbox_events_secret', 'events_test_abc');
     }
 
     public function test_saving_again_with_blank_secret_fields_does_not_erase_the_saved_secrets(): void
@@ -102,8 +102,6 @@ class WompiSettingsTest extends TestCase
         $this->assignPlatformRole($admin, 'admin');
         $this->actingAs($admin);
 
-        // Simula recargar la página (los secretos llegan en null, como en
-        // `mount()`) y guardar sin haber vuelto a escribirlos.
         Livewire::test(WompiSettings::class)
             ->fillForm(['sandbox_public_key' => 'pub_test_abc_actualizada'])
             ->call('save')

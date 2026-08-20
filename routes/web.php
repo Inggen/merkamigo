@@ -3,6 +3,7 @@
 use App\Http\Controllers\AgentDiscoveryController;
 use App\Http\Controllers\Analytics\MetricsExportController;
 use App\Http\Controllers\Billing\CheckoutController;
+use App\Http\Controllers\Billing\PaymentSourceController;
 use App\Http\Controllers\Billing\WompiWebhookController;
 use App\Http\Controllers\BusinessVerificationDocumentController;
 use App\Http\Controllers\ClientesController;
@@ -220,6 +221,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('verificacion', 'pages::emprendedores.negocios.verificacion')->name('verificacion');
         Route::livewire('plan', 'pages::emprendedores.negocios.plan')->name('plan');
         Route::get('plan/checkout/{plan}', [CheckoutController::class, 'createForPlan'])->name('plan.checkout');
+        Route::get('plan/tarjeta/tokens-aceptacion', [PaymentSourceController::class, 'acceptanceTokens'])->name('plan.tarjeta.tokens-aceptacion');
+        Route::post('plan/tarjeta', [PaymentSourceController::class, 'store'])->name('plan.tarjeta.store');
+        Route::get('plan/tarjeta/estado', [PaymentSourceController::class, 'status'])->name('plan.tarjeta.estado');
+        Route::delete('plan/tarjeta', [PaymentSourceController::class, 'destroy'])->name('plan.tarjeta.destroy');
         Route::livewire('impulsar', 'pages::emprendedores.negocios.impulsar')->name('impulsar');
         Route::get('impulsar/checkout/{billingProduct}', [CheckoutController::class, 'createForBillingProduct'])->name('impulsar.checkout');
         Route::get('verificacion/documento', [BusinessVerificationDocumentController::class, 'show'])->name('verificacion.documento');

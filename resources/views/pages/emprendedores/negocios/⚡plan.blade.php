@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Billing\Actions\CheckUsageLimit;
+use App\Domain\Billing\Actions\RemoveBusinessPaymentSource;
 use App\Domain\Billing\Actions\SubscribeToPlan;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
@@ -78,6 +79,26 @@ new #[Title('Tu plan')] class extends Component {
         unset($this->currentPlan, $this->usage);
         Flux::toast(variant: 'success', text: __('Cambiaste al plan :plan.', ['plan' => $plan->name]));
     }
+
+    /**
+     * Llamado desde JS tras guardar/validar la tarjeta (o al quitarla) —
+     * recalcula `business` desde la BD y cierra el modal, ya que todo el
+     * flujo de tokenización/fuente de pago corre fuera de Livewire
+     * (`PaymentSourceController`, ver 4.2 del TODO).
+     */
+    public function refreshBusinessState(): void
+    {
+        unset($this->business);
+        Flux::modal('add-card-modal')->close();
+    }
+
+    public function removeAutoRenewCard(): void
+    {
+        app(RemoveBusinessPaymentSource::class)->handle($this->business, Auth::user());
+
+        unset($this->business);
+        Flux::toast(variant: 'success', text: __('Quitamos la tarjeta guardada. Tu plan seguirá activo hasta el final del periodo pagado.'));
+    }
 }; ?>
 
 <section class="mx-auto w-full max-w-3xl space-y-10">
@@ -119,6 +140,210 @@ new #[Title('Tu plan')] class extends Component {
             </div>
         @endif
     </div>
+
+    @unless ($this->currentPlan->isFree())
+        <div
+            x-data="{
+                urls: {
+                    tokens: @js(route('emprendedores.negocios.plan.tarjeta.tokens-aceptacion', $this->business)),
+                    store: @js(route('emprendedores.negocios.plan.tarjeta.store', $this->business)),
+                    status: @js(route('emprendedores.negocios.plan.tarjeta.estado', $this->business)),
+                },
+                customerEmail: @js(Auth::user()->email),
+                form: { cardHolder: '', number: '', expMonth: '', expYear: '', cvc: '' },
+                acceptance: {},
+                acceptedTerms: false,
+                saving: false,
+                status: 'idle',
+                error: null,
+                reset() {
+                    this.form = { cardHolder: '', number: '', expMonth: '', expYear: '', cvc: '' };
+                    this.acceptedTerms = false;
+                    this.saving = false;
+                    this.status = 'idle';
+                    this.error = null;
+                    fetch(this.urls.tokens, { headers: { Accept: 'application/json' } })
+                        .then((r) => r.ok ? r.json() : Promise.reject())
+                        .then((data) => { this.acceptance = data; })
+                        .catch(() => { this.acceptance = {}; });
+                },
+                async save() {
+                    if (this.saving) return;
+
+                    if (! this.acceptedTerms) {
+                        this.error = @js(__('Debes aceptar los términos de Wompi para continuar.'));
+                        return;
+                    }
+
+                    this.saving = true;
+                    this.error = null;
+
+                    try {
+                        const tokenResponse = await fetch(`${this.acceptance.api_url}/tokens/cards`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.acceptance.public_key}` },
+                            body: JSON.stringify({
+                                number: this.form.number.replace(/\s+/g, ''),
+                                exp_month: this.form.expMonth.padStart(2, '0'),
+                                exp_year: this.form.expYear.padStart(2, '0'),
+                                cvc: this.form.cvc,
+                                card_holder: this.form.cardHolder,
+                            }),
+                        });
+
+                        const tokenPayload = await tokenResponse.json();
+
+                        if (! tokenResponse.ok || tokenPayload.status !== 'CREATED') {
+                            this.error = tokenPayload.error?.messages ? Object.values(tokenPayload.error.messages).flat().join(' ') : @js(__('Wompi rechazó los datos de la tarjeta. Revísalos e intenta de nuevo.'));
+                            this.saving = false;
+
+                            return;
+                        }
+
+                        const card = tokenPayload.data;
+
+                        const saveResponse = await fetch(this.urls.store, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                            body: JSON.stringify({
+                                card_token: card.id,
+                                card_brand: card.brand,
+                                card_last_four: card.last_four,
+                                customer_email: this.customerEmail,
+                                acceptance_token: this.acceptance.acceptance_token,
+                                accept_personal_auth_token: this.acceptance.accept_personal_auth_token,
+                            }),
+                        });
+
+                        const savePayload = await saveResponse.json();
+
+                        if (! saveResponse.ok) {
+                            this.error = savePayload.message ?? @js(__('No pudimos guardar la tarjeta. Intenta de nuevo.'));
+                            this.saving = false;
+
+                            return;
+                        }
+
+                        await this.pollStatus(savePayload.data?.status);
+                    } catch (e) {
+                        this.error = @js(__('No pudimos conectar con Wompi. Intenta de nuevo.'));
+                        this.saving = false;
+                    }
+                },
+                async pollStatus(initialStatus) {
+                    let currentStatus = initialStatus;
+                    let attempts = 0;
+
+                    while (currentStatus === 'PENDING' && attempts < 30) {
+                        this.status = 'challenge';
+                        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+                        const response = await fetch(this.urls.status, { headers: { Accept: 'application/json' } });
+                        const payload = await response.json();
+
+                        currentStatus = payload.data?.status;
+                        attempts++;
+                    }
+
+                    this.saving = false;
+
+                    if (currentStatus === 'AVAILABLE') {
+                        this.status = 'idle';
+                        this.$wire.refreshBusinessState();
+                        this.$flux.toast({ text: @js(__('Listo, tu tarjeta quedó guardada para la renovación automática.')) });
+                    } else {
+                        this.status = 'idle';
+                        this.error = @js(__('Wompi no pudo validar la tarjeta con tu banco. Intenta con otra tarjeta.'));
+                    }
+                },
+            }"
+            x-init="reset()"
+            class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-700"
+        >
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <flux:heading size="lg">{{ __('Renovación automática') }}</flux:heading>
+                    <flux:subheading>{{ __('Guarda una tarjeta para que tu plan se renueve solo cada mes, sin que tengas que volver a pagar a mano.') }}</flux:subheading>
+                </div>
+
+                @if ($this->business->hasAutoRenewCard())
+                    <flux:badge color="green" icon="check-circle">{{ __('Activa') }}</flux:badge>
+                @endif
+            </div>
+
+            @if ($this->business->hasAutoRenewCard())
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800">
+                    <div class="flex items-center gap-3">
+                        <flux:icon.credit-card variant="outline" class="size-6 text-zinc-500 dark:text-zinc-400" />
+                        <flux:text class="font-medium text-zinc-800 dark:text-zinc-100">
+                            {{ $this->business->card_brand }} •••• {{ $this->business->card_last_four }}
+                        </flux:text>
+                    </div>
+
+                    <flux:button size="sm" variant="ghost" wire:click="removeAutoRenewCard" wire:confirm="{{ __('¿Quitar esta tarjeta? Tu plan no se renovará solo el próximo mes.') }}">
+                        {{ __('Quitar tarjeta') }}
+                    </flux:button>
+                </div>
+            @else
+                <div class="mt-4">
+                    <flux:modal.trigger name="add-card-modal">
+                        <flux:button size="sm" variant="primary" x-on:click="reset()">
+                            {{ __('Guardar tarjeta') }}
+                        </flux:button>
+                    </flux:modal.trigger>
+                </div>
+
+                <flux:modal name="add-card-modal" class="max-w-md">
+                    <div class="space-y-5">
+                        <div>
+                            <flux:heading size="lg">{{ __('Guardar tarjeta') }}</flux:heading>
+                            <flux:subheading>{{ __('Merkamigo nunca ve ni guarda los datos de tu tarjeta — se envían directo a Wompi.') }}</flux:subheading>
+                        </div>
+
+                        <form x-on:submit.prevent="save" class="space-y-4">
+                            <flux:input label="{{ __('Nombre en la tarjeta') }}" x-model="form.cardHolder" required autocomplete="cc-name" />
+                            <flux:input label="{{ __('Número de tarjeta') }}" x-model="form.number" inputmode="numeric" maxlength="19" required autocomplete="cc-number" placeholder="4242 4242 4242 4242" />
+
+                            <div class="grid grid-cols-3 gap-3">
+                                <flux:input label="{{ __('Mes (MM)') }}" x-model="form.expMonth" inputmode="numeric" maxlength="2" required autocomplete="cc-exp-month" placeholder="06" />
+                                <flux:input label="{{ __('Año (AA)') }}" x-model="form.expYear" inputmode="numeric" maxlength="2" required autocomplete="cc-exp-year" placeholder="29" />
+                                <flux:input label="{{ __('CVC') }}" x-model="form.cvc" inputmode="numeric" maxlength="4" required autocomplete="cc-csc" placeholder="123" />
+                            </div>
+
+                            <template x-if="acceptance.acceptance_permalink">
+                                <label class="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                                    <input type="checkbox" x-model="acceptedTerms" class="mt-0.5 rounded border-zinc-300 text-brand-600 focus:ring-brand-500 dark:border-zinc-600 dark:bg-zinc-800" required>
+                                    <span>
+                                        {{ __('Acepto los') }}
+                                        <a :href="acceptance.acceptance_permalink" target="_blank" class="underline">{{ __('términos de uso de datos') }}</a>
+                                        {{ __('y la') }}
+                                        <a :href="acceptance.personal_auth_permalink" target="_blank" class="underline">{{ __('autorización de datos personales') }}</a>
+                                        {{ __('de Wompi.') }}
+                                    </span>
+                                </label>
+                            </template>
+
+                            <p x-show="status === 'challenge'" x-cloak class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                                {{ __('Tu banco está verificando la tarjeta, esto puede tardar un momento…') }}
+                            </p>
+
+                            <p x-show="error" x-cloak class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300" x-text="error"></p>
+
+                            <div class="flex justify-end gap-2">
+                                <flux:modal.close>
+                                    <flux:button type="button" variant="ghost">{{ __('Cancelar') }}</flux:button>
+                                </flux:modal.close>
+                                <flux:button type="submit" variant="primary" x-bind:disabled="saving">
+                                    <span x-show="! saving">{{ __('Guardar tarjeta') }}</span>
+                                    <span x-show="saving" x-cloak>{{ __('Guardando…') }}</span>
+                                </flux:button>
+                            </div>
+                        </form>
+                    </div>
+                </flux:modal>
+            @endif
+        </div>
+    @endunless
 
     <div>
         <flux:heading size="lg" class="mb-3">{{ __('Uso de tu plan') }}</flux:heading>

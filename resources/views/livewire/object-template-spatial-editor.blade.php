@@ -23,7 +23,12 @@
 
         <div class="mt-5 space-y-3">
             <div class="flex items-center justify-between gap-2">
-                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cajas del objeto</h4>
+                <h4 class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Cajas del objeto
+                    <span class="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-gray-600 dark:bg-white/10 dark:text-gray-300">
+                        {{ count($sceneData['boxes'] ?? []) }}
+                    </span>
+                </h4>
                 <span class="text-xs text-gray-400" title="Marca 2 o más cajas (o Shift+clic en el visor) para agruparlas">Marcar para agrupar</span>
             </div>
 

@@ -20,11 +20,18 @@ class SubscribeToPlan
     {
         $previousPlan = $business->activePlan();
 
+        // `$periodEndsAt` solo llega desde `ApplyApprovedPayment` — ya se
+        // cobró de verdad (a mano o por renovación automática), así que no
+        // tiene sentido volver a arrancar un periodo de prueba. Sin
+        // `$periodEndsAt` (cambio de plan manual desde admin) sí aplica el
+        // trial del plan, como antes.
+        $isTrial = $periodEndsAt === null && $plan->trial_days > 0;
+
         $subscription = Subscription::create([
             'business_id' => $business->id,
             'plan_id' => $plan->id,
-            'status' => $plan->trial_days > 0 ? Subscription::PRUEBA : Subscription::ACTIVA,
-            'trial_ends_at' => $plan->trial_days > 0 ? now()->addDays($plan->trial_days) : null,
+            'status' => $isTrial ? Subscription::PRUEBA : Subscription::ACTIVA,
+            'trial_ends_at' => $isTrial ? now()->addDays($plan->trial_days) : null,
             'current_period_starts_at' => now(),
             'current_period_ends_at' => $periodEndsAt,
         ]);

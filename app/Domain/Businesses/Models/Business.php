@@ -80,6 +80,10 @@ class Business extends Model
         'suspension_reason',
         'suspended_at',
         'featured_until',
+        'wompi_payment_source_id',
+        'card_brand',
+        'card_last_four',
+        'auto_renew_enabled',
     ];
 
     protected function casts(): array
@@ -93,7 +97,20 @@ class Business extends Model
             'featured_until' => 'datetime',
             'latitude' => 'float',
             'longitude' => 'float',
+            'auto_renew_enabled' => 'boolean',
         ];
+    }
+
+    /**
+     * Débito automático (4.2 del TODO): fuente de pago tokenizada en
+     * Wompi validada con 3D Secure y lista para cobros recurrentes sin el
+     * cliente presente. `wompi_payment_source_id` puede existir sin
+     * `auto_renew_enabled` mientras la validación 3DS todavía está en
+     * curso — ver `RefreshBusinessPaymentSourceStatus`.
+     */
+    public function hasAutoRenewCard(): bool
+    {
+        return $this->auto_renew_enabled && filled($this->wompi_payment_source_id);
     }
 
     /**

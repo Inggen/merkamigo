@@ -567,6 +567,8 @@
             </div>
         @endif
     </div>
+
+    <x-storefront-chat-widget :business="$business" />
 </x-layouts::cliente>
 
 @push('scripts')

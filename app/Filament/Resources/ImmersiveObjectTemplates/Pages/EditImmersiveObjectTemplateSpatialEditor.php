@@ -47,7 +47,13 @@ class EditImmersiveObjectTemplateSpatialEditor extends Page
                 ->label('Generar objeto')
                 ->icon(Heroicon::OutlinedSparkles)
                 ->color('gray')
-                ->url(ImmersiveObjectTemplateResource::getUrl('edit', ['record' => $this->getRecord()]).'#generar-objeto'),
+                ->modalHeading('Generar objeto con IA')
+                ->modalSubmitAction(false)
+                ->modalCancelAction(false)
+                ->modalWidth('7xl')
+                ->modalContent(fn () => view('filament.immersive.object-template-ai-modal', [
+                    'template' => $this->getRecord(),
+                ])),
             // Pedido del usuario: comparar rápido las cajas contra la foto
             // de referencia (Miniatura) sin salir del editor de cajas.
             Action::make('viewThumbnailPreview')

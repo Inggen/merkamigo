@@ -99,4 +99,71 @@ class WompiClient
     {
         return (string) WompiSetting::current()->privateKey();
     }
+
+    /**
+     * Datos del comercio, incluidos los `acceptance_token` (aceptación de
+     * términos y de tratamiento de datos personales) que Wompi exige para
+     * crear una fuente de pago — se piden con la llave pública, sin
+     * autenticación privada.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function fetchMerchant(): ?array
+    {
+        $response = Http::withToken($this->publicKey())
+            ->get(WompiSetting::current()->apiUrl()."/merchants/{$this->publicKey()}");
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        return $response->json('data');
+    }
+
+    /**
+     * Crea una fuente de pago (tarjeta tokenizada en el navegador, débito
+     * automático — 4.2 del TODO) contra Wompi. Requiere la llave privada,
+     * por eso se hace desde el servidor y no desde el navegador.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>|null
+     */
+    public function createPaymentSource(array $payload): ?array
+    {
+        $response = Http::withToken($this->privateKey())
+            ->post(WompiSetting::current()->apiUrl().'/payment_sources', $payload);
+
+        return $response->json('data');
+    }
+
+    /**
+     * Consulta el estado de una fuente de pago — usado para sondear la
+     * validación 3D Secure hasta que quede `AVAILABLE`, `DECLINED` o
+     * `ERROR` (ver `RefreshBusinessPaymentSourceStatus`).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function fetchPaymentSource(string $paymentSourceId): ?array
+    {
+        $response = Http::withToken($this->privateKey())
+            ->get(WompiSetting::current()->apiUrl()."/payment_sources/{$paymentSourceId}");
+
+        return $response->json('data');
+    }
+
+    /**
+     * Cobra una transacción contra una fuente de pago guardada, sin el
+     * cliente presente (renovación mensual automática — ver
+     * `ChargeSubscriptionRenewal`).
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>|null
+     */
+    public function chargePaymentSource(array $payload): ?array
+    {
+        $response = Http::withToken($this->privateKey())
+            ->post(WompiSetting::current()->apiUrl().'/transactions', $payload);
+
+        return $response->json();
+    }
 }
