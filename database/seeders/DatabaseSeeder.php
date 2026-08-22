@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ImmersiveObjectTemplateSeeder::class,
             CategorySeeder::class,
             BusinessAttributeSeeder::class,
+            PaymentMethodSeeder::class,
             PlanSeeder::class,
             BillingProductSeeder::class,
         ]);

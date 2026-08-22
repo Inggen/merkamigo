@@ -220,6 +220,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('oportunidades', 'pages::emprendedores.negocios.oportunidades')->name('oportunidades');
         Route::livewire('verificacion', 'pages::emprendedores.negocios.verificacion')->name('verificacion');
         Route::livewire('plan', 'pages::emprendedores.negocios.plan')->name('plan');
+        Route::livewire('chatbot', 'pages::emprendedores.negocios.chatbot')->name('chatbot');
         Route::get('plan/checkout/{plan}', [CheckoutController::class, 'createForPlan'])->name('plan.checkout');
         Route::get('plan/tarjeta/tokens-aceptacion', [PaymentSourceController::class, 'acceptanceTokens'])->name('plan.tarjeta.tokens-aceptacion');
         Route::post('plan/tarjeta', [PaymentSourceController::class, 'store'])->name('plan.tarjeta.store');

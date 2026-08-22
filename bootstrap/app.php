@@ -28,6 +28,17 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->throttleApi();
 
+        // Pedido del usuario: el asistente del panel de emprendedor
+        // (`/api/v1/asistente/chat`) necesita saber qué negocio tiene la
+        // persona que ya inició sesión en el navegador — sin esto, las
+        // rutas de `api.php` son sin estado (no leen la cookie de sesión),
+        // así que `$request->user()` siempre daría null aunque haya
+        // sesión iniciada. `statefulApi()` activa la autenticación por
+        // cookie de Sanctum solo para los dominios de `config('sanctum.stateful')`
+        // (ya incluye este dominio) — las peticiones externas con token
+        // siguen funcionando igual, esto solo se suma como alternativa.
+        $middleware->statefulApi();
+
         // Beacon de analítica pública sin sesión (1.8 del TODO: registrar
         // clic en compartir desde `navigator.sendBeacon`/`fetch`, sin poder
         // adjuntar un token CSRF). No muta datos sensibles ni de sesión;

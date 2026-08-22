@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Discovery\Actions\AnswerPlatformChatQuestion;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\AnswerBusinessChatQuestion;
+use App\Domain\Storefronts\Actions\RecordBusinessChatMessage;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\MunicipalityResource;
@@ -122,9 +124,11 @@ class DiscoveryController extends Controller
     /**
      * Chat con IA de la vitrina — solo negocios con
      * `Business::canUseAiChatbot()` (plan Emprendedor o el add-on
-     * correspondiente comprado en "Impulsa tu negocio"). Sin historial
-     * persistido en el servidor: el cliente reenvía los últimos turnos
-     * en cada mensaje (ver `AnswerBusinessChatQuestion`).
+     * correspondiente comprado en "Impulsa tu negocio"). El propio modelo
+     * sigue siendo sin estado (el cliente reenvía los últimos turnos en
+     * cada mensaje, ver `AnswerBusinessChatQuestion`); lo que sí queda
+     * guardado es un registro de la conversación para que el negocio
+     * pueda revisarlo (`RecordBusinessChatMessage`).
      */
     public function chat(Request $request, Business $business): JsonResponse
     {
@@ -148,7 +152,44 @@ class DiscoveryController extends Controller
             return ApiResponse::response(['answer' => null], status: 503);
         }
 
+        app(RecordBusinessChatMessage::class)->handle($business, $request, $validated['question'], $answer);
+
         return ApiResponse::response(['answer' => $answer]);
+    }
+
+    /**
+     * Asistente general de Merkamigo (pedido del usuario: personaje
+     * flotante en el inicio) — sin negocio puntual, responde sobre la
+     * plataforma en general (ver `AnswerPlatformChatQuestion`). Sin
+     * registro de conversación: a diferencia del chat de una vitrina, no
+     * hay un negocio dueño de la conversación a quien notificar.
+     */
+    public function platformChat(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:400'],
+            'history' => ['nullable', 'array', 'max:12'],
+            'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
+            'history.*.content' => ['required_with:history', 'string', 'max:800'],
+            'mode' => ['nullable', 'string', 'in:general,emprendedor'],
+            'pagina_actual' => ['nullable', 'string', 'max:100'],
+            'paso_actual' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $result = app(AnswerPlatformChatQuestion::class)->handle(
+            $validated['question'],
+            $validated['history'] ?? [],
+            $request->user(),
+            $validated['mode'] ?? AnswerPlatformChatQuestion::GENERAL,
+            $validated['pagina_actual'] ?? null,
+            $validated['paso_actual'] ?? null,
+        );
+
+        if ($result['answer'] === null) {
+            return ApiResponse::response(['answer' => null, 'action' => null], status: 503);
+        }
+
+        return ApiResponse::response($result);
     }
 
     public function product(Business $business, string $product): JsonResponse

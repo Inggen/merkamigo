@@ -9,6 +9,7 @@
     'schemaGraph' => [],
     'ogType' => 'website',
     'showMunicipalitySelector' => false,
+    'showChatWidget' => true,
 ])
 
 <!DOCTYPE html>
@@ -40,6 +41,14 @@
                 <x-cliente-bottom-nav />
             @endif
         @endauth
+
+        @if ($showChatWidget)
+            <x-storefront-chat-widget
+                :with-sound="false"
+                character-gif="images/chatbot-merkamiga-IA.gif"
+                character-frame1="images/chatbot-merkamiga-IA-frame1.png"
+            />
+        @endif
 
         @persist('toast')
             <flux:toast.group>

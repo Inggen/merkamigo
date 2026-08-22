@@ -36,6 +36,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->post('plaza/negocios/{business:slug}/chat', [DiscoveryController::class, 'chat'])
         ->name('plaza.negocios.chat');
 
+    // Asistente general de Merkamigo (personaje flotante del inicio, sin
+    // negocio puntual) — mismo throttle que el chat de vitrina y por la
+    // misma razón.
+    Route::middleware('throttle:15,1')
+        ->post('asistente/chat', [DiscoveryController::class, 'platformChat'])
+        ->name('asistente.chat');
+
     // IMM-020b — puente mínimo de stands dinámicos: qué stand está
     // realmente ocupado en una plaza inmersiva publicada, y con qué
     // plantilla, para que las escenas fijas por municipio (decisión de

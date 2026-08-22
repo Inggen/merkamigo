@@ -1,10 +1,10 @@
 <?php
 
+use App\Domain\Billing\Exceptions\PlanLimitException;
+use App\Domain\Businesses\Actions\SyncBusinessMunicipalities;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
-use App\Domain\Billing\Exceptions\PlanLimitException;
-use App\Domain\Businesses\Actions\SyncBusinessMunicipalities;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Actions\PublishStorefront;
@@ -25,7 +25,8 @@ use Livewire\WithFileUploads;
  * audio y texto asistido por IA quedan diferidos — ver
  * docs/architecture/decisiones.md.
  */
-new #[Title('Crea tu vitrina')] class extends Component {
+new #[Title('Crea tu vitrina')] class extends Component
+{
     use WithFileUploads;
 
     public int $step = 1;
@@ -34,13 +35,16 @@ new #[Title('Crea tu vitrina')] class extends Component {
 
     // Paso 1
     public string $name = '';
+
     public ?string $whatsapp_number = '';
+
     public ?int $municipality_id = null;
 
     /** @var array<int, int> */
     public array $additional_municipality_ids = [];
 
     public ?int $category_id = null;
+
     public ?string $zone = '';
 
     // Paso 2
@@ -48,17 +52,26 @@ new #[Title('Crea tu vitrina')] class extends Component {
 
     // Paso 3
     public $logo;
+
     public ?string $logoAlt = '';
+
     public $cover;
+
     public ?string $coverAlt = '';
 
     // Paso 4
     public string $product_name = '';
+
     public string $product_type = 'producto';
+
     public ?string $product_description = '';
+
     public ?float $product_price = null;
+
     public string $product_price_type = 'exacto';
+
     public ?string $product_unit = '';
+
     public bool $product_is_available = true;
 
     /** @var array<int, string> */
@@ -79,6 +92,28 @@ new #[Title('Crea tu vitrina')] class extends Component {
             $this->description = $business->storefront?->description;
             $this->logoAlt = $business->logo_alt_text;
             $this->coverAlt = $business->storefront?->cover_alt_text;
+
+            return;
+        }
+
+        // Pedido del usuario: el asistente del panel de emprendedor puede
+        // armar el paso 1 a partir de una conversación y traer al
+        // negocio aquí ya con los datos listos para revisar — solo aplica
+        // sin un borrador en curso, para no pisarlo.
+        $this->name = (string) request()->query('nombre', $this->name);
+        $this->whatsapp_number = request()->query('whatsapp', $this->whatsapp_number);
+        $this->description = (string) request()->query('descripcion', $this->description);
+
+        $categorySlug = request()->query('categoria');
+        if ($categorySlug) {
+            $category = Category::where('slug', $categorySlug)->where('is_active', true)->first();
+            $this->category_id = $category?->id ?? $this->category_id;
+        }
+
+        $municipalitySlug = request()->query('municipio');
+        if ($municipalitySlug) {
+            $municipality = Municipality::where('slug', $municipalitySlug)->where('is_active', true)->first();
+            $this->municipality_id = $municipality?->id ?? $this->municipality_id;
         }
     }
 
@@ -279,6 +314,16 @@ new #[Title('Crea tu vitrina')] class extends Component {
             6 => __('¡Listo!'),
         ];
     @endphp
+
+    {{--
+        Pedido del usuario: que el asistente sepa en qué paso del asistente
+        está la persona (ej. "Información básica") para poder ayudarla con
+        ese paso puntual. wire:key cambia con $step, así que Livewire trata
+        este nodo como nuevo en cada paso y x-init se vuelve a ejecutar —
+        el evento sube por el DOM hasta el widget del chat, en otra parte
+        de la página, que lo escucha con `.window`.
+    --}}
+    <div wire:key="wizard-step-marker-{{ $step }}" x-data x-init="$dispatch('wizard-step-changed', { label: @js($stepLabels[$step] ?? null) })"></div>
 
     <div class="mb-8 flex items-start">
         @foreach ($stepLabels as $i => $label)

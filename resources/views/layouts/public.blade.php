@@ -35,6 +35,12 @@
 
         @include('partials.public-footer')
 
+        <x-storefront-chat-widget
+            :with-sound="false"
+            character-gif="images/chatbot-merkamiga-IA.gif"
+            character-frame1="images/chatbot-merkamiga-IA-frame1.png"
+        />
+
         @stack('scripts')
         @fluxScripts
     </body>

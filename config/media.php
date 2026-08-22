@@ -69,6 +69,19 @@ return [
         'disk' => 'private',
     ],
 
+    'payment_method_logo' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+        'max_kb' => 512,
+        'max_files' => 1,
+    ],
+
+    'chatbot_document' => [
+        'mimes' => ['pdf'],
+        'max_kb' => 10240,
+        'max_files' => 1,
+        'disk' => 'private',
+    ],
+
     'immersive_experience_thumbnail' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 3072,

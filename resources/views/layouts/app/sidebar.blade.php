@@ -122,6 +122,13 @@
             <x-cliente-bottom-nav />
         @endif
 
+        <x-storefront-chat-widget
+            :with-sound="false"
+            character-gif="images/chatbot-merkamiga-IA.gif"
+            character-frame1="images/chatbot-merkamiga-IA-frame1.png"
+            :mode="auth()->user()->experience === 'emprendedor' ? 'emprendedor' : 'general'"
+        />
+
         @persist('toast')
             <flux:toast.group>
                 <flux:toast />

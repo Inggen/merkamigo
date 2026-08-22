@@ -51,6 +51,12 @@
         <flux:sidebar.item icon="credit-card" :href="route('emprendedores.negocios.plan', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.plan')" wire:navigate>
             {{ __('Tu plan') }}
         </flux:sidebar.item>
+
+        @if ($primaryBusiness->canUseAiChatbot())
+            <flux:sidebar.item icon="chat-bubble-left-right" :href="route('emprendedores.negocios.chatbot', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.chatbot')" wire:navigate>
+                {{ __('Chatbot IA') }}
+            </flux:sidebar.item>
+        @endif
     @endif
 
     <flux:sidebar.item icon="lifebuoy" :href="route('soporte')" :current="request()->routeIs('soporte')" wire:navigate>

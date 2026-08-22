@@ -36,8 +36,10 @@
     $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
     $featuredProducts = $products->take(6);
     $socialLinks = collect(array_filter($business->social_links ?? []));
+    $acceptedPaymentMethods = $business->paymentMethods;
     $hasSidebarContent = filled($business->whatsapp_number)
         || filled($business->payment_info)
+        || $acceptedPaymentMethods->isNotEmpty()
         || $socialLinks->isNotEmpty()
         || $business->hasStructuredSchedule()
         || filled($business->hoursNote())
@@ -63,6 +65,7 @@
     :image="$pageImage"
     :canonical="$pageUrl"
     :show-municipality-selector="false"
+    :show-chat-widget="false"
     page-schema-type="ProfilePage"
     :page-schema-data="[
         'about' => $business->category?->name,
@@ -83,6 +86,7 @@
             shareSupported: typeof navigator !== 'undefined' && !! navigator.share,
         }"
         class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+    >
         <nav class="mb-5 flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
             <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>
             <span>›</span>
@@ -368,10 +372,27 @@
                                 </div>
                             @endif
 
-                            @if ($business->payment_info)
+                            @if ($acceptedPaymentMethods->isNotEmpty() || $business->payment_info)
                                 <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800 lg:col-span-2">
                                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Información de pago') }}</h3>
-                                    <p class="mt-2 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
+
+                                    @if ($acceptedPaymentMethods->isNotEmpty())
+                                        <div class="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                                            @foreach ($acceptedPaymentMethods as $method)
+                                                <div class="flex items-center justify-center rounded-xl border-zinc-200 p-2 dark:border-zinc-700" title="{{ $method->name }}">
+                                                    @if ($method->logoUrl())
+                                                        <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="w-auto rounded-xl object-contain">
+                                                    @else
+                                                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $method->name }}</span>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    @if ($business->payment_info)
+                                        <p class="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
+                                    @endif
                                 </div>
                             @endif
 
@@ -405,21 +426,6 @@
                             </div>
                         </div>
                     </a>
-                @endif
-
-                @if ($business->payment_info)
-                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                        <div class="flex items-center gap-3">
-                            <span class="inline-flex size-10 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                                <flux:icon.credit-card class="size-5" />
-                            </span>
-                            <div>
-                                <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Métodos de pago') }}</h3>
-                                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Información publicada por el negocio') }}</p>
-                            </div>
-                        </div>
-                        <p class="mt-4 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
-                    </div>
                 @endif
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -528,6 +534,38 @@
                     </button>
                 </div>
 
+                @if ($acceptedPaymentMethods->isNotEmpty() || $business->payment_info)
+                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex size-10 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                                <flux:icon.credit-card class="size-5" />
+                            </span>
+                            <div>
+                                <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Métodos de pago') }}</h3>
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Información publicada por el negocio') }}</p>
+                            </div>
+                        </div>
+
+                        @if ($acceptedPaymentMethods->isNotEmpty())
+                            <div class="mt-4 grid grid-cols-2 gap-3">
+                                @foreach ($acceptedPaymentMethods as $method)
+                                    <div class="flex items-center justify-center rounded-xl border-zinc-200 p-2 dark:border-zinc-700" title="{{ $method->name }}">
+                                        @if ($method->logoUrl())
+                                            <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="w-auto rounded-xl object-contain">
+                                        @else
+                                            <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $method->name }}</span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if ($business->payment_info)
+                            <p class="mt-4 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
+                        @endif
+                    </div>
+                @endif
+
                 @unless ($hasSidebarContent)
                     <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                         <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Información del negocio') }}</h3>
@@ -538,5 +576,5 @@
         </div>
     </div>
 
-    <x-storefront-chat-widget :business="$business" />
+    <x-storefront-chat-widget :business="$business" :with-sound="false" />
 </x-layouts::cliente>

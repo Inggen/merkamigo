@@ -518,7 +518,7 @@ function renderChatSection() {
         <div class="vpe-vitrina-section-head">
             <div class="vpe-vitrina-section-title-group">
                 <span class="vpe-vitrina-section-icon">🤖</span>
-                <h3 class="vpe-vitrina-section-title">Pregúntale al negocio</h3>
+                <h3 class="vpe-vitrina-section-title">Pregúntale a Merkamigo</h3>
             </div>
         </div>
 
@@ -860,7 +860,7 @@ function injectStylesOnce() {
         .vpe-vitrina-btn-label { font-size: 0.92rem; font-weight: 800; }
         .vpe-vitrina-btn-sub { font-size: 0.72rem; font-weight: 500; opacity: 0.85; }
         .vpe-vitrina-btn-primary { background: #d7352a; border-color: #d7352a; color: #fff; }
-        .vpe-vitrina-btn-whatsapp { background: #25d366; border-color: #25d366; color: #fff; }
+        .vpe-vitrina-btn-whatsapp { background: #045C52; border-color: #045C52; color: #fff; }
 
         .vpe-vitrina-footer { text-align: center; font-size: 0.78rem; color: #8a90a0; margin: 16px 0 4px; }
 

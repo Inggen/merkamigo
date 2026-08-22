@@ -23,11 +23,7 @@
     // sin ningún dato real detrás.
     $ratedRecommendations = $recommendations->whereNotNull('rating');
     $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
-    $paymentMethods = collect(preg_split('/[\r\n,]+/', (string) $business->payment_info))
-        ->map(fn ($item) => trim($item))
-        ->filter()
-        ->take(6)
-        ->values();
+    $acceptedPaymentMethods = $business->paymentMethods;
     $gallery = $product->media;
     $galleryItems = $gallery->map(fn ($media) => [
         'url' => $media->url(),
@@ -42,6 +38,7 @@
     :image="$pageImage"
     :canonical="$productUrl"
     :show-municipality-selector="false"
+    :show-chat-widget="false"
     page-schema-type="ItemPage"
     :page-schema-data="[
         'mainEntity' => ['@id' => $productSchemaId],
@@ -288,7 +285,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div x-ref="paymentTab" class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex flex-wrap gap-6 border-b border-zinc-200 px-5 pt-5 text-sm font-semibold dark:border-zinc-800 sm:px-6">
                         <button type="button" x-on:click="tab = 'descripcion'" :class="tab === 'descripcion' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Descripción') }}</button>
                         <button type="button" x-on:click="tab = 'resenas'" :class="tab === 'resenas' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Reseñas') }}{{ $recommendationCount > 0 ? ' ('.$recommendationCount.')' : '' }}</button>
@@ -333,8 +330,24 @@
                         </div>
 
                         <div x-show="tab === 'pago'" x-cloak>
-                            @if (filled($business->payment_info))
-                                <p class="whitespace-pre-line text-base leading-8 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
+                            @if ($acceptedPaymentMethods->isNotEmpty() || filled($business->payment_info))
+                                @if ($acceptedPaymentMethods->isNotEmpty())
+                                    <div class="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                                        @foreach ($acceptedPaymentMethods as $method)
+                                            <div class="flex items-center justify-center rounded-xl border-zinc-200 dark:border-zinc-800" title="{{ $method->name }}">
+                                                @if ($method->logoUrl())
+                                                    <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="w-auto rounded-xl object-contain">
+                                                @else
+                                                    <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $method->name }}</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                @if (filled($business->payment_info))
+                                    <p class="whitespace-pre-line text-base leading-8 text-zinc-600 dark:text-zinc-300 {{ $acceptedPaymentMethods->isNotEmpty() ? 'mt-5' : '' }}">{{ $business->payment_info }}</p>
+                                @endif
                             @else
                                 <x-states.empty title="{{ __('Todavía no hay información de pago') }}" />
                             @endif
@@ -361,19 +374,6 @@
             </section>
 
             <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
-                @if ($paymentMethods->isNotEmpty())
-                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Métodos de pago') }}</h3>
-                        <div class="mt-4 grid grid-cols-2 gap-3">
-                            @foreach ($paymentMethods as $method)
-                                <div class="rounded-2xl border border-zinc-200 px-3 py-3 text-center text-sm font-medium text-zinc-700 dark:border-zinc-800 dark:text-zinc-200">
-                                    {{ $method }}
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte este producto') }}</h3>
                     <div class="mt-4 space-y-5">
@@ -491,6 +491,22 @@
                         </div>
                     @endif
                 </div>
+
+                @if ($acceptedPaymentMethods->isNotEmpty() || filled($business->payment_info))
+                    <button
+                        type="button"
+                        x-on:click="tab = 'pago'; $nextTick(() => $refs.paymentTab.scrollIntoView({ behavior: 'smooth', block: 'start' }))"
+                        class="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-5 text-left shadow-sm transition hover:border-brand-300 dark:border-zinc-800 dark:bg-zinc-900"
+                    >
+                        <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 dark:bg-rose-800 dark:text-rose-200 cursor-pointer">
+                            <flux:icon.credit-card class="size-5" />
+                        </span>
+                        <span>
+                            <span class="block font-semibold text-zinc-950 dark:text-white">{{ __('Métodos de pago') }}</span>
+                            <span class="block text-sm text-zinc-500 dark:text-zinc-400">{{ __('Ver formas de pago aceptadas') }}</span>
+                        </span>
+                    </button>
+                @endif
             </aside>
         </div>
 
@@ -568,7 +584,7 @@
         @endif
     </div>
 
-    <x-storefront-chat-widget :business="$business" />
+    <x-storefront-chat-widget :business="$business" :with-sound="false" />
 </x-layouts::cliente>
 
 @push('scripts')

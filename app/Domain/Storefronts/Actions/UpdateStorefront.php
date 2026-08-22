@@ -45,6 +45,8 @@ class UpdateStorefront
             'social_links' => ['sometimes', 'nullable', 'array'],
             'payment_info' => ['sometimes', 'nullable', 'string'],
             'attributes' => ['sometimes', 'nullable', 'array'],
+            'payment_method_ids' => ['sometimes', 'nullable', 'array'],
+            'payment_method_ids.*' => ['integer', 'exists:payment_methods,id'],
             'headline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'logo' => ['sometimes', 'nullable'],
@@ -70,6 +72,10 @@ class UpdateStorefront
             }
 
             $business->save();
+
+            if (array_key_exists('payment_method_ids', $validated)) {
+                $business->paymentMethods()->sync($validated['payment_method_ids'] ?? []);
+            }
 
             $storefront = $business->storefront;
             $storefront->fill(Arr::only($validated, self::STOREFRONT_FIELDS));

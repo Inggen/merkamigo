@@ -7,6 +7,7 @@ use App\Domain\Needs\Actions\SaveNeedDraft;
 use App\Domain\Needs\Exceptions\IncompleteNeedException;
 use App\Domain\Needs\Models\Need;
 use Flux\Flux;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -26,19 +27,25 @@ use Livewire\WithFileUploads;
  * sidebar del Emprendedor, ver `config('livewire.component_layout')`) —
  * esta es una página del Cliente y necesita el encabezado propio.
  */
-new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends Component {
+new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends Component
+{
     use WithFileUploads;
 
     public ?int $needId = null;
 
     public string $title = '';
+
     public string $description = '';
+
     public ?int $municipality_id = null;
+
     public ?int $category_id = null;
+
     public ?string $zone = '';
+
     public ?string $budget = null;
 
-    /** @var array<int, \Illuminate\Http\UploadedFile> */
+    /** @var array<int, UploadedFile> */
     public array $photos = [];
 
     public bool $previewing = false;
@@ -73,6 +80,19 @@ new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends
         $slug = request()->cookie('municipio');
         $preferred = $slug ? Municipality::where('slug', $slug)->where('is_active', true)->first() : null;
         $this->municipality_id = $preferred?->id;
+
+        // Pedido del usuario: el asistente general del inicio puede armar
+        // una solicitud a partir de la conversación y traer al comprador
+        // aquí ya con los datos listos para revisar antes de publicar —
+        // solo aplica sin borrador existente, para no pisar uno en curso.
+        $this->title = (string) request()->query('titulo', $this->title);
+        $this->description = (string) request()->query('descripcion', $this->description);
+
+        $categorySlug = request()->query('categoria');
+        if ($categorySlug) {
+            $category = Category::where('slug', $categorySlug)->where('is_active', true)->first();
+            $this->category_id = $category?->id ?? $this->category_id;
+        }
     }
 
     #[Computed]

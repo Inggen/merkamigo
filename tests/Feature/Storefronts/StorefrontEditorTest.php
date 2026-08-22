@@ -6,6 +6,7 @@ use App\Domain\Businesses\Models\BusinessAttribute;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
+use App\Support\Ai\Contracts\GeneratesAssistedText;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -135,6 +136,56 @@ class StorefrontEditorTest extends TestCase
         $this->assertSame('08:00', $fresh->hours['schedule']['monday']['open']);
         $this->assertSame('18:00', $fresh->hours['schedule']['monday']['close']);
         $this->assertSame([$attribute->slug], $fresh->attributes);
+    }
+
+    public function test_owner_can_autofill_the_structured_schedule_from_the_free_text_hours(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Horario IA', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                $schedule = ['closed' => false, 'open' => '08:00', 'close' => '18:00'];
+
+                return json_encode([
+                    'monday' => $schedule, 'tuesday' => $schedule, 'wednesday' => $schedule,
+                    'thursday' => $schedule, 'friday' => $schedule, 'saturday' => $schedule,
+                    'sunday' => ['closed' => true, 'open' => null, 'close' => null],
+                ]);
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('hours_text', 'Lun-Sáb 8:00am - 6:00pm')
+            ->call('autofillScheduleFromText')
+            ->assertSet('schedule.monday.open', '08:00')
+            ->assertSet('schedule.sunday.closed', true);
+
+        $fresh = $business->fresh();
+        $this->assertSame('08:00', $fresh->hours['schedule']['monday']['open']);
+        $this->assertTrue($fresh->hours['schedule']['sunday']['closed']);
+    }
+
+    public function test_autofill_does_nothing_when_the_free_text_hours_are_empty(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Horario Vacío', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('hours_text', '')
+            ->call('autofillScheduleFromText')
+            ->assertHasNoErrors()
+            ->assertSet('schedule.monday.open', null);
     }
 
     public function test_the_editor_links_to_the_preview_page(): void

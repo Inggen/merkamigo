@@ -10,6 +10,8 @@ use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Immersive\Models\StandAssignment;
 use App\Domain\Needs\Models\Offer;
+use App\Domain\Storefronts\Models\BusinessChatbotProfile;
+use App\Domain\Storefronts\Models\BusinessChatConversation;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\Storefront;
 use App\Domain\Trust\Models\BusinessVerification;
@@ -217,6 +219,22 @@ class Business extends Model
     public function storefront(): HasOne
     {
         return $this->hasOne(Storefront::class);
+    }
+
+    /**
+     * @return HasOne<BusinessChatbotProfile, $this>
+     */
+    public function chatbotProfile(): HasOne
+    {
+        return $this->hasOne(BusinessChatbotProfile::class);
+    }
+
+    /**
+     * @return HasMany<BusinessChatConversation, $this>
+     */
+    public function chatConversations(): HasMany
+    {
+        return $this->hasMany(BusinessChatConversation::class)->latest('last_message_at');
     }
 
     /**
@@ -496,6 +514,17 @@ class Business extends Model
             ->whereIn('slug', $slugs)
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Formas de pago que el negocio marcó como aceptadas (pedido del
+     * usuario: mostrarlas con su logo en la vitrina).
+     *
+     * @return BelongsToMany<PaymentMethod, $this>
+     */
+    public function paymentMethods(): BelongsToMany
+    {
+        return $this->belongsToMany(PaymentMethod::class);
     }
 
     /**

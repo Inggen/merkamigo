@@ -1,8 +1,10 @@
 <?php
 
+use App\Domain\Businesses\Actions\ParseBusinessHoursText;
 use App\Domain\Businesses\Actions\SyncBusinessMunicipalities;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Models\BusinessAttribute;
+use App\Domain\Businesses\Models\PaymentMethod;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\PublishStorefront;
@@ -26,40 +28,59 @@ use Livewire\WithFileUploads;
  * Reutiliza UpdateStorefront/PublishStorefront/UnpublishStorefront —
  * exactamente las mismas acciones que usa el wizard de 1.2.
  */
-new #[Title('Editar mi vitrina')] class extends Component {
+new #[Title('Editar mi vitrina')] class extends Component
+{
     use WithFileUploads;
 
     #[Locked]
     public int $businessId;
 
     public string $name = '';
+
     public ?string $whatsapp_number = '';
+
     public ?int $municipality_id = null;
 
     /** @var array<int, int> */
     public array $additional_municipality_ids = [];
+
     public ?int $category_id = null;
+
     public ?string $zone = '';
+
     public ?string $address = '';
+
     public ?float $latitude = null;
+
     public ?float $longitude = null;
+
     public ?string $headline = '';
+
     public ?string $description = '';
+
     public ?string $hours_text = '';
 
     /** @var array<string, array{closed: bool, open: ?string, close: ?string}> */
     public array $schedule = [];
 
     public ?string $payment_info = '';
+
     public array $social_links = ['instagram' => '', 'facebook' => '', 'tiktok' => ''];
 
     /** @var array<int, string> */
     public array $business_attributes = [];
 
+    /** @var array<int, int> */
+    public array $payment_method_ids = [];
+
     public $logo;
+
     public ?string $logo_alt_text = '';
+
     public $cover;
+
     public ?string $cover_alt_text = '';
+
     public ?string $stand_color = null;
 
     /** @var array<int, string> */
@@ -111,6 +132,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $this->payment_info = $business->payment_info;
         $this->social_links = array_merge($this->social_links, $business->social_links ?? []);
         $this->business_attributes = $business->attributes ?? [];
+        $this->payment_method_ids = $business->paymentMethods()->pluck('payment_methods.id')->all();
 
         $defaultSchedule = [];
         foreach (Business::DAY_LABELS as $day => $label) {
@@ -157,6 +179,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $data['hours'] = ['note' => $this->hours_text, 'schedule' => $this->schedule];
         $data['social_links'] = $this->social_links;
         $data['attributes'] = $this->business_attributes;
+        $data['payment_method_ids'] = $this->payment_method_ids;
 
         if ($this->logo) {
             $data['logo'] = $this->logo;
@@ -199,6 +222,7 @@ new #[Title('Editar mi vitrina')] class extends Component {
         $data['hours'] = ['note' => $this->hours_text, 'schedule' => $this->schedule];
         $data['social_links'] = $this->social_links;
         $data['attributes'] = $this->business_attributes;
+        $data['payment_method_ids'] = $this->payment_method_ids;
 
         app(UpdateStorefront::class)->handle($this->business, $data, Auth::user());
 
@@ -209,6 +233,44 @@ new #[Title('Editar mi vitrina')] class extends Component {
         }
 
         $this->savedAt = now()->format('H:i');
+    }
+
+    /**
+     * Autocompleta "Horario por día" a partir de lo que el emprendedor ya
+     * escribió en el campo de texto libre (pedido del usuario: no debería
+     * tener que llenar cada día a mano si ya escribió "Lun-Sáb 8am-6pm").
+     * El resultado queda editable — no reemplaza la posibilidad de
+     * ajustarlo día por día después.
+     */
+    public function autofillScheduleFromText(): void
+    {
+        $this->authorize('update', $this->business);
+
+        $text = trim((string) $this->hours_text);
+
+        if ($text === '') {
+            Flux::toast(variant: 'warning', text: __('Escribe primero tu horario arriba, por ejemplo "Lun-Sáb 8:00am - 6:00pm".'));
+
+            return;
+        }
+
+        $parsed = app(ParseBusinessHoursText::class)->handle($text);
+
+        if ($parsed === null) {
+            Flux::toast(variant: 'danger', text: __('No pudimos interpretar ese horario. Complétalo manualmente por día.'));
+
+            return;
+        }
+
+        $this->schedule = $parsed;
+
+        app(UpdateStorefront::class)->handle($this->business, [
+            'hours' => ['note' => $this->hours_text, 'schedule' => $this->schedule],
+        ], Auth::user());
+
+        $this->savedAt = now()->format('H:i');
+
+        Flux::toast(variant: 'success', text: __('Horario completado. Revísalo y ajusta si hace falta.'));
     }
 
     /**
@@ -309,6 +371,12 @@ new #[Title('Editar mi vitrina')] class extends Component {
     public function attributeOptions()
     {
         return BusinessAttribute::where('is_active', true)->orderBy('name')->get();
+    }
+
+    #[Computed]
+    public function paymentMethodOptions()
+    {
+        return PaymentMethod::where('is_active', true)->orderBy('position')->get();
     }
 
     private function validateAdditionalMunicipalities(): void
@@ -502,7 +570,14 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:textarea wire:model.live.debounce.900ms="hours_text" rows="2" placeholder="{{ __('Ej: Lun-Sáb 8:00am - 6:00pm') }}" />
 
                 <div class="space-y-2">
-                    <flux:text class="font-medium">{{ __('Horario por día (opcional, permite mostrar "Abierto ahora" en tu vitrina)') }}</flux:text>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <flux:text class="font-medium">{{ __('Horario por día (opcional, permite mostrar "Abierto ahora" en tu vitrina)') }}</flux:text>
+
+                        <flux:button type="button" size="sm" variant="ghost" icon="sparkles" class="text-rose-600! hover:bg-rose-50! dark:text-rose-400! dark:hover:bg-rose-500/10!" wire:click="autofillScheduleFromText" wire:loading.attr="disabled" wire:target="autofillScheduleFromText">
+                            <span wire:loading.remove wire:target="autofillScheduleFromText">{{ __('Completar con IA') }}</span>
+                            <span wire:loading wire:target="autofillScheduleFromText">{{ __('Interpretando...') }}</span>
+                        </flux:button>
+                    </div>
 
                     @foreach (\App\Domain\Businesses\Models\Business::DAY_LABELS as $day => $label)
                         <div class="flex flex-wrap items-center gap-3 border-b border-zinc-100 pb-2 dark:border-zinc-800">
@@ -595,6 +670,23 @@ new #[Title('Editar mi vitrina')] class extends Component {
                 <flux:input wire:model.live.debounce.900ms="social_links.instagram" label="Instagram" placeholder="https://instagram.com/..." />
                 <flux:input wire:model.live.debounce.900ms="social_links.facebook" label="Facebook" placeholder="https://facebook.com/..." />
                 <flux:input wire:model.live.debounce.900ms="social_links.tiktok" label="TikTok" placeholder="https://tiktok.com/@..." />
+                @if ($this->paymentMethodOptions->isNotEmpty())
+                    <div>
+                        <flux:text class="mb-2 font-medium">{{ __('Formas de pago que aceptas') }}</flux:text>
+                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            @foreach ($this->paymentMethodOptions as $method)
+                                <label class="flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 dark:border-zinc-700 dark:has-[:checked]:bg-brand-500/10">
+                                    <input type="checkbox" wire:model.live="payment_method_ids" value="{{ $method->id }}" class="rounded border-zinc-300 text-brand-600 focus:ring-brand-500 dark:border-zinc-600 dark:bg-zinc-800">
+                                    @if ($method->logoUrl())
+                                        <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="size-6 shrink-0 rounded object-cover">
+                                    @endif
+                                    <span class="truncate">{{ $method->name }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <flux:textarea wire:model.live.debounce.900ms="payment_info" :label="__('Información de pago (opcional)')" rows="2" placeholder="{{ __('Ej: Nequi 300 000 0000, o enlace de pago') }}" />
             </div>
 
