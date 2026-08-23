@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Actions\ParseBusinessHoursText;
 use App\Domain\Businesses\Actions\SyncBusinessMunicipalities;
 use App\Domain\Businesses\Models\Business;
@@ -7,11 +8,14 @@ use App\Domain\Businesses\Models\BusinessAttribute;
 use App\Domain\Businesses\Models\PaymentMethod;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Storefronts\Actions\GenerateStorefrontCoverImage;
+use App\Domain\Storefronts\Actions\GenerateStorefrontDescription;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use App\Domain\Storefronts\Actions\UnpublishStorefront;
 use App\Domain\Storefronts\Actions\UpdateStorefront;
 use App\Domain\Storefronts\Exceptions\BusinessSuspendedException;
 use App\Domain\Storefronts\Exceptions\IncompleteStorefrontException;
+use App\Support\Ai\AiImagePrompt;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -80,6 +84,8 @@ new #[Title('Editar mi vitrina')] class extends Component
     public $cover;
 
     public ?string $cover_alt_text = '';
+
+    public string $coverImageStyle = AiImagePrompt::ULTRAREALISTA;
 
     public ?string $stand_color = null;
 
@@ -233,6 +239,92 @@ new #[Title('Editar mi vitrina')] class extends Component
         }
 
         $this->savedAt = now()->format('H:i');
+    }
+
+    /**
+     * Las ayudas de IA en el editor de vitrina (mejorar descripción,
+     * generar portada) son un beneficio del plan Emprendedor (pedido del
+     * usuario) — el superadmin siempre puede usarlas, igual que puede
+     * entrar como cualquier usuario desde el panel.
+     */
+    public function canUseAiForVitrina(): bool
+    {
+        return $this->business->activePlan()->slug === Plan::EMPRENDEDOR
+            || (Auth::user()?->hasAnyPlatformRole(['superadmin']) ?? false);
+    }
+
+    /**
+     * Genera (o mejora) la descripción de la vitrina con IA a partir de
+     * los demás campos ya llenos del formulario (pedido del usuario: no
+     * debería tener que redactarla desde cero). El resultado queda
+     * editable en el textarea — no se publica nada sin que lo revise.
+     */
+    public function improveDescription(): void
+    {
+        $this->authorize('update', $this->business);
+
+        if (! $this->canUseAiForVitrina()) {
+            Flux::toast(variant: 'warning', text: __('Mejorar descripción con IA es un beneficio del plan Emprendedor.'));
+
+            return;
+        }
+
+        $generated = app(GenerateStorefrontDescription::class)->handle($this->business, [
+            'headline' => $this->headline,
+            'zone' => $this->zone,
+            'description' => $this->description,
+        ]);
+
+        if ($generated === null || $generated === '') {
+            Flux::toast(variant: 'danger', text: __('No pudimos generar la descripción. Intenta de nuevo en un momento.'));
+
+            return;
+        }
+
+        $this->description = $generated;
+
+        app(UpdateStorefront::class)->handle($this->business, [
+            'description' => $this->description,
+        ], Auth::user());
+
+        $this->savedAt = now()->format('H:i');
+
+        Flux::toast(variant: 'success', text: __('Descripción generada. Revísala y ajusta si hace falta.'));
+    }
+
+    /**
+     * Genera una foto de portada con IA a partir de los datos reales del
+     * negocio (pedido del usuario) — mismo camino que subir una portada a
+     * mano (`UpdateStorefront`), así que reemplaza y borra la anterior
+     * igual que siempre.
+     */
+    public function generateCoverImage(): void
+    {
+        $this->authorize('update', $this->business);
+
+        if (! $this->canUseAiForVitrina()) {
+            Flux::toast(variant: 'warning', text: __('Generar portada con IA es un beneficio del plan Emprendedor.'));
+
+            return;
+        }
+
+        $style = AiImagePrompt::isValidStyle($this->coverImageStyle) ? $this->coverImageStyle : AiImagePrompt::ULTRAREALISTA;
+
+        $generatedCover = app(GenerateStorefrontCoverImage::class)->handle($this->business, $style);
+
+        if ($generatedCover === null) {
+            Flux::toast(variant: 'danger', text: __('No pudimos generar la portada. Intenta de nuevo en un momento.'));
+
+            return;
+        }
+
+        app(UpdateStorefront::class)->handle($this->business, [
+            'cover' => $generatedCover,
+        ], Auth::user());
+
+        $this->savedAt = now()->format('H:i');
+
+        Flux::toast(variant: 'success', text: __('Portada generada. Revísala y cámbiala si quieres otra.'));
     }
 
     /**
@@ -499,6 +591,21 @@ new #[Title('Editar mi vitrina')] class extends Component
                 </div>
 
                 <div>
+                    @if ($this->canUseAiForVitrina())
+                        <div class="mb-2 flex flex-wrap items-center justify-end gap-2">
+                            <flux:select wire:model="coverImageStyle" size="sm" class="w-40">
+                                @foreach (\App\Support\Ai\AiImagePrompt::styles() as $value => $label)
+                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+
+                            <flux:button type="button" size="sm" variant="ghost" icon="sparkles" class="text-rose-600! hover:bg-rose-50! dark:text-rose-400! dark:hover:bg-rose-500/10!" wire:click="generateCoverImage" wire:loading.attr="disabled" wire:target="generateCoverImage">
+                                <span wire:loading.remove wire:target="generateCoverImage">{{ __('Generar con IA') }}</span>
+                                <span wire:loading wire:target="generateCoverImage">{{ __('Generando...') }}</span>
+                            </flux:button>
+                        </div>
+                    @endif
+
                     <x-forms.image-upload-field
                         wire:model="cover"
                         accept="image/*"
@@ -517,7 +624,24 @@ new #[Title('Editar mi vitrina')] class extends Component
 
                 <flux:input wire:model.live.debounce.900ms="name" :label="__('Nombre del negocio')" required />
                 <flux:input wire:model.live.debounce.900ms="headline" :label="__('Frase corta')" />
-                <flux:textarea wire:model.live.debounce.900ms="description" :label="__('Descripción')" rows="4" />
+                <div>
+                    <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
+                        <flux:text class="font-medium">{{ __('Descripción') }}</flux:text>
+
+                        @if ($this->canUseAiForVitrina())
+                            <flux:button type="button" size="sm" variant="ghost" icon="sparkles" class="text-rose-600! hover:bg-rose-50! dark:text-rose-400! dark:hover:bg-rose-500/10!" wire:click="improveDescription" wire:loading.attr="disabled" wire:target="improveDescription">
+                                <span wire:loading.remove wire:target="improveDescription">{{ __('Mejorar descripción') }}</span>
+                                <span wire:loading wire:target="improveDescription">{{ __('Generando...') }}</span>
+                            </flux:button>
+                        @else
+                            <flux:button size="sm" variant="ghost" icon="sparkles" :href="route('emprendedores.negocios.plan', $this->business)" wire:navigate>
+                                {{ __('Mejorar descripción (plan Emprendedor)') }}
+                            </flux:button>
+                        @endif
+                    </div>
+
+                    <flux:textarea wire:model.live.debounce.900ms="description" rows="4" />
+                </div>
 
                 <flux:select wire:model.live="municipality_id" :label="__('Municipio')">
                     <flux:select.option value="">{{ __('Selecciona un municipio') }}</flux:select.option>

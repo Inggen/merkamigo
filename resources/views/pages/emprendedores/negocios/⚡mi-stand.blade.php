@@ -216,7 +216,7 @@ new #[Title('Mi stand en la plaza')] class extends Component
     @if ($this->templates->isEmpty())
         <flux:text class="text-zinc-500">{{ __('Todavía no hay plantillas de stand disponibles.') }}</flux:text>
     @else
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($this->templates as $template)
                 @php($isSelected = $assignment?->object_template_id === $template->id)
                 @php($requiresEntrepreneurPlan = $this->templateRequiresEntrepreneurPlan($template))
@@ -225,6 +225,8 @@ new #[Title('Mi stand en la plaza')] class extends Component
                 <div class="flex flex-col items-center gap-3 rounded-2xl border p-4 text-center {{ $isSelected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-zinc-200 dark:border-zinc-700' }}">
                     @if ($template->modelPathUrl())
                         <x-immersive.stand-template-glb-preview :template="$template" stand-color-model="stand_color" />
+                    @elseif ($template->builder_key)
+                        <x-immersive.stand-template-builder-preview :template="$template" stand-color-model="stand_color" />
                     @else
                         <div class="flex aspect-square w-full items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">
                             <flux:icon.cube class="size-8" variant="outline" />

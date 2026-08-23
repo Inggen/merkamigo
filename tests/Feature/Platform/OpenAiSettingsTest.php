@@ -36,6 +36,40 @@ class OpenAiSettingsTest extends TestCase
         $this->assertSame(rtrim((string) config('services.openai.base_url', 'https://api.openai.com/v1'), '/'), $setting->baseUrl());
     }
 
+    public function test_the_image_model_defaults_to_gpt_image_2(): void
+    {
+        $setting = OpenAiSetting::current();
+
+        $this->assertSame('gpt-image-2', $setting->image_model);
+        $this->assertSame('gpt-image-2', $setting->imageModel());
+    }
+
+    public function test_an_admin_can_change_the_image_model(): void
+    {
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(OpenAiSettings::class)
+            ->assertSet('data.image_model', 'gpt-image-2')
+            ->fillForm([
+                'enabled' => true,
+                'entrepreneur_copilot_enabled' => false,
+                'model' => 'gpt-new',
+                'image_model' => 'gpt-image-3',
+                'api_key' => 'sk-existing',
+                'base_url' => 'https://api.openai.com/v1',
+                'timeout_seconds' => 30,
+                'max_output_tokens' => 900,
+                'temperature' => 0.4,
+                'system_prompt' => 'No inventes datos.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('gpt-image-3', OpenAiSetting::query()->firstOrFail()->image_model);
+    }
+
     public function test_an_admin_can_save_openai_settings_without_overwriting_the_key_when_left_blank(): void
     {
         OpenAiSetting::create([

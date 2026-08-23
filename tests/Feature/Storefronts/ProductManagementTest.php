@@ -6,11 +6,14 @@ use App\Domain\Billing\Actions\SubscribeToPlan;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
+use App\Support\Ai\Contracts\GeneratesAssistedText;
+use App\Support\Ai\Contracts\GeneratesImages;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -33,6 +36,155 @@ class ProductManagementTest extends TestCase
             'is_active' => true,
             'position' => 1,
         ]);
+    }
+
+    private function assignPlatformRole(User $user, string $role): void
+    {
+        $previousTeamId = getPermissionsTeamId();
+
+        setPermissionsTeamId(User::PLATFORM_TEAM_ID);
+        $user->unsetRelation('roles');
+        $user->assignRole(Role::findOrCreate($role, 'web'));
+
+        setPermissionsTeamId($previousTeamId);
+        $user->unsetRelation('roles');
+    }
+
+    private function fakePng(): string
+    {
+        return base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+    }
+
+    public function test_owner_can_improve_the_product_description_with_ai(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
+        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $owner);
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return 'Descripción vendedora generada para el producto.';
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Torta de chocolate')
+            ->call('improveProductDescription')
+            ->assertSet('description', 'Descripción vendedora generada para el producto.');
+    }
+
+    public function test_improve_product_description_is_blocked_without_the_entrepreneur_plan(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Sin Plan'])->business;
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return 'Esto nunca debería guardarse.';
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Torta de chocolate')
+            ->call('improveProductDescription')
+            ->assertSet('description', '');
+    }
+
+    public function test_owner_can_generate_a_product_photo_with_ai(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
+        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $owner);
+
+        $this->actingAs($owner);
+
+        $component = Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Torta de chocolate')
+            ->set('type', 'producto')
+            ->set('price_type', 'exacto')
+            ->set('price', 25000)
+            ->call('save');
+
+        $product = $business->products()->firstOrFail();
+
+        $this->app->bind(GeneratesImages::class, fn () => new class($this->fakePng()) implements GeneratesImages
+        {
+            public function __construct(private readonly string $bytes) {}
+
+            public function generate(string $prompt, array $options = []): ?string
+            {
+                return $this->bytes;
+            }
+        });
+
+        $component->call('openEdit', $product->id)
+            ->call('generateProductPhoto')
+            ->assertHasNoErrors();
+
+        $this->assertCount(1, $product->fresh()->media);
+    }
+
+    public function test_generate_product_photo_is_blocked_while_creating_a_new_product(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
+        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $owner);
+
+        $this->app->bind(GeneratesImages::class, fn () => new class($this->fakePng()) implements GeneratesImages
+        {
+            public function __construct(private readonly string $bytes) {}
+
+            public function generate(string $prompt, array $options = []): ?string
+            {
+                return $this->bytes;
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Torta de chocolate')
+            ->call('generateProductPhoto')
+            ->assertHasNoErrors();
+
+        $this->assertSame(0, $business->products()->count());
+    }
+
+    public function test_a_superadmin_can_use_ai_for_products_without_the_entrepreneur_plan(): void
+    {
+        $superadmin = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($superadmin, ['name' => 'Negocio Superadmin'])->business;
+        $this->assignPlatformRole($superadmin, 'superadmin');
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return 'Descripción para el superadmin.';
+            }
+        });
+
+        $this->actingAs($superadmin);
+
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Torta de chocolate')
+            ->call('improveProductDescription')
+            ->assertSet('description', 'Descripción para el superadmin.');
     }
 
     public function test_owner_can_create_edit_and_archive_a_product(): void

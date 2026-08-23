@@ -17,6 +17,7 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('businesses'))
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
@@ -29,6 +30,11 @@ class UsersTable
                 TextColumn::make('experience')
                     ->label('Experiencia')
                     ->badge(),
+                TextColumn::make('businesses.name')
+                    ->label('Vitrinas')
+                    ->badge()
+                    ->placeholder('—')
+                    ->searchable(),
                 TextColumn::make('platform_role')
                     ->label('Rol de plataforma')
                     ->state(fn (User $record) => $record->platformRoleName() ?? '—')

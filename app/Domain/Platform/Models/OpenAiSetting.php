@@ -18,6 +18,7 @@ class OpenAiSetting extends Model
         'enabled',
         'entrepreneur_copilot_enabled',
         'model',
+        'image_model',
         'api_key',
         'base_url',
         'timeout_seconds',
@@ -44,6 +45,7 @@ class OpenAiSetting extends Model
             'enabled' => (bool) config('services.openai.enabled', false),
             'entrepreneur_copilot_enabled' => (bool) config('services.openai.entrepreneur_copilot_enabled', false),
             'model' => config('services.openai.model'),
+            'image_model' => config('services.openai.image_model', 'gpt-image-2'),
             'base_url' => config('services.openai.base_url', 'https://api.openai.com/v1'),
             'timeout_seconds' => (int) config('services.openai.timeout', 30),
             'max_output_tokens' => filled(config('services.openai.max_output_tokens'))
@@ -78,6 +80,16 @@ class OpenAiSetting extends Model
     public function model(): ?string
     {
         return $this->model ?: config('services.openai.model');
+    }
+
+    /**
+     * Modelo para generación de IMÁGENES (a diferencia de `model()`, que
+     * es para texto) — todavía sin ninguna función en el código que lo
+     * consuma, listo para cuando se construya esa función.
+     */
+    public function imageModel(): ?string
+    {
+        return $this->image_model ?: config('services.openai.image_model');
     }
 
     public function baseUrl(): string

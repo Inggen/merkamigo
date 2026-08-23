@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Businesses\Models\Business;
 use App\Domain\Businesses\Models\BusinessAttribute;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
@@ -9,6 +12,7 @@ use App\Models\User;
 use App\Support\Ai\Contracts\GeneratesAssistedText;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -17,6 +21,38 @@ use Tests\TestCase;
 class StorefrontEditorTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function emprendedorPlan(): Plan
+    {
+        return Plan::create([
+            'slug' => 'emprendedor',
+            'name' => 'Emprendedor',
+            'description' => 'Desbloquea mejores capacidades para tu negocio.',
+            'price_cents' => 1990000,
+            'billing_period' => Plan::MENSUAL,
+            'limits' => ['max_products' => null, 'max_members' => 5, 'max_featured_days' => 7],
+            'trial_days' => 14,
+            'is_active' => true,
+            'position' => 1,
+        ]);
+    }
+
+    private function subscribeToEmprendedorPlan(Business $business, User $actor): void
+    {
+        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $actor);
+    }
+
+    private function assignPlatformRole(User $user, string $role): void
+    {
+        $previousTeamId = getPermissionsTeamId();
+
+        setPermissionsTeamId(User::PLATFORM_TEAM_ID);
+        $user->unsetRelation('roles');
+        $user->assignRole(Role::findOrCreate($role, 'web'));
+
+        setPermissionsTeamId($previousTeamId);
+        $user->unsetRelation('roles');
+    }
 
     public function test_owner_can_edit_and_publish_from_the_editor(): void
     {
@@ -186,6 +222,110 @@ class StorefrontEditorTest extends TestCase
             ->call('autofillScheduleFromText')
             ->assertHasNoErrors()
             ->assertSet('schedule.monday.open', null);
+    }
+
+    public function test_owner_can_improve_the_description_with_ai(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Descripción IA', 'whatsapp_number' => '+573001112233',
+        ])->business;
+        $this->subscribeToEmprendedorPlan($business, $owner);
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return 'Descripción vendedora generada a partir de los datos reales del negocio.';
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('headline', 'Lo mejor de la zona')
+            ->call('improveDescription')
+            ->assertSet('description', 'Descripción vendedora generada a partir de los datos reales del negocio.');
+
+        $this->assertSame(
+            'Descripción vendedora generada a partir de los datos reales del negocio.',
+            $business->fresh()->storefront->description,
+        );
+    }
+
+    public function test_improve_description_shows_an_error_when_the_ai_does_not_answer(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Descripción Sin IA', 'whatsapp_number' => '+573001112233',
+        ])->business;
+        $this->subscribeToEmprendedorPlan($business, $owner);
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return null;
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->call('improveDescription')
+            ->assertHasNoErrors();
+
+        $this->assertNull($business->fresh()->storefront->description);
+    }
+
+    public function test_improve_description_is_blocked_without_the_entrepreneur_plan(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Sin Plan', 'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return 'Esto nunca debería guardarse.';
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->assertSet('description', null)
+            ->call('improveDescription')
+            ->assertSet('description', null);
+
+        $this->assertNull($business->fresh()->storefront->description);
+    }
+
+    public function test_a_superadmin_can_improve_the_description_without_the_entrepreneur_plan(): void
+    {
+        $superadmin = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($superadmin, [
+            'name' => 'Negocio Superadmin', 'whatsapp_number' => '+573001112233',
+        ])->business;
+        $this->assignPlatformRole($superadmin, 'superadmin');
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return 'Descripción generada para el superadmin.';
+            }
+        });
+
+        $this->actingAs($superadmin);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->call('improveDescription')
+            ->assertSet('description', 'Descripción generada para el superadmin.');
+
+        $this->assertSame('Descripción generada para el superadmin.', $business->fresh()->storefront->description);
     }
 
     public function test_the_editor_links_to_the_preview_page(): void

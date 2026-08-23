@@ -51,6 +51,7 @@ class OpenAiSettings extends Page
             'enabled' => $setting->enabled,
             'entrepreneur_copilot_enabled' => $setting->entrepreneur_copilot_enabled,
             'model' => $setting->model,
+            'image_model' => $setting->image_model,
             'api_key' => $setting->getRawOriginal('api_key'),
             'base_url' => $setting->base_url ?: $setting->baseUrl(),
             'timeout_seconds' => $setting->timeout_seconds ?: $setting->timeoutSeconds(),
@@ -81,9 +82,14 @@ class OpenAiSettings extends Page
                     ->columns(2)
                     ->components([
                         TextInput::make('model')
-                            ->label('Modelo')
+                            ->label('Modelo (texto)')
                             ->placeholder('Ej. el modelo OpenAI que vayas a usar')
                             ->helperText('No se fija un modelo por defecto para no acoplar el código a una versión concreta.')
+                            ->maxLength(120),
+                        TextInput::make('image_model')
+                            ->label('Modelo (imágenes)')
+                            ->placeholder('gpt-image-2')
+                            ->helperText('Modelo para generación de imágenes, separado del modelo de texto de arriba. Todavía no hay ninguna función que lo use.')
                             ->maxLength(120),
                         TextInput::make('api_key')
                             ->label('Clave API')

@@ -15,8 +15,10 @@ use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Trust\Models\OrderConfirmation;
 use App\Domain\Trust\Policies\OrderConfirmationPolicy;
 use App\Support\Ai\Contracts\GeneratesAssistedText;
+use App\Support\Ai\Contracts\GeneratesImages;
 use App\Support\Ai\Contracts\TranscribesAudio;
 use App\Support\Ai\NullAudioTranscriber;
+use App\Support\Ai\OpenAiImageGenerator;
 use App\Support\Ai\OpenAiTextGenerator;
 use App\Support\Geo\Contracts\GeocodesAddresses;
 use App\Support\Geo\ManualGeocoder;
@@ -40,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(GeneratesAssistedText::class, OpenAiTextGenerator::class);
+        $this->app->bind(GeneratesImages::class, OpenAiImageGenerator::class);
         $this->app->bind(TranscribesAudio::class, NullAudioTranscriber::class);
         $this->app->bind(GeneratesVoxelObjectDefinition::class, OpenAiVoxelObjectGenerator::class);
 

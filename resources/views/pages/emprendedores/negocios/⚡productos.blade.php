@@ -1,12 +1,17 @@
 <?php
 
+use App\Domain\Billing\Exceptions\PlanLimitException;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\DuplicateProduct;
+use App\Domain\Storefronts\Actions\GenerateProductDescription;
+use App\Domain\Storefronts\Actions\GenerateProductImage;
 use App\Domain\Storefronts\Actions\MoveProductToBusiness;
 use App\Domain\Storefronts\Actions\UpdateProduct;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\ProductMedia;
+use App\Support\Ai\AiImagePrompt;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -20,13 +25,15 @@ use Livewire\WithFileUploads;
  * Todos/Productos/Servicios, crear/editar en drawer sin abandonar el
  * listado, reordenar, duplicar, variantes y precio promocional.
  */
-new #[Title('Productos y servicios')] class extends Component {
+new #[Title('Productos y servicios')] class extends Component
+{
     use WithFileUploads;
 
     #[Locked]
     public int $businessId;
 
     public int $selectedBusinessId;
+
     public int $productBusinessId;
 
     public string $filter = 'todos';
@@ -34,17 +41,27 @@ new #[Title('Productos y servicios')] class extends Component {
     public ?int $editingId = null;
 
     public string $name = '';
+
     public string $type = 'producto';
+
     public ?string $description = '';
+
     public ?float $price = null;
+
     public string $price_type = 'exacto';
+
     public ?string $unit = '';
+
     public bool $is_available = true;
 
     public bool $has_promo = false;
+
     public ?float $promo_price = null;
+
     public ?string $promo_label = '';
+
     public ?string $promo_starts_at = null;
+
     public ?string $promo_ends_at = null;
 
     /** @var array<int, array{label: string, price: ?float}> */
@@ -61,6 +78,8 @@ new #[Title('Productos y servicios')] class extends Component {
 
     /** @var array<int, string> media id => texto alternativo */
     public array $photoAlts = [];
+
+    public string $productImageStyle = AiImagePrompt::ULTRAREALISTA;
 
     /**
      * El middleware `business.team` solo corre en la carga inicial de la
@@ -164,6 +183,104 @@ new #[Title('Productos y servicios')] class extends Component {
         $this->resetValidation();
     }
 
+    /**
+     * Mismo criterio que el editor de vitrina: mejorar descripción y
+     * generar fotos con IA es un beneficio del plan Emprendedor (pedido
+     * del usuario) — el superadmin siempre puede usarlas.
+     */
+    public function canUseAiForProducts(): bool
+    {
+        return $this->business->activePlan()->slug === Plan::EMPRENDEDOR
+            || (Auth::user()?->hasAnyPlatformRole(['superadmin']) ?? false);
+    }
+
+    /**
+     * Genera (o mejora) la descripción del producto/servicio con IA a
+     * partir de los demás campos ya llenos del formulario (pedido del
+     * usuario). Funciona tanto creando uno nuevo como editando uno
+     * existente — el resultado queda editable, no se guarda solo.
+     */
+    public function improveProductDescription(): void
+    {
+        $this->authorize('update', $this->business);
+
+        if (! $this->canUseAiForProducts()) {
+            Flux::toast(variant: 'warning', text: __('Mejorar descripción con IA es un beneficio del plan Emprendedor.'));
+
+            return;
+        }
+
+        if (trim($this->name) === '') {
+            Flux::toast(variant: 'warning', text: __('Escribe primero el nombre del producto o servicio.'));
+
+            return;
+        }
+
+        $generated = app(GenerateProductDescription::class)->handle($this->business, [
+            'name' => $this->name,
+            'type' => $this->type,
+            'price' => $this->price,
+            'price_type' => $this->price_type,
+            'unit' => $this->unit,
+            'description' => $this->description,
+        ]);
+
+        if ($generated === null || $generated === '') {
+            Flux::toast(variant: 'danger', text: __('No pudimos generar la descripción. Intenta de nuevo en un momento.'));
+
+            return;
+        }
+
+        $this->description = $generated;
+    }
+
+    /**
+     * Genera una foto con IA para el producto/servicio que se está
+     * editando (pedido del usuario) — solo disponible editando uno ya
+     * guardado, porque se adjunta directo como una foto real
+     * (`UpdateProduct`), igual que si se hubiera subido a mano.
+     */
+    public function generateProductPhoto(): void
+    {
+        $this->authorize('update', $this->business);
+
+        if (! $this->canUseAiForProducts()) {
+            Flux::toast(variant: 'warning', text: __('Generar fotos con IA es un beneficio del plan Emprendedor.'));
+
+            return;
+        }
+
+        if (! $this->editingId) {
+            Flux::toast(variant: 'warning', text: __('Guarda primero el producto para poder generarle una foto con IA.'));
+
+            return;
+        }
+
+        $product = $this->business->products()->with('media')->findOrFail($this->editingId);
+        $style = AiImagePrompt::isValidStyle($this->productImageStyle) ? $this->productImageStyle : AiImagePrompt::ULTRAREALISTA;
+
+        $generatedPhoto = app(GenerateProductImage::class)->handle($product, $style);
+
+        if ($generatedPhoto === null) {
+            Flux::toast(variant: 'danger', text: __('No pudimos generar la foto. Intenta de nuevo en un momento.'));
+
+            return;
+        }
+
+        try {
+            $product = app(UpdateProduct::class)->handle($product, [], [$generatedPhoto], [], Auth::user());
+        } catch (PlanLimitException $e) {
+            Flux::toast(variant: 'danger', text: $e->getMessage());
+
+            return;
+        }
+
+        $this->existingMedia = $product->media->map(fn ($media) => ['id' => $media->id, 'url' => $media->url()])->all();
+        $this->photoAlts = $product->media->pluck('alt_text', 'id')->all();
+
+        Flux::toast(variant: 'success', text: __('Foto generada y agregada al producto.'));
+    }
+
     public function updatedSelectedBusinessId(int|string $businessId): void
     {
         $business = $this->resolveManagedBusiness((int) $businessId);
@@ -225,7 +342,7 @@ new #[Title('Productos y servicios')] class extends Component {
                         'alt_text' => trim((string) ($this->photoAlts[$media->id] ?? '')) ?: null,
                     ]));
             }
-        } catch (\App\Domain\Billing\Exceptions\PlanLimitException $e) {
+        } catch (PlanLimitException $e) {
             Flux::toast(variant: 'danger', text: $e->getMessage());
 
             return;
@@ -453,7 +570,20 @@ new #[Title('Productos y servicios')] class extends Component {
             </flux:select>
 
             <flux:input wire:model="name" :label="__('Nombre')" required />
-            <flux:textarea wire:model="description" :label="__('Descripción breve')" rows="3" />
+            <div>
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
+                    <flux:text class="font-medium">{{ __('Descripción breve') }}</flux:text>
+
+                    @if ($this->canUseAiForProducts())
+                        <flux:button type="button" size="sm" variant="ghost" icon="sparkles" class="text-rose-600! hover:bg-rose-50! dark:text-rose-400! dark:hover:bg-rose-500/10!" wire:click="improveProductDescription" wire:loading.attr="disabled" wire:target="improveProductDescription">
+                            <span wire:loading.remove wire:target="improveProductDescription">{{ __('Mejorar descripción') }}</span>
+                            <span wire:loading wire:target="improveProductDescription">{{ __('Generando...') }}</span>
+                        </flux:button>
+                    @endif
+                </div>
+
+                <flux:textarea wire:model="description" rows="3" />
+            </div>
 
             <flux:select wire:model="price_type" :label="__('Precio')">
                 <flux:select.option value="exacto">{{ __('Precio exacto') }}</flux:select.option>
@@ -499,9 +629,26 @@ new #[Title('Productos y servicios')] class extends Component {
             </div>
 
             <div>
-                <div class="mb-2 space-y-1">
-                    <flux:text class="font-medium">{{ __('Fotos') }}</flux:text>
-                    <flux:text class="text-sm text-zinc-500">{{ __('Agrega una o varias imágenes para mostrar mejor tu producto o servicio.') }}</flux:text>
+                <div class="mb-2 flex flex-wrap items-start justify-between gap-3">
+                    <div class="space-y-1">
+                        <flux:text class="font-medium">{{ __('Fotos') }}</flux:text>
+                        <flux:text class="text-sm text-zinc-500">{{ __('Agrega una o varias imágenes para mostrar mejor tu producto o servicio.') }}</flux:text>
+                    </div>
+
+                    @if ($this->canUseAiForProducts() && $editingId)
+                        <div class="flex flex-wrap items-center gap-2">
+                            <flux:select wire:model="productImageStyle" size="sm" class="w-40">
+                                @foreach (\App\Support\Ai\AiImagePrompt::styles() as $value => $label)
+                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+
+                            <flux:button type="button" size="sm" variant="ghost" icon="sparkles" class="text-rose-600! hover:bg-rose-50! dark:text-rose-400! dark:hover:bg-rose-500/10!" wire:click="generateProductPhoto" wire:loading.attr="disabled" wire:target="generateProductPhoto">
+                                <span wire:loading.remove wire:target="generateProductPhoto">{{ __('Generar con IA') }}</span>
+                                <span wire:loading wire:target="generateProductPhoto">{{ __('Generando...') }}</span>
+                            </flux:button>
+                        </div>
+                    @endif
                 </div>
 
                 @if (! empty($existingMedia))

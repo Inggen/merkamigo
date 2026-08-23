@@ -4,7 +4,7 @@
     'previewAlt' => null,
     'error' => null,
     'hint' => 'Selecciona una imagen JPG, PNG o WEBP.',
-    'previewClass' => 'h-24 w-full rounded-xl object-cover',
+    'previewClass' => 'h-64 w-full rounded-xl object-cover',
 ])
 
 <div class="space-y-3">

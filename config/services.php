@@ -26,6 +26,7 @@ return [
         'enabled' => env('OPENAI_ENABLED', false),
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL'),
+        'image_model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-2'),
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
         'timeout' => (int) env('OPENAI_TIMEOUT', 30),
         'temperature' => env('OPENAI_TEMPERATURE'),
