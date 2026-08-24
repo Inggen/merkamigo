@@ -623,7 +623,7 @@ new #[Title('Editar mi vitrina')] class extends Component
                 <flux:heading size="lg">{{ __('Información básica') }}</flux:heading>
 
                 <flux:input wire:model.live.debounce.900ms="name" :label="__('Nombre del negocio')" required />
-                <flux:input wire:model.live.debounce.900ms="headline" :label="__('Frase corta')" />
+                <flux:input wire:model.live.debounce.900ms="headline" :label="__('Frase corta (slogan)')" />
                 <div>
                     <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
                         <flux:text class="font-medium">{{ __('Descripción') }}</flux:text>

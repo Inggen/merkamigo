@@ -187,6 +187,45 @@ class ProductManagementTest extends TestCase
             ->assertSet('description', 'Descripción para el superadmin.');
     }
 
+    public function test_owner_can_reorder_existing_photos_by_dragging(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Torta de chocolate')
+            ->set('type', 'producto')
+            ->set('price_type', 'exacto')
+            ->set('price', 25000)
+            ->set('photos', [
+                UploadedFile::fake()->image('uno.jpg'),
+                UploadedFile::fake()->image('dos.jpg'),
+                UploadedFile::fake()->image('tres.jpg'),
+            ])
+            ->call('save');
+
+        $product = $business->products()->firstOrFail();
+        [$first, $second, $third] = $product->media()->orderBy('position')->pluck('id')->all();
+
+        $component = Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openEdit', $product->id)
+            ->call('reorderExistingMedia', $third, $first)
+            ->assertSet('existingMedia.0.id', $third)
+            ->assertSet('existingMedia.1.id', $first)
+            ->assertSet('existingMedia.2.id', $second)
+            ->call('save');
+
+        $component->assertHasNoErrors();
+
+        $orderedIds = $product->fresh()->media()->orderBy('position')->pluck('id')->all();
+        $this->assertSame([$third, $first, $second], $orderedIds);
+    }
+
     public function test_owner_can_create_edit_and_archive_a_product(): void
     {
         Storage::fake('public');

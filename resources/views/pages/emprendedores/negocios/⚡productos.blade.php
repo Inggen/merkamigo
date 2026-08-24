@@ -342,6 +342,20 @@ new #[Title('Productos y servicios')] class extends Component
                         'alt_text' => trim((string) ($this->photoAlts[$media->id] ?? '')) ?: null,
                     ]));
             }
+
+            if (! empty($this->existingMedia)) {
+                $orderedIds = array_column($this->existingMedia, 'id');
+
+                foreach ($orderedIds as $index => $mediaId) {
+                    ProductMedia::whereKey($mediaId)->update(['position' => $index]);
+                }
+
+                $nextPosition = count($orderedIds);
+                $product->media()->whereNotIn('id', $orderedIds)->orderBy('position')->get()
+                    ->each(function (ProductMedia $media) use (&$nextPosition) {
+                        $media->update(['position' => $nextPosition++]);
+                    });
+            }
         } catch (PlanLimitException $e) {
             Flux::toast(variant: 'danger', text: $e->getMessage());
 
@@ -377,6 +391,33 @@ new #[Title('Productos y servicios')] class extends Component
         ));
 
         unset($this->photoAlts[$mediaId]);
+    }
+
+    /**
+     * Reordena las fotos ya guardadas arrastrándolas (pedido del
+     * usuario) — solo cambia el orden en memoria; el orden final se
+     * guarda en `position` cuando se presiona "Guardar", igual que el
+     * texto alternativo.
+     */
+    public function reorderExistingMedia(int $draggedId, int $targetId): void
+    {
+        $this->authorize('update', $this->business);
+
+        if ($draggedId === $targetId) {
+            return;
+        }
+
+        $ids = array_column($this->existingMedia, 'id');
+        $draggedIndex = array_search($draggedId, $ids, true);
+        $targetIndex = array_search($targetId, $ids, true);
+
+        if ($draggedIndex === false || $targetIndex === false) {
+            return;
+        }
+
+        $item = $this->existingMedia[$draggedIndex];
+        array_splice($this->existingMedia, $draggedIndex, 1);
+        array_splice($this->existingMedia, $targetIndex, 0, [$item]);
     }
 
     public function removePendingPhoto(int $index): void
@@ -652,9 +693,25 @@ new #[Title('Productos y servicios')] class extends Component
                 </div>
 
                 @if (! empty($existingMedia))
-                    <div class="mb-3 space-y-2">
+                    <div class="mb-3 space-y-2" x-data="{ draggedId: null, overId: null }">
+                        @if (count($existingMedia) > 1)
+                            <flux:text class="text-xs text-zinc-500">{{ __('Arrastra una foto para cambiar el orden. La primera es la que se ve primero en tu vitrina.') }}</flux:text>
+                        @endif
+
                         @foreach ($existingMedia as $item)
-                            <div class="flex items-center gap-2">
+                            <div
+                                wire:key="existing-media-{{ $item['id'] }}"
+                                draggable="true"
+                                x-on:dragstart="draggedId = {{ $item['id'] }}"
+                                x-on:dragend="draggedId = null; overId = null"
+                                x-on:dragenter.prevent="overId = {{ $item['id'] }}"
+                                x-on:dragover.prevent
+                                x-on:drop.prevent="$wire.reorderExistingMedia(draggedId, {{ $item['id'] }}); draggedId = null; overId = null"
+                                class="flex cursor-move items-center gap-2 rounded-xl p-1 transition"
+                                x-bind:class="overId === {{ $item['id'] }} && draggedId !== {{ $item['id'] }} ? 'bg-brand-50 dark:bg-brand-500/10' : ''"
+                                x-bind:style="draggedId === {{ $item['id'] }} ? 'opacity: 0.4' : ''"
+                            >
+                                <flux:icon.arrows-up-down class="size-4 shrink-0 text-zinc-400" variant="outline" />
                                 <img src="{{ $item['url'] }}" class="size-12 shrink-0 rounded-lg object-cover" alt="{{ $photoAlts[$item['id']] ?? '' }}">
                                 <flux:input wire:model="photoAlts.{{ $item['id'] }}" class="flex-1" placeholder="{{ __('Texto alternativo de esta foto (opcional)') }}" />
                                 <flux:button

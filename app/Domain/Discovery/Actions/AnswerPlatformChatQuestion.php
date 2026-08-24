@@ -5,6 +5,7 @@ namespace App\Domain\Discovery\Actions;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Platform\Models\PlatformKnowledgeDocument;
 use App\Models\User;
 use App\Support\Ai\Contracts\GeneratesAssistedText;
 use Illuminate\Support\Collection;
@@ -100,6 +101,7 @@ class AnswerPlatformChatQuestion
                 'categorias' => $categories->map(fn ($category) => ['nombre' => $category->name, 'slug' => $category->slug]),
                 'municipios' => $municipalities->map(fn ($municipality) => ['nombre' => $municipality->name, 'slug' => $municipality->slug]),
                 'preguntas_frecuentes' => config('faq.preguntas'),
+                'documento_de_referencia' => PlatformKnowledgeDocument::current()->document_text,
                 'negocio_del_emprendedor' => $business ? ['nombre' => $business->name, 'tiene_negocio' => true] : ['tiene_negocio' => false],
             ],
         );
@@ -118,9 +120,11 @@ class AnswerPlatformChatQuestion
             '"buenas"), responde solo con un saludo corto (puedes preguntar en qué ayudas), sin adelantarte a '.
             'explicar todo de una vez. No hay un límite fijo de frases, pero por defecto una respuesta corta y al '.
             'grano es mejor que una larga. '.
-            'Usa exclusivamente los datos reales entregados en "como_funciona", "categorias", "municipios" y '.
-            '"preguntas_frecuentes". No inventes categorías, municipios, negocios, precios ni condiciones que no '.
-            'estén ahí. Ten en cuenta "conversacion_previa" para no repetirte ni perder el hilo. '.
+            'Usa exclusivamente los datos reales entregados en "como_funciona", "categorias", "municipios", '.
+            '"preguntas_frecuentes" y, si viene, "documento_de_referencia" (un resumen más completo de las '.
+            'funcionalidades de Merkamigo que un admin puede mantener actualizado, puede venir null). No inventes '.
+            'categorías, municipios, negocios, precios ni condiciones que no estén ahí. Ten en cuenta '.
+            '"conversacion_previa" para no repetirte ni perder el hilo. '.
             '"pagina_actual" (y, si aplica, "paso_actual") te dicen en qué parte de Merkamigo está la persona '.
             'ahora mismo — úsalo para dar ayuda situada sin que tenga que explicarte dónde está: por ejemplo, si '.
             '"paso_actual" es "Información" dentro del asistente de crear vitrina, y pregunta algo relacionado, '.
