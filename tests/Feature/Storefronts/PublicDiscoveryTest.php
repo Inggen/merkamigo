@@ -193,4 +193,44 @@ class PublicDiscoveryTest extends TestCase
             ->assertSee('Producto artesanal')
             ->assertSee(__('Galería'));
     }
+
+    public function test_an_attribute_with_a_valid_icon_and_description_shows_both(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $business = $this->publishedBusiness($municipality, $category);
+        $attribute = BusinessAttribute::create([
+            'name' => 'Acepta pagos digitales',
+            'slug' => 'acepta-pagos-digitales',
+            'icon' => 'credit-card',
+            'description' => 'Paga fácil y seguro con tus medios digitales favoritos.',
+            'is_active' => true,
+        ]);
+        $business->update(['attributes' => [$attribute->slug]]);
+
+        $this->get(route('vitrinas.show', $business))
+            ->assertOk()
+            ->assertSee('Acepta pagos digitales')
+            ->assertSee('Paga fácil y seguro con tus medios digitales favoritos.');
+    }
+
+    public function test_an_attribute_with_an_invalid_icon_name_does_not_break_the_page(): void
+    {
+        $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
+        $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
+
+        $business = $this->publishedBusiness($municipality, $category);
+        $attribute = BusinessAttribute::create([
+            'name' => 'Atributo con ícono inválido',
+            'slug' => 'atributo-icono-invalido',
+            'icon' => 'este-icono-no-existe',
+            'is_active' => true,
+        ]);
+        $business->update(['attributes' => [$attribute->slug]]);
+
+        $this->get(route('vitrinas.show', $business))
+            ->assertOk()
+            ->assertSee('Atributo con ícono inválido');
+    }
 }

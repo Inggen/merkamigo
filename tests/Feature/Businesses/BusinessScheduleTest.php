@@ -39,6 +39,49 @@ class BusinessScheduleTest extends TestCase
         $this->assertNull($business->isOpenNow());
     }
 
+    public function test_has_structured_schedule_ignores_the_untouched_autosaved_default(): void
+    {
+        // Bug real reportado por el usuario: el editor de vitrina
+        // autoguarda los 7 días con este mismo valor por defecto apenas
+        // se toca la sección de Horarios, aunque el emprendedor nunca
+        // haya llenado ningún día — la vitrina pública no debería mostrar
+        // la tarjeta "Horario de atención" con los 7 días en "Sin definir".
+        $business = $this->business();
+        $business->update(['hours' => ['schedule' => [
+            'monday' => ['closed' => false, 'open' => null, 'close' => null],
+            'tuesday' => ['closed' => false, 'open' => null, 'close' => null],
+            'wednesday' => ['closed' => false, 'open' => null, 'close' => null],
+            'thursday' => ['closed' => false, 'open' => null, 'close' => null],
+            'friday' => ['closed' => false, 'open' => null, 'close' => null],
+            'saturday' => ['closed' => false, 'open' => null, 'close' => null],
+            'sunday' => ['closed' => false, 'open' => null, 'close' => null],
+        ]]]);
+
+        $this->assertFalse($business->fresh()->hasStructuredSchedule());
+        $this->assertNull($business->fresh()->isOpenNow());
+    }
+
+    public function test_has_structured_schedule_is_true_with_at_least_one_real_day(): void
+    {
+        $business = $this->business();
+        $business->update(['hours' => ['schedule' => [
+            'monday' => ['closed' => false, 'open' => '08:00', 'close' => '18:00'],
+            'tuesday' => ['closed' => false, 'open' => null, 'close' => null],
+        ]]]);
+
+        $this->assertTrue($business->fresh()->hasStructuredSchedule());
+    }
+
+    public function test_has_structured_schedule_is_true_with_an_explicit_closed_day(): void
+    {
+        $business = $this->business();
+        $business->update(['hours' => ['schedule' => [
+            'sunday' => ['closed' => true, 'open' => null, 'close' => null],
+        ]]]);
+
+        $this->assertTrue($business->fresh()->hasStructuredSchedule());
+    }
+
     public function test_is_open_now_is_false_when_todays_entry_is_marked_closed(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-07-27 10:00:00')); // lunes

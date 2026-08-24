@@ -436,9 +436,21 @@ class Business extends Model
         return $this->whatsapp_faq_answers[$key] ?? null;
     }
 
+    /**
+     * Bug real reportado por el usuario: el editor de vitrina autoguarda
+     * los 7 días por defecto (`closed: false, open: null, close: null`)
+     * apenas se toca la sección de Horarios, aunque el emprendedor nunca
+     * haya llenado ningún día — con solo `! empty(...)` eso ya contaba
+     * como "horario estructurado" y la vitrina pública mostraba una
+     * tarjeta con los 7 días en "Sin definir". Ahora exige que al menos
+     * un día tenga una decisión real: cerrado explícito, o apertura y
+     * cierre completos.
+     */
     public function hasStructuredSchedule(): bool
     {
-        return ! empty($this->hours['schedule'] ?? []);
+        return collect($this->hours['schedule'] ?? [])->contains(
+            fn ($day) => ($day['closed'] ?? false) || (filled($day['open'] ?? null) && filled($day['close'] ?? null))
+        );
     }
 
     /**

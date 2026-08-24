@@ -184,10 +184,38 @@
                             @endif
 
                             @if ($businessAttributes->isNotEmpty())
+                                @php
+                                    // Nombres de clase de Tailwind completos y literales a propósito
+                                    // (no interpolados): el compilador solo genera clases que
+                                    // encuentra escritas tal cual en el código — `bg-{{ $color }}-100`
+                                    // no generaría nada.
+                                    $attributeColorClasses = [
+                                        'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300',
+                                        'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300',
+                                        'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300',
+                                        'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300',
+                                        'bg-teal-100 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300',
+                                        'bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-300',
+                                    ];
+                                @endphp
+
                                 <div class="grid gap-3 md:grid-cols-3">
                                     @foreach ($businessAttributes as $attribute)
-                                        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-200">
-                                            {{ $attribute->name }}
+                                        @php($colorClasses = $attributeColorClasses[$loop->index % count($attributeColorClasses)])
+
+                                        <div class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                            @if ($attribute->icon && \Illuminate\Support\Facades\View::exists('flux::icon.'.$attribute->icon))
+                                                <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full {{ $colorClasses }}">
+                                                    <x-dynamic-component :component="'flux::icon.'.$attribute->icon" class="size-5" variant="outline" />
+                                                </span>
+                                            @endif
+
+                                            <div class="min-w-0">
+                                                <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{{ $attribute->name }}</p>
+                                                @if ($attribute->description)
+                                                    <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{{ $attribute->description }}</p>
+                                                @endif
+                                            </div>
                                         </div>
                                     @endforeach
                                 </div>
