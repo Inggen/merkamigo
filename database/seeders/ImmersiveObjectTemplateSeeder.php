@@ -17,6 +17,7 @@ class ImmersiveObjectTemplateSeeder extends Seeder
     public function run(): void
     {
         $this->seedCollisionBarrier();
+        $this->seedCharacters();
 
         foreach ([
             [
@@ -95,5 +96,97 @@ class ImmersiveObjectTemplateSeeder extends Seeder
                 ],
             ],
         );
+    }
+
+    /**
+     * Personajes voxel editables desde Objetos 3D. `firstOrCreate` es
+     * intencional: volver a ejecutar el seeder nunca pisa una anatomía que
+     * el administrador ya haya personalizado en el editor espacial.
+     */
+    private function seedCharacters(): void
+    {
+        foreach ([
+            'personaje-voxel-hombre' => ['name' => 'Personaje voxel — Hombre', 'female' => false],
+            'personaje-voxel-mujer' => ['name' => 'Personaje voxel — Mujer', 'female' => true],
+        ] as $slug => $character) {
+            ImmersiveObjectTemplate::query()->firstOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => $character['name'],
+                    'category' => 'personaje',
+                    'asset_input_mode' => 'ia_voxel',
+                    'max_width' => 2.5,
+                    'max_depth' => 1.5,
+                    'max_height' => 4.1,
+                    'max_boxes' => 30,
+                    'front_axis_rotation' => 0,
+                    'status' => 'publicada',
+                    'model_definition' => $this->characterDefinition($character['female']),
+                ],
+            );
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function characterDefinition(bool $female): array
+    {
+        $groups = [
+            ['id' => 'head', 'name' => 'Cabeza y cabello'],
+            ['id' => 'torso', 'name' => 'Torso'],
+            ['id' => 'left-arm', 'name' => 'Brazo izquierdo'],
+            ['id' => 'right-arm', 'name' => 'Brazo derecho'],
+            ['id' => 'left-leg', 'name' => 'Pierna izquierda'],
+            ['id' => 'right-leg', 'name' => 'Pierna derecha'],
+        ];
+
+        $boxes = [
+            $this->characterBox(0, 3.28, 0, 1.28, 1.28, 1.16, 'skin', 'head'),
+            $this->characterBox(0, 3.79, -0.06, 1.34, 0.34, 1.22, 'woodDark', 'head'),
+            $this->characterBox(0, $female ? 3.06 : 3.4, -0.55, 1.3, $female ? 1.5 : 0.72, 0.22, 'woodDark', 'head'),
+            $this->characterBox(0.55, 3.48, -0.08, 0.22, 0.72, 1.08, 'woodDark', 'head'),
+            $this->characterBox(0.27, 3.66, 0.55, 0.72, 0.28, 0.12, 'woodDark', 'head'),
+            $this->characterBox(-0.28, 3.35, 0.595, 0.14, 0.18, 0.06, 'woodDark', 'head'),
+            $this->characterBox(0.28, 3.35, 0.595, 0.14, 0.18, 0.06, 'woodDark', 'head'),
+            $this->characterBox(0, 3, 0.595, 0.28, 0.07, 0.06, 'woodDark', 'head'),
+            $this->characterBox(0, 2.04, 0, 1.48, 1.62, 0.96, $female ? 'flower' : 'shirt', 'torso'),
+            $this->characterBox(-0.98, 1.95, 0, 0.5, 1.62, 0.54, 'skin', 'left-arm'),
+            $this->characterBox(0.98, 1.95, 0, 0.5, 1.62, 0.54, 'skin', 'right-arm'),
+            $this->characterBox(-0.39, 0.75, 0, 0.58, 1.5, 0.62, 'pants', 'left-leg'),
+            $this->characterBox(0.39, 0.75, 0, 0.58, 1.5, 0.62, 'pants', 'right-leg'),
+            $this->characterBox(-0.39, 0.2, 0.12, 0.63, 0.34, 0.88, 'woodDark', 'left-leg'),
+            $this->characterBox(0.39, 0.2, 0.12, 0.63, 0.34, 0.88, 'woodDark', 'right-leg'),
+        ];
+
+        if (! $female) {
+            // Dos bandas frontales aportan el patrón azul/rojo de la referencia
+            // y quedan como cajas independientes para recolorearlas o borrarlas.
+            $boxes[] = $this->characterBox(-0.31, 2.04, 0.495, 0.13, 1.55, 0.05, 'coral', 'torso');
+            $boxes[] = $this->characterBox(0.31, 2.04, 0.495, 0.13, 1.55, 0.05, 'coral', 'torso');
+            $boxes[] = $this->characterBox(0, 2.3, 0.5, 1.42, 0.12, 0.05, 'coral', 'torso');
+            $boxes[] = $this->characterBox(0, 1.79, 0.5, 1.42, 0.12, 0.05, 'coral', 'torso');
+        }
+
+        return ['version' => 1, 'groups' => $groups, 'boxes' => $boxes];
+    }
+
+    /** @return array<string, float|bool|string> */
+    private function characterBox(
+        float $x,
+        float $y,
+        float $z,
+        float $width,
+        float $height,
+        float $depth,
+        string $texture,
+        string $groupId,
+    ): array {
+        return [
+            'x' => $x, 'y' => $y, 'z' => $z,
+            'w' => $width, 'h' => $height, 'd' => $depth,
+            'texture' => $texture,
+            'rotationX' => 0, 'rotationY' => 0, 'rotationZ' => 0,
+            'collidable' => false,
+            'groupId' => $groupId,
+        ];
     }
 }

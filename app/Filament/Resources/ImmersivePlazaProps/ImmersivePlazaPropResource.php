@@ -6,6 +6,7 @@ use App\Domain\Immersive\Models\ImmersivePlazaProp;
 use App\Filament\Resources\ImmersivePlazaProps\Pages\CreateImmersivePlazaProp;
 use App\Filament\Resources\ImmersivePlazaProps\Pages\EditImmersivePlazaProp;
 use App\Filament\Resources\ImmersivePlazaProps\Pages\ListImmersivePlazaProps;
+use App\Filament\Resources\ImmersivePlazaProps\RelationManagers\AdsRelationManager;
 use App\Filament\Resources\ImmersivePlazaProps\Schemas\ImmersivePlazaPropForm;
 use App\Filament\Resources\ImmersivePlazaProps\Tables\ImmersivePlazaPropsTable;
 use BackedEnum;
@@ -53,6 +54,13 @@ class ImmersivePlazaPropResource extends Resource
             'index' => ListImmersivePlazaProps::route('/'),
             'create' => CreateImmersivePlazaProp::route('/create'),
             'edit' => EditImmersivePlazaProp::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            AdsRelationManager::class,
         ];
     }
 

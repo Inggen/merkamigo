@@ -15,11 +15,11 @@
 // bump los 8 sitios juntos, nunca solo este (bug real: un fix de colisión
 // nunca le llegó al usuario porque el navegador siguió sirviendo la copia
 // vieja cacheada de este archivo sin `?v=`).
-import { THREE, VoxelPlazaEngine, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js?v=1';
-// `?v=3` fuerza la re-descarga tras esconder la barrera de colisión en la
-// experiencia real (`renderDynamicObject`) — bump este número si vuelves a
-// tocar `dynamic-stand-loader.js`.
-import { loadDynamicStands, loadDynamicProps } from './lib/dynamic-stand-loader.js?v=3';
+import { THREE, VoxelPlazaEngine, basePalette, avatarPresets } from './lib/voxel-plaza-engine.js?v=4';
+// `?v=5` fuerza la re-descarga tras pasar `ad_rotation_seconds` a
+// `applyBillboardAds` — bump este número si vuelves a tocar
+// `dynamic-stand-loader.js`.
+import { loadDynamicStands, loadDynamicProps } from './lib/dynamic-stand-loader.js?v=6';
 // `?v=2` idem — `attachStandProximity` ahora ignora stands ocultos.
 import { attachStandProximity } from './lib/stand-proximity.js?v=2';
 // `?v=2` fuerza a refrescar la copia en caché del navegador tras el fix
@@ -64,6 +64,7 @@ const groundSize = Math.max(40, width, depth) + 40;
 const spawn = window.genericPlazaSpawn ?? { x: 0, z: 0 };
 
 const qualityTier = resolveQualityTier(window.genericPlazaQualityProfile ?? {});
+const avatarPreset = loadAvatarPreference();
 
 // Compartido entre el motor (panel técnico oculto, `?perf=1`/tecla "P") y
 // el botón de engranaje del header (`display-settings-panel.js`) — mismo
@@ -82,8 +83,10 @@ const engine = new VoxelPlazaEngine({
     lockTrigger,
     // IMM-030: solo se sobreescriben las 4 claves dedicadas del avatar —
     // esta escena no tiene ninguna otra paleta propia que preservar.
-    palette: { ...basePalette, ...avatarPresets[loadAvatarPreference()] },
-    avatarPreset: loadAvatarPreference(),
+    palette: { ...basePalette, ...avatarPresets[avatarPreset] },
+    avatarPreset,
+    avatarDefinition: window.genericAvatarDefinitions?.[avatarPreset] ?? null,
+    avatarDefinitions: window.genericAvatarDefinitions ?? {},
     reducedMotion: loadReducedMotionPreference(),
     quality: getQualitySettings(qualityTier),
     qualityControl,
@@ -97,6 +100,8 @@ const engine = new VoxelPlazaEngine({
     // que trae el motor si nunca se configuró).
     fog: window.genericPlazaFog,
 });
+
+window.__mkDebugEngine = engine;
 
 if (headerActions) {
     attachDisplaySettingsPanel(qualityControl, { container: headerActions, engine });

@@ -1,6 +1,10 @@
-import { THREE, renderObjectByPriority, buildAvatarFigure } from './voxel-plaza-engine.js?v=1';
+import { THREE, renderObjectByPriority, buildAvatarFigure } from './voxel-plaza-engine.js?v=4';
 import { applyStandPrimaryColor } from './stand-color-utils.js';
 import { applyTiling } from './texture-tiling-utils.js';
+// `?v=3` fuerza la re-descarga tras agregar la velocidad de carrusel
+// configurable por colocación (`rotationSeconds`) — bump este número si
+// vuelves a tocar `billboard-ad-utils.js`.
+import { applyBillboardAds } from './billboard-ad-utils.js?v=3';
 
 /**
  * IMM-020b (puente mínimo de stands dinámicos): dibuja, encima de una plaza
@@ -151,6 +155,17 @@ async function renderDynamicObject(engine, object) {
             engine.syncObjectCollision?.(root, Boolean(object.collision_enabled));
         }
 
+        if (object.screen_material_name) {
+            // Contenido adicional: ver comentario de cabecera del archivo.
+            // Sin anuncios activos para esta colocación, no hace nada y la
+            // pantalla se queda con la imagen estática del GLB.
+            try {
+                applyBillboardAds(root, object.screen_material_name, object.active_ads, object.ad_rotation_seconds);
+            } catch {
+                // Contenido adicional: ver comentario de cabecera del archivo.
+            }
+        }
+
         if (object.tiling) {
             // Elegido libremente por el emprendedor/admin por instancia
             // (Fase 4 del editor espacial) — un fallo acá nunca debe
@@ -294,7 +309,12 @@ async function attachLogoBadge(engine, root, logoUrl) {
  * módulo, así que llamarla una vez por stand es barato.
  */
 function attachOwnerFigure(engine, root, presetKey) {
-    const figure = buildAvatarFigure(presetKey);
+    const key = presetKey === 'mujer' ? 'mujer' : 'hombre';
+    const figure = buildAvatarFigure(
+        key,
+        engine.avatarDefinitions?.[key] ?? null,
+        engine.textures,
+    );
 
     const box = new THREE.Box3().setFromObject(root);
     const boxCenter = new THREE.Vector3();

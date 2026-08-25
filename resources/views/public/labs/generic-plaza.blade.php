@@ -266,6 +266,10 @@
                 depth: Math.max(1, @json($plaza->reference_image_height) ?? ((genericBounds?.maxZ ?? 50) - (genericBounds?.minZ ?? -50))),
             };
             window.genericPlazaSpawn = @json($plaza->spawn_point);
+            // El avatar jugable usa la misma definición que se edita en
+            // Filament > Objetos 3D. El navegador elige Hombre/Mujer según
+            // el preset local antes de construir el motor.
+            window.genericAvatarDefinitions = @json($avatarDefinitions);
             // IMM-040: calidad adaptativa — perfil configurado por el admin
             // para esta plaza (Filament > Plazas > Calidad móvil/escritorio).
             window.genericPlazaQualityProfile = {

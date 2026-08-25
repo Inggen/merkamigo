@@ -186,12 +186,13 @@ new #[Title('Productos y servicios')] class extends Component
     /**
      * Mismo criterio que el editor de vitrina: mejorar descripción y
      * generar fotos con IA es un beneficio del plan Emprendedor (pedido
-     * del usuario) — el superadmin siempre puede usarlas.
+     * del usuario) — el superadmin siempre puede usarlas, incluso
+     * entrando "como" el dueño del negocio (`User::canBypassPlanGates()`).
      */
     public function canUseAiForProducts(): bool
     {
         return $this->business->activePlan()->slug === Plan::EMPRENDEDOR
-            || (Auth::user()?->hasAnyPlatformRole(['superadmin']) ?? false);
+            || (Auth::user()?->canBypassPlanGates() ?? false);
     }
 
     /**

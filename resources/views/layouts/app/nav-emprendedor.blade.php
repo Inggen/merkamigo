@@ -52,7 +52,7 @@
             {{ __('Tu plan') }}
         </flux:sidebar.item>
 
-        @if ($primaryBusiness->canUseAiChatbot())
+        @if ($primaryBusiness->canUseAiChatbot() || (auth()->user()?->canBypassPlanGates() ?? false))
             <flux:sidebar.item icon="chat-bubble-left-right" :href="route('emprendedores.negocios.chatbot', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.chatbot')" wire:navigate>
                 {{ __('Chatbot IA') }}
             </flux:sidebar.item>

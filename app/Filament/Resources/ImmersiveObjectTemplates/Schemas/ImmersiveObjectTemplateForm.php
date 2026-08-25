@@ -93,6 +93,10 @@ class ImmersiveObjectTemplateForm
                 ->acceptedFileTypes(['.glb', 'model/gltf-binary'])
                 ->visible(fn (Get $get): bool => $get('asset_input_mode') === 'model_3d')
                 ->helperText('Si hay un GLB cargado, se usa en la escena por encima de cualquier otra cosa.'),
+            TextInput::make('screen_material_name')
+                ->label('Material de la pantalla (anuncios)')
+                ->visible(fn (Get $get): bool => $get('asset_input_mode') === 'model_3d')
+                ->helperText('Nombre EXACTO del material del GLB que hace de pantalla (ej. "billboard"). Solo si se llena, cada colocación de este objeto en "Elementos de plaza" puede cargar imágenes de anuncio que reemplazan esa pantalla en la escena.'),
             TextInput::make('max_width')
                 ->label('Ancho (m)')
                 ->numeric()

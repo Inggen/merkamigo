@@ -405,7 +405,7 @@
                                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Información de pago') }}</h3>
 
                                     @if ($acceptedPaymentMethods->isNotEmpty())
-                                        <div class="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                                        <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
                                             @foreach ($acceptedPaymentMethods as $method)
                                                 <div class="flex items-center justify-center rounded-xl border-zinc-200 p-2 dark:border-zinc-700" title="{{ $method->name }}">
                                                     @if ($method->logoUrl())

@@ -4,6 +4,7 @@ namespace App\Domain\Immersive\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * IMM-013 del TODO inmersivo (redefinido): un objeto decorativo o
@@ -34,6 +35,7 @@ class ImmersivePlazaProp extends Model
         'texture_tiling',
         'texture_tiling_locked',
         'collision_enabled',
+        'ad_rotation_seconds',
         'source',
         'status',
         'locked',
@@ -50,6 +52,7 @@ class ImmersivePlazaProp extends Model
             'texture_tiling' => 'array',
             'texture_tiling_locked' => 'boolean',
             'collision_enabled' => 'boolean',
+            'ad_rotation_seconds' => 'integer',
             'locked' => 'boolean',
         ];
     }
@@ -113,5 +116,25 @@ class ImmersivePlazaProp extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(ImmersiveObjectTemplate::class, 'object_template_id');
+    }
+
+    /**
+     * Todos los anuncios de esta colocación (billboard), en el orden del
+     * carrusel. Solo tiene efecto en la escena si la plantilla trae
+     * `screen_material_name` — ver `ImmersivePlazaPropsController`.
+     *
+     * @return HasMany<ImmersiveBillboardAd, $this>
+     */
+    public function ads(): HasMany
+    {
+        return $this->hasMany(ImmersiveBillboardAd::class, 'immersive_plaza_prop_id')->orderBy('position');
+    }
+
+    /**
+     * @return HasMany<ImmersiveBillboardAd, $this>
+     */
+    public function activeAds(): HasMany
+    {
+        return $this->ads()->where('is_active', true);
     }
 }

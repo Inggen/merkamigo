@@ -26,7 +26,7 @@ class ImmersivePlazaPropsController extends Controller
                 ! $this->canPreviewDraftProps($request),
                 fn ($query) => $query->where('status', 'confirmado')
             )
-            ->with('template')
+            ->with(['template', 'activeAds'])
             ->get()
             ->map(fn (ImmersivePlazaProp $prop) => [
                 'world_position' => $prop->world_position,
@@ -43,6 +43,17 @@ class ImmersivePlazaPropsController extends Controller
                 'model_url' => $prop->template?->modelPathUrl(),
                 'builder_key' => $prop->template?->builder_key,
                 'model_definition' => $prop->template?->model_definition,
+                // Carrusel de anuncios (Fase de monetización de billboards):
+                // nombre del material "pantalla" dentro del GLB, más las
+                // imágenes activas de ESTA colocación en el orden del
+                // carrusel. `billboard-ad-utils.js` no hace nada si
+                // `screen_material_name` viene vacío o no hay anuncios.
+                'screen_material_name' => $prop->template?->screen_material_name,
+                'active_ads' => $prop->activeAds->map(fn ($ad) => $ad->imageUrl())->values(),
+                // Segundos por imagen del carrusel, configurable por
+                // colocación desde el Editor espacial. Nulo = el motor usa
+                // su default (ver `billboard-ad-utils.js`).
+                'ad_rotation_seconds' => $prop->ad_rotation_seconds,
             ])
             ->values();
 

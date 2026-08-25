@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Domain\Immersive\Models\ImmersiveBillboardAd;
 use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Domain\Immersive\Models\ImmersivePlaza;
 use App\Domain\Immersive\Models\ImmersivePlazaProp;
@@ -19,10 +20,14 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 use Throwable;
 
 class PlazaSpatialEditor extends Component
 {
+    use WithFileUploads;
+
     private const MIN_DIMENSION = 0.001;
 
     /** Ancho/profundidad por defecto de un slot creado desde `addSlot()`. */
@@ -114,6 +119,21 @@ class PlazaSpatialEditor extends Component
     public ?int $newPropTemplateId = null;
 
     /**
+     * Pedido del usuario: gestionar los anuncios de un billboard sin salir
+     * del Editor espacial (antes solo se podía desde "Elementos de plaza"
+     * → pestaña "Anuncios"). Todo este bloque solo se activa para el prop
+     * cuya plantilla trae `screen_material_name` — ver `describeProp()`.
+     */
+    public ?int $adsPropId = null;
+
+    /** @var array<int, array{id: int, url: ?string, is_active: bool}> */
+    public array $adsList = [];
+
+    public ?TemporaryUploadedFile $newAdImage = null;
+
+    public ?int $adsRotationSeconds = null;
+
+    /**
      * Identifica el historial de undo/redo de esta instancia del editor en
      * caché — no las pilas en sí. Guardar las fotos completas (stands +
      * elementos + configuración) como propiedades públicas de Livewire hacía
@@ -152,6 +172,7 @@ class PlazaSpatialEditor extends Component
             'status' => $object['status'] ?? null,
             'tiling' => $object['tiling'] ?? null,
             'tilingLocked' => (bool) ($object['tilingLocked'] ?? true),
+            'isBillboard' => (bool) ($object['isBillboard'] ?? false),
         ];
         $this->sizeReference = $object['size'];
 
@@ -939,6 +960,188 @@ class PlazaSpatialEditor extends Component
     }
 
     /**
+     * Abre el modal "Gestionar anuncios" (botón del panel de propiedades,
+     * solo visible si `selectedObjectForm.isBillboard`). Independiente de
+     * `selectedObjectId`/`selectedObjectType`: el modal puede quedar abierto
+     * aunque el usuario seleccione otro objeto detrás en la escena.
+     */
+    public function openAdsModal(int $propId): void
+    {
+        $prop = ImmersivePlazaProp::query()->with('template')->find($propId);
+
+        if (! $prop || $prop->immersive_plaza_id !== $this->plaza->id || blank($prop->template?->screen_material_name)) {
+            return;
+        }
+
+        $this->adsPropId = $propId;
+        $this->adsRotationSeconds = $prop->ad_rotation_seconds;
+        $this->refreshAdsList();
+
+        $this->dispatch('open-modal', id: 'billboard-ads-modal');
+    }
+
+    /**
+     * Puebla `$adsList` desde la BD (fuente de verdad tras cada acción del
+     * modal), en vez de mutar el array en memoria — más simple de mantener
+     * consistente con `position` tras reordenar.
+     */
+    private function refreshAdsList(): void
+    {
+        if (! $this->adsPropId) {
+            $this->adsList = [];
+
+            return;
+        }
+
+        $this->adsList = ImmersiveBillboardAd::query()
+            ->where('immersive_plaza_prop_id', $this->adsPropId)
+            ->orderBy('position')
+            ->get()
+            ->map(fn (ImmersiveBillboardAd $ad): array => [
+                'id' => $ad->id,
+                'url' => $ad->imageUrl(),
+                'is_active' => (bool) $ad->is_active,
+            ])
+            ->all();
+    }
+
+    public function uploadAdImage(): void
+    {
+        if (! $this->adsPropId) {
+            return;
+        }
+
+        $this->validate([
+            'newAdImage' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $nextPosition = (int) ImmersiveBillboardAd::query()
+            ->where('immersive_plaza_prop_id', $this->adsPropId)
+            ->max('position');
+
+        ImmersiveBillboardAd::create([
+            'immersive_plaza_prop_id' => $this->adsPropId,
+            'image_path' => $this->newAdImage->store('immersive-billboard-ads', 'public'),
+            'is_active' => true,
+            'position' => $nextPosition + 1,
+        ]);
+
+        $this->newAdImage = null;
+        $this->refreshAdsList();
+
+        Notification::make()
+            ->title('Anuncio agregado')
+            ->success()
+            ->send();
+    }
+
+    public function toggleAdActive(int $adId): void
+    {
+        $ad = ImmersiveBillboardAd::query()->find($adId);
+
+        if (! $ad || $ad->immersive_plaza_prop_id !== $this->adsPropId) {
+            return;
+        }
+
+        $ad->update(['is_active' => ! $ad->is_active]);
+        $this->refreshAdsList();
+    }
+
+    public function deleteAd(int $adId): void
+    {
+        $ad = ImmersiveBillboardAd::query()->find($adId);
+
+        if (! $ad || $ad->immersive_plaza_prop_id !== $this->adsPropId) {
+            return;
+        }
+
+        Storage::disk('public')->delete($ad->image_path);
+        $ad->delete();
+        $this->refreshAdsList();
+    }
+
+    public function moveAdUp(int $adId): void
+    {
+        $this->swapAdPosition($adId, -1);
+    }
+
+    public function moveAdDown(int $adId): void
+    {
+        $this->swapAdPosition($adId, 1);
+    }
+
+    /**
+     * Sube/baja un anuncio intercambiando su `position` con la del vecino
+     * inmediato. Este modal vive fuera de una tabla Filament (no hay
+     * `reorderable()` de arrastrar-y-soltar disponible aquí), así que
+     * botones arriba/abajo son la forma más simple y confiable de
+     * reordenar sin sumar una librería de drag&drop nueva solo para esto.
+     */
+    private function swapAdPosition(int $adId, int $direction): void
+    {
+        if (! $this->adsPropId) {
+            return;
+        }
+
+        $ads = ImmersiveBillboardAd::query()
+            ->where('immersive_plaza_prop_id', $this->adsPropId)
+            ->orderBy('position')
+            ->get();
+
+        $index = $ads->search(fn (ImmersiveBillboardAd $ad): bool => $ad->id === $adId);
+
+        if ($index === false) {
+            return;
+        }
+
+        $swapIndex = $index + $direction;
+
+        if (! $ads->has($swapIndex)) {
+            return;
+        }
+
+        $current = $ads->get($index);
+        $neighbor = $ads->get($swapIndex);
+
+        [$currentPosition, $neighborPosition] = [$current->position, $neighbor->position];
+
+        $current->update(['position' => $neighborPosition]);
+        $neighbor->update(['position' => $currentPosition]);
+
+        $this->refreshAdsList();
+    }
+
+    /**
+     * Segundos por imagen del carrusel (`ImmersivePlazaProp.
+     * ad_rotation_seconds`) — vacío/0 vuelve a nulo, que en la escena cae
+     * al default del motor (ver `billboard-ad-utils.js`).
+     */
+    public function saveAdsRotationSeconds(): void
+    {
+        if (! $this->adsPropId) {
+            return;
+        }
+
+        $prop = ImmersivePlazaProp::query()->find($this->adsPropId);
+
+        if (! $prop || $prop->immersive_plaza_id !== $this->plaza->id) {
+            return;
+        }
+
+        $seconds = $this->adsRotationSeconds !== null && $this->adsRotationSeconds > 0
+            ? (int) $this->adsRotationSeconds
+            : null;
+
+        $prop->update(['ad_rotation_seconds' => $seconds]);
+        $this->adsRotationSeconds = $seconds;
+
+        Notification::make()
+            ->title('Velocidad del carrusel guardada')
+            ->success()
+            ->send();
+    }
+
+    /**
      * Mismo patrón que duplicateProp() — ver ese comentario. El duplicado
      * nace sin asignación de negocio (`StandAssignment` es una relación
      * aparte, nunca se copia con `create()`), así que su estado siempre
@@ -1626,6 +1829,7 @@ class PlazaSpatialEditor extends Component
             'collisionEnabled' => (bool) $prop->collision_enabled,
             'hasGlbModel' => filled($template?->model_path),
             'objectEditorUrl' => $this->objectEditorUrl($template),
+            'isBillboard' => filled($template?->screen_material_name),
             'status' => $prop->status,
             'locked' => (bool) $prop->locked,
             'tiling' => $this->supportsTiling() ? $prop->textureTiling() : null,

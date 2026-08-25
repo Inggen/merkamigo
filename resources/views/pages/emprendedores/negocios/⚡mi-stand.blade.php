@@ -77,7 +77,8 @@ new #[Title('Mi stand en la plaza')] class extends Component
 
     public function hasEntrepreneurPlan(): bool
     {
-        return $this->business->activePlan()->slug === 'emprendedor';
+        return $this->business->activePlan()->slug === 'emprendedor'
+            || (Auth::user()?->canBypassPlanGates() ?? false);
     }
 
     /**

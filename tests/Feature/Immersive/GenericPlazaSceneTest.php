@@ -4,6 +4,7 @@ namespace Tests\Feature\Immersive;
 
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Immersive\Models\ImmersiveExperience;
+use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -88,6 +89,34 @@ class GenericPlazaSceneTest extends TestCase
             ->assertOk()
             ->assertViewHas('plaza', fn ($plaza) => $plaza->id === $experience->plazas->first()->id)
             ->assertViewHas('municipio', fn ($resolvedMunicipio) => $resolvedMunicipio->id === $municipality->id);
+    }
+
+    public function test_it_exposes_the_editable_character_definitions_to_the_player(): void
+    {
+        $municipality = $this->makeMunicipality();
+        $experience = $this->makeExperienceWithActivePlaza($municipality);
+        $experience->update(['status' => 'publicada']);
+        $definition = [
+            'version' => 1,
+            'boxes' => [[
+                'x' => 7, 'y' => 2, 'z' => 0,
+                'w' => 1, 'h' => 1, 'd' => 1,
+                'texture' => 'coral',
+            ]],
+        ];
+        ImmersiveObjectTemplate::create([
+            'name' => 'Personaje personalizado',
+            'slug' => 'personaje-voxel-hombre',
+            'category' => 'personaje',
+            'status' => 'publicada',
+            'model_definition' => $definition,
+        ]);
+
+        $this->get(route('labs.generic-plaza', ['municipio' => $municipality->slug]))
+            ->assertOk()
+            ->assertViewHas('avatarDefinitions', fn (array $definitions): bool => $definitions['hombre'] === $definition)
+            ->assertSee('window.genericAvatarDefinitions =', false)
+            ->assertSee('"x":7', false);
     }
 
     /**

@@ -43,7 +43,7 @@
             : __('Miles de negocios, productos y servicios cerca de ti.')"
     />
 
-    <div class="mx-auto max-w-7xl px-6 py-8">
+    <div class="relative z-20 mx-auto -mt-10 max-w-7xl px-6 pb-8">
         <div class="mb-8">
             <x-category-icons
                 :categories="$categories"
@@ -69,15 +69,15 @@
         @if ($businesses->isEmpty())
             <x-states.empty title="{{ __('No encontramos resultados') }}" description="{{ __('Intenta con otro nombre, categoría o municipio.') }}" />
         @else
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ($businesses as $business)
-                    <x-business-card :business="$business" />
-                @endforeach
-            </div>
-
-            <div class="mt-8">
-                {{ $businesses->links() }}
-            </div>
+            <livewire:catalog-results
+                type="businesses"
+                :municipality-id="$selectedMunicipality?->id"
+                :category-id="$selectedCategory?->id"
+                :query="$query"
+                :latitude="$near['lat'] ?? null"
+                :longitude="$near['lng'] ?? null"
+                :per-page="12"
+            />
         @endif
 
         <div class="mt-8 rounded-xl  border border-rose-100 bg-rose-50/60 p-6 dark:border-rose-900/40 dark:bg-rose-950/20 sm:p-8">
@@ -152,15 +152,14 @@
                     </label>
                 </form>
 
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    @foreach ($products as $product)
-                        @include('vitrinas.partials.product-card', ['business' => $product->business, 'product' => $product, 'showBusinessName' => true])
-                    @endforeach
-                </div>
-
-                <div class="mt-8">
-                    {{ $products->links() }}
-                </div>
+                <livewire:catalog-results
+                    type="products"
+                    :municipality-id="$selectedMunicipality?->id"
+                    :category-id="$selectedCategory?->id"
+                    :query="$query"
+                    :only-available="$onlyAvailable"
+                    :per-page="8"
+                />
             </div>
         @endif
 

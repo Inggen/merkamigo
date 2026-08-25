@@ -44,7 +44,7 @@
         :show-immersive-cta="true"
     />
 
-    <div class="mx-auto max-w-7xl px-6 py-8">
+    <div class="relative z-20 mx-auto -mt-10 max-w-7xl px-6 pb-8">
         <div class="mb-8">
             <x-category-icons
                 :categories="$categories"
@@ -115,15 +115,16 @@
                 <flux:link :href="route('buscar', ['municipio' => $municipio->slug])" wire:navigate class="shrink-0 text-sm">{{ __('Ver todos →') }}</flux:link>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ($businesses as $business)
-                    <x-business-card :business="$business" />
-                @endforeach
-            </div>
-
-            <div class="mt-8">
-                {{ $businesses->links() }}
-            </div>
+            <livewire:catalog-results
+                type="businesses"
+                :municipality-id="$municipio->id"
+                :category-id="$category?->id"
+                :zone="$zone"
+                :latitude="$near['lat'] ?? null"
+                :longitude="$near['lng'] ?? null"
+                :exclude-featured="true"
+                :per-page="12"
+            />
         @endif
 
         <div class="mb-10 overflow-hidden rounded-xl  border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
@@ -201,15 +202,13 @@
                     </div>
                 </form>
 
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    @foreach ($products as $product)
-                        @include('vitrinas.partials.product-card', ['business' => $product->business, 'product' => $product, 'showBusinessName' => true])
-                    @endforeach
-                </div>
-
-                <div class="mt-8">
-                    {{ $products->links() }}
-                </div>
+                <livewire:catalog-results
+                    type="products"
+                    :municipality-id="$municipio->id"
+                    :category-id="$category?->id"
+                    :only-available="$onlyAvailable"
+                    :per-page="9"
+                />
             </div>
         @endif
 

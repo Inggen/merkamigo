@@ -196,6 +196,18 @@
                     </div>
                 @endif
 
+                @if ($selectedObjectType === 'prop' && ($selectedObjectForm['isBillboard'] ?? false))
+                    <x-filament::button
+                        type="button"
+                        color="gray"
+                        icon="heroicon-m-photo"
+                        wire:click="openAdsModal({{ $selectedObjectId }})"
+                        class="w-full"
+                    >
+                        Gestionar anuncios del billboard
+                    </x-filament::button>
+                @endif
+
                     @if ($selectedObjectType === 'prop' && ($selectedObjectForm['status'] ?? null))
                         <div class="flex items-center gap-2 text-xs">
                             <span class="text-gray-500 dark:text-gray-400">Estado:</span>
@@ -1461,4 +1473,110 @@
             </x-filament::button>
         </div>
     </div>
+
+    {{--
+        Pedido del usuario: gestionar los anuncios de un billboard sin salir
+        del Editor espacial — se abre desde el botón "Gestionar anuncios del
+        billboard" del panel de propiedades (`openAdsModal`). Modal
+        independiente de Filament Actions (este componente no implementa
+        `InteractsWithActions`): usa el componente standalone
+        `<x-filament::modal>`, abierto/cerrado por el evento de navegador
+        `open-modal`/`close-modal` que Livewire ya dispara con `$this->dispatch()`.
+    --}}
+    <x-filament::modal id="billboard-ads-modal" width="lg">
+        <x-slot name="heading">Anuncios del billboard</x-slot>
+        <x-slot name="description">
+            Sube imágenes, actívalas o desactívalas, ordénalas y ajusta cada cuánto rota el carrusel en la plaza.
+        </x-slot>
+
+        <div class="space-y-4">
+            <div class="space-y-2">
+                @forelse ($adsList as $ad)
+                    <div wire:key="billboard-ad-{{ $ad['id'] }}" class="flex items-center gap-3 rounded-lg border border-gray-200 p-2 dark:border-white/10">
+                        <img src="{{ $ad['url'] }}" alt="" class="h-14 w-24 shrink-0 rounded object-cover bg-gray-100 dark:bg-white/5" />
+
+                        <label class="flex flex-1 items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            <input
+                                type="checkbox"
+                                wire:click="toggleAdActive({{ $ad['id'] }})"
+                                @checked($ad['is_active'])
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900"
+                            >
+                            Activo
+                        </label>
+
+                        <div class="flex items-center gap-1">
+                            <button
+                                type="button"
+                                wire:click="moveAdUp({{ $ad['id'] }})"
+                                title="Subir en el orden del carrusel"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition hover:bg-white/5 hover:text-gray-200"
+                            >
+                                <x-filament::icon icon="heroicon-m-chevron-up" class="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="moveAdDown({{ $ad['id'] }})"
+                                title="Bajar en el orden del carrusel"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition hover:bg-white/5 hover:text-gray-200"
+                            >
+                                <x-filament::icon icon="heroicon-m-chevron-down" class="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="deleteAd({{ $ad['id'] }})"
+                                wire:confirm="¿Eliminar este anuncio?"
+                                title="Eliminar anuncio"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-md text-red-500 transition hover:bg-red-500/10"
+                            >
+                                <x-filament::icon icon="heroicon-m-trash" class="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        Todavía no hay anuncios — la pantalla muestra la imagen original del modelo 3D.
+                    </p>
+                @endforelse
+            </div>
+
+            <div class="space-y-2 border-t border-gray-200 pt-4 dark:border-white/10">
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300">Subir nueva imagen</label>
+                <input
+                    type="file"
+                    wire:model="newAdImage"
+                    accept="image/*"
+                    class="block w-full text-xs text-gray-500 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-700 dark:text-gray-400 dark:file:bg-primary-500/10 dark:file:text-primary-400"
+                >
+                @error('newAdImage')
+                    <p class="text-xs text-red-500">{{ $message }}</p>
+                @enderror
+                <x-filament::button
+                    size="sm"
+                    wire:click="uploadAdImage"
+                    wire:loading.attr="disabled"
+                    wire:target="newAdImage,uploadAdImage"
+                >
+                    Agregar anuncio
+                </x-filament::button>
+            </div>
+
+            <div class="space-y-2 border-t border-gray-200 pt-4 dark:border-white/10">
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300">
+                    Velocidad del carrusel (segundos por imagen)
+                </label>
+                <div class="flex items-center gap-2">
+                    <x-filament::input.wrapper class="w-28">
+                        <x-filament::input type="number" min="1" step="1" wire:model="adsRotationSeconds" placeholder="8" />
+                    </x-filament::input.wrapper>
+                    <x-filament::button size="sm" color="gray" wire:click="saveAdsRotationSeconds">
+                        Guardar velocidad
+                    </x-filament::button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Solo aplica con 2 o más anuncios activos. Vacío = 8 segundos (por defecto).
+                </p>
+            </div>
+        </div>
+    </x-filament::modal>
 </div>

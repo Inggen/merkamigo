@@ -8,6 +8,7 @@ use App\Domain\Discovery\Models\Favorite;
 use App\Domain\Discovery\Models\RecentlyViewedBusiness;
 use App\Domain\Identity\Models\UserDevice;
 use App\Domain\Needs\Models\Need;
+use App\Domain\Platform\Actions\StartUserImpersonation;
 use App\Domain\Trust\Models\BusinessVerification;
 use App\Domain\Trust\Models\OrderConfirmation;
 use App\Domain\Trust\Models\Recommendation;
@@ -110,6 +111,24 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
         $this->unsetRelation('roles');
 
         return $result;
+    }
+
+    /**
+     * Bug real reportado por el usuario: al entrar "como" otro usuario
+     * desde el admin (`StartUserImpersonation`), `Auth::user()` pasa a
+     * ser ESE usuario, no el superadmin original — así que
+     * `hasAnyPlatformRole(['superadmin'])` por sí solo ya no detecta
+     * que quien está detrás sigue siendo un superadmin probando/
+     * ayudando desde esa cuenta. Solo un superadmin puede iniciar una
+     * impersonación (`StartUserImpersonation::handle()`), así que la
+     * sola presencia de esa sesión activa ya es prueba suficiente.
+     * Pensado para no bloquear funciones de plan (IA de vitrina/
+     * productos, chatbot, plantillas de stand) mientras se impersona.
+     */
+    public function canBypassPlanGates(): bool
+    {
+        return $this->hasAnyPlatformRole(['superadmin'])
+            || session()->has(StartUserImpersonation::SESSION_KEY);
     }
 
     /**

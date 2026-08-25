@@ -85,7 +85,7 @@
         />
     @endif
 
-    <div class="mx-auto max-w-7xl px-6 py-8">
+    <div class="relative z-20 mx-auto -mt-10 max-w-7xl px-6 pb-8">
         <div class="mb-8">
             <x-category-icons
                 :categories="$categories"

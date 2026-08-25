@@ -47,7 +47,7 @@ new #[Title('Chatbot IA')] class extends Component
         Auth::user()->unsetRelation('roles');
 
         $this->authorize('update', $business);
-        abort_unless($business->canUseAiChatbot(), 403);
+        abort_unless($business->canUseAiChatbot() || (Auth::user()?->canBypassPlanGates() ?? false), 403);
 
         $this->businessId = $business->id;
 

@@ -14,7 +14,7 @@
 @endphp
 
 <header
-    class="sticky top-0 z-30 border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
+    class="sticky bg-white z-50 top-0 dark:bg-zinc-800"
     style="box-shadow: 0 0 15px rgba(0, 0, 0, .2);"
 >
     <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-6 py-3">

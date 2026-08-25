@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
 use App\Domain\Immersive\Models\ImmersivePlaza;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Storefronts\Models\Product;
@@ -45,9 +46,19 @@ class PlazaController extends Controller
 
         abort_if($plaza === null, 404);
 
+        $avatarDefinitions = ImmersiveObjectTemplate::query()
+            ->whereIn('slug', ['personaje-voxel-hombre', 'personaje-voxel-mujer'])
+            ->where('status', 'publicada')
+            ->get(['slug', 'model_definition'])
+            ->mapWithKeys(fn (ImmersiveObjectTemplate $template): array => [
+                str_ends_with($template->slug, 'mujer') ? 'mujer' : 'hombre' => $template->model_definition,
+            ])
+            ->all();
+
         return view('public.labs.generic-plaza', [
             'municipio' => $municipio,
             'plaza' => $plaza,
+            'avatarDefinitions' => $avatarDefinitions,
         ]);
     }
 

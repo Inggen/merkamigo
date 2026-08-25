@@ -103,7 +103,7 @@
         class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
     >
         <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
-            <nav class="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <nav class="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400" style="z-index:1!important;">
                 <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>
                 <span>›</span>
                 @if ($business->municipality)
@@ -332,7 +332,7 @@
                         <div x-show="tab === 'pago'" x-cloak>
                             @if ($acceptedPaymentMethods->isNotEmpty() || filled($business->payment_info))
                                 @if ($acceptedPaymentMethods->isNotEmpty())
-                                    <div class="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
                                         @foreach ($acceptedPaymentMethods as $method)
                                             <div class="flex items-center justify-center rounded-xl border-zinc-200 dark:border-zinc-800" title="{{ $method->name }}">
                                                 @if ($method->logoUrl())

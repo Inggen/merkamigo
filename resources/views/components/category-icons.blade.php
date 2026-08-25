@@ -14,7 +14,7 @@
 
 <nav
     aria-label="{{ __('Categorías') }}"
-    class="flex justify-between gap-3 overflow-x-auto rounded-xl bg-white p-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900"
+    class="flex justify-between gap-3 overflow-x-auto rounded-xl bg-white p-3 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
 >
     <a
         href="{{ $allUrl }}"

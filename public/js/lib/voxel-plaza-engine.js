@@ -124,7 +124,8 @@ export const basePalette = {
     // fondo, que siguen usando las claves genéricas.
     avatarSkin: 0xdfaa77,
     avatarHair: 0x311b0c,
-    avatarShirt: 0x2869d0,
+    avatarShirt: 0x315c9f,
+    avatarShirtAccent: 0xb6403c,
     avatarPants: 0x33445c,
     grass: 0x90b85e,
     grassDark: 0x64853f,
@@ -136,19 +137,30 @@ export const basePalette = {
 };
 
 /**
- * Presets de avatar jugable (IMM-030): claves de `avatarSkin`/`avatarHair`/
- * `avatarShirt`/`avatarPants` para pasar como override de `palette` al
+ * Presets de avatar jugable (IMM-030): colores de piel, cabello, camisa,
+ * acento de camisa y pantalón para pasar como override de `palette` al
  * construir un `VoxelPlazaEngine` (ej. `{ ...basePalette, ...avatarPresets.mujer }`).
- * `hombre` reproduce exactamente los valores por defecto de `basePalette`
- * de arriba — elegirlo o no elegir nada se ve idéntico en ese preset.
- * `mujer` además agrega dos cajas de trenza en `buildAvatarBoxes()` (única
- * diferencia de geometría entre presets, a propósito acotada al cabello —
- * la física/animación sigue intocable, ver
+ * Sin una elección guardada, el motor usa `hombre`; ambos presets pueden
+ * personalizar sus colores sin recolorear el resto de la plaza.
+ * La diferencia de geometría entre presets queda acotada al largo del
+ * cabello; la física y la animación siguen compartidas (ver
  * docs/architecture/personaje-inmersivo.md).
  */
 export const avatarPresets = {
-    hombre: { avatarSkin: 0xdfaa77, avatarHair: 0x311b0c, avatarShirt: 0x2869d0, avatarPants: 0x33445c },
-    mujer: { avatarSkin: 0xdfaa77, avatarHair: 0x4a2a12, avatarShirt: 0xb8386b, avatarPants: 0x2c2333 },
+    hombre: {
+        avatarSkin: 0xdfaa77,
+        avatarHair: 0x4a2a12,
+        avatarShirt: 0x315c9f,
+        avatarShirtAccent: 0xb6403c,
+        avatarPants: 0x202631,
+    },
+    mujer: {
+        avatarSkin: 0xdfaa77,
+        avatarHair: 0x4a2a12,
+        avatarShirt: 0xb8386b,
+        avatarShirtAccent: 0x5b3f8f,
+        avatarPants: 0x2c2333,
+    },
 };
 
 /**
@@ -291,7 +303,7 @@ export function createVoxelTextures(colors) {
     make('pants', colors.pants, 10, 0x1e2736);
     make('avatarSkin', colors.avatarSkin, 10, 0xf3cb9e);
     make('avatarHair', colors.avatarHair, 12, 0x160d06);
-    make('avatarShirt', colors.avatarShirt, 12, 0x133d88);
+    make('avatarShirt', colors.avatarShirt, 8, colors.avatarShirtAccent ?? 0x133d88, true);
     make('avatarPants', colors.avatarPants, 10, 0x1e2736);
     make('grass', colors.grass, 16, colors.grassDark);
     make('path', colors.path, 12, colors.plazaDark, true);
@@ -328,7 +340,7 @@ function addCollisionBarrierEdges(mesh) {
 }
 
 /**
- * Solo las 4 texturas del personaje (`avatarSkin/avatarHair/avatarShirt/
+ * Solo las texturas del personaje (`avatarSkin/avatarHair/avatarShirt/
  * avatarPants`), para figuras de avatar independientes del motor — las
  * "personas" que `dynamic-stand-loader.js` planta junto a cada stand
  * pueden usar un preset distinto al del visitante que camina, así que no
@@ -340,7 +352,12 @@ function createAvatarTextures(presetColors) {
     return {
         avatarSkin: paintVoxelTexture(presetColors.avatarSkin, 10, 0xf3cb9e),
         avatarHair: paintVoxelTexture(presetColors.avatarHair, 12, 0x160d06),
-        avatarShirt: paintVoxelTexture(presetColors.avatarShirt, 12, 0x133d88),
+        avatarShirt: paintVoxelTexture(
+            presetColors.avatarShirt,
+            8,
+            presetColors.avatarShirtAccent ?? 0x133d88,
+            true,
+        ),
         avatarPants: paintVoxelTexture(presetColors.avatarPants, 10, 0x1e2736),
     };
 }
@@ -447,8 +464,8 @@ export function createAxisLabels(size = 4) {
 }
 
 /**
- * Anatomía de 7 cajas del personaje jugable (cabeza/cabello/torso/piernas/
- * brazos) — extraída de `VoxelPlazaEngine.buildPlayer()` para que también
+ * Anatomía voxel compartida del personaje jugable (cabeza, rostro, cabello,
+ * torso y extremidades) — extraída de `VoxelPlazaEngine.buildPlayer()` para que también
  * la use `buildAvatarFigure()` (figuras sueltas, ej. la "persona" que
  * `dynamic-stand-loader.js` planta junto a cada stand con el preset del
  * dueño del negocio, que puede ser distinto al del visitante que camina).
@@ -457,53 +474,156 @@ export function createAxisLabels(size = 4) {
  * (`this.addVoxelBox`) y el closure de `createStandaloneVoxelTarget()`
  * cumplen la misma forma.
  *
- * `presetKey === 'mujer'` agrega dos cajas de trenza colgando detrás del
- * torso — única diferencia de geometría entre presets, a propósito acotada
- * al cabello (ver comentario de `avatarPresets` y
- * docs/architecture/personaje-inmersivo.md §9).
+ * Las extremidades son grupos con pivote en hombros/cadera: conservan las
+ * claves que usa la animación, pero los bloques ya no giran desde el centro.
+ * El preset solo cambia cabello y colores; movimiento, cámara y colisión son
+ * comunes (docs/architecture/personaje-inmersivo.md §9).
  */
 function buildAvatarBoxes(addVoxelBox, group, presetKey) {
     const boxes = {};
 
     boxes.head = addVoxelBox({
-        x: 0, y: 3.22, z: 0, w: 1.25, h: 1.25, d: 1.12, texture: 'avatarSkin', group,
+        x: 0, y: 3.28, z: 0, w: 1.28, h: 1.28, d: 1.16, texture: 'avatarSkin', group,
     });
 
     boxes.hair = addVoxelBox({
-        x: 0, y: 3.68, z: -0.08, w: 1.28, h: 0.42, d: 1.18, texture: 'avatarHair', group,
+        x: 0, y: 3.79, z: -0.06, w: 1.34, h: 0.34, d: 1.22, texture: 'avatarHair', group,
+    });
+    boxes.hairBack = addVoxelBox({
+        x: 0, y: presetKey === 'mujer' ? 3.06 : 3.4, z: -0.55,
+        w: 1.3, h: presetKey === 'mujer' ? 1.5 : 0.72, d: 0.22,
+        texture: 'avatarHair', group,
+    });
+    boxes.hairSide = addVoxelBox({
+        x: 0.55, y: 3.48, z: -0.08, w: 0.22, h: 0.72, d: 1.08, texture: 'avatarHair', group,
+    });
+    boxes.fringe = addVoxelBox({
+        x: 0.27, y: 3.66, z: 0.55, w: 0.72, h: 0.28, d: 0.12, texture: 'avatarHair', group,
+    });
+    boxes.leftEye = addVoxelBox({
+        x: -0.28, y: 3.35, z: 0.595, w: 0.14, h: 0.18, d: 0.06, texture: 'avatarHair', group,
+    });
+    boxes.rightEye = addVoxelBox({
+        x: 0.28, y: 3.35, z: 0.595, w: 0.14, h: 0.18, d: 0.06, texture: 'avatarHair', group,
+    });
+    boxes.mouth = addVoxelBox({
+        x: 0, y: 3.0, z: 0.595, w: 0.28, h: 0.07, d: 0.06, texture: 'avatarHair', group,
     });
 
     boxes.torso = addVoxelBox({
-        x: 0, y: 2.02, z: 0, w: 1.58, h: 1.8, d: 0.98, texture: 'avatarShirt', group,
+        x: 0, y: 2.04, z: 0, w: 1.48, h: 1.62, d: 0.96, texture: 'avatarShirt', group,
     });
 
-    boxes.leftLeg = addVoxelBox({
-        x: -0.38, y: 0.72, z: 0, w: 0.48, h: 1.44, d: 0.48, texture: 'avatarPants', group,
-    });
-
-    boxes.rightLeg = addVoxelBox({
-        x: 0.38, y: 0.72, z: 0, w: 0.48, h: 1.44, d: 0.48, texture: 'avatarPants', group,
-    });
-
-    boxes.leftArm = addVoxelBox({
-        x: -1.02, y: 2.08, z: 0, w: 0.36, h: 1.52, d: 0.36, texture: 'avatarSkin', group,
-    });
-
-    boxes.rightArm = addVoxelBox({
-        x: 1.02, y: 2.08, z: 0, w: 0.36, h: 1.52, d: 0.36, texture: 'avatarSkin', group,
-    });
-
-    if (presetKey === 'mujer') {
-        boxes.leftBraid = addVoxelBox({
-            x: -0.52, y: 2.55, z: -0.58, w: 0.22, h: 1.5, d: 0.22, texture: 'avatarHair', group,
+    const addLimb = (key, x, y, texture, dimensions, shoe = false) => {
+        const limb = new THREE.Group();
+        limb.position.set(x, y, 0);
+        group.add(limb);
+        addVoxelBox({
+            x: 0, y: -dimensions.h / 2, z: 0,
+            w: dimensions.w, h: dimensions.h, d: dimensions.d,
+            texture, group: limb,
         });
+        if (shoe) {
+            addVoxelBox({
+                x: 0, y: -dimensions.h + 0.17, z: 0.12,
+                w: dimensions.w + 0.05, h: 0.34, d: dimensions.d + 0.26,
+                texture: 'avatarHair', group: limb,
+            });
+        }
+        boxes[key] = limb;
+    };
 
-        boxes.rightBraid = addVoxelBox({
-            x: 0.52, y: 2.55, z: -0.58, w: 0.22, h: 1.5, d: 0.22, texture: 'avatarHair', group,
-        });
-    }
+    addLimb('leftLeg', -0.39, 1.5, 'avatarPants', { w: 0.58, h: 1.5, d: 0.62 }, true);
+    addLimb('rightLeg', 0.39, 1.5, 'avatarPants', { w: 0.58, h: 1.5, d: 0.62 }, true);
+    addLimb('leftArm', -0.98, 2.76, 'avatarSkin', { w: 0.5, h: 1.62, d: 0.54 });
+    addLimb('rightArm', 0.98, 2.76, 'avatarSkin', { w: 0.5, h: 1.62, d: 0.54 });
 
     return boxes;
+}
+
+/**
+ * Convierte la definición editable de Objetos 3D en el avatar jugable.
+ * Las cajas conservan exactamente posición, rotación, textura y emisivo.
+ * Los cuatro grupos anatómicos conocidos reciben un pivote superior para
+ * que la animación de caminar continúe funcionando después de editarlo.
+ */
+function buildAvatarFromDefinition(addVoxelBox, group, definition) {
+    const definitionBoxes = Array.isArray(definition?.boxes) ? definition.boxes : [];
+
+    if (definitionBoxes.length === 0) {
+        return null;
+    }
+
+    const limbIds = {
+        'left-arm': 'leftArm',
+        'right-arm': 'rightArm',
+        'left-leg': 'leftLeg',
+        'right-leg': 'rightLeg',
+    };
+    const limbs = {};
+    const resolveLimbId = (box) => {
+        if (limbIds[box.groupId]) {
+            return box.groupId;
+        }
+
+        // El editor permite desagrupar piezas. Si un brazo perdió su grupo,
+        // reconocerlo por posición/material evita que quede rígido sin
+        // alterar accesorios o cabello desagrupados.
+        if (!box.groupId && box.texture === 'skin' && Number(box.y) < 3 && Math.abs(Number(box.x)) > 0.6) {
+            return Number(box.x) < 0 ? 'left-arm' : 'right-arm';
+        }
+
+        return null;
+    };
+
+    Object.entries(limbIds).forEach(([groupId, key]) => {
+        const members = definitionBoxes.filter((box) => resolveLimbId(box) === groupId);
+        const limb = new THREE.Group();
+
+        if (members.length > 0) {
+            const minX = Math.min(...members.map((box) => Number(box.x) - Number(box.w) / 2));
+            const maxX = Math.max(...members.map((box) => Number(box.x) + Number(box.w) / 2));
+            const minZ = Math.min(...members.map((box) => Number(box.z) - Number(box.d) / 2));
+            const maxZ = Math.max(...members.map((box) => Number(box.z) + Number(box.d) / 2));
+            const maxY = Math.max(...members.map((box) => Number(box.y) + Number(box.h) / 2));
+            limb.position.set((minX + maxX) / 2, maxY, (minZ + maxZ) / 2);
+        }
+
+        group.add(limb);
+        limbs[groupId] = limb;
+        limbs[key] = limb;
+    });
+
+    definitionBoxes.forEach((box) => {
+        const limb = limbs[resolveLimbId(box)];
+        const target = limb ?? group;
+
+        const mesh = addVoxelBox({
+            x: Number(box.x) - (limb?.position.x ?? 0),
+            y: Number(box.y) - (limb?.position.y ?? 0),
+            z: Number(box.z) - (limb?.position.z ?? 0),
+            w: Number(box.w),
+            h: Number(box.h),
+            d: Number(box.d),
+            texture: box.texture,
+            rotationX: Number(box.rotationX ?? 0),
+            rotationY: Number(box.rotationY ?? 0),
+            rotationZ: Number(box.rotationZ ?? 0),
+            emissive: box.emissive ? parseInt(box.emissive.slice(1), 16) : 0x000000,
+            group: target,
+        });
+
+        if (box.tiling) {
+            applyTiling(mesh, box.tiling);
+        }
+    });
+
+    return {
+        leftArm: limbs.leftArm,
+        rightArm: limbs.rightArm,
+        leftLeg: limbs.leftLeg,
+        rightLeg: limbs.rightLeg,
+    };
 }
 
 // Como máximo 2 entradas ('hombre'/'mujer') — evita repintar las 4
@@ -529,14 +649,18 @@ const avatarMaterialsCache = new WeakMap();
  * `createStandaloneVoxelTarget()`: closure propio de `{ addVoxelBox,
  * material, textures }`, nunca `this.textures` del motor.
  */
-export function buildAvatarFigure(presetKey = 'hombre') {
+export function buildAvatarFigure(presetKey = 'hombre', definition = null, engineTextures = null) {
     const key = avatarPresets[presetKey] ? presetKey : 'hombre';
+    const hasEditableDefinition = Array.isArray(definition?.boxes) && definition.boxes.length > 0;
+    const canBuildEditableDefinition = hasEditableDefinition && engineTextures;
 
-    if (!avatarTexturesCache.has(key)) {
+    if (!canBuildEditableDefinition && !avatarTexturesCache.has(key)) {
         avatarTexturesCache.set(key, createAvatarTextures(avatarPresets[key]));
     }
 
-    const textures = avatarTexturesCache.get(key);
+    const textures = canBuildEditableDefinition
+        ? engineTextures
+        : avatarTexturesCache.get(key);
 
     function material(texture, extra = {}) {
         return cachedMaterial(avatarMaterialsCache, texture, extra);
@@ -545,12 +669,14 @@ export function buildAvatarFigure(presetKey = 'hombre') {
     function addVoxelBox({
         x, y, z, w, h, d, texture, group,
         castShadow = true, receiveShadow = true, opacity = 1, emissive = 0x000000,
+        rotationX = 0, rotationY = 0, rotationZ = 0,
     }) {
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(w, h, d),
             material(textures[texture], { transparent: opacity < 1, opacity, emissive }),
         );
         mesh.position.set(x, y, z);
+        mesh.rotation.set(rotationX, rotationY, rotationZ);
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
         group.add(mesh);
@@ -559,6 +685,8 @@ export function buildAvatarFigure(presetKey = 'hombre') {
     }
 
     const avatar = new THREE.Group();
+    avatar.userData.avatarPreset = key;
+    avatar.userData.definitionBoxCount = canBuildEditableDefinition ? definition.boxes.length : 0;
     const body = new THREE.Group();
     avatar.add(body);
 
@@ -570,7 +698,9 @@ export function buildAvatarFigure(presetKey = 'hombre') {
     shadow.position.y = 0.03;
     avatar.add(shadow);
 
-    buildAvatarBoxes(addVoxelBox, body, key);
+    if (!buildAvatarFromDefinition(addVoxelBox, body, canBuildEditableDefinition ? definition : null)) {
+        buildAvatarBoxes(addVoxelBox, body, key);
+    }
 
     return avatar;
 }
@@ -587,6 +717,8 @@ export class VoxelPlazaEngine {
         lockTrigger = null,
         palette = basePalette,
         avatarPreset = 'hombre',
+        avatarDefinition = null,
+        avatarDefinitions = null,
         reducedMotion = false,
         // IMM-040: sin valor explícito, se mantiene el comportamiento de
         // siempre (pixelRatioCap 2, sombras encendidas, mapa de sombra
@@ -706,11 +838,11 @@ export class VoxelPlazaEngine {
         // entre plazas distintas no aportaría nada y complicaría liberar
         // memoria al cambiar de escena).
         this.materialCache = new WeakMap();
-        // Independiente de `palette`: solo decide si `buildPlayer()` agrega
-        // las cajas de trenza del preset 'mujer' (ver `buildAvatarBoxes`),
-        // no qué colores usa (eso ya lo trae `palette` mezclado con
-        // `avatarPresets[...]` por quien construye el motor).
+        // El preset elige el modelo de respaldo; si llega una definición
+        // editable, `buildPlayer()` usa esa geometría en su lugar.
         this.avatarPreset = avatarPreset;
+        this.avatarDefinitions = avatarDefinitions ?? {};
+        this.avatarDefinition = avatarDefinition ?? this.avatarDefinitions[avatarPreset] ?? null;
         this.reducedMotion = reducedMotion;
         this.perf = attachPerfMonitor({ renderer: this.renderer, label: 'Plaza voxel', quality: qualityControl });
 
@@ -990,10 +1122,17 @@ export class VoxelPlazaEngine {
         avatar.userData.shadow.position.y = 0.03;
         avatar.add(avatar.userData.shadow);
 
-        Object.assign(
-            avatar.userData,
-            buildAvatarBoxes(this.addVoxelBox.bind(this), avatar.userData.body, this.avatarPreset),
+        const editableAvatar = buildAvatarFromDefinition(
+            this.addVoxelBox.bind(this),
+            avatar.userData.body,
+            this.avatarDefinition,
         );
+
+        Object.assign(avatar.userData, editableAvatar ?? buildAvatarBoxes(
+            this.addVoxelBox.bind(this),
+            avatar.userData.body,
+            this.avatarPreset,
+        ));
 
         return avatar;
     }

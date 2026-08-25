@@ -48,6 +48,7 @@ class ImmersiveObjectTemplate extends Model
         'thumbnail_path',
         'allowed_colors',
         'model_path',
+        'screen_material_name',
         'lod_config',
         'status',
     ];
@@ -166,6 +167,7 @@ class ImmersiveObjectTemplate extends Model
             'thumbnail_path' => $this->thumbnail_path,
             'allowed_colors' => $this->allowed_colors,
             'model_path' => $this->model_path,
+            'screen_material_name' => $this->screen_material_name,
             'lod_config' => $this->lod_config,
             'status' => 'borrador',
         ]);

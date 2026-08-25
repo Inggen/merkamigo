@@ -244,13 +244,13 @@ new #[Title('Editar mi vitrina')] class extends Component
     /**
      * Las ayudas de IA en el editor de vitrina (mejorar descripción,
      * generar portada) son un beneficio del plan Emprendedor (pedido del
-     * usuario) — el superadmin siempre puede usarlas, igual que puede
-     * entrar como cualquier usuario desde el panel.
+     * usuario) — el superadmin siempre puede usarlas, incluso entrando
+     * "como" el dueño del negocio (`User::canBypassPlanGates()`).
      */
     public function canUseAiForVitrina(): bool
     {
         return $this->business->activePlan()->slug === Plan::EMPRENDEDOR
-            || (Auth::user()?->hasAnyPlatformRole(['superadmin']) ?? false);
+            || (Auth::user()?->canBypassPlanGates() ?? false);
     }
 
     /**
