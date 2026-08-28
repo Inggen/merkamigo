@@ -276,6 +276,8 @@
                     transformControls.setRotationSnap(THREE.MathUtils.degToRad(45));
 
                     transformControls.addEventListener('objectChange', () => {
+                        syncUniformGroupScale();
+
                         if (selectionHelper?.object === transformControls.object) {
                             selectionHelper.update();
                         }
@@ -293,10 +295,8 @@
                         const mode = transformControls.getMode();
 
                         if (transformControls.object === groupObject) {
-                            // Escala uniforme forzada (ver
-                            // `applyScaleAxisRestriction()`): en modo
-                            // Escalar sobre un grupo, x/y/z del gizmo
-                            // siempre llegan iguales.
+                            // La escala uniforme se mantiene mientras se
+                            // arrastra cualquiera de los ejes del gizmo.
                             const scaleFactor = groupObject.scale.x;
 
                             const updates = selectedGroupBoxIndices.map((index) => {
@@ -385,24 +385,27 @@
                         });
                     }
 
-                    // Pedido del usuario: un grupo escala de forma uniforme
-                    // — cajas rotadas entre sí bajo una escala NO uniforme
-                    // del grupo se deformarían (w/h/d + rotación simple no
-                    // puede representar eso). `showX/Y/Z = false` oculta las
-                    // flechas/planos de un solo eje del gizmo de escala,
-                    // pero TransformControls sigue mostrando el cubo
-                    // central (escala uniforme) — es la única forma de
-                    // escalar un grupo.
-                    function applyScaleAxisRestriction() {
-                        const restrict = transformControls.getMode() === 'scale' && transformControls.object === groupObject;
-                        transformControls.showX = ! restrict;
-                        transformControls.showY = ! restrict;
-                        transformControls.showZ = ! restrict;
+                    // Un grupo debe escalar uniformemente porque sus cajas
+                    // pueden tener rotaciones distintas. Dejamos visibles
+                    // los tres ejes del gizmo y copiamos el factor del eje
+                    // que el usuario esté arrastrando a los demás.
+                    function syncUniformGroupScale() {
+                        if (transformControls.getMode() !== 'scale' || transformControls.object !== groupObject) {
+                            return;
+                        }
+
+                        const axis = transformControls.axis ?? 'XYZ';
+                        const factor = axis === 'Y'
+                            ? groupObject.scale.y
+                            : axis === 'Z'
+                                ? groupObject.scale.z
+                                : groupObject.scale.x;
+
+                        groupObject.scale.setScalar(Math.max(0.01, factor));
                     }
 
                     window.addEventListener('object-editor-set-mode', (event) => {
                         transformControls.setMode(event.detail.mode);
-                        applyScaleAxisRestriction();
                         setActiveGizmoModeButton(event.detail.mode);
                     });
 
@@ -580,7 +583,6 @@
                         scene.add(selectionHelper);
 
                         transformControls.attach(mesh);
-                        applyScaleAxisRestriction();
                         setActiveGizmoModeButton(transformControls.getMode());
                     }
 
@@ -620,7 +622,6 @@
                         scene.add(selectionHelper);
 
                         transformControls.attach(groupObject);
-                        applyScaleAxisRestriction();
                         setActiveGizmoModeButton(transformControls.getMode());
                     }
 

@@ -116,7 +116,7 @@ class VitrinaController extends Controller
 
         app(RegisterWhatsAppClick::class)->handle($business, null, $request);
 
-        $text = __('Hola :name, te escribo desde Merkamigo 👋', ['name' => $business->name]);
+        $text = __('Hola :name, te escribo desde https://merkamigo.com', ['name' => $business->name]);
 
         return redirect()->away($this->whatsappUrl($business->whatsapp_number, $text));
     }
