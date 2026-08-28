@@ -1,5 +1,5 @@
-import { THREE, renderObjectByPriority, buildAvatarFigure } from './voxel-plaza-engine.js?v=4';
-import { applyStandPrimaryColor } from './stand-color-utils.js';
+import { THREE, renderObjectByPriority, buildAvatarFigure } from './voxel-plaza-engine.js?v=6';
+import { applyStandPrimaryColor } from './stand-color-utils.js?v=2';
 import { applyTiling } from './texture-tiling-utils.js';
 // `?v=3` fuerza la re-descarga tras agregar la velocidad de carrusel
 // configurable por colocación (`rotationSeconds`) — bump este número si

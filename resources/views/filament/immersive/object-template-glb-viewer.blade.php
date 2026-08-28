@@ -8,7 +8,7 @@
         x-data="{}"
         x-init="
             Promise.all([
-                import('{{ asset('js/lib/voxel-plaza-engine.js') }}?v=1'),
+                import('{{ asset('js/lib/voxel-plaza-engine.js') }}?v=3'),
                 import('https://esm.sh/three@0.179.1/examples/jsm/controls/OrbitControls.js'),
                 import('https://esm.sh/three@0.179.1/examples/jsm/loaders/GLTFLoader.js'),
             ]).then(([{ THREE }, { OrbitControls }, { GLTFLoader }]) => {

@@ -1,4 +1,4 @@
-import { THREE } from './voxel-plaza-engine.js?v=4';
+import { THREE } from './voxel-plaza-engine.js?v=6';
 
 /**
  * Repetición de textura (U, V) elegida por instancia (Fase 4 del editor

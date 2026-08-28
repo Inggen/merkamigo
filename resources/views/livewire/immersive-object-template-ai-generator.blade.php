@@ -135,7 +135,7 @@
                 wire:ignore
                 x-data="{}"
                 x-init="
-                    import('{{ asset('js/lib/voxel-plaza-engine.js') }}?v=1').then(({ THREE, createStandaloneVoxelTarget, buildFromDefinition, createAxisLabels }) => {
+                    import('{{ asset('js/lib/voxel-plaza-engine.js') }}?v=3').then(({ THREE, createStandaloneVoxelTarget, buildFromDefinition, createAxisLabels }) => {
                         const container = document.getElementById(@js($previewDomId));
 
                         if (! container || container.dataset.initialized === 'true') {

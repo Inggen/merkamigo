@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Immersive\Models\ImmersiveObjectTemplate;
+use App\Domain\Immersive\Support\StandardVoxelDefinitions;
 use Illuminate\Database\Seeder;
 
 /**
@@ -39,17 +40,20 @@ class ImmersiveObjectTemplateSeeder extends Seeder
             [
                 'name' => 'Toldo de mercado',
                 'slug' => 'stand-toldo-mercado',
-                'builder_key' => 'marketStall',
+                'builder_key' => 'stand',
+                'asset_input_mode' => 'ia_voxel',
+                'model_definition' => StandardVoxelDefinitions::marketStall(),
                 'max_width' => 3.0,
                 'max_depth' => 3.0,
                 'max_height' => 5.2,
             ],
         ] as $template) {
-            ImmersiveObjectTemplate::query()->updateOrCreate(
+            $record = ImmersiveObjectTemplate::query()->updateOrCreate(
                 ['slug' => $template['slug']],
                 [
                     'name' => $template['name'],
                     'builder_key' => $template['builder_key'],
+                    'asset_input_mode' => $template['asset_input_mode'] ?? 'model_3d',
                     'category' => 'stand',
                     'max_width' => $template['max_width'],
                     'max_depth' => $template['max_depth'],
@@ -58,6 +62,10 @@ class ImmersiveObjectTemplateSeeder extends Seeder
                     'status' => 'publicada',
                 ],
             );
+
+            if (blank($record->model_definition) && isset($template['model_definition'])) {
+                $record->update(['model_definition' => $template['model_definition']]);
+            }
         }
     }
 

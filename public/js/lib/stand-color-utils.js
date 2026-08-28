@@ -1,9 +1,9 @@
 /**
  * Conserva los colores originales del modelo y recolorea solo los
- * materiales llamados exactamente `color` del stand. Si no existe ese
- * material, cae a la heurística anterior de materiales originalmente
- * rojos. Si `hexColor` viene vacío/null, restaura el color original del
- * GLB.
+ * materiales llamados exactamente `color` en un GLB o las cajas con
+ * textura `color` en una definición voxel. Si no existe ese rol explícito,
+ * cae a la heurística anterior de materiales originalmente rojos. Si
+ * `hexColor` viene vacío/null, restaura el color original.
  *
  * IMM-041: los stands construidos por `builder_key` (voxel, no GLB) ahora
  * pueden compartir el mismo `MeshStandardMaterial` entre varios objetos
@@ -37,7 +37,10 @@ export function applyStandPrimaryColor(root, hexColor) {
         });
     });
 
-    const namedColorEntries = entries.filter((e) => (e.material.name ?? '').trim().toLowerCase() === 'color');
+    const namedColorEntries = entries.filter((e) => (
+        e.mesh.userData?.voxelTexture === 'color'
+        || (e.material.name ?? '').trim().toLowerCase() === 'color'
+    ));
     const tintableEntries = entries.filter((e) => isOriginallyRed(e.material));
 
     const targetEntries = namedColorEntries.length > 0

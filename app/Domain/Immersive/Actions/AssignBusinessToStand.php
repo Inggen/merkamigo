@@ -95,6 +95,7 @@ class AssignBusinessToStand
 
         return ImmersiveObjectTemplate::query()
             ->where('category', 'stand')
+            ->where('builder_key', 'stand')
             ->where('status', 'publicada')
             ->orderBy('id')
             ->first();

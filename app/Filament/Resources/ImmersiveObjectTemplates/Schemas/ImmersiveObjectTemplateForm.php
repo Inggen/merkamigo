@@ -40,9 +40,7 @@ class ImmersiveObjectTemplateForm
             Select::make('builder_key')
                 ->label('Forma voxel (builder)')
                 ->options([
-                    'standBooth' => 'Stand — caseta de madera',
-                    'standTable' => 'Stand — mesa exhibidora',
-                    'marketStall' => 'Stand — toldo de mercado',
+                    'stand' => 'Stand',
                     'colonialHouse' => 'Construcción / Edificio',
                     'tree' => 'Árbol',
                     'palm' => 'Palma',
@@ -55,7 +53,7 @@ class ImmersiveObjectTemplateForm
                     'hedgeRect' => 'Seto',
                     'cloud' => 'Nube',
                 ])
-                ->helperText('Qué forma de "standardBuilders" (voxel-plaza-engine.js) renderiza este objeto. Vacío = sin modelo 3D todavía (reservable pero invisible en la escena).'),
+                ->helperText('Selecciona "Stand" para ofrecerlo en la sección de emprendedores. Si el objeto tiene una definición voxel personalizada, esa geometría se muestra por encima del builder genérico.'),
             Select::make('category')
                 ->label('Categoría')
                 ->options([
@@ -85,6 +83,7 @@ class ImmersiveObjectTemplateForm
 
                     $livewire->mountAction('generarIa');
                 })
+                ->helperText('En un Objeto Voxel, asigna la textura "color" a las cajas que el emprendedor podrá personalizar. En un GLB, el material personalizable debe llamarse exactamente "color".')
                 ->required(),
             FileUpload::make('model_path')
                 ->label('Modelo 3D (.glb)')

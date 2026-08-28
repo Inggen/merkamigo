@@ -74,11 +74,11 @@ class BusinessStandSelectorTest extends TestCase
     {
         return [
             ImmersiveObjectTemplate::create([
-                'name' => 'Caseta de madera', 'slug' => 'caseta-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standBooth',
+                'name' => 'Caseta de madera', 'slug' => 'caseta-'.uniqid(), 'category' => 'stand', 'builder_key' => 'stand',
                 'max_width' => 3.6, 'max_depth' => 3.2, 'max_height' => 2.9, 'status' => 'publicada',
             ]),
             ImmersiveObjectTemplate::create([
-                'name' => 'Mesa exhibidora', 'slug' => 'mesa-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standTable',
+                'name' => 'Mesa exhibidora', 'slug' => 'mesa-'.uniqid(), 'category' => 'stand', 'builder_key' => 'stand',
                 'max_width' => 3.2, 'max_depth' => 2.4, 'max_height' => 2.9, 'status' => 'publicada',
             ]),
         ];
@@ -126,6 +126,77 @@ class BusinessStandSelectorTest extends TestCase
             ->assertSee('Publicado')
             ->assertSee('Caseta de madera')
             ->assertSee('Mesa exhibidora');
+    }
+
+    public function test_owner_sees_the_custom_voxel_definition_instead_of_the_procedural_builder(): void
+    {
+        $experience = $this->makeReadyExperience();
+        $this->makeSlot($experience->plazas->first(), 'S1');
+
+        ImmersiveObjectTemplate::create([
+            'name' => 'Stand voxel personalizado',
+            'slug' => 'stand-voxel-personalizado',
+            'category' => 'stand',
+            'builder_key' => 'stand',
+            'asset_input_mode' => 'ia_voxel',
+            'model_definition' => [
+                'version' => 1,
+                'groups' => [],
+                'boxes' => [[
+                    'x' => 0, 'y' => 0.5, 'z' => 0,
+                    'w' => 2, 'h' => 1, 'd' => 2,
+                    'texture' => 'color',
+                ]],
+            ],
+            'max_width' => 2,
+            'max_depth' => 2,
+            'max_height' => 1,
+            'status' => 'publicada',
+        ]);
+
+        $business = $this->makeBusiness($experience->municipality_id);
+        $business->update(['status' => 'publicado']);
+
+        Livewire::test('pages::emprendedores.negocios.mi-stand', ['business' => $business->id])
+            ->assertSuccessful()
+            ->assertSee('Stand voxel personalizado')
+            ->assertSee('buildFromDefinition', false)
+            ->assertDontSee('icon-cube', false);
+    }
+
+    public function test_only_templates_marked_with_the_stand_builder_are_offered_to_entrepreneurs(): void
+    {
+        $experience = $this->makeReadyExperience();
+        $this->makeSlot($experience->plazas->first(), 'S1');
+
+        ImmersiveObjectTemplate::create([
+            'name' => 'Stand anterior oculto',
+            'slug' => 'stand-anterior-oculto',
+            'category' => 'stand',
+            'builder_key' => 'standBooth',
+            'max_width' => 2,
+            'max_depth' => 2,
+            'max_height' => 2,
+            'status' => 'publicada',
+        ]);
+        ImmersiveObjectTemplate::create([
+            'name' => 'Stand habilitado',
+            'slug' => 'stand-habilitado',
+            'category' => 'stand',
+            'builder_key' => 'stand',
+            'max_width' => 2,
+            'max_depth' => 2,
+            'max_height' => 2,
+            'status' => 'publicada',
+        ]);
+
+        $business = $this->makeBusiness($experience->municipality_id);
+        $business->update(['status' => 'publicado']);
+
+        Livewire::test('pages::emprendedores.negocios.mi-stand', ['business' => $business->id])
+            ->assertSuccessful()
+            ->assertSee('Stand habilitado')
+            ->assertDontSee('Stand anterior oculto');
     }
 
     public function test_owner_can_switch_template_and_keeps_the_same_slot(): void
@@ -179,11 +250,11 @@ class BusinessStandSelectorTest extends TestCase
     {
         $experience = $this->makeReadyExperience();
         $standard = ImmersiveObjectTemplate::create([
-            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standBooth',
+            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'stand',
             'max_width' => 3.6, 'max_depth' => 3.2, 'max_height' => 2.9, 'status' => 'publicada',
         ]);
         $pro = ImmersiveObjectTemplate::create([
-            'name' => 'Stand Pro', 'slug' => 'stand-pro-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standTable',
+            'name' => 'Stand Pro', 'slug' => 'stand-pro-'.uniqid(), 'category' => 'stand', 'builder_key' => 'stand',
             'max_width' => 3.2, 'max_depth' => 2.4, 'max_height' => 2.9, 'status' => 'publicada',
         ]);
         $this->makeSlot($experience->plazas->first(), 'S1');
@@ -204,11 +275,11 @@ class BusinessStandSelectorTest extends TestCase
     {
         $experience = $this->makeReadyExperience();
         $standard = ImmersiveObjectTemplate::create([
-            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standBooth',
+            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'stand',
             'max_width' => 3.6, 'max_depth' => 3.2, 'max_height' => 2.9, 'status' => 'publicada',
         ]);
         $pro = ImmersiveObjectTemplate::create([
-            'name' => 'Stand Pro', 'slug' => 'stand-pro-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standTable',
+            'name' => 'Stand Pro', 'slug' => 'stand-pro-'.uniqid(), 'category' => 'stand', 'builder_key' => 'stand',
             'max_width' => 3.2, 'max_depth' => 2.4, 'max_height' => 2.9, 'status' => 'publicada',
         ]);
         $this->makeSlot($experience->plazas->first(), 'S1');

@@ -15,7 +15,7 @@
 
             Promise.all([
                 import('https://esm.sh/three@0.179.1'),
-                import('{{ asset('js/lib/stand-color-utils.js') }}'),
+                import('{{ asset('js/lib/stand-color-utils.js') }}?v=2'),
                 import('https://esm.sh/three@0.179.1/examples/jsm/loaders/GLTFLoader.js'),
             ]).then(([THREE, { applyStandPrimaryColor }, { GLTFLoader }]) => {
                 const container = document.getElementById(@js($viewerId));

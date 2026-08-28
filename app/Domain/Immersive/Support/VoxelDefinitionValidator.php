@@ -26,7 +26,7 @@ class VoxelDefinitionValidator
         'plaza', 'pavement', 'stone', 'stoneLight', 'white', 'ochre', 'coral', 'butter',
         'roof', 'roofClay', 'wood', 'woodDark', 'leaf', 'mountain', 'glass',
         'trim', 'iron', 'concrete', 'brick', 'water', 'flower', 'cloth', 'skin', 'shirt', 'pants',
-        'grass', 'path', 'patina', 'accent', 'brickAccent', 'collisionBarrier',
+        'grass', 'path', 'patina', 'accent', 'brickAccent', 'color', 'collisionBarrier',
     ];
 
     /**

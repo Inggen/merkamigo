@@ -110,7 +110,7 @@ class ImpersonationPlanBypassTest extends TestCase
 
         $proTemplate = ImmersiveObjectTemplate::create([
             'name' => 'Stand Pro', 'slug' => 'stand-pro-'.uniqid(), 'category' => 'stand',
-            'builder_key' => 'standBooth', 'max_width' => 3.6, 'max_depth' => 3.2, 'max_height' => 2.9,
+            'builder_key' => 'stand', 'max_width' => 3.6, 'max_depth' => 3.2, 'max_height' => 2.9,
             'status' => 'publicada',
         ]);
 

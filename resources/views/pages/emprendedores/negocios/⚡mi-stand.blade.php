@@ -70,6 +70,7 @@ new #[Title('Mi stand en la plaza')] class extends Component
     public function templates()
     {
         return ImmersiveObjectTemplate::where('category', 'stand')
+            ->where('builder_key', 'stand')
             ->where('status', 'publicada')
             ->orderBy('id')
             ->get();
@@ -112,6 +113,7 @@ new #[Title('Mi stand en la plaza')] class extends Component
         $this->authorize('update', $business);
 
         $template = ImmersiveObjectTemplate::where('category', 'stand')
+            ->where('builder_key', 'stand')
             ->where('status', 'publicada')
             ->findOrFail($templateId);
 
@@ -226,7 +228,7 @@ new #[Title('Mi stand en la plaza')] class extends Component
                 <div class="flex flex-col items-center gap-3 rounded-2xl border p-4 text-center {{ $isSelected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-zinc-200 dark:border-zinc-700' }}">
                     @if ($template->modelPathUrl())
                         <x-immersive.stand-template-glb-preview :template="$template" stand-color-model="stand_color" />
-                    @elseif ($template->builder_key)
+                    @elseif ($template->model_definition || $template->builder_key)
                         <x-immersive.stand-template-builder-preview :template="$template" stand-color-model="stand_color" />
                     @else
                         <div class="flex aspect-square w-full items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">

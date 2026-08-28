@@ -47,4 +47,20 @@ class ImmersiveCharacterTemplateSeederTest extends TestCase
 
         $this->assertSame('coral', $template->fresh()->model_definition['boxes'][0]['texture']);
     }
+
+    public function test_it_seeds_the_market_stall_as_a_complete_editable_voxel_object(): void
+    {
+        $this->seed(ImmersiveObjectTemplateSeeder::class);
+
+        $template = ImmersiveObjectTemplate::query()
+            ->where('slug', 'stand-toldo-mercado')
+            ->firstOrFail();
+
+        $this->assertSame('stand', $template->builder_key);
+        $this->assertSame('ia_voxel', $template->asset_input_mode);
+        $this->assertCount(12, $template->model_definition['boxes']);
+        $this->assertContains('color', collect($template->model_definition['boxes'])->pluck('texture'));
+
+        app(VoxelDefinitionValidator::class)->validate($template->model_definition, $template);
+    }
 }

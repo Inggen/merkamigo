@@ -67,4 +67,9 @@ class VoxelPaletteMatcherTest extends TestCase
     {
         $this->assertSame([], VoxelPaletteMatcher::nearestTextures([]));
     }
+
+    public function test_personalizable_stand_color_is_an_allowed_voxel_texture(): void
+    {
+        $this->assertContains('color', VoxelDefinitionValidator::ALLOWED_TEXTURES);
+    }
 }

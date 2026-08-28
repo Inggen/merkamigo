@@ -134,6 +134,10 @@ export const basePalette = {
     patinaDark: 0x3f5646,
     accent: 0xdf3527,
     brickAccent: 0xe6e0d3,
+    // Base neutra: `material.color` multiplica el mapa de textura. Si esta
+    // textura tuviera un tono propio (antes era roja), un verde elegido por
+    // el emprendedor terminaba marrón/negro en vez del color solicitado.
+    color: 0xffffff,
 };
 
 /**
@@ -310,6 +314,7 @@ export function createVoxelTextures(colors) {
     make('patina', colors.patina, 12, colors.patinaDark, true);
     make('accent', colors.accent, 10, 0x8f120a);
     make('brickAccent', colors.brickAccent ?? 0xe6e0d3, 8, colors.stone);
+    make('color', colors.color ?? 0xffffff, 8, 0xd4d4d4);
     // Pedido del usuario: "tipo de objeto especial" estrictamente
     // colisionante — azul claro semitransparente con bordes en azul más
     // fuerte (ver `COLLISION_BARRIER_TEXTURE`/`addCollisionBarrierEdges()`
@@ -406,6 +411,7 @@ export function createStandaloneVoxelTarget(palette = basePalette) {
         mesh.rotation.set(rotationX, rotationY, rotationZ);
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
+        mesh.userData.voxelTexture = texture;
         group.add(mesh);
 
         if (isCollisionBarrier) {
@@ -679,6 +685,7 @@ export function buildAvatarFigure(presetKey = 'hombre', definition = null, engin
         mesh.rotation.set(rotationX, rotationY, rotationZ);
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
+        mesh.userData.voxelTexture = texture;
         group.add(mesh);
 
         return mesh;
@@ -1034,6 +1041,7 @@ export class VoxelPlazaEngine {
         mesh.rotation.set(rotationX, rotationY, rotationZ);
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
+        mesh.userData.voxelTexture = texture;
         group.add(mesh);
 
         if (isCollisionBarrier) {
@@ -2599,6 +2607,7 @@ export const standardBuilders = {
     marketStall: buildMarketStall,
     vehicle: buildVehicle,
     statue: buildStatue,
+    stand: buildStandBooth,
     standBooth: buildStandBooth,
     standTable: buildStandTable,
     voxelBox: (engine, opts) => engine.addVoxelBox(opts),

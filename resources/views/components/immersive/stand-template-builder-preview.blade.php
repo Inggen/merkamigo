@@ -15,9 +15,9 @@
 
             Promise.all([
                 import('https://esm.sh/three@0.179.1'),
-                import('{{ asset('js/lib/stand-color-utils.js') }}'),
-                import('{{ asset('js/lib/voxel-plaza-engine.js') }}?v=1'),
-            ]).then(([THREE, { applyStandPrimaryColor }, { standardBuilders, createStandaloneVoxelTarget, basePalette }]) => {
+                import('{{ asset('js/lib/stand-color-utils.js') }}?v=2'),
+                import('{{ asset('js/lib/voxel-plaza-engine.js') }}?v=3'),
+            ]).then(([THREE, { applyStandPrimaryColor }, { standardBuilders, createStandaloneVoxelTarget, buildFromDefinition, basePalette }]) => {
                 const container = document.getElementById(@js($viewerId));
 
                 if (! container || container.dataset.initialized === 'true') {
@@ -27,8 +27,10 @@
                 container.dataset.initialized = 'true';
 
                 const builder = standardBuilders[@js($template->builder_key)];
+                const definition = @js($template->model_definition);
+                const hasDefinition = Array.isArray(definition?.boxes) && definition.boxes.length > 0;
 
-                if (! builder) {
+                if (! hasDefinition && ! builder) {
                     this.errorMessage = 'No hay una vista previa disponible para este stand.';
 
                     return;
@@ -106,7 +108,11 @@
                     };
 
                     scene.add(target.world);
-                    builder(target, { x: 0, z: 0, rotation: 0 });
+                    if (hasDefinition) {
+                        buildFromDefinition(target, { x: 0, z: 0, rotation: 0, definition });
+                    } else {
+                        builder(target, { x: 0, z: 0, rotation: 0 });
+                    }
                     modelRoot = target.world;
 
                     modelRoot.updateMatrixWorld(true);
