@@ -49,8 +49,8 @@ class SitemapTest extends TestCase
         $response->assertSee(route('vitrinas.show', $business->fresh()), false);
         $response->assertSee(route('vitrinas.product', [$business->fresh(), $product->fresh()]), false);
         $response->assertSee(route('home'), false);
-        $response->assertSee(route('plaza.show', $municipality), false);
-        $response->assertSee(route('plaza.category', [$municipality, $category]), false);
+        $response->assertSee(route('buscar', ['municipio' => $municipality->slug]), false);
+        $response->assertSee(route('buscar', ['municipio' => $municipality->slug, 'categoria' => $category->slug]), false);
         $response->assertSee('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', false);
         $response->assertDontSee('negocio-borrador');
     }

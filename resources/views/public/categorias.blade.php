@@ -19,7 +19,7 @@
     :schema-graph="$schemaGraph"
 >
     <div class="mx-auto max-w-3xl px-6 py-10">
-        <flux:heading size="xl" class="mb-2">{{ __('Categorías') }}</flux:heading>
+        <h1 class="mb-2 text-2xl font-semibold tracking-tight text-carbon dark:text-white">{{ __('Categorías') }}</h1>
         <flux:subheading class="mb-6">
             {{ __('Explora cada categoría y descubre en qué municipios ya hay negocios, productos y servicios publicados.') }}
         </flux:subheading>

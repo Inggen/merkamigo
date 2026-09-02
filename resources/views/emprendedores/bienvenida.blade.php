@@ -1,4 +1,19 @@
-<x-layouts::public :title="__('Crea tu Merkamigo')" :show-municipality-selector="false">
+@php
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Crear vitrina')],
+        ]),
+    ];
+@endphp
+
+<x-layouts::public
+    :title="__('Crear una vitrina digital')"
+    :description="__('Crea gratis tu vitrina digital en Merkamigo, publica productos o servicios y recibe contactos por WhatsApp.')"
+    :canonical="route('emprendedores.bienvenida')"
+    :schema-graph="$schemaGraph"
+    :show-municipality-selector="false"
+>
     @php
         $heroBackground = $municipality?->coverUrl() ?? asset('images/backgrounds/fondo-buscador-principal.webp');
     @endphp
@@ -10,7 +25,7 @@
         <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
 
         <div class="relative mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
-            <flux:heading size="xl" class="text-3xl text-white sm:text-4xl">{{ __('Crea tu vitrina digital en cinco minutos') }}</flux:heading>
+            <h1 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{{ __('Crea tu vitrina digital en cinco minutos') }}</h1>
             <flux:text class="max-w-xl text-lg text-brand-100">
                 {{ __('Muestra tu negocio, sé encontrado por compradores cerca de ti y recibe contactos directo por WhatsApp.') }}
             </flux:text>

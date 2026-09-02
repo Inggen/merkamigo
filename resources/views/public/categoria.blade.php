@@ -34,7 +34,7 @@
             <span class="text-zinc-700 dark:text-zinc-200">{{ $category->name }}</span>
         </nav>
 
-        <flux:heading size="xl" class="mb-2">{{ $category->name }}</flux:heading>
+        <h1 class="mb-2 text-2xl font-semibold tracking-tight text-carbon dark:text-white">{{ $category->name }}</h1>
         <flux:subheading class="mb-8 max-w-3xl">
             {{ __('Encuentra en qué municipios ya hay oferta activa para esta categoría y entra directo a la plaza local correspondiente.') }}
         </flux:subheading>

@@ -1,8 +1,22 @@
-<x-layouts::cliente :title="__('Pídelo en Merkamigo')">
+@php
+    $schemaGraph = [
+        \App\Support\Seo\SchemaBuilder::breadcrumb([
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Pídelo')],
+        ]),
+    ];
+@endphp
+
+<x-layouts::cliente
+    :title="__('Pídelo en Merkamigo')"
+    :description="__('Publica lo que necesitas y recibe propuestas de negocios locales cerca de ti en Merkamigo.')"
+    :canonical="route('pidelo')"
+    :schema-graph="$schemaGraph"
+>
     <div class="mx-auto max-w-3xl px-6 py-8">
         <div class="mb-8 flex flex-col items-start gap-4 rounded-2xl border border-brand-100 bg-brand-50 p-6 sm:flex-row sm:items-center sm:justify-between dark:border-brand-900 dark:bg-brand-950">
             <div>
-                <flux:heading size="xl">{{ __('Pídelo en Merkamigo') }}</flux:heading>
+                <h1 class="text-2xl font-semibold tracking-tight text-carbon dark:text-white">{{ __('Pídelo en Merkamigo') }}</h1>
                 <flux:text class="mt-1 text-zinc-600 dark:text-zinc-300">
                     {{ __('Cuenta qué necesitas y recibe propuestas de negocios cerca de ti.') }}
                 </flux:text>

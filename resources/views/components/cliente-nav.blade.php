@@ -57,6 +57,18 @@
             </flux:dropdown>
         @endif
 
+        <nav aria-label="{{ __('Navegación principal') }}" class="hidden items-center gap-1 lg:flex">
+            <a href="{{ route('municipios') }}" wire:navigate class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-brand-700 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-brand-300">
+                {{ __('Municipios') }}
+            </a>
+            <a href="{{ route('categorias') }}" wire:navigate class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-brand-700 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-brand-300">
+                {{ __('Categorías') }}
+            </a>
+            <a href="{{ route('como-funciona') }}" wire:navigate class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-brand-700 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-brand-300">
+                {{ __('Cómo funciona') }}
+            </a>
+        </nav>
+
         <nav class="ml-auto flex shrink-0 items-center gap-1">
             @auth
                 <flux:button

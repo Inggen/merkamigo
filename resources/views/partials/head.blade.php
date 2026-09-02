@@ -1,6 +1,10 @@
 @php
-    $seoTitle = $title ?? config('app.name', 'Laravel');
-    $pageTitle = filled($title ?? null) ? $title.' - '.config('app.name', 'Laravel') : config('app.name', 'Laravel');
+    $siteName = config('app.name', 'Merkamigo');
+    $providedTitle = trim((string) ($title ?? ''));
+    $pageTitle = blank($providedTitle)
+        ? $siteName
+        : (str_contains(mb_strtolower($providedTitle), mb_strtolower($siteName)) ? $providedTitle : $providedTitle.' - '.$siteName);
+    $seoTitle = $pageTitle;
     $pageDescription = $description ?? __('Descubre lo local, conecta con tu comunidad. Merkamigo conecta emprendedores locales con compradores cercanos en Bogotá y Sabana Norte.');
     $pageImage = $image ?? \App\Domain\Platform\Models\SiteSetting::current()->defaultShareImageUrl() ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
     $canonicalUrl = $canonical ?? url()->full();
@@ -59,6 +63,10 @@
         ], $pageSchemaData)),
         ...($schemaGraph ?? []),
     ]));
+    $structuredData = [
+        chr(64).'context' => 'https://schema.org',
+        chr(64).'graph' => $schemaGraph,
+    ];
 @endphp
 
 <meta charset="utf-8" />
@@ -95,7 +103,7 @@
 <link rel="manifest" href="{{ asset('site.webmanifest') }}">
 <meta name="theme-color" content="#D7352A">
 
-<script type="application/ld+json">{!! json_encode(['@context' => 'https://schema.org', '@graph' => $schemaGraph], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 
 @fonts
 

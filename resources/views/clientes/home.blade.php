@@ -63,7 +63,7 @@
 @endphp
 
 <x-layouts::cliente
-    :title="__('Inicio')"
+    :title="__('Merkamigo: negocios y productos locales cerca de ti')"
     :description="$municipality
         ? __('Explora negocios, productos y servicios locales en :municipio con Merkamigo.', ['municipio' => $municipality->name])
         : __('Descubre negocios, productos y servicios locales en Bogotá y Sabana Norte con Merkamigo.')"

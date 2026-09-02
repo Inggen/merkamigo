@@ -17,6 +17,35 @@ class SeoMarkupTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_homepage_exposes_valid_site_identity_and_primary_navigation(): void
+    {
+        $response = $this->get(route('home'));
+
+        $response
+            ->assertOk()
+            ->assertSee('<title>Merkamigo: negocios y productos locales cerca de ti</title>', false)
+            ->assertSee('aria-label="Navegación principal"', false)
+            ->assertSee('<h1', false);
+
+        preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $response->getContent(), $matches);
+
+        $schema = json_decode($matches[1] ?? '', true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame('https://schema.org', $schema['@context']);
+        $this->assertSame('Merkamigo', $schema['@graph'][1]['name']);
+        $this->assertSame('merkamigo.com', $schema['@graph'][1]['alternateName']);
+        $this->assertStringNotContainsString('<?php', $matches[1]);
+    }
+
+    public function test_primary_public_pages_use_semantic_h1_headings(): void
+    {
+        foreach (['municipios', 'categorias', 'como-funciona', 'preguntas-frecuentes', 'soporte'] as $routeName) {
+            $this->get(route($routeName))
+                ->assertOk()
+                ->assertSee('<h1', false);
+        }
+    }
+
     public function test_the_public_storefront_renders_structured_data_for_the_business_and_breadcrumbs(): void
     {
         [$business] = $this->publishedBusinessWithProduct('producto');

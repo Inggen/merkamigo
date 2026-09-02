@@ -22,7 +22,7 @@
     :schema-graph="$schemaGraph"
 >
     <div class="mx-auto max-w-3xl px-6 py-10">
-        <flux:heading size="xl" class="mb-2">{{ __('Municipios activos') }}</flux:heading>
+        <h1 class="mb-2 text-2xl font-semibold tracking-tight text-carbon dark:text-white">{{ __('Municipios activos') }}</h1>
         <flux:subheading class="mb-6">{{ __('Merkamigo ya está disponible en Bogotá y municipios activos de Sabana Norte.') }}</flux:subheading>
 
         <div class="grid gap-4 sm:grid-cols-2">

@@ -16,6 +16,8 @@ class SchemaBuilder
             '@type' => 'Organization',
             '@id' => route('home').'#organization',
             'name' => config('app.name', 'Merkamigo'),
+            'alternateName' => 'merkamigo.com',
+            'description' => __('Plataforma para descubrir negocios, productos y servicios locales en Colombia.'),
             'url' => route('home'),
             'logo' => asset('icons/icon-512.png'),
             'sameAs' => [],
@@ -28,15 +30,11 @@ class SchemaBuilder
             '@type' => 'WebSite',
             '@id' => route('home').'#website',
             'name' => config('app.name', 'Merkamigo'),
+            'alternateName' => 'merkamigo.com',
             'url' => route('home'),
             'inLanguage' => str_replace('_', '-', app()->getLocale()),
             'publisher' => [
                 '@id' => route('home').'#organization',
-            ],
-            'potentialAction' => [
-                '@type' => 'SearchAction',
-                'target' => route('buscar', ['municipio' => 'todos']).'?q={search_term_string}',
-                'query-input' => 'required name=search_term_string',
             ],
         ]);
     }

@@ -14,7 +14,7 @@
     :schema-graph="$schemaGraph"
 >
     <div class="mx-auto max-w-3xl px-6 py-10">
-        <flux:heading size="xl" class="mb-6">{{ __('Cómo funciona Merkamigo') }}</flux:heading>
+        <h1 class="mb-6 text-2xl font-semibold tracking-tight text-carbon dark:text-white">{{ __('Cómo funciona Merkamigo') }}</h1>
 
         <div class="space-y-8">
             <div>
