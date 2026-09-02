@@ -1,8 +1,6 @@
-> **Borrador — pendiente de revisión legal.** Este texto es un punto de partida razonable para el piloto (0.6 del TODO), no un documento revisado por un abogado. No debe considerarse asesoría legal ni publicarse como definitivo sin esa revisión.
-
 # Términos de uso de Merkamigo
 
-Última actualización: 27 de julio de 2026 (borrador).
+Última actualización: 2 de septiembre de 2026 (borrador, versión 1.2).
 
 ## 1. Qué es Merkamigo
 
@@ -32,14 +30,33 @@ La verificación de un negocio (cuando esté disponible) confirma únicamente lo
 
 Merkamigo genera enlaces y textos sugeridos para iniciar conversaciones por WhatsApp. Merkamigo no envía mensajes automáticos en nombre del usuario, no lee ni almacena el contenido de esas conversaciones, y no es responsable de lo que se acuerde en ellas.
 
-## 6. Planes y precios
+## 6. Ventas, garantías y devoluciones de terceros
+
+Los productos y servicios publicados en Merkamigo son ofrecidos y vendidos por negocios independientes. El negocio identificado en cada vitrina es el vendedor o prestador del servicio y la contraparte del comprador. Merkamigo no adquiere la propiedad de los productos, no mantiene inventario, no recibe el precio de la compraventa y no sustituye al vendedor en sus obligaciones legales.
+
+Antes de confirmar una compra, el vendedor y el comprador deben acordar directamente y conservar evidencia de:
+
+- La descripción, disponibilidad y estado del producto o el alcance del servicio.
+- El precio total, incluidos impuestos, envío y cualquier costo adicional aplicable.
+- La forma de pago, el plazo y lugar de entrega, y los datos de contacto para presentar solicitudes o reclamos.
+- Las condiciones de garantía, cambios, cancelaciones y devoluciones ofrecidas por el vendedor.
+
+El vendedor es responsable de la veracidad de la oferta, la calidad, idoneidad y seguridad de lo vendido, su entrega, la garantía legal, la facturación cuando corresponda y la atención de peticiones, quejas o reclamos del comprador.
+
+Las devoluciones o cambios por decisión del comprador se sujetan a la política comercial informada por el vendedor antes de la compra. Esa política no puede limitar ni eliminar derechos obligatorios del consumidor. Cuando legalmente procedan la garantía, el derecho de retracto, la reversión del pago u otra forma de devolución, el comprador podrá ejercerlos directamente ante el vendedor y demás responsables previstos por la ley, dentro de los términos y condiciones aplicables. El vendedor deberá atender la solicitud y realizar la reparación, cambio, repetición del servicio o devolución del dinero que corresponda.
+
+Merkamigo no aprueba ni ejecuta devoluciones o reembolsos de ventas celebradas entre terceros. Sin embargo, el comprador puede usar el canal de soporte para solicitar los datos de identificación disponibles del vendedor, reportar un posible incumplimiento o aportar evidencia. Merkamigo podrá facilitar el contacto, conservar información disponible en la plataforma y aplicar medidas de moderación, sin decidir el fondo de la controversia ni reemplazar a las autoridades competentes.
+
+Nada de lo dispuesto en estos términos implica la renuncia del comprador a los derechos reconocidos por el Estatuto del Consumidor colombiano y demás normas aplicables.
+
+## 7. Planes y precios
 
 Los precios mostrados en el producto son ofertas comerciales de Merkamigo hacia los emprendedores (planes, destacados, kits) y pueden cambiar. Ningún cobro se activa sin que el usuario lo autorice explícitamente.
 
-## 7. Suspensión y terminación
+## 8. Suspensión y terminación
 
 Merkamigo puede suspender temporalmente una cuenta o contenido cuando existan reportes fundados o incumplimientos de estos términos, notificando el motivo a la persona afectada.
 
-## 8. Contacto
+## 9. Contacto
 
 Dudas sobre estos términos: canal de soporte indicado en la plataforma.

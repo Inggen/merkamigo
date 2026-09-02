@@ -7,5 +7,5 @@
  * versión que aceptaron en su momento.
  */
 return [
-    'terms_version' => '1.1',
+    'terms_version' => '1.2',
 ];

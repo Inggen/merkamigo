@@ -30,3 +30,8 @@ Schedule::command('billing:apply-plan-downgrades')->dailyAt('02:00');
 // 4.5 del TODO: informe semanal por correo y alertas de vitrina sin completar.
 Schedule::command('analytics:send-weekly-reports')->weekly();
 Schedule::command('analytics:alert-incomplete-storefronts')->weekly();
+
+Schedule::command('google-merchant:sync')
+    ->hourly()
+    ->withoutOverlapping()
+    ->when(fn () => config('services.google_merchant.enabled'));

@@ -12,6 +12,18 @@ return [
         'support_whatsapp' => env('MERKAMIGO_SUPPORT_WHATSAPP'),
     ],
 
+    'google_merchant' => [
+        'enabled' => env('GOOGLE_MERCHANT_ENABLED', false),
+        'account_id' => env('GOOGLE_MERCHANT_ACCOUNT_ID'),
+        'data_source_id' => env('GOOGLE_MERCHANT_DATA_SOURCE_ID'),
+        'credentials' => env('GOOGLE_MERCHANT_CREDENTIALS', 'storage/app/private/google-merchant-service-account.json'),
+        'content_language' => env('GOOGLE_MERCHANT_CONTENT_LANGUAGE', 'es'),
+        'feed_label' => env('GOOGLE_MERCHANT_FEED_LABEL', 'CO'),
+        'currency' => env('GOOGLE_MERCHANT_CURRENCY', 'COP'),
+        'endpoint' => env('GOOGLE_MERCHANT_ENDPOINT', 'https://merchantapi.googleapis.com'),
+        'timeout' => (int) env('GOOGLE_MERCHANT_TIMEOUT', 30),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | OpenAI
