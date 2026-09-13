@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Tables;
 
 use App\Domain\Moderation\Actions\RestoreProduct;
 use App\Domain\Moderation\Actions\SuspendProduct;
+use App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant;
 use App\Domain\Storefronts\Models\Product;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -56,6 +57,26 @@ class ProductsTable
                     ->label('Suspendido')
                     ->dateTime()
                     ->sortable(),
+                TextColumn::make('google_merchant_status')
+                    ->label('Google')
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
+                        'publicado' => 'success',
+                        'pendiente', 'sincronizando' => 'info',
+                        'requiere_ajustes' => 'warning',
+                        'error' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state) => match ($state) {
+                        'publicado' => 'Publicado',
+                        'pendiente' => 'Pendiente',
+                        'sincronizando' => 'Sincronizando',
+                        'requiere_ajustes' => 'Requiere ajustes',
+                        'error' => 'Error',
+                        default => 'No publicado',
+                    })
+                    ->tooltip(fn (Product $record) => $record->google_merchant_last_error)
+                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -66,8 +87,28 @@ class ProductsTable
                         'agotado' => 'Agotado',
                         'archivado' => 'Archivado',
                     ]),
+                SelectFilter::make('google_merchant_status')
+                    ->label('Estado Google')
+                    ->options([
+                        'no_publicado' => 'No publicado',
+                        'pendiente' => 'Pendiente',
+                        'sincronizando' => 'Sincronizando',
+                        'requiere_ajustes' => 'Requiere ajustes',
+                        'publicado' => 'Publicado',
+                        'error' => 'Error',
+                    ]),
             ])
             ->recordActions([
+                Action::make('syncGoogleMerchant')
+                    ->label('Sincronizar con Google')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->visible(fn () => (bool) config('services.google_merchant.enabled'))
+                    ->action(function (Product $record) {
+                        SyncProductToGoogleMerchant::dispatch($record->id);
+
+                        Notification::make()->title('Sincronización con Google Merchant encolada')->success()->send();
+                    }),
                 Action::make('suspend')
                     ->label('Suspender')
                     ->icon('heroicon-o-no-symbol')

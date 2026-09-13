@@ -148,4 +148,16 @@ return [
         'max_files' => 1,
     ],
 
+    'site_create_vitrina_video' => [
+        'mimes' => ['mp4', 'webm', 'mov'],
+        'max_kb' => 51200,
+        'max_files' => 1,
+    ],
+
+    'site_pidelo_video' => [
+        'mimes' => ['mp4', 'webm', 'mov'],
+        'max_kb' => 51200,
+        'max_files' => 1,
+    ],
+
 ];

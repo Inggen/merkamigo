@@ -31,6 +31,10 @@ Schedule::command('billing:apply-plan-downgrades')->dailyAt('02:00');
 Schedule::command('analytics:send-weekly-reports')->weekly();
 Schedule::command('analytics:alert-incomplete-storefronts')->weekly();
 
+// Conciliación periódica de Google Merchant (Fase 10 de la integración):
+// sin flags, el comando solo encola los productos elegibles que nunca se
+// sincronizaron, quedaron en error/requiere_ajustes, o cambiaron desde su
+// último envío exitoso — nunca reenvía todo el catálogo cada hora.
 Schedule::command('google-merchant:sync')
     ->hourly()
     ->withoutOverlapping()

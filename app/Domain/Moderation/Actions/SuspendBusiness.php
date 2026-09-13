@@ -2,6 +2,7 @@
 
 namespace App\Domain\Moderation\Actions;
 
+use App\Domain\Businesses\Events\BusinessSuspended;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Models\User;
@@ -25,5 +26,7 @@ class SuspendBusiness
         app(RecordAuditLog::class)->handle($moderator, 'business.suspended', $business, [
             'reason' => $reason,
         ]);
+
+        event(new BusinessSuspended($business->id));
     }
 }

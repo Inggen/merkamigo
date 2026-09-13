@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Businesses\Tables;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Moderation\Actions\RestoreBusiness;
 use App\Domain\Moderation\Actions\SuspendBusiness;
+use App\Domain\Storefronts\Jobs\DeleteProductFromGoogleMerchant;
+use App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
@@ -12,7 +14,9 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 
@@ -64,6 +68,34 @@ class BusinessesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                ToggleColumn::make('google_merchant_enabled')
+                    ->label('Google Shopping')
+                    ->tooltip('Habilita el envío automático de los productos de este negocio a Google Merchant Center.')
+                    ->afterStateUpdated(function (Business $record, bool $state) {
+                        $record->products()
+                            ->where('type', 'producto')
+                            ->pluck('id')
+                            ->each(fn (int $productId) => $state
+                                ? SyncProductToGoogleMerchant::dispatch($productId)
+                                : DeleteProductFromGoogleMerchant::dispatch($productId));
+                    }),
+                TextColumn::make('google_merchant_status')
+                    ->label('Estado Google')
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
+                        'activo' => 'success',
+                        'pendiente' => 'info',
+                        'error' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state) => match ($state) {
+                        'activo' => 'Activo',
+                        'pendiente' => 'Pendiente',
+                        'error' => 'Error',
+                        default => 'No configurado',
+                    })
+                    ->tooltip(fn (Business $record) => $record->google_merchant_error)
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -78,6 +110,8 @@ class BusinessesTable
                 SelectFilter::make('municipality')
                     ->label('Municipio')
                     ->relationship('municipality', 'name'),
+                TernaryFilter::make('google_merchant_enabled')
+                    ->label('Google Shopping'),
             ])
             ->recordActions([
                 Action::make('suspend')

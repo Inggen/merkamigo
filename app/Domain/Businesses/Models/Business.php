@@ -43,6 +43,22 @@ class Business extends Model
     use Favoritable, SoftDeletes;
 
     /**
+     * El backfill de la migración cubrió los negocios que ya existían al
+     * agregar `external_seller_id`; esto cubre todos los que se creen de
+     * ahí en adelante, sin importar el punto de entrada (Action, seeder,
+     * factory de test). No puede ir en `creating`: necesita el ID
+     * autoincremental, que solo existe después del insert.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Business $business): void {
+            if (blank($business->external_seller_id)) {
+                $business->forceFill(['external_seller_id' => self::externalSellerIdFor($business->id)])->saveQuietly();
+            }
+        });
+    }
+
+    /**
      * Días de la semana en español, en claves compatibles con
      * `now()->format('l')` (que siempre devuelve el nombre en inglés sin
      * traducir). Compartido por el editor del emprendedor y la vitrina
@@ -86,6 +102,11 @@ class Business extends Model
         'card_brand',
         'card_last_four',
         'auto_renew_enabled',
+        'external_seller_id',
+        'google_merchant_enabled',
+        'google_merchant_status',
+        'google_merchant_last_sync_at',
+        'google_merchant_error',
     ];
 
     protected function casts(): array
@@ -100,6 +121,8 @@ class Business extends Model
             'latitude' => 'float',
             'longitude' => 'float',
             'auto_renew_enabled' => 'boolean',
+            'google_merchant_enabled' => 'boolean',
+            'google_merchant_last_sync_at' => 'datetime',
         ];
     }
 
@@ -318,6 +341,31 @@ class Business extends Model
     public function isFeatured(): bool
     {
         return $this->featured_until !== null && $this->featured_until->isFuture();
+    }
+
+    /**
+     * `external_seller_id` estable para Google Merchant Center (cuentas
+     * marketplace/multi-seller): derivado del ID interno, nunca del slug
+     * (que sí puede cambiar). Centralizado aquí para no duplicar el
+     * formato en ningún otro punto del código.
+     */
+    public static function externalSellerIdFor(int $businessId): string
+    {
+        return "merkamigo_{$businessId}";
+    }
+
+    /**
+     * Una vez asignado, `external_seller_id` no debe regenerarse: esto
+     * solo cubre el caso (no debería ocurrir tras el backfill de la
+     * migración) de un negocio creado sin pasar por este accessor.
+     */
+    public function externalSellerId(): string
+    {
+        if (blank($this->external_seller_id)) {
+            $this->forceFill(['external_seller_id' => self::externalSellerIdFor($this->id)])->save();
+        }
+
+        return $this->external_seller_id;
     }
 
     /**

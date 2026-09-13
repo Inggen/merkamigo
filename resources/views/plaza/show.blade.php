@@ -127,17 +127,37 @@
             />
         @endif
 
-        <div class="mb-10 overflow-hidden rounded-xl  border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
-            <div class="grid gap-0 lg:grid-cols-2">
-                <div class="flex flex-col justify-center gap-4 p-6 sm:p-8">
-                    <span class="flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
+        @php
+            $pideloVideoUrl = \App\Domain\Platform\Models\SiteSetting::current()->pideloVideoUrl();
+        @endphp
+        <div class="mt-10 mb-10 overflow-hidden rounded-xl  border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
+            <div @class(['grid gap-0', 'lg:grid-cols-2' => $openNeeds->isNotEmpty()])>
+                <div @class(['relative flex min-h-[300px] flex-col justify-center gap-4 overflow-hidden p-6 sm:p-8'])>
+                    @if ($pideloVideoUrl)
+                        <video
+                            class="absolute inset-0 h-full w-full object-cover"
+                            style="height:180%"
+                            src="{{ $pideloVideoUrl }}"
+                            autoplay
+                            muted
+                            loop
+                            playsinline
+                            preload="metadata"
+                        ></video>
+                        <div class="absolute inset-0 bg-gradient-to-r from-black/85 from-0% via-black/55 via-35% to-transparent to-60%"></div>
+                    @endif
+                    <span class="relative flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
                         <flux:icon.chat-bubble-left-right variant="outline" class="size-6" />
                     </span>
-                    <flux:heading size="lg">{{ __('¿No encuentras lo que necesitas?') }}</flux:heading>
-                    <flux:text class="text-zinc-600 dark:text-zinc-300">
+                    <flux:heading size="lg" @class(['relative', 'text-white' => $pideloVideoUrl])>{{ __('¿No encuentras lo que necesitas?') }}</flux:heading>
+                    <flux:text @class([
+                        'relative',
+                        'text-zinc-600 dark:text-zinc-300' => ! $pideloVideoUrl,
+                        'text-zinc-100' => $pideloVideoUrl,
+                    ])>
                         {{ __('Publica tu solicitud y recibe propuestas de negocios cercanos listos para ayudar.') }}
                     </flux:text>
-                    <flux:button variant="primary" :href="route('pidelo.nueva')" wire:navigate class="w-fit">
+                    <flux:button variant="primary" :href="route('pidelo.nueva')" wire:navigate class="relative w-fit">
                         {{ __('Publicar una solicitud') }}
                     </flux:button>
                 </div>
@@ -212,19 +232,6 @@
             </div>
         @endif
 
-        <div class="mt-10 overflow-hidden rounded-xl  border border-rose-100 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20">
-            <div class="flex flex-col items-center gap-6 p-8 sm:flex-row sm:justify-between sm:p-10">
-                <div class="max-w-lg text-center sm:text-left">
-                    <flux:heading size="lg">{{ __('Haz visible tu negocio en tu comunidad') }}</flux:heading>
-                    <flux:text class="mt-2 text-zinc-600 dark:text-zinc-300">
-                        {{ __('Crea tu vitrina gratis y llega a más personas de tu zona que ya están comprando local.') }}
-                    </flux:text>
-                    <flux:button variant="primary" :href="route('emprendedores.bienvenida')" wire:navigate class="mt-4 w-fit">
-                        {{ __('Crear mi vitrina gratis') }}
-                    </flux:button>
-                </div>
-                <img src="{{ asset('images/fondo-login-admin.svg') }}" alt="" class="hidden w-full shrink-0 opacity-50 sm:block" style="max-width: 700px" loading="lazy">
-            </div>
-        </div>
+        <x-cta.crear-vitrina />
     </div>
 </x-layouts::cliente>

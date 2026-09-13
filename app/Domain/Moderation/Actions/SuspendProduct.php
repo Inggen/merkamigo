@@ -3,6 +3,7 @@
 namespace App\Domain\Moderation\Actions;
 
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Storefronts\Events\ProductUpdated;
 use App\Domain\Storefronts\Models\Product;
 use App\Models\User;
 
@@ -25,5 +26,7 @@ class SuspendProduct
         app(RecordAuditLog::class)->handle($moderator, 'product.suspended', $product, [
             'reason' => $reason,
         ]);
+
+        event(new ProductUpdated($product->id));
     }
 }

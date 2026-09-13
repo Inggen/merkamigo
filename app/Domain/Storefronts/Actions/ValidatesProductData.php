@@ -31,6 +31,13 @@ trait ValidatesProductData
             'promo_ends_at' => ['sometimes', 'nullable', 'date', 'after_or_equal:promo_starts_at'],
             'is_available' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'in:borrador,publicado,agotado,archivado'],
+            // Identificadores opcionales para Google Shopping (0.5 del
+            // TODO de la integración con Google Merchant): nunca
+            // obligatorios, un producto artesanal puede no tenerlos.
+            'gtin' => ['sometimes', 'nullable', 'string', 'max:14'],
+            'mpn' => ['sometimes', 'nullable', 'string', 'max:70'],
+            'brand' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'condition' => ['sometimes', 'in:nuevo,usado,reacondicionado'],
             'variants' => ['sometimes', 'array'],
             'variants.*.label' => ['required_with:variants', 'string', 'max:100'],
             'variants.*.price' => ['sometimes', 'nullable', 'numeric', 'min:0'],

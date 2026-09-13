@@ -2,6 +2,7 @@
 
 namespace App\Domain\Moderation\Actions;
 
+use App\Domain\Businesses\Events\BusinessRestored;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Models\User;
@@ -22,5 +23,7 @@ class RestoreBusiness
         ]);
 
         app(RecordAuditLog::class)->handle($moderator, 'business.restored', $business);
+
+        event(new BusinessRestored($business->id));
     }
 }

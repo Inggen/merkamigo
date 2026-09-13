@@ -64,6 +64,14 @@ new #[Title('Productos y servicios')] class extends Component
 
     public ?string $promo_ends_at = null;
 
+    public ?string $gtin = '';
+
+    public ?string $mpn = '';
+
+    public ?string $brand = '';
+
+    public string $condition = 'nuevo';
+
     /** @var array<int, array{label: string, price: ?float}> */
     public array $variants = [];
 
@@ -141,10 +149,11 @@ new #[Title('Productos y servicios')] class extends Component
     {
         $this->authorize('update', $this->business);
 
-        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'removeMediaIds', 'photoAlts']);
+        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'removeMediaIds', 'photoAlts', 'gtin', 'mpn', 'brand']);
         $this->type = 'producto';
         $this->price_type = 'exacto';
         $this->is_available = true;
+        $this->condition = 'nuevo';
         $this->productBusinessId = $this->selectedBusinessId;
         $this->resetValidation();
     }
@@ -174,6 +183,11 @@ new #[Title('Productos y servicios')] class extends Component
         $this->promo_label = $product->promo_label;
         $this->promo_starts_at = $product->promo_starts_at?->format('Y-m-d');
         $this->promo_ends_at = $product->promo_ends_at?->format('Y-m-d');
+
+        $this->gtin = $product->gtin;
+        $this->mpn = $product->mpn;
+        $this->brand = $product->brand;
+        $this->condition = $product->condition;
 
         $this->variants = $product->variants->map(fn ($variant) => [
             'label' => $variant->label,
@@ -316,6 +330,10 @@ new #[Title('Productos y servicios')] class extends Component
             'promo_label' => $this->has_promo ? $this->promo_label : null,
             'promo_starts_at' => $this->has_promo ? $this->promo_starts_at : null,
             'promo_ends_at' => $this->has_promo ? $this->promo_ends_at : null,
+            'gtin' => $this->gtin ?: null,
+            'mpn' => $this->mpn ?: null,
+            'brand' => $this->brand ?: null,
+            'condition' => $this->condition,
             'variants' => array_values(array_filter(
                 $this->variants,
                 fn (array $variant) => trim($variant['label'] ?? '') !== '',
@@ -568,6 +586,27 @@ new #[Title('Productos y servicios')] class extends Component
                             @endif
                         </div>
 
+                        @if ($product->type === 'producto' && $this->business->google_merchant_enabled)
+                            @php
+                                $googleStatusMeta = match ($product->google_merchant_status) {
+                                    'publicado' => ['Publicado en Google', 'green'],
+                                    'pendiente' => ['Pendiente en Google', 'blue'],
+                                    'sincronizando' => ['Sincronizando con Google', 'blue'],
+                                    'requiere_ajustes' => ['Requiere ajustes para Google', 'yellow'],
+                                    'error' => ['Error en Google', 'red'],
+                                    default => ['No publicado en Google', 'zinc'],
+                                };
+                            @endphp
+                            <flux:badge
+                                size="sm"
+                                :color="$googleStatusMeta[1]"
+                                class="mt-2"
+                                :title="\App\Support\GoogleMerchant\GoogleMerchantErrorTranslator::translate($product->google_merchant_last_error)"
+                            >
+                                {{ $googleStatusMeta[0] }}
+                            </flux:badge>
+                        @endif
+
                         <div class="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2 dark:border-zinc-800">
                             <div class="flex items-center">
                                 <flux:button size="sm" variant="ghost" icon="chevron-up" wire:click="move({{ $product->id }}, -1)" />
@@ -669,6 +708,26 @@ new #[Title('Productos y servicios')] class extends Component
                     </div>
                 @endforeach
             </div>
+
+            @if ($type === 'producto')
+                <div class="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                    <div class="space-y-1">
+                        <flux:text class="font-medium">{{ __('Identificadores para Google Shopping (opcional)') }}</flux:text>
+                        <flux:text class="text-sm text-zinc-500">{{ __('Si tu producto es artesanal, personalizado o único, puedes dejar estos campos vacíos.') }}</flux:text>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <flux:input wire:model="gtin" :label="__('Código de barras (GTIN)')" placeholder="{{ __('Ej: 7701234567890') }}" />
+                        <flux:input wire:model="mpn" :label="__('Referencia del fabricante (MPN)')" />
+                        <flux:input wire:model="brand" :label="__('Marca (opcional)')" placeholder="{{ __('Si no la llenas, se usa el nombre de tu negocio') }}" />
+                        <flux:select wire:model="condition" :label="__('Condición')">
+                            <flux:select.option value="nuevo">{{ __('Nuevo') }}</flux:select.option>
+                            <flux:select.option value="usado">{{ __('Usado') }}</flux:select.option>
+                            <flux:select.option value="reacondicionado">{{ __('Reacondicionado') }}</flux:select.option>
+                        </flux:select>
+                    </div>
+                </div>
+            @endif
 
             <div>
                 <div class="mb-2 flex flex-wrap items-start justify-between gap-3">

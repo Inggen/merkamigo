@@ -6,6 +6,7 @@ use App\Domain\Billing\Actions\CheckUsageLimit;
 use App\Domain\Billing\Exceptions\PlanLimitException;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Storefronts\Events\ProductCreated;
 use App\Domain\Storefronts\Models\Product;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -50,6 +51,8 @@ class CreateProduct
             $this->storePhotos($product, $photos);
 
             app(RecordAuditLog::class)->handle($actor, 'product.created', $product);
+
+            event(new ProductCreated($product->id));
 
             return $product->load(['media', 'variants']);
         });

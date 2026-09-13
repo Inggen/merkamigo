@@ -3,6 +3,7 @@
 namespace App\Domain\Storefronts\Actions;
 
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Storefronts\Events\ProductUpdated;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\ProductMedia;
 use App\Models\User;
@@ -52,6 +53,8 @@ class UpdateProduct
             $this->storePhotos($product, $newPhotos);
 
             app(RecordAuditLog::class)->handle($actor, 'product.updated', $product);
+
+            event(new ProductUpdated($product->id));
 
             $product->refresh()->load(['media', 'variants']);
 

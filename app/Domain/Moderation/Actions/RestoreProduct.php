@@ -3,6 +3,7 @@
 namespace App\Domain\Moderation\Actions;
 
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Storefronts\Events\ProductUpdated;
 use App\Domain\Storefronts\Models\Product;
 use App\Models\User;
 
@@ -20,5 +21,7 @@ class RestoreProduct
         ]);
 
         app(RecordAuditLog::class)->handle($moderator, 'product.restored', $product);
+
+        event(new ProductUpdated($product->id));
     }
 }

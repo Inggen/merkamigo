@@ -139,7 +139,7 @@ class GoogleMerchantIntegrationTest extends TestCase
         ], [], $owner);
         $product->update(['status' => 'publicado']);
         $product->media()->create(['path' => 'products/pan.jpg', 'position' => 0]);
-        $business->update(['status' => 'publicado']);
+        $business->update(['status' => 'publicado', 'google_merchant_enabled' => true]);
 
         return $product->fresh();
     }

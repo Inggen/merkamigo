@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Domain\Platform\Models\SiteSetting;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
@@ -113,6 +114,31 @@ class SiteSettings extends Page
                     ->disk('public')
                     ->directory('site')
                     ->maxSize(config('media.site_main_search_background.max_kb')),
+
+                TextInput::make('meta_pixel_id')
+                    ->label('Meta Pixel ID')
+                    ->helperText('ID del Pixel de Meta (Facebook) para seguimiento de conversiones. Déjalo vacío para desactivarlo.')
+                    ->maxLength(32)
+                    ->regex('/^\d+$/')
+                    ->validationMessages([
+                        'regex' => 'El Meta Pixel ID debe contener solo números.',
+                    ]),
+
+                FileUpload::make('create_vitrina_video_path')
+                    ->label('Video de la tarjeta "Crea tu vitrina"')
+                    ->helperText('Video de fondo de la tarjeta de Inicio que invita a crear la vitrina. Sin video, se muestra la imagen por defecto.')
+                    ->disk('public')
+                    ->directory('site/videos')
+                    ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/quicktime'])
+                    ->maxSize(config('media.site_create_vitrina_video.max_kb')),
+
+                FileUpload::make('pidelo_video_path')
+                    ->label('Video de la tarjeta "¿No encuentras lo que necesitas?"')
+                    ->helperText('Video de fondo de la tarjeta de Inicio que invita a publicar una solicitud (Pídelo). Sin video, se muestra el fondo plano por defecto.')
+                    ->disk('public')
+                    ->directory('site/videos')
+                    ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/quicktime'])
+                    ->maxSize(config('media.site_pidelo_video.max_kb')),
             ])
             ->statePath('data');
     }

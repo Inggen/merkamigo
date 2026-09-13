@@ -39,6 +39,46 @@ class GoogleMerchantClient
     }
 
     /**
+     * Retira un producto de Google Merchant Center (cuando se archiva,
+     * suspende o el negocio se desactiva). Un 404 significa que ya no
+     * existe del lado de Google —o nunca se sincronizó— y se trata como
+     * éxito, no como error.
+     */
+    public function delete(Product $product): void
+    {
+        $response = $this->request()
+            ->withQueryParameters(['dataSource' => $this->dataSourceName()])
+            ->delete($this->url("products/v1/accounts/{$this->accountId()}/productInputs/{$this->mapper->productResourceId($product)}"));
+
+        if ($response->status() === 404) {
+            return;
+        }
+
+        $response->throw();
+    }
+
+    /**
+     * Estado procesado del producto en Merchant Center (incluye
+     * `productStatus` con destinos e issues). El servicio `productstatuses`
+     * de Content API fue eliminado en Merchant API: este es el reemplazo
+     * vigente. `null` si Google todavía no tiene ningún producto con este
+     * identificador (nunca sincronizado, o eliminado).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function get(Product $product): ?array
+    {
+        $response = $this->request()
+            ->get($this->url("products/v1/accounts/{$this->accountId()}/products/{$this->mapper->productResourceId($product)}"));
+
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        return $response->throw()->json();
+    }
+
+    /**
      * Registra una sola vez el proyecto de Google Cloud ante Merchant Center.
      *
      * @return array<string, mixed>

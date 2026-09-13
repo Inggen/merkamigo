@@ -36,6 +36,15 @@ class Product extends Model
         'position',
         'suspension_reason',
         'suspended_at',
+        'gtin',
+        'mpn',
+        'brand',
+        'condition',
+        'google_merchant_status',
+        'google_merchant_product_id',
+        'google_merchant_last_sync_at',
+        'google_merchant_last_error',
+        'google_merchant_synced_hash',
     ];
 
     protected function casts(): array
@@ -47,6 +56,7 @@ class Product extends Model
             'promo_ends_at' => 'datetime',
             'is_available' => 'boolean',
             'suspended_at' => 'datetime',
+            'google_merchant_last_sync_at' => 'datetime',
         ];
     }
 

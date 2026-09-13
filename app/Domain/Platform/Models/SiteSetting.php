@@ -22,6 +22,9 @@ class SiteSetting extends Model
         'main_search_background_path',
         'logo_path',
         'logo_mono_path',
+        'meta_pixel_id',
+        'create_vitrina_video_path',
+        'pidelo_video_path',
     ];
 
     public static function current(): self
@@ -62,6 +65,16 @@ class SiteSetting extends Model
     public function logoMonoUrl(): ?string
     {
         return $this->urlFor($this->logo_mono_path);
+    }
+
+    public function createVitrinaVideoUrl(): ?string
+    {
+        return $this->urlFor($this->create_vitrina_video_path);
+    }
+
+    public function pideloVideoUrl(): ?string
+    {
+        return $this->urlFor($this->pidelo_video_path);
     }
 
     private function urlFor(?string $path): ?string

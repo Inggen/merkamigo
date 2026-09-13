@@ -5,6 +5,7 @@ namespace App\Support\Seo;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Trust\Models\Recommendation;
+use App\Support\GoogleMerchant\GoogleMerchantProductMapper;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
@@ -231,9 +232,12 @@ class SchemaBuilder
             'url' => route('vitrinas.product', [$business, $product]),
             'mainEntityOfPage' => route('vitrinas.product', [$business, $product]),
             'image' => $images === [] ? null : $images,
+            // Sin marca propia declarada, se usa el nombre del negocio —
+            // igual que en el mapper de Google Merchant, nunca se inventa
+            // una marca (0.4 del TODO de la integración con Google).
             'brand' => [
                 '@type' => 'Brand',
-                'name' => $business->name,
+                'name' => $product->brand ?: $business->name,
             ],
             'provider' => [
                 '@id' => route('vitrinas.show', $business).'#store',
@@ -244,7 +248,11 @@ class SchemaBuilder
 
         if ($product->type === 'producto') {
             $schema['category'] = $business->category?->name;
-            $schema['sku'] = 'MKG-'.$business->id.'-'.$product->id;
+            // Mismo identificador que Google Merchant Center (`offerId`),
+            // centralizado en el mapper para no duplicar el formato.
+            $schema['sku'] = app(GoogleMerchantProductMapper::class)->offerId($product);
+            $schema['gtin'] = $product->gtin;
+            $schema['mpn'] = $product->mpn;
         }
 
         return self::clean($schema);
@@ -322,6 +330,7 @@ class SchemaBuilder
                 'availability' => $product->isSoldOut()
                     ? 'https://schema.org/OutOfStock'
                     : 'https://schema.org/InStock',
+                'itemCondition' => self::itemCondition($product->condition),
                 'seller' => [
                     '@id' => route('vitrinas.show', $business).'#store',
                 ],
@@ -337,6 +346,7 @@ class SchemaBuilder
             'availability' => $product->isSoldOut()
                 ? 'https://schema.org/OutOfStock'
                 : 'https://schema.org/InStock',
+            'itemCondition' => self::itemCondition($product->condition),
             'seller' => [
                 '@id' => route('vitrinas.show', $business).'#store',
             ],
@@ -358,6 +368,15 @@ class SchemaBuilder
         }
 
         return self::clean($offer);
+    }
+
+    private static function itemCondition(?string $condition): string
+    {
+        return match ($condition) {
+            'usado' => 'https://schema.org/UsedCondition',
+            'reacondicionado' => 'https://schema.org/RefurbishedCondition',
+            default => 'https://schema.org/NewCondition',
+        };
     }
 
     private static function postalAddress(Business $business): ?array
