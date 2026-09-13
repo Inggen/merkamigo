@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Filament\Pages\GoogleMerchant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -41,6 +42,6 @@ class GoogleMerchantAdminPageTest extends TestCase
 
         $this->actingAs($moderator);
 
-        $this->assertFalse(\App\Filament\Pages\GoogleMerchant::canAccess());
+        $this->assertFalse(GoogleMerchant::canAccess());
     }
 }

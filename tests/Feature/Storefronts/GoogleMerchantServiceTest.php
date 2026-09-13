@@ -6,6 +6,8 @@ use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
+use App\Domain\Storefronts\Jobs\DeleteProductFromGoogleMerchant;
+use App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant;
 use App\Domain\Storefronts\Models\Product;
 use App\Models\User;
 use App\Support\GoogleMerchant\GoogleMerchantClient;
@@ -121,8 +123,8 @@ class GoogleMerchantServiceTest extends TestCase
 
     public function test_jobs_are_configured_to_retry_with_backoff(): void
     {
-        $syncJob = new \App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant(1);
-        $deleteJob = new \App\Domain\Storefronts\Jobs\DeleteProductFromGoogleMerchant(1);
+        $syncJob = new SyncProductToGoogleMerchant(1);
+        $deleteJob = new DeleteProductFromGoogleMerchant(1);
 
         $this->assertSame(5, $syncJob->tries);
         $this->assertSame(5, $deleteJob->tries);

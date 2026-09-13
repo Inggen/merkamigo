@@ -28,7 +28,7 @@ use UnitEnum;
  * que usar la consola. Exclusivo admin/superadmin, igual que el resto de
  * páginas de configuración (`SiteSettings`, etc.).
  *
- * @property-read \Filament\Tables\Table $table
+ * @property-read Table $table
  */
 class GoogleMerchant extends Page implements HasTable
 {
