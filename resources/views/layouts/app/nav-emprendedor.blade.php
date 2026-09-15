@@ -1,9 +1,46 @@
-@php $primaryBusiness = auth()->user()->businesses()->first(); @endphp
+@php
+    // Terreno de 1.1 del TODO social: "si un usuario administra varios
+    // negocios, permitir seleccionar negocio activo". El negocio activo se
+    // deriva del `{business}` de la URL cuando la página actual ya está
+    // dentro de un negocio (route model binding, no un modo global nuevo
+    // que duplicaría lo que la propia navegación por URL ya resuelve) —
+    // solo cae a `first()` en páginas sin negocio en la URL (ej. Inicio).
+    $businesses = auth()->user()->businesses;
+    $routeBusiness = request()->route('business');
+    $primaryBusiness = $routeBusiness instanceof \App\Domain\Businesses\Models\Business ? $routeBusiness : $businesses->first();
+@endphp
 
 <flux:sidebar.group :heading="__('Emprendedor')" class="grid">
     <flux:sidebar.item icon="home" :href="route('emprendedores.home')" :current="request()->routeIs('emprendedores.home')" wire:navigate>
         {{ __('Inicio') }}
     </flux:sidebar.item>
+
+    @if ($businesses->count() > 1)
+        <flux:dropdown class="w-full" position="bottom" align="start">
+            <flux:button icon-trailing="chevron-down" size="sm" variant="ghost" class="w-full !justify-between !px-2 !font-normal">
+                <span class="truncate">{{ $primaryBusiness?->name ?? __('Selecciona un negocio') }}</span>
+            </flux:button>
+
+            <flux:menu>
+                @foreach ($businesses as $business)
+                    <flux:menu.item :href="route('emprendedores.negocios.vitrina', $business)" wire:navigate>
+                        <span class="me-1 inline-flex w-4 shrink-0 items-center justify-center text-zinc-400 dark:text-white/60">
+                            @if ($primaryBusiness?->id === $business->id)
+                                <flux:icon.check variant="mini" class="size-4" />
+                            @endif
+                        </span>
+                        <span class="truncate">{{ $business->name }}</span>
+                    </flux:menu.item>
+                @endforeach
+
+                <flux:menu.separator />
+
+                <flux:menu.item :href="route('emprendedores.crear-vitrina')" icon="plus" wire:navigate>
+                    {{ __('Crear negocio') }}
+                </flux:menu.item>
+            </flux:menu>
+        </flux:dropdown>
+    @endif
 
     <flux:sidebar.item
         icon="bell"

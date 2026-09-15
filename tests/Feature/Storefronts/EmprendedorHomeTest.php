@@ -73,6 +73,50 @@ class EmprendedorHomeTest extends TestCase
             ->assertSeeHtml(route('soporte'));
     }
 
+    /**
+     * 1.1 del TODO social: "si un usuario administra varios negocios,
+     * permitir seleccionar negocio activo". Un solo negocio no necesita
+     * selector (evita ruido para la mayoría de emprendedores).
+     */
+    public function test_the_sidebar_hides_the_business_switcher_for_a_single_business_owner(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Única Vitrina']);
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.home'))
+            ->assertOk()
+            ->assertDontSee(__('Crear negocio'));
+    }
+
+    public function test_the_sidebar_offers_a_business_switcher_and_create_option_for_multiple_businesses(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+
+        $plan = Plan::create([
+            'slug' => 'emprendedor',
+            'name' => 'Emprendedor',
+            'description' => 'Más productos, colaboradores y destacados.',
+            'price_cents' => 1990000,
+            'billing_period' => Plan::MENSUAL,
+            'limits' => ['max_products' => null, 'max_members' => 5, 'max_featured_days' => 7, 'max_storefronts' => 3],
+            'trial_days' => 14,
+            'is_active' => true,
+            'position' => 1,
+        ]);
+
+        $businessA = app(CreateStorefront::class)->handle($owner, ['name' => 'Panadería El Trigo'])->business;
+        app(SubscribeToPlan::class)->handle($businessA, $plan, $owner);
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Floristería La Rosa']);
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.home'))
+            ->assertOk()
+            ->assertSee('Panadería El Trigo')
+            ->assertSee('Floristería La Rosa')
+            ->assertSee(__('Crear negocio'));
+    }
+
     public function test_free_plan_hides_the_create_another_storefront_action_after_reaching_the_limit(): void
     {
         $owner = User::factory()->create(['experience' => 'emprendedor']);

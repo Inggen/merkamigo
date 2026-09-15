@@ -163,14 +163,6 @@
 
                         <div class="flex flex-wrap items-center gap-2 pb-4">
                             <livewire:favorite-button :favoritable="$business" :key="'business-'.$business->id" />
-
-                            <flux:button
-                                x-on:click="navigator.clipboard.writeText(window.location.href); fetch('{{ route('vitrinas.compartir', $business) }}', { method: 'POST' }); $flux.toast('{{ __('Enlace copiado') }}')"
-                                variant="ghost"
-                                icon="share"
-                            >
-                                {{ __('Compartir') }}
-                            </flux:button>
                         </div>
                     </div>
 
@@ -199,19 +191,19 @@
                                     ];
                                 @endphp
 
-                                <div class="grid gap-3 md:grid-cols-3">
+                                <div class="grid grid-cols-3 gap-3 lg:flex lg:gap-4">
                                     @foreach ($businessAttributes as $attribute)
                                         @php($colorClasses = $attributeColorClasses[$loop->index % count($attributeColorClasses)])
 
-                                        <div class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/40">
-                                            @if ($attribute->icon && \Illuminate\Support\Facades\View::exists('flux::icon.'.$attribute->icon))
-                                                <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full {{ $colorClasses }}">
-                                                    <x-dynamic-component :component="'flux::icon.'.$attribute->icon" class="size-5" variant="outline" />
+                                        <div class="flex min-w-0 flex-col items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-4 text-center shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 lg:flex-1">
+                                            @if ($attribute->icon && array_key_exists($attribute->icon, \App\Filament\Resources\BusinessAttributes\Schemas\BusinessAttributeForm::ICON_OPTIONS))
+                                                <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-full {{ $colorClasses }}">
+                                                    <x-dynamic-component :component="'flux::icon.'.$attribute->icon" class="size-6" variant="outline" />
                                                 </span>
                                             @endif
 
                                             <div class="min-w-0">
-                                                <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{{ $attribute->name }}</p>
+                                                <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-100">{{ $attribute->name }}</p>
                                                 @if ($attribute->description)
                                                     <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{{ $attribute->description }}</p>
                                                 @endif
@@ -237,58 +229,6 @@
                                     </div>
                                 </div>
                             @endif
-
-                            <div class="grid gap-4 md:grid-cols-3">
-                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-                                    <div class="flex items-center gap-3 text-brand-600">
-                                        <flux:icon.heart class="size-6" />
-                                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Hecho con cuidado') }}</h3>
-                                    </div>
-                                    <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ __('La vitrina resume lo esencial del negocio para que el cliente encuentre rápido qué ofrece y cómo contactarlo.') }}</p>
-                                </div>
-
-                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-                                    <div class="flex items-center gap-3 text-brand-600">
-                                        <flux:icon.sparkles class="size-6" />
-                                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Descubre lo local') }}</h3>
-                                    </div>
-                                    <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ __('Explora productos, servicios y señales de confianza en un solo lugar.') }}</p>
-                                </div>
-
-                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-                                    <div class="flex items-center gap-3 text-brand-600">
-                                        <flux:icon.shield-check class="size-6" />
-                                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Apoya negocios reales') }}</h3>
-                                    </div>
-                                    <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ __('Merkamigo centraliza información pública, medios de contacto y evidencia de actividad cuando existe.') }}</p>
-                                </div>
-                            </div>
-
-                            <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-                                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                    <div class="flex items-start gap-3">
-                                        <div class="rounded-2xl bg-brand-50 p-3 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
-                                            <flux:icon.shield-check class="size-6" />
-                                        </div>
-                                        <div>
-                                            <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Negocio visible en Merkamigo') }}</h3>
-                                            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{{ $business->hasVerifiedBadge() ? __('Esta vitrina muestra un negocio con validación activa en Merkamigo.') : __('Esta vitrina pertenece a un negocio publicado dentro de la plaza de Merkamigo.') }}</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="shrink-0">
-                                        @auth
-                                            <a href="{{ route('emprendedores.home') }}" class="inline-flex items-center rounded-xl border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-200 dark:hover:bg-brand-500/10" wire:navigate>
-                                                {{ __('Gestionar desde mi cuenta') }}
-                                            </a>
-                                        @else
-                                            <a href="{{ route('login') }}" class="inline-flex items-center rounded-xl border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-200 dark:hover:bg-brand-500/10" wire:navigate>
-                                                {{ __('¿Eres el dueño? Inicia sesión') }}
-                                            </a>
-                                        @endauth
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <div x-show="tab === 'productos'" x-cloak>
@@ -562,38 +502,6 @@
                     </button>
                 </div>
 
-                @if ($acceptedPaymentMethods->isNotEmpty() || $business->payment_info)
-                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                        <div class="flex items-center gap-3">
-                            <span class="inline-flex size-10 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                                <flux:icon.credit-card class="size-5" />
-                            </span>
-                            <div>
-                                <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Métodos de pago') }}</h3>
-                                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Información publicada por el negocio') }}</p>
-                            </div>
-                        </div>
-
-                        @if ($acceptedPaymentMethods->isNotEmpty())
-                            <div class="mt-4 grid grid-cols-2 gap-3">
-                                @foreach ($acceptedPaymentMethods as $method)
-                                    <div class="flex items-center justify-center rounded-xl border-zinc-200 p-2 dark:border-zinc-700" title="{{ $method->name }}">
-                                        @if ($method->logoUrl())
-                                            <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="w-auto rounded-xl object-contain">
-                                        @else
-                                            <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $method->name }}</span>
-                                        @endif
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        @if ($business->payment_info)
-                            <p class="mt-4 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
-                        @endif
-                    </div>
-                @endif
-
                 @unless ($hasSidebarContent)
                     <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                         <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Información del negocio') }}</h3>
@@ -601,6 +509,69 @@
                     </div>
                 @endunless
             </aside>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <div class="group relative overflow-hidden rounded-2xl bg-rose-50 p-5 transition-shadow duration-300 hover:shadow-lg dark:bg-rose-500/10">
+                <img src="{{ asset('images/img1_corazon.webp') }}" alt="" class="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-auto object-contain object-right transition-transform duration-500 ease-out group-hover:scale-110 sm:block" loading="lazy" decoding="async">
+                <div class="relative z-10 min-w-0 sm:max-w-[65%]">
+                    <div class="flex items-center gap-2 text-rose-600 dark:text-rose-300">
+                        <flux:icon.heart class="size-5 shrink-0" />
+                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Hecho con cuidado') }}</h3>
+                    </div>
+                    <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ __('La vitrina resume lo esencial del negocio para que el cliente encuentre rápido qué ofrece y cómo contactarlo.') }}</p>
+                </div>
+            </div>
+
+            <div class="group relative overflow-hidden rounded-2xl bg-violet-50 p-5 transition-shadow duration-300 hover:shadow-lg dark:bg-violet-500/10">
+                <img src="{{ asset('images/img2_localiza_corazon.webp') }}" alt="" class="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-auto object-contain object-right transition-transform duration-500 ease-out group-hover:scale-110 sm:block" loading="lazy" decoding="async">
+                <div class="relative z-10 min-w-0 sm:max-w-[65%]">
+                    <div class="flex items-center gap-2 text-violet-600 dark:text-violet-300">
+                        <flux:icon.map-pin class="size-5 shrink-0" />
+                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Descubre lo local') }}</h3>
+                    </div>
+                    <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ __('Explora productos, servicios y señales de confianza en un solo lugar.') }}</p>
+                </div>
+            </div>
+
+            <div class="group relative overflow-hidden rounded-2xl bg-emerald-50 p-5 transition-shadow duration-300 hover:shadow-lg dark:bg-emerald-500/10">
+                <img src="{{ asset('images/img3_negocios.webp') }}" alt="" class="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-auto object-contain object-right transition-transform duration-500 ease-out group-hover:scale-110 sm:block" loading="lazy" decoding="async">
+                <div class="relative z-10 min-w-0 sm:max-w-[65%]">
+                    <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-300">
+                        <flux:icon.users class="size-5 shrink-0" />
+                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Apoya negocios reales') }}</h3>
+                    </div>
+                    <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ __('Merkamigo centraliza información pública, medios de contacto y evidencia de actividad cuando existe.') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl border border-red-400 bg-violet-50 p-5 dark:border-red-500 dark:bg-violet-500/10">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div class="flex items-start gap-3">
+                    <div class="rounded-2xl bg-white p-3 text-violet-600 shadow-sm dark:bg-zinc-900 dark:text-violet-300">
+                        <flux:icon.shield-check class="size-6" />
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Negocio visible en Merkamigo') }}</h3>
+                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{{ $business->hasVerifiedBadge() ? __('Esta vitrina muestra un negocio con validación activa en Merkamigo.') : __('Esta vitrina pertenece a un negocio publicado dentro de la plaza de Merkamigo.') }}</p>
+                    </div>
+                </div>
+
+                <div class="shrink-0">
+                    @auth
+                        <a href="{{ route('emprendedores.home') }}" class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100 dark:bg-zinc-900 dark:text-violet-200 dark:hover:bg-zinc-800" wire:navigate>
+                            <flux:icon.cog-6-tooth class="size-4" />
+                            {{ __('Gestionar desde mi cuenta') }}
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100 dark:bg-zinc-900 dark:text-violet-200 dark:hover:bg-zinc-800" wire:navigate>
+                            <flux:icon.cog-6-tooth class="size-4" />
+                            {{ __('¿Eres el dueño? Inicia sesión') }}
+                        </a>
+                    @endauth
+                </div>
+            </div>
         </div>
     </div>
 

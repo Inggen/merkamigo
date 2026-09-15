@@ -15,18 +15,18 @@ class BusinessAttributeSeeder extends Seeder
     public function run(): void
     {
         $attributes = [
-            'Producto artesanal',
-            'Hecho en la región',
-            'Ingredientes frescos',
-            'Atención cercana',
-            'Domicilios disponibles',
-            'Acepta pagos digitales',
+            'Producto artesanal' => 'heart',
+            'Hecho en la región' => 'map-pin',
+            'Ingredientes frescos' => 'sparkles',
+            'Atención cercana' => 'users',
+            'Domicilios disponibles' => 'truck',
+            'Acepta pagos digitales' => 'credit-card',
         ];
 
-        foreach ($attributes as $name) {
+        foreach ($attributes as $name => $icon) {
             BusinessAttribute::query()->updateOrCreate(
                 ['slug' => Str::slug($name)],
-                ['name' => $name, 'is_active' => true],
+                ['name' => $name, 'icon' => $icon, 'is_active' => true],
             );
         }
     }
