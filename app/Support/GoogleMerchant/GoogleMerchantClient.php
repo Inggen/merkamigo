@@ -79,6 +79,45 @@ class GoogleMerchantClient
     }
 
     /**
+     * Inventario local (fichas locales sin costo / anuncios de inventario
+     * local) — recurso `LocalInventory` aparte de `productInputs`, sin
+     * `dataSource` (confirmado contra la documentación vigente: esta
+     * familia de la Merchant API no lo requiere). `null` si el producto no
+     * tiene `google_business_store_code` configurado.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function insertLocalInventory(Product $product): ?array
+    {
+        $payload = $this->mapper->localInventoryPayload($product);
+
+        if ($payload === null) {
+            return null;
+        }
+
+        return $this->request()
+            ->post($this->url("inventories/v1/accounts/{$this->accountId()}/products/{$this->mapper->productResourceId($product)}/localInventories:insert"), $payload)
+            ->throw()
+            ->json();
+    }
+
+    /**
+     * Retira el inventario local de un `storeCode` específico. Un 404 se
+     * trata como éxito, igual que `delete()`.
+     */
+    public function deleteLocalInventory(Product $product, string $storeCode): void
+    {
+        $response = $this->request()
+            ->delete($this->url("inventories/v1/accounts/{$this->accountId()}/products/{$this->mapper->productResourceId($product)}/localInventories/{$storeCode}"));
+
+        if ($response->status() === 404) {
+            return;
+        }
+
+        $response->throw();
+    }
+
+    /**
      * Registra una sola vez el proyecto de Google Cloud ante Merchant Center.
      *
      * @return array<string, mixed>

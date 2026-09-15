@@ -88,6 +88,50 @@ class GoogleMerchantValidatorAndMapperTest extends TestCase
         $this->assertSame('OUT_OF_STOCK', $payload['productAttributes']['availability']);
     }
 
+    /**
+     * Terreno de "inventario local" (ver TODO-Google-Merchant.md,
+     * post-cierre): por defecto ningún negocio tiene local físico
+     * marcado, así que no es elegible aunque el resto del producto sí lo
+     * sea para el feed principal.
+     */
+    public function test_a_business_without_a_physical_location_is_not_eligible_for_local_inventory(): void
+    {
+        $product = $this->product();
+
+        $errors = app(GoogleMerchantProductValidator::class)->validateLocalInventory($product);
+
+        $this->assertContains('El negocio no marcó tener un local físico.', $errors);
+        $this->assertFalse(app(GoogleMerchantProductValidator::class)->isEligibleForLocalInventory($product));
+        $this->assertNull(app(GoogleMerchantProductMapper::class)->localInventoryPayload($product));
+    }
+
+    public function test_a_business_with_a_physical_location_but_no_store_code_is_not_eligible_for_local_inventory(): void
+    {
+        $product = $this->product();
+        $product->business->update(['has_physical_location' => true]);
+
+        $errors = app(GoogleMerchantProductValidator::class)->validateLocalInventory($product->fresh(['business']));
+
+        $this->assertContains('Falta el código de tienda del Perfil de Empresa de Google del negocio.', $errors);
+    }
+
+    public function test_a_business_with_a_store_code_is_eligible_and_maps_the_local_inventory_payload(): void
+    {
+        $product = $this->product();
+        $product->business->update([
+            'has_physical_location' => true,
+            'google_business_store_code' => 'tienda-1',
+        ]);
+        $product = $product->fresh(['business.storefront', 'business.category', 'media']);
+
+        $this->assertTrue(app(GoogleMerchantProductValidator::class)->isEligibleForLocalInventory($product));
+
+        $payload = app(GoogleMerchantProductMapper::class)->localInventoryPayload($product);
+
+        $this->assertSame('tienda-1', $payload['storeCode']);
+        $this->assertSame('IN_STOCK', $payload['localInventoryAttributes']['availability']);
+    }
+
     public function test_isolation_two_businesses_never_share_an_external_seller_id_or_offer_id(): void
     {
         $productA = $this->product();

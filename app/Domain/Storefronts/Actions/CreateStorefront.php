@@ -27,7 +27,7 @@ use Spatie\Permission\Models\Role;
 class CreateStorefront
 {
     /**
-     * @param  array{name: string, whatsapp_number?: ?string, municipality_id?: ?int, category_id?: ?int, headline?: ?string, description?: ?string}  $data
+     * @param  array{name: string, whatsapp_number?: ?string, municipality_id?: ?int, category_id?: ?int, headline?: ?string, description?: ?string, has_physical_location?: bool}  $data
      */
     public function handle(User $owner, array $data): Storefront
     {
@@ -47,6 +47,7 @@ class CreateStorefront
                 'name' => $data['name'],
                 'slug' => $this->uniqueSlug(Business::class, $data['name']),
                 'whatsapp_number' => $data['whatsapp_number'] ?? null,
+                'has_physical_location' => $data['has_physical_location'] ?? false,
                 'status' => 'borrador',
             ]);
 

@@ -14,6 +14,13 @@ return [
 
     'google_merchant' => [
         'enabled' => env('GOOGLE_MERCHANT_ENABLED', false),
+        // Inventario local (fichas locales sin costo / anuncios de
+        // inventario local): interruptor aparte del feed principal.
+        // Apagado por defecto — no hay negocios con Perfil de Empresa real
+        // vinculado todavía (TODO-Google-Merchant.md, post-cierre). Aunque
+        // esto esté en `true`, cada negocio también necesita marcar
+        // `has_physical_location` y tener `google_business_store_code`.
+        'local_inventory_enabled' => env('GOOGLE_MERCHANT_LOCAL_INVENTORY_ENABLED', false),
         'account_id' => env('GOOGLE_MERCHANT_ACCOUNT_ID'),
         'data_source_id' => env('GOOGLE_MERCHANT_DATA_SOURCE_ID'),
         'credentials' => env('GOOGLE_MERCHANT_CREDENTIALS', 'storage/app/private/google-merchant-service-account.json'),

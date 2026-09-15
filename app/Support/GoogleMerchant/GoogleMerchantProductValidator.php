@@ -74,4 +74,38 @@ class GoogleMerchantProductValidator
     {
         return $this->validate($product) === [];
     }
+
+    /**
+     * Reglas adicionales para "inventario local" (fichas locales sin
+     * costo / anuncios de inventario local), aparte del feed principal:
+     * el negocio debe haber marcado que tiene un local físico Y tener el
+     * `store_code` de SU PROPIO Perfil de Empresa de Google (nunca el de
+     * Merkamigo — usar un perfil compartido para negocios independientes
+     * sería una ubicación falsa ante Google). Ver TODO-Google-Merchant.md,
+     * post-cierre.
+     *
+     * @return list<string>
+     */
+    public function validateLocalInventory(Product $product): array
+    {
+        $errors = $this->validate($product);
+        $business = $product->business;
+
+        if (! $business) {
+            return $errors;
+        }
+
+        if (! $business->has_physical_location) {
+            $errors[] = 'El negocio no marcó tener un local físico.';
+        } elseif (blank($business->google_business_store_code)) {
+            $errors[] = 'Falta el código de tienda del Perfil de Empresa de Google del negocio.';
+        }
+
+        return $errors;
+    }
+
+    public function isEligibleForLocalInventory(Product $product): bool
+    {
+        return $this->validateLocalInventory($product) === [];
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Support\GoogleMerchant;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
+use App\Support\Text\Emoji;
 
 class GoogleMerchantProductMapper
 {
@@ -136,17 +137,48 @@ class GoogleMerchantProductMapper
     }
 
     /**
+     * Payload para `localInventories:insert` (fichas locales sin costo /
+     * anuncios de inventario local) — recurso aparte del feed principal
+     * de `map()`/`apiPayload()`. `null` si el producto no es elegible
+     * para el feed principal o el negocio no tiene `google_business_store_code`
+     * (el llamador ya debe haber confirmado elegibilidad con
+     * `GoogleMerchantProductValidator::isEligibleForLocalInventory()`,
+     * esto es una segunda guarda barata, no la fuente de verdad).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function localInventoryPayload(Product $product): ?array
+    {
+        $business = $product->business;
+        $item = $this->map($product);
+
+        if ($item === null || blank($business?->google_business_store_code)) {
+            return null;
+        }
+
+        $attributes = [
+            'availability' => $item['availability'] === 'in stock' ? 'IN_STOCK' : 'OUT_OF_STOCK',
+            'price' => $this->apiPrice($product->price),
+        ];
+
+        if ($item['sale_price']) {
+            $attributes['salePrice'] = $this->apiPrice($product->promo_price);
+        }
+
+        return [
+            'storeCode' => $business->google_business_store_code,
+            'localInventoryAttributes' => $attributes,
+        ];
+    }
+
+    /**
      * Google rechaza (o bloquea la edición de) productos con emojis en
      * `title`/`description` — se limpian solo para el envío a Google; el
      * nombre/descripción reales del producto en Merkamigo no se tocan.
      */
     private function stripEmoji(string $text): string
     {
-        $pattern = '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F1E6}-\x{1F1FF}\x{2B00}-\x{2BFF}\x{FE0F}\x{200D}\x{2190}-\x{21FF}]/u';
-
-        $cleaned = (string) preg_replace($pattern, '', $text);
-
-        return trim((string) preg_replace('/\s{2,}/', ' ', $cleaned));
+        return Emoji::strip($text);
     }
 
     private function apiCondition(?string $condition): string

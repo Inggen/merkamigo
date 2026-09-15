@@ -58,6 +58,14 @@ new #[Title('Editar mi vitrina')] class extends Component
 
     public ?float $longitude = null;
 
+    // Terreno para inventario local de Google Merchant (ver
+    // TODO-Google-Merchant.md, post-cierre): lo marca el propio negocio,
+    // nunca se infiere. `google_business_store_code` es el store_code de
+    // SU PROPIO Perfil de Empresa de Google, no el de Merkamigo.
+    public bool $has_physical_location = false;
+
+    public ?string $google_business_store_code = '';
+
     public ?string $headline = '';
 
     public ?string $description = '';
@@ -129,6 +137,8 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->address = $business->address;
         $this->latitude = $business->latitude;
         $this->longitude = $business->longitude;
+        $this->has_physical_location = $business->has_physical_location;
+        $this->google_business_store_code = $business->google_business_store_code;
         $this->headline = $business->storefront?->headline;
         $this->description = $business->storefront?->description;
         $this->logo_alt_text = $business->logo_alt_text;
@@ -165,6 +175,8 @@ new #[Title('Editar mi vitrina')] class extends Component
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'zone' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
+            'has_physical_location' => ['boolean'],
+            'google_business_store_code' => ['nullable', 'string', 'max:64'],
             'headline' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'payment_info' => ['nullable', 'string'],
@@ -723,6 +735,21 @@ new #[Title('Editar mi vitrina')] class extends Component
                 <flux:heading size="lg">{{ __('Ubicación') }}</flux:heading>
                 <flux:input wire:model.live.debounce.900ms="zone" :label="__('Zona o barrio')" />
                 <flux:input wire:model.live.debounce.900ms="address" :label="__('Dirección (opcional)')" />
+
+                <div class="space-y-2 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <flux:checkbox wire:model.live="has_physical_location" :label="__('Tengo un local físico donde los clientes pueden ver o recoger productos')" />
+
+                    @if ($has_physical_location)
+                        <flux:input
+                            wire:model.live.debounce.900ms="google_business_store_code"
+                            :label="__('Código de tienda de tu Perfil de Empresa de Google (opcional)')"
+                            placeholder="{{ __('Ej: 12345') }}"
+                        />
+                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                            {{ __('Solo si ya vinculaste tu propio Perfil de Empresa de Google (no el de Merkamigo) a Merchant Center. Déjalo vacío si todavía no lo tienes — no afecta la publicación de tus productos en Google Shopping.') }}
+                        </flux:text>
+                    @endif
+                </div>
 
                 <div x-data="vitrinaLocationCapture()" class="space-y-2 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
                     <flux:text class="text-sm font-medium">{{ __('Ubicación para mostrar cercanía') }}</flux:text>

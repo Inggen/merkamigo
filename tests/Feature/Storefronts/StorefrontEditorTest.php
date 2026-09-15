@@ -84,6 +84,33 @@ class StorefrontEditorTest extends TestCase
         $component->assertSet('missing', fn ($missing) => count($missing) > 0);
     }
 
+    /**
+     * Terreno de "inventario local" de Google Merchant (ver
+     * TODO-Google-Merchant.md, post-cierre): editable después de crear la
+     * vitrina, para cuando el negocio consiga su propio Perfil de Empresa
+     * de Google.
+     */
+    public function test_owner_can_mark_physical_location_and_set_its_own_google_store_code(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio con Local',
+            'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('has_physical_location', true)
+            ->set('google_business_store_code', 'tienda-cajica-1')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $business->refresh();
+        $this->assertTrue($business->has_physical_location);
+        $this->assertSame('tienda-cajica-1', $business->google_business_store_code);
+    }
+
     public function test_editing_a_field_autosaves_without_an_explicit_save_call(): void
     {
         $owner = User::factory()->create();

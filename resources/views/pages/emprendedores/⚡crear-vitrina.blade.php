@@ -47,6 +47,14 @@ new #[Title('Crea tu vitrina')] class extends Component
 
     public ?string $zone = '';
 
+    // Terreno para inventario local de Google Merchant (ver
+    // TODO-Google-Merchant.md, post-cierre): lo marca el propio
+    // emprendedor, nunca se infiere por geolocalización u otra
+    // heurística. Casi ningún negocio nuevo tendrá todavía un Perfil de
+    // Empresa de Google vinculado — esto solo guarda la intención para
+    // cuando lo tenga.
+    public bool $has_physical_location = false;
+
     // Paso 2
     public ?string $description = '';
 
@@ -89,6 +97,7 @@ new #[Title('Crea tu vitrina')] class extends Component
             $this->additional_municipality_ids = $business->municipalities->pluck('id')->all();
             $this->category_id = $business->category_id;
             $this->zone = $business->zone;
+            $this->has_physical_location = $business->has_physical_location;
             $this->description = $business->storefront?->description;
             $this->logoAlt = $business->logo_alt_text;
             $this->coverAlt = $business->storefront?->cover_alt_text;
@@ -127,6 +136,7 @@ new #[Title('Crea tu vitrina')] class extends Component
             'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'zone' => ['nullable', 'string', 'max:255'],
+            'has_physical_location' => ['boolean'],
         ]);
 
         $additionalMunicipalityIds = $this->validate([
@@ -389,6 +399,13 @@ new #[Title('Crea tu vitrina')] class extends Component
             </flux:select>
 
             <flux:input wire:model="zone" :label="__('Zona o barrio (opcional)')" />
+
+            <div>
+                <flux:checkbox wire:model="has_physical_location" :label="__('Tengo un local físico donde los clientes pueden ver o recoger productos')" />
+                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ __('Opcional. Nos sirve para más adelante mostrar tu inventario en fichas locales de Google — puedes marcarlo aunque todavía no tengas tu Perfil de Empresa de Google vinculado.') }}
+                </flux:text>
+            </div>
 
             <flux:button type="submit" variant="primary" class="w-full">{{ __('Siguiente') }}</flux:button>
         </form>

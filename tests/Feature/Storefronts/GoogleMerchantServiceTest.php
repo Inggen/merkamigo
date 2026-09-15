@@ -121,6 +121,51 @@ class GoogleMerchantServiceTest extends TestCase
         $this->assertStringContainsString('price', $product->google_merchant_last_error);
     }
 
+    /**
+     * `GOOGLE_MERCHANT_LOCAL_INVENTORY_ENABLED` apaga por defecto — un
+     * negocio con local físico y store_code configurados NO debe generar
+     * una llamada a `localInventories:insert` mientras el flag global
+     * siga en false (TODO-Google-Merchant.md, post-cierre).
+     */
+    public function test_local_inventory_is_never_pushed_while_the_feature_flag_is_off(): void
+    {
+        Http::fake([
+            '*productInputs:insert*' => Http::response(['name' => 'x'], 200),
+            '*localInventories:insert*' => Http::response(['name' => 'x'], 200),
+        ]);
+
+        $product = $this->product();
+        $product->business->update([
+            'has_physical_location' => true,
+            'google_business_store_code' => 'tienda-1',
+        ]);
+
+        app(GoogleMerchantService::class)->syncProduct($product->fresh(['business.storefront', 'business.category', 'media']));
+
+        Http::assertNotSent(fn (Request $request) => str_contains((string) $request->url(), 'localInventories'));
+    }
+
+    public function test_local_inventory_is_pushed_once_the_flag_and_the_business_are_both_ready(): void
+    {
+        config()->set('services.google_merchant.local_inventory_enabled', true);
+
+        Http::fake([
+            '*productInputs:insert*' => Http::response(['name' => 'x'], 200),
+            '*localInventories:insert*' => Http::response(['name' => 'y'], 200),
+        ]);
+
+        $product = $this->product();
+        $product->business->update([
+            'has_physical_location' => true,
+            'google_business_store_code' => 'tienda-1',
+        ]);
+
+        app(GoogleMerchantService::class)->syncProduct($product->fresh(['business.storefront', 'business.category', 'media']));
+
+        Http::assertSent(fn (Request $request) => str_contains((string) $request->url(), 'localInventories:insert')
+            && $request['storeCode'] === 'tienda-1');
+    }
+
     public function test_jobs_are_configured_to_retry_with_backoff(): void
     {
         $syncJob = new SyncProductToGoogleMerchant(1);

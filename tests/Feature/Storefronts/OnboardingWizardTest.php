@@ -66,6 +66,35 @@ class OnboardingWizardTest extends TestCase
         $this->assertNotNull($business->fresh()->storefront->published_at);
     }
 
+    /**
+     * Terreno de "inventario local" de Google Merchant (ver
+     * TODO-Google-Merchant.md, post-cierre): el emprendedor lo marca él
+     * mismo en el paso 1, nunca se infiere.
+     */
+    public function test_marking_physical_location_in_step_one_persists_on_the_business(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $municipality = Municipality::create([
+            'name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true,
+        ]);
+        $category = Category::create([
+            'name' => 'Alimentos y bebidas', 'slug' => 'alimentos-y-bebidas', 'is_active' => true,
+        ]);
+
+        Livewire::test('pages::emprendedores.crear-vitrina')
+            ->set('name', 'Panadería con local')
+            ->set('municipality_id', $municipality->id)
+            ->set('category_id', $category->id)
+            ->set('has_physical_location', true)
+            ->call('goToStep2')
+            ->assertSet('step', 2);
+
+        $business = $user->fresh()->businesses()->first();
+        $this->assertTrue($business->has_physical_location);
+    }
+
     public function test_step_five_offers_a_semi_assisted_exit_when_fields_are_missing(): void
     {
         $user = User::factory()->create();

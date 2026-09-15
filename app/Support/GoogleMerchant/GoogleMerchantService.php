@@ -108,6 +108,8 @@ class GoogleMerchantService
             return;
         }
 
+        $this->deleteLocalInventory($product);
+
         $product->forceFill([
             'google_merchant_status' => 'no_publicado',
             'google_merchant_product_id' => null,
@@ -208,6 +210,60 @@ class GoogleMerchantService
         ]);
 
         Log::info("[GoogleMerchant] Product {$product->id} Business {$product->business_id} Action SYNC SUCCESS");
+
+        $this->syncLocalInventory($product);
+    }
+
+    /**
+     * Inventario local (fichas locales sin costo / anuncios de inventario
+     * local): envío best-effort aparte del feed principal, apagado
+     * globalmente por defecto (`GOOGLE_MERCHANT_LOCAL_INVENTORY_ENABLED`)
+     * hasta que haya negocios con Perfil de Empresa real vinculado (ver
+     * TODO-Google-Merchant.md, post-cierre). Una falla aquí nunca cambia
+     * `google_merchant_status` del producto ni bloquea el feed principal
+     * — solo queda en el log para depuración manual.
+     */
+    private function syncLocalInventory(Product $product): void
+    {
+        if (! config('services.google_merchant.local_inventory_enabled')) {
+            return;
+        }
+
+        if (! $this->validator->isEligibleForLocalInventory($product)) {
+            return;
+        }
+
+        try {
+            $this->client->insertLocalInventory($product);
+
+            Log::info("[GoogleMerchant] Product {$product->id} Business {$product->business_id} Action LOCAL_INVENTORY_SYNC SUCCESS");
+        } catch (ConnectionException|RequestException $exception) {
+            Log::warning("[GoogleMerchant] Product {$product->id} Action LOCAL_INVENTORY_SYNC FAILED {$exception->getMessage()}");
+        }
+    }
+
+    /**
+     * Retira el inventario local previamente enviado, si lo hubo. Mismo
+     * criterio best-effort que `syncLocalInventory()`: nunca bloquea el
+     * `deleteProduct()` del feed principal.
+     */
+    private function deleteLocalInventory(Product $product): void
+    {
+        if (! config('services.google_merchant.local_inventory_enabled')) {
+            return;
+        }
+
+        $storeCode = $product->business?->google_business_store_code;
+
+        if (blank($storeCode)) {
+            return;
+        }
+
+        try {
+            $this->client->deleteLocalInventory($product, $storeCode);
+        } catch (ConnectionException|RequestException $exception) {
+            Log::warning("[GoogleMerchant] Product {$product->id} Action LOCAL_INVENTORY_DELETE FAILED {$exception->getMessage()}");
+        }
     }
 
     /**

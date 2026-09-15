@@ -51,6 +51,7 @@ Validator  Mapper   Client (HTTP)   audit_logs
 
 ```env
 GOOGLE_MERCHANT_ENABLED=false
+GOOGLE_MERCHANT_LOCAL_INVENTORY_ENABLED=false
 GOOGLE_MERCHANT_ACCOUNT_ID=
 GOOGLE_MERCHANT_DATA_SOURCE_ID=
 GOOGLE_MERCHANT_CREDENTIALS=storage/app/private/google-merchant-service-account.json
@@ -109,6 +110,7 @@ php artisan google-merchant:sync --all                                 # 3. todo
 | Un producto no se reintenta solo tras un error temporal (5xx/429) | Revisa que el worker de colas (`php artisan queue:work`) esté corriendo — el Job reintenta solo, pero necesita un worker activo | `php artisan queue:work` o supervisor en producción |
 | Nada se sincroniza nunca | `GOOGLE_MERCHANT_ENABLED=false`, o el negocio tiene el toggle "Google Shopping" apagado | Revisa ambos interruptores (global y por negocio) |
 | El texto del producto llega distinto a Google | Se limpian emojis automáticamente antes de enviarlo (Google los rechaza) — el nombre/descripción reales en Merkamigo no cambian | Comportamiento esperado, ver `GoogleMerchantProductMapper::stripEmoji()` |
+| Merchant Center muestra "Faltan datos de inventario local" | Aviso del feed de **inventario local** (fichas locales sin costo), no del feed de productos online — es normal mientras `GOOGLE_MERCHANT_LOCAL_INVENTORY_ENABLED=false` (default). No bloquea Google Shopping/Search normal. Ver sección 15 | Ignóralo hasta que haya negocios con Perfil de Empresa de Google real vinculado, o actívalo siguiendo la sección 15 |
 
 ## 10. Cómo deshabilitar la integración
 
@@ -153,3 +155,15 @@ Una vez asignado, no cambia automáticamente. Se envía en `productAttributes.ex
 - [ ] Worker de colas corriendo de forma persistente (Supervisor u equivalente).
 - [ ] Progresión de prueba real completada en este orden: `--product=ID` → `--business=ID` → `--all` (nunca activar todo el catálogo de una sola vez sin antes probar uno y un negocio).
 - [ ] Negocios reales activados uno por uno desde `/admin/google-merchant` o la columna "Google Shopping" en `/admin/businesses` — no hay activación masiva automática por diseño.
+
+## 15. Inventario local (fichas locales sin costo / anuncios de inventario local)
+
+Recurso aparte del feed de productos online (secciones 1-14): requiere que cada negocio tenga vinculado su **propio** Perfil de Empresa de Google real (nunca el de Merkamigo — un único perfil compartido para negocios independientes declararía una ubicación falsa ante Google, con riesgo de suspensión de cuenta). Apagado por defecto — el terreno está preparado en código, pero la mayoría de negocios de Merkamigo son emprendimientos nuevos que todavía no tienen Perfil de Empresa.
+
+**Cómo activarlo para un negocio, cuando ya tenga su Perfil de Empresa real:**
+
+1. El negocio marca "Tengo un local físico..." en el editor de vitrina (sección Ubicación) y carga su `store_code` real (el mismo que aparece vinculado en su Perfil de Empresa de Google, dentro de Merchant Center → "Perfiles de Empresa vinculados").
+2. En `.env` de producción, `GOOGLE_MERCHANT_LOCAL_INVENTORY_ENABLED=true` — interruptor **global**, aparte de `GOOGLE_MERCHANT_ENABLED`. Con este flag en `false` (default), ningún negocio genera llamadas a `localInventories:insert` sin importar lo que tenga configurado.
+3. El envío de inventario local va colgado del sync normal del producto (`GoogleMerchantService::syncProduct()` → `syncLocalInventory()`), sin comando aparte. Es best-effort: una falla aquí nunca cambia `google_merchant_status` del producto ni bloquea el feed principal, solo queda en el log (`[GoogleMerchant] ... LOCAL_INVENTORY_SYNC FAILED ...`).
+
+**Campos nuevos:** `businesses.has_physical_location` (bool), `businesses.google_business_store_code` (string nullable) — ambos editables por el propio negocio, nunca inferidos.

@@ -6,6 +6,7 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Trust\Models\Recommendation;
 use App\Support\GoogleMerchant\GoogleMerchantProductMapper;
+use App\Support\Text\Emoji;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
@@ -227,8 +228,11 @@ class SchemaBuilder
         $schema = [
             '@type' => $product->type === 'servicio' ? 'Service' : 'Product',
             '@id' => route('vitrinas.product', [$business, $product]).'#product',
-            'name' => $product->name,
-            'description' => $product->description ?: $business->storefront?->description,
+            // Los emojis se limpian igual que en el payload de Google
+            // Merchant: Search Console reporta el mismo tipo de rechazo
+            // en datos estructurados de producto con emojis.
+            'name' => Emoji::strip($product->name),
+            'description' => Emoji::strip((string) ($product->description ?: $business->storefront?->description)),
             'url' => route('vitrinas.product', [$business, $product]),
             'mainEntityOfPage' => route('vitrinas.product', [$business, $product]),
             'image' => $images === [] ? null : $images,

@@ -21,7 +21,8 @@ use Illuminate\Support\Facades\Validator;
 class UpdateStorefront
 {
     private const BUSINESS_FIELDS = [
-        'name', 'zone', 'address', 'latitude', 'longitude', 'municipality_id', 'category_id',
+        'name', 'zone', 'address', 'latitude', 'longitude', 'has_physical_location',
+        'google_business_store_code', 'municipality_id', 'category_id',
         'whatsapp_number', 'hours', 'social_links', 'payment_info', 'attributes', 'logo_alt_text',
     ];
 
@@ -38,6 +39,12 @@ class UpdateStorefront
             'address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            // Terreno para inventario local de Google Merchant (ver
+            // TODO-Google-Merchant.md, post-cierre): lo marca el propio
+            // negocio, nunca se infiere. `google_business_store_code` es
+            // el store_code de SU PROPIO Perfil de Empresa de Google.
+            'has_physical_location' => ['sometimes', 'boolean'],
+            'google_business_store_code' => ['sometimes', 'nullable', 'string', 'max:64'],
             'municipality_id' => ['sometimes', 'nullable', 'integer', 'exists:municipalities,id'],
             'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             'whatsapp_number' => ['sometimes', 'nullable', 'string', 'max:20'],
