@@ -9,7 +9,14 @@ use App\Domain\Discovery\Concerns\Favoritable;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Immersive\Models\StandAssignment;
+use App\Domain\Marketplace\Models\BusinessWompiCredential;
+use App\Domain\Marketplace\Models\Order;
 use App\Domain\Needs\Models\Offer;
+use App\Domain\Social\Models\ContentPromotion;
+use App\Domain\Social\Models\Follow;
+use App\Domain\Social\Models\LiveStream;
+use App\Domain\Social\Models\Post;
+use App\Domain\Social\Models\Story;
 use App\Domain\Storefronts\Models\BusinessChatbotProfile;
 use App\Domain\Storefronts\Models\BusinessChatConversation;
 use App\Domain\Storefronts\Models\Product;
@@ -269,6 +276,91 @@ class Business extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class)->orderBy('position');
+    }
+
+    /**
+     * @return HasOne<BusinessWompiCredential, $this>
+     */
+    public function wompiCredential(): HasOne
+    {
+        return $this->hasOne(BusinessWompiCredential::class);
+    }
+
+    public function hasWompiConnected(): bool
+    {
+        return $this->wompiCredential()->where('is_active', true)->exists();
+    }
+
+    /**
+     * @return HasMany<Order, $this>
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class)->latest();
+    }
+
+    /**
+     * Publicaciones del negocio (2.2 del TODO social, Sprint 2).
+     *
+     * @return HasMany<Post, $this>
+     */
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    /**
+     * Seguidores del negocio (2.3 del TODO social, Sprint 2) — distinto
+     * de `favorites` (guardar): seguir implica recibir notificación de
+     * contenido nuevo, ver `App\Domain\Social\Actions\ToggleFollowBusiness`.
+     *
+     * @return HasMany<Follow, $this>
+     */
+    public function follows(): HasMany
+    {
+        return $this->hasMany(Follow::class);
+    }
+
+    public function isFollowedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $this->follows()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * Estados Merkamigo (Fase 3 del TODO social, Sprint 3).
+     *
+     * @return HasMany<Story, $this>
+     */
+    public function stories(): HasMany
+    {
+        return $this->hasMany(Story::class);
+    }
+
+    /**
+     * @return HasMany<Story, $this>
+     */
+    public function activeStories(): HasMany
+    {
+        return $this->stories()->where('expires_at', '>', now())->latest();
+    }
+
+    /**
+     * Transmisiones comerciales del negocio (Sprint 8 de TODO_social.md).
+     *
+     * @return HasMany<LiveStream, $this>
+     */
+    public function liveStreams(): HasMany
+    {
+        return $this->hasMany(LiveStream::class)->latest();
+    }
+
+    public function contentPromotions(): HasMany
+    {
+        return $this->hasMany(ContentPromotion::class)->latest();
     }
 
     /**

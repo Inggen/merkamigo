@@ -19,8 +19,6 @@ use Illuminate\Support\Collection;
  */
 class CalculateReadableMetrics
 {
-    private const DAYS = 7;
-
     /**
      * @return array{
      *     summary: string,
@@ -32,12 +30,13 @@ class CalculateReadableMetrics
      *     whatsapp_clicks_by_day: array<int, array{label: string, count: int}>,
      * }
      */
-    public function handle(Business $business): array
+    public function handle(Business $business, int $days = 7): array
     {
-        $periodStart = now()->subDays(self::DAYS - 1)->startOfDay();
+        $days = in_array($days, [7, 30, 90], true) ? $days : 7;
+        $periodStart = now()->subDays($days - 1)->startOfDay();
         $periodEnd = now()->endOfDay();
-        $previousStart = now()->subDays((self::DAYS * 2) - 1)->startOfDay();
-        $previousEnd = now()->subDays(self::DAYS)->endOfDay();
+        $previousStart = now()->subDays(($days * 2) - 1)->startOfDay();
+        $previousEnd = now()->subDays($days)->endOfDay();
 
         $viewTypes = [AnalyticsEvent::VITRINA_VIEW, AnalyticsEvent::PRODUCTO_VIEW];
 
@@ -51,7 +50,7 @@ class CalculateReadableMetrics
         $previousTotalWhatsapp = $this->totalBetween($business, [AnalyticsEvent::WHATSAPP_CLICK], $previousStart, $previousEnd);
 
         return [
-            'summary' => $this->summary($totalViews, $totalWhatsapp),
+            'summary' => $this->summary($totalViews, $totalWhatsapp, $days),
             'total_views' => $totalViews,
             'total_whatsapp_clicks' => $totalWhatsapp,
             'previous_total_views' => $previousTotalViews,
@@ -63,7 +62,7 @@ class CalculateReadableMetrics
 
     /**
      * @param  array<int, string>  $types
-     * @return array<string, int> fecha (Y-m-d) => cantidad, para los últimos self::DAYS días.
+     * @return array<string, int> fecha (Y-m-d) => cantidad para el periodo solicitado.
      */
     private function countsByDay(Business $business, array $types, CarbonInterface $start, CarbonInterface $end): array
     {
@@ -114,13 +113,23 @@ class CalculateReadableMetrics
             ->all();
     }
 
-    private function summary(int $totalViews, int $totalWhatsapp): string
+    private function summary(int $totalViews, int $totalWhatsapp, int $days): string
     {
         if ($totalViews === 0 && $totalWhatsapp === 0) {
-            return __('Todavía no hay visitas ni contactos esta semana. Comparte tu enlace o QR para empezar a recibirlos.');
+            return $days === 7
+                ? __('Todavía no hay visitas ni contactos esta semana. Comparte tu enlace o QR para empezar a recibirlos.')
+                : __('Todavía no hay visitas ni contactos en los últimos :days días. Comparte tu enlace o QR para empezar a recibirlos.', ['days' => $days]);
         }
 
-        return __('Esta semana :views personas vieron tu negocio y :clicks te escribieron por WhatsApp.', [
+        if ($days === 7) {
+            return __('Esta semana :views personas vieron tu negocio y :clicks te escribieron por WhatsApp.', [
+                'views' => $totalViews,
+                'clicks' => $totalWhatsapp,
+            ]);
+        }
+
+        return __('En los últimos :days días, :views personas vieron tu negocio y :clicks te escribieron por WhatsApp.', [
+            'days' => $days,
             'views' => $totalViews,
             'clicks' => $totalWhatsapp,
         ]);

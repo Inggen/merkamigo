@@ -34,7 +34,8 @@
 
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb([
-            ['name' => __('Inicio')],
+            ['name' => __('Inicio'), 'url' => route('home')],
+            ['name' => __('Explorar')],
         ]),
         \App\Support\Seo\SchemaBuilder::siteNavigation(
             $featuredSections,
@@ -63,11 +64,11 @@
 @endphp
 
 <x-layouts::cliente
-    :title="__('Merkamigo: negocios y productos locales cerca de ti')"
+    :title="__('Explorar Merkamigo: negocios y productos locales cerca de ti')"
     :description="$municipality
         ? __('Explora negocios, productos y servicios locales en :municipio con Merkamigo.', ['municipio' => $municipality->name])
         : __('Descubre negocios, productos y servicios locales en Bogotá y Sabana Norte con Merkamigo.')"
-    :canonical="route('home')"
+    :canonical="route('explorar')"
     :page-schema-type="$municipality ? 'CollectionPage' : 'WebPage'"
     :schema-graph="$schemaGraph"
 >

@@ -8,6 +8,7 @@ use App\Domain\Billing\Models\BillingProduct;
 use App\Domain\Billing\Models\Payment;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Social\Models\ContentPromotion;
 use App\Http\Controllers\Controller;
 use App\Support\Wompi\WompiClient;
 use Illuminate\Contracts\View\View;
@@ -38,8 +39,22 @@ class CheckoutController extends Controller
 
     private function create(Business $business, Plan|BillingProduct $item, Request $request): View|RedirectResponse
     {
+        $promotion = $request->filled('promotion')
+            ? ContentPromotion::query()->whereBelongsTo($business)->findOrFail($request->integer('promotion'))
+            : null;
+
+        if ($promotion && (! $item instanceof BillingProduct || $item->kind !== BillingProduct::DESTACADO)) {
+            abort(422, __('Solo un paquete de destacado puede aplicarse a contenido.'));
+        }
+
         try {
-            $payment = app(CreatePaymentCheckout::class)->handle($business, $item, $request->string('coupon')->value() ?: null, $request->user());
+            $payment = app(CreatePaymentCheckout::class)->handle(
+                $business,
+                $item,
+                $request->string('coupon')->value() ?: null,
+                $request->user(),
+                $promotion,
+            );
         } catch (\InvalidArgumentException $e) {
             return back()->withErrors(['coupon' => $e->getMessage()]);
         }

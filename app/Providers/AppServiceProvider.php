@@ -9,11 +9,15 @@ use App\Domain\Businesses\Policies\BusinessPolicy;
 use App\Domain\Immersive\Contracts\GeneratesVoxelObjectDefinition;
 use App\Domain\Immersive\Observers\BusinessStandObserver;
 use App\Domain\Immersive\Support\OpenAiVoxelObjectGenerator;
+use App\Domain\Marketplace\Models\Order;
+use App\Domain\Marketplace\Policies\OrderPolicy;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Needs\Models\Offer;
 use App\Domain\Needs\Policies\NeedPolicy;
 use App\Domain\Needs\Policies\OfferPolicy;
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Social\Events\PostPublished;
+use App\Domain\Social\Jobs\NotifyFollowersOfNewPost;
 use App\Domain\Storefronts\Events\ProductCreated;
 use App\Domain\Storefronts\Events\ProductUpdated;
 use App\Domain\Storefronts\Jobs\DeleteProductFromGoogleMerchant;
@@ -72,6 +76,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureImmersiveStandSync();
         $this->configureRegistrationTracking();
         $this->configureGoogleMerchantSync();
+        $this->configureSocialNotifications();
     }
 
     /**
@@ -90,6 +95,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Need::class, NeedPolicy::class);
         Gate::policy(Offer::class, OfferPolicy::class);
         Gate::policy(OrderConfirmation::class, OrderConfirmationPolicy::class);
+        Gate::policy(Order::class, OrderPolicy::class);
     }
 
     protected function configureAuditing(): void
@@ -147,6 +153,19 @@ class AppServiceProvider extends ServiceProvider
                 ->where('type', 'producto')
                 ->pluck('id')
                 ->each(fn (int $productId) => SyncProductToGoogleMerchant::dispatch($productId)->afterCommit());
+        });
+    }
+
+    /**
+     * 2.3 del TODO social: notificar a los seguidores de un negocio
+     * cuando publica algo nuevo — mismo patrón `afterCommit()` que
+     * `configureGoogleMerchantSync()`, para no encolar antes de que la
+     * transacción de `CreatePost` confirme.
+     */
+    protected function configureSocialNotifications(): void
+    {
+        Event::listen(function (PostPublished $event) {
+            NotifyFollowersOfNewPost::dispatch($event->postId)->afterCommit();
         });
     }
 

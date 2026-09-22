@@ -84,6 +84,23 @@ class ProfileUpdateTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
+    public function test_multiple_users_can_save_their_profile_without_a_phone(): void
+    {
+        User::factory()->create(['phone' => '']);
+        $user = User::factory()->create(['phone' => null]);
+
+        $this->actingAs($user);
+
+        Livewire::test('pages::settings.profile')
+            ->set('phone', '')
+            ->set('name', 'Merkamigo')
+            ->call('updateProfileInformation')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Merkamigo', $user->refresh()->name);
+        $this->assertNull($user->phone);
+    }
+
     public function test_user_can_delete_their_account(): void
     {
         $user = User::factory()->create();

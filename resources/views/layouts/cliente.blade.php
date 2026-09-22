@@ -8,7 +8,6 @@
     'pageSchemaData' => [],
     'schemaGraph' => [],
     'ogType' => 'website',
-    'showMunicipalitySelector' => false,
     'showChatWidget' => true,
 ])
 
@@ -28,7 +27,7 @@
         ])
     </head>
     <body class="min-h-screen bg-mist dark:bg-zinc-900 dark:text-white">
-        <x-cliente-nav :show-municipality-selector="$showMunicipalitySelector" />
+        <x-cliente-nav />
 
         <main class="{{ auth()->check() && auth()->user()->experience === 'cliente' ? 'pb-16 md:pb-0' : '' }}">
             {{ $slot }}

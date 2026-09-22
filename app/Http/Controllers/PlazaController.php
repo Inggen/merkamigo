@@ -136,7 +136,9 @@ class PlazaController extends Controller
     {
         $zone = $request->string('zona')->value() ?: null;
         $onlyAvailable = $request->boolean('disponibles');
+        [$minPrice, $maxPrice] = $this->priceRange($request);
         $near = $this->nearMeCoordinates($request);
+        $radius = $this->radiusKilometers($request);
 
         $publishedBusinesses = Business::query()
             ->servesMunicipality($municipio->id)
@@ -160,7 +162,7 @@ class PlazaController extends Controller
             ->with(['category', 'storefront']);
 
         if ($near) {
-            $businesses = $this->paginateByDistance($businessesQuery->get(), $near, $request);
+            $businesses = $this->paginateByDistance($businessesQuery->get(), $near, $request, radiusKm: $radius);
         } else {
             $businesses = $businessesQuery->orderByDesc('created_at')->paginate(12, ['*'], 'page')->withQueryString();
         }
@@ -194,6 +196,8 @@ class PlazaController extends Controller
         $products = Product::query()
             ->where('status', 'publicado')
             ->when($onlyAvailable, fn ($q) => $q->where('is_available', true))
+            ->when($minPrice !== null, fn ($q) => $q->where('price', '>=', $minPrice))
+            ->when($maxPrice !== null, fn ($q) => $q->where('price', '<=', $maxPrice))
             ->whereHas('business', fn ($q) => $q
                 ->where(fn ($b) => $b
                     ->where('municipality_id', $municipio->id)
@@ -217,7 +221,10 @@ class PlazaController extends Controller
             'openNeeds' => $openNeeds,
             'products' => $products,
             'onlyAvailable' => $onlyAvailable,
+            'minPrice' => $minPrice,
+            'maxPrice' => $maxPrice,
             'near' => $near,
+            'radiusKm' => $radius,
         ];
     }
 
@@ -225,9 +232,11 @@ class PlazaController extends Controller
     {
         $query = trim((string) $request->string('q'));
         $near = $this->nearMeCoordinates($request);
+        $radius = $this->radiusKilometers($request);
         $selectedMunicipality = $this->resolveSearchMunicipality($request, $municipio);
         $selectedCategory = $this->resolveSearchCategory($request, $categoria);
         $onlyAvailable = $request->boolean('disponibles');
+        [$minPrice, $maxPrice] = $this->priceRange($request);
 
         if ($redirect = $this->normalizeLegacySearchUrl($request, $selectedMunicipality, $selectedCategory, $municipio, $categoria)) {
             return $redirect;
@@ -256,7 +265,7 @@ class PlazaController extends Controller
             ->with(['category', 'municipality', 'storefront']);
 
         if ($near) {
-            $businesses = $this->paginateByDistance($businessesQuery->get(), $near, $request);
+            $businesses = $this->paginateByDistance($businessesQuery->get(), $near, $request, radiusKm: $radius);
         } else {
             $businesses = $businessesQuery->orderByDesc('created_at')->paginate(12)->withQueryString();
         }
@@ -264,6 +273,8 @@ class PlazaController extends Controller
         $products = Product::query()
             ->where('status', 'publicado')
             ->when($onlyAvailable, fn (Builder $q) => $q->where('is_available', true))
+            ->when($minPrice !== null, fn (Builder $q) => $q->where('price', '>=', $minPrice))
+            ->when($maxPrice !== null, fn (Builder $q) => $q->where('price', '<=', $maxPrice))
             ->when(
                 $query !== '',
                 fn (Builder $q) => $q->where(function (Builder $q) use ($query) {
@@ -302,8 +313,11 @@ class PlazaController extends Controller
             'businesses' => $businesses,
             'products' => $products,
             'onlyAvailable' => $onlyAvailable,
+            'minPrice' => $minPrice,
+            'maxPrice' => $maxPrice,
             'openNeeds' => $openNeeds,
             'near' => $near,
+            'radiusKm' => $radius,
         ]);
     }
 
@@ -458,6 +472,25 @@ class PlazaController extends Controller
     }
 
     /**
+     * Filtro de precio del buscador (1.3 del TODO social) — opcional en
+     * ambos extremos, sin rango obligatorio; si `precio_min` > `precio_max`
+     * se ignora el máximo para no devolver un resultado vacío por un typo.
+     *
+     * @return array{0: ?float, 1: ?float}
+     */
+    private function priceRange(Request $request): array
+    {
+        $min = $request->filled('precio_min') ? max(0, (float) $request->input('precio_min')) : null;
+        $max = $request->filled('precio_max') ? max(0, (float) $request->input('precio_max')) : null;
+
+        if ($min !== null && $max !== null && $min > $max) {
+            $max = null;
+        }
+
+        return [$min, $max];
+    }
+
+    /**
      * Coordenadas de "cerca de mí" enviadas por el control de la Plaza
      * (compartidas una sola vez desde el navegador, nunca persistidas).
      * Cualquier valor fuera de rango o incompleto se ignora en silencio:
@@ -496,7 +529,7 @@ class PlazaController extends Controller
      * @param  array{lat: float, lng: float}  $near
      * @return LengthAwarePaginator<int, Business>
      */
-    private function paginateByDistance(Collection $businesses, array $near, Request $request, string $pageName = 'page', int $perPage = 12): LengthAwarePaginator
+    private function paginateByDistance(Collection $businesses, array $near, Request $request, string $pageName = 'page', int $perPage = 12, ?float $radiusKm = null): LengthAwarePaginator
     {
         $sorted = $businesses
             ->each(function (Business $business) use ($near) {
@@ -517,6 +550,15 @@ class PlazaController extends Controller
             })
             ->values();
 
+        // Fase 5.1 del TODO social: a diferencia del orden por cercanía
+        // (siempre activo con "Cerca de mí", nunca excluye a nadie), el
+        // radio SÍ es un filtro — solo tiene sentido si ya se sabe la
+        // distancia real, así que un negocio sin coordenadas propias
+        // queda fuera en vez de aparecer al final como con el orden solo.
+        if ($radiusKm !== null) {
+            $sorted = $sorted->filter(fn (Business $business) => $business->distance_km !== null && $business->distance_km <= $radiusKm)->values();
+        }
+
         $page = max(1, (int) $request->input($pageName, 1));
 
         return new LengthAwarePaginator(
@@ -526,5 +568,25 @@ class PlazaController extends Controller
             $page,
             ['path' => $request->url(), 'query' => $request->query(), 'pageName' => $pageName],
         );
+    }
+
+    /**
+     * Radio de "Cerca de mí" (Fase 5.1 del TODO social) — solo aplica
+     * junto a `near`, nunca por sí solo; valores fuera de rango se
+     * ignoran en silencio, igual que `nearMeCoordinates()`.
+     */
+    private function radiusKilometers(Request $request): ?float
+    {
+        if (! $request->filled('radio_km')) {
+            return null;
+        }
+
+        $radius = $request->float('radio_km');
+
+        if ($radius <= 0 || $radius > 200) {
+            return null;
+        }
+
+        return $radius;
     }
 }

@@ -36,7 +36,7 @@
     "src": "_poppins-600-normal-zEkxB9Mr.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-Ciet54nP.css",
+    "file": "assets/app-8tU7ZKiB.css",
     "name": "app",
     "names": [
       "app.css"
@@ -45,7 +45,7 @@
     "isEntry": true
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-BuRowy6n.css",
+    "file": "assets/theme-BgKgw2M3.css",
     "name": "theme",
     "names": [
       "theme.css"
@@ -54,7 +54,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-Bfmpfmm7.js",
+    "file": "assets/app-BASPNIiN.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true

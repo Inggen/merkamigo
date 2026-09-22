@@ -6,6 +6,7 @@
 ---
 
 ## 0. Reglas de implementación
+> Tener como referencia grafica la imagen de la carpeta public/images/feed.png
 
 - [ ] **NO eliminar funcionalidades existentes.**
 - [ ] **NO duplicar entidades si ya existen** productos, servicios, vitrinas, municipios, categorías, usuarios, reseñas, etc.
@@ -41,17 +42,17 @@
 ### Objetivo
 Eliminar la sensación de que el usuario “pierde” el ambiente de comprador cuando crea una vitrina.
 
-- [ ] Reemplazar la lógica visible de “rol” por una experiencia de **modo de uso**.
-- [ ] Mostrar un selector pequeño en sidebar:
+- [x] Reemplazar la lógica visible de “rol” por una experiencia de **modo de uso**.
+- [x] Mostrar un selector pequeño en sidebar:
 
 ```text
 Ver cómo:
 [ Comprador ] [ Mi negocio ]
 ```
 
-- [ ] No mostrar textos como “Mi rol en Merkamigo”.
-- [ ] Mantener el selector discreto y siempre accesible.
-- [ ] El usuario debe poder cambiar de modo sin cerrar sesión.
+- [x] No mostrar textos como “Mi rol en Merkamigo”.
+- [x] Mantener el selector discreto y siempre accesible.
+- [x] El usuario debe poder cambiar de modo sin cerrar sesión.
 - [ ] En modo Comprador conservar acceso a:
   - [ ] Inicio.
   - [ ] Explorar.
@@ -68,23 +69,23 @@ Ver cómo:
   - [ ] Panel del negocio.
   - [ ] Productos.
   - [ ] Servicios.
-  - [ ] Publicaciones.
-  - [ ] Estados.
-  - [ ] Reels.
-  - [ ] Lives.
-  - [ ] Pedidos.
+  - [x] Publicaciones.
+  - [x] Estados.
+  - [x] Reels.
+  - [x] Lives.
+  - [x] Pedidos.
   - [ ] Clientes.
-  - [ ] Suscripciones.
-  - [ ] Métricas.
-- [ ] Si un usuario administra varios negocios:
-  - [ ] Permitir seleccionar negocio activo.
-  - [ ] Mantener opción “Comprador”.
-  - [ ] Mostrar `+ Crear negocio`.
-- [ ] No perder favoritos, compras, seguidores, mensajes ni suscripciones al cambiar de modo.
+  - [x] Suscripciones.
+  - [x] Métricas.
+- [x] Si un usuario administra varios negocios:
+  - [x] Permitir seleccionar negocio activo.
+  - [x] Mantener opción “Comprador”.
+  - [x] Mostrar `+ Crear negocio`.
+- [x] No perder favoritos, compras, seguidores, mensajes ni suscripciones al cambiar de modo.
 
 ### Criterio de aceptación
-- [ ] Un usuario puede comprar y vender con la misma cuenta.
-- [ ] Cambiar entre Comprador y Mi negocio no altera ni borra información.
+- [x] Un usuario puede comprar y vender con la misma cuenta.
+- [x] Cambiar entre Comprador y Mi negocio no altera ni borra información.
 
 ---
 
@@ -93,54 +94,54 @@ Ver cómo:
 ### Objetivo
 Conservar y fortalecer la funcionalidad actual de municipios.
 
-- [ ] Identificar la entidad actual usada para municipios/ciudades.
-- [ ] No crear una entidad duplicada si ya existe.
-- [ ] Agregar selector global de municipio/localidad.
-- [ ] Debe permitir:
-  - [ ] municipio actual,
-  - [ ] “Cerca de mí”,
-  - [ ] otros municipios disponibles.
+- [x] Identificar la entidad actual usada para municipios/ciudades.
+- [x] No crear una entidad duplicada si ya existe.
+- [x] Agregar selector global de municipio/localidad.
+- [x] Debe permitir:
+  - [x] municipio actual,
+  - [x] “Cerca de mí”,
+  - [x] otros municipios disponibles.
 - [ ] El municipio seleccionado debe afectar:
-  - [ ] feed,
-  - [ ] vitrinas,
-  - [ ] publicaciones,
-  - [ ] promociones,
-  - [ ] Lives,
-  - [ ] solicitudes,
+  - [x] feed,
+  - [x] vitrinas,
+  - [x] publicaciones,
+  - [x] promociones,
+  - [x] Lives,
+  - [x] solicitudes,
   - [ ] recomendaciones,
-  - [ ] destacados,
-  - [ ] negocios cercanos.
-- [ ] Conservar URLs/directorios actuales por municipio si existen.
-- [ ] Guardar preferencia de municipio del usuario.
+  - [x] destacados,
+  - [x] negocios cercanos.
+- [x] Conservar URLs/directorios actuales por municipio si existen.
+- [x] Guardar preferencia de municipio del usuario.
 - [ ] Si el usuario autoriza ubicación:
   - [ ] sugerir municipio automáticamente,
-  - [ ] nunca sobrescribir manualmente sin confirmación.
+  - [x] nunca sobrescribir manualmente sin confirmación.
 
 ### Criterio de aceptación
-- [ ] El usuario nunca pierde la navegación por municipios.
+- [x] El usuario nunca pierde la navegación por municipios.
 - [ ] Todo el contenido social puede filtrarse por municipio.
 
 ---
 
 ## 1.3 Buscador principal
 
-- [ ] Mantener un único input de búsqueda.
-- [ ] Dentro del input incluir:
-  - [ ] botón `Cerca de mí`,
-  - [ ] botón rojo `Buscar`.
+- [x] Mantener un único input de búsqueda.
+- [x] Dentro del input incluir:
+  - [x] botón `Cerca de mí`,
+  - [x] botón rojo `Buscar`.
 - [ ] El buscador debe encontrar:
-  - [ ] negocios,
-  - [ ] productos,
+  - [x] negocios,
+  - [x] productos,
   - [ ] servicios,
   - [ ] publicaciones,
-  - [ ] categorías.
+  - [x] categorías.
 - [ ] Agregar filtros por:
-  - [ ] municipio,
+  - [x] municipio,
   - [ ] distancia,
-  - [ ] categoría,
-  - [ ] precio,
+  - [x] categoría,
+  - [x] precio,
   - [ ] tipo de contenido.
-- [ ] Mantener búsqueda actual si ya existe y ampliarla progresivamente.
+- [x] Mantener búsqueda actual si ya existe y ampliarla progresivamente.
 
 ---
 
@@ -151,56 +152,62 @@ Conservar y fortalecer la funcionalidad actual de municipios.
 ### Objetivo
 Convertir Inicio en un feed de descubrimiento comercial local.
 
-- [ ] Crear feed principal.
-- [ ] No eliminar el directorio/vitrinas actuales.
-- [ ] Mover descubrimiento tradicional a `Explorar`.
+- [x] Crear feed principal.
+- [x] No eliminar el directorio/vitrinas actuales.
+- [x] Mover descubrimiento tradicional a `Explorar`. *(Sesión 15 sep 2026,
+  a pedido del usuario: el feed pasó a ser la ruta `/` real —name `home`—
+  y lo que antes vivía en Inicio (`ClientesController::home`) ahora es
+  `Explorar` (`/explorar`), enlazado desde el header y la barra inferior.
+  `/feed` se conserva como alias. Visual alineado a
+  `public/images/feed.png`: columna de publicaciones + "Negocios cerca de
+  ti" en la barra lateral.)*
 - [ ] El feed debe mezclar:
-  - [ ] publicaciones de negocios seguidos,
+  - [x] publicaciones de negocios seguidos,
   - [ ] publicaciones cercanas,
-  - [ ] publicaciones del municipio,
-  - [ ] productos destacados,
-  - [ ] promociones,
-  - [ ] Lives activos,
+  - [x] publicaciones del municipio,
+  - [x] productos destacados, *(los productos con promoción activa aparecen como patrocinados.)*
+  - [x] promociones,
+  - [x] Lives activos,
   - [ ] contenido recomendado.
 - [ ] Crear pestañas:
   - [ ] Para ti.
   - [ ] Cerca de ti.
-  - [ ] Siguiendo.
+  - [x] Siguiendo.
   - [ ] Destacados.
 - [ ] Agregar orden:
-  - [ ] recientes,
+  - [x] recientes,
   - [ ] relevantes.
 
 ---
 
 ## 2.2 Publicaciones / Posts
 
-- [ ] Crear entidad `posts` o equivalente.
+- [x] Crear entidad `posts` o equivalente.
 - [ ] Relacionar post con:
-  - [ ] usuario,
-  - [ ] negocio,
+  - [x] usuario,
+  - [x] negocio,
   - [ ] municipio,
-  - [ ] productos/servicios existentes.
+  - [x] productos/servicios existentes.
 - [ ] Tipos de publicación:
-  - [ ] texto,
-  - [ ] imagen,
-  - [ ] carrusel,
-  - [ ] video corto,
-  - [ ] promoción.
+  - [x] texto,
+  - [x] imagen,
+  - [x] carrusel,
+  - [x] video corto,
+  - [x] promoción.
 - [ ] Acciones:
-  - [ ] reaccionar / me gusta,
-  - [ ] comentar,
-  - [ ] compartir,
-  - [ ] guardar,
+  - [x] reaccionar / me gusta,
+  - [x] comentar,
+  - [x] compartir,
+  - [x] guardar,
   - [ ] reportar.
-- [ ] Permitir etiquetar producto/servicio existente.
+- [x] Permitir etiquetar producto/servicio existente.
 - [ ] Mostrar CTA:
-  - [ ] Comprar.
-  - [ ] Ver producto.
+  - [x] Comprar. *(solo cuando el negocio conectó Wompi y el producto tiene precio fijo, igual que en la vitrina.)*
+  - [x] Ver producto.
   - [ ] Reservar.
   - [ ] Suscribirme.
-  - [ ] WhatsApp.
-- [ ] No duplicar producto al crear publicación.
+  - [x] WhatsApp.
+- [x] No duplicar producto al crear publicación.
 - [ ] Permitir `Producto -> Crear publicación`.
 - [ ] Permitir `Servicio -> Crear publicación`.
 - [ ] Crear contador de:
@@ -215,15 +222,15 @@ Convertir Inicio en un feed de descubrimiento comercial local.
 ## 2.3 Seguir
 
 - [ ] Permitir seguir:
-  - [ ] negocios,
+  - [x] negocios,
   - [ ] emprendedores/perfiles,
   - [ ] categorías,
   - [ ] municipios.
-- [ ] Crear:
-  - [ ] seguidores,
-  - [ ] seguidos.
-- [ ] Crear feed `Siguiendo`.
-- [ ] Notificar contenido nuevo según preferencias del usuario.
+- [x] Crear:
+  - [x] seguidores,
+  - [x] seguidos.
+- [x] Crear feed `Siguiendo`.
+- [x] Notificar contenido nuevo según preferencias del usuario.
 
 ---
 
@@ -231,28 +238,28 @@ Convertir Inicio en un feed de descubrimiento comercial local.
 
 ## 3.1 Estados
 
-- [ ] Crear módulo de Estados.
-- [ ] Duración por defecto: 24 horas.
+- [x] Crear módulo de Estados.
+- [x] Duración por defecto: 24 horas.
 - [ ] Tipos:
-  - [ ] imagen,
+  - [x] imagen,
   - [ ] video,
-  - [ ] promoción,
-  - [ ] producto,
-  - [ ] servicio.
+  - [x] promoción,
+  - [x] producto,
+  - [x] servicio.
 - [ ] Permitir vincular:
-  - [ ] producto,
-  - [ ] servicio,
+  - [x] producto,
+  - [x] servicio,
   - [ ] cupón,
   - [ ] Live.
 - [ ] Acciones:
-  - [ ] Ver producto.
+  - [x] Ver producto.
   - [ ] Comprar.
   - [ ] Reservar.
-  - [ ] WhatsApp.
-- [ ] Mostrar estados en carrusel superior del feed.
-- [ ] Permitir `Tu estado`.
+  - [x] WhatsApp.
+- [x] Mostrar estados en carrusel superior del feed.
+- [x] Permitir `Tu estado`.
 - [ ] Registrar:
-  - [ ] visualizaciones,
+  - [x] visualizaciones,
   - [ ] clics,
   - [ ] conversiones.
 
@@ -262,47 +269,73 @@ Convertir Inicio en un feed de descubrimiento comercial local.
 
 ## 4.1 Reels
 
-- [ ] Crear módulo de video vertical corto.
-- [ ] Permitir carga desde móvil/web.
-- [ ] Asociar uno o varios productos/servicios.
-- [ ] Mostrar:
-  - [ ] negocio,
-  - [ ] municipio,
-  - [ ] descripción,
-  - [ ] CTA,
-  - [ ] producto relacionado.
-- [ ] Acciones:
-  - [ ] me gusta,
-  - [ ] comentar,
-  - [ ] compartir,
-  - [ ] guardar,
-  - [ ] seguir.
-- [ ] Crear vista de scroll vertical.
-- [ ] Incluir sección `Reels para ti`.
-- [ ] Permitir compartir externamente.
+Implementado (sesión 15 sep 2026) reutilizando `App\Domain\Social\Post`
+con `type = video` en vez de un dominio paralelo: un reel es un post más
+para reacciones/comentarios/seguir, solo cambia cómo se muestra. Ver
+`App\Http\Controllers\ReelController`, ruta pública `/reels`, panel del
+negocio en "Reels" (`emprendedores.negocios.reels`).
+
+- [x] Crear módulo de video vertical corto.
+- [x] Permitir carga desde móvil/web. *(input de archivo estándar, funciona en ambos.)*
+- [x] Asociar uno o varios productos/servicios.
+- [x] Mostrar:
+  - [x] negocio,
+  - [x] municipio,
+  - [x] descripción,
+  - [ ] CTA (Comprar/Ver producto — pendiente, ver nota abajo),
+  - [x] producto relacionado.
+- [x] Acciones:
+  - [x] me gusta,
+  - [x] comentar,
+  - [x] compartir,
+  - [x] guardar,
+  - [x] seguir.
+- [x] Crear vista de scroll vertical. *(Alcance reducido a propósito:
+  scroll-snap dentro del layout normal del sitio —con header/footer—, no
+  un modo de pantalla completa tipo TikTok; eso queda para cuando haya
+  volumen real de reels que lo justifique.)*
+- [x] Incluir sección `Reels para ti`. *(rail simple en la barra lateral del feed, enlaza a `/reels`.)*
+- [x] Permitir compartir externamente. *(Web Share API nativo, mismo patrón que la vitrina pública.)*
+- [ ] Optimización multimedia: los videos se guardan tal cual se suben
+  (sin recompresión ni generación de miniatura del lado del servidor),
+  mismo criterio que `municipality_hero_video`/`site_pidelo_video` ya
+  existentes en el proyecto — evaluar ffmpeg/un proveedor externo (Mux,
+  Cloudflare Stream) solo si el volumen real de reels lo justifica.
+- [ ] CTA de producto en el reel (hoy solo enlaza al producto, sin el
+  botón "Comprar" que sí tienen los posts del feed) — pendiente de una
+  pasada de UI aparte.
 
 ---
 
 # FASE 5 — Cerca de mí
 
+> **Nota (16 sep 2026):** "Cerca de mí" ya existía como ORDEN (nunca
+> excluye, `x-clientes.near-me-toggle` + `Support\Geo\Distance`, usado en
+> `/buscar` y `/plaza/{municipio}`) — lo nuevo de esta sesión es el radio
+> como FILTRO real (si se elige un radio, un negocio/producto fuera de
+> él, o sin coordenadas propias, queda fuera de la lista en vez de
+> aparecer al final). El motor real de la búsqueda es el Livewire
+> `App\Livewire\CatalogResults` (`PlazaController` calcula lo mismo para
+> el schema JSON-LD, pero ya no es lo que renderiza la lista visible).
+
 ## 5.1 Geolocalización
 
-- [ ] Reutilizar lógica actual si ya existe.
-- [ ] Solicitar permiso de ubicación de forma explícita.
-- [ ] No bloquear navegación si el usuario no acepta.
-- [ ] Calcular distancia negocio <-> usuario.
+- [x] Reutilizar lógica actual si ya existe. *(`Support\Geo\Distance`, `nearMeCoordinates()`, `x-clientes.near-me-toggle` — nada nuevo para esto.)*
+- [x] Solicitar permiso de ubicación de forma explícita. *(ya existía: solo al hacer clic en "Cerca de mí", `navigator.geolocation` nunca se llama solo.)*
+- [x] No bloquear navegación si el usuario no acepta. *(ya existía: sin ubicación, todo sigue visible por municipio/recientes.)*
+- [x] Calcular distancia negocio <-> usuario. *(ya existía.)*
 - [ ] Mostrar:
-  - [ ] negocios cercanos,
-  - [ ] productos cercanos,
-  - [ ] promociones cercanas,
-  - [ ] Lives cercanos.
-- [ ] Filtros por radio:
-  - [ ] 1 km,
-  - [ ] 3 km,
-  - [ ] 5 km,
-  - [ ] 10 km,
-  - [ ] personalizado.
-- [ ] Mantener municipio como fallback.
+  - [x] negocios cercanos,
+  - [x] productos cercanos, *(nuevo: `CatalogResults::products()` ahora también ordena/filtra por la distancia del NEGOCIO del producto — un producto no tiene coordenadas propias.)*
+  - [x] promociones cercanas, *(las campañas filtran por municipio y, con coordenadas autorizadas, por radio.)*
+  - [ ] Lives cercanos *(los Lives ya filtran por municipio; falta aplicar radio por coordenadas.)*.
+- [x] Filtros por radio:
+  - [x] 1 km,
+  - [x] 3 km,
+  - [x] 5 km,
+  - [x] 10 km,
+  - [x] personalizado (`x-clientes.radius-filter`, campo numérico propio en km).
+- [x] Mantener municipio como fallback. *(sin "Cerca de mí" activo, todo sigue filtrando/ordenando por municipio como antes; el radio sin coordenadas simplemente se ignora.)*
 
 ---
 
@@ -336,6 +369,8 @@ Convertir Inicio en un feed de descubrimiento comercial local.
 
 # FASE 7 — Checkout y pedidos
 
+> **Nota (15 sep 2026):** esta fase se ejecutó adelantada, fuera de orden, a pedido directo del usuario (necesidad real de negocio, no planeación). La "capa Merkamigo Pay" original asumía que el dinero pasaba por una cuenta de Merkamigo — se investigó con el usuario y se descartó a propósito: Wompi no soporta split payments, y convertir a Merkamigo en recaudador de dinero de terceros traía una carga fiscal que el usuario no quería asumir. La arquitectura real construida es "cada negocio conecta su propia cuenta Wompi" — ver `TODO-Marketplace-Checkout.md` para el detalle completo. Las casillas de abajo reflejan honestamente qué de la visión original quedó cubierto por esa arquitectura distinta y qué no (carrito, multi-canal de pago, checkout desde post/estado/reel/Live siguen sin construirse).
+
 ## 7.1 Capa Merkamigo Pay
 
 ### Regla
@@ -344,30 +379,30 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 - [ ] Crear una abstracción `PaymentProvider`.
 - [ ] No acoplar checkout a una única pasarela.
 - [ ] Primera integración sugerida:
-  - [ ] Wompi.
+  - [x] Wompi.
 - [ ] Dejar preparada segunda integración:
   - [ ] Mercado Pago.
-- [ ] Nunca almacenar tarjeta completa ni CVV.
-- [ ] Usar tokenización/fuentes de pago del proveedor.
+- [x] Nunca almacenar tarjeta completa ni CVV.
+- [x] Usar tokenización/fuentes de pago del proveedor.
 
 ---
 
 ## 7.2 Checkout
 
 - [ ] Permitir comprar desde:
-  - [ ] producto,
-  - [ ] post,
+  - [x] producto,
+  - [x] post,
   - [ ] estado,
   - [ ] reel,
-  - [ ] Live.
+  - [x] Live.
 - [ ] Crear:
   - [ ] carrito,
   - [ ] resumen,
   - [ ] datos de entrega,
-  - [ ] método de pago,
-  - [ ] confirmación.
-- [ ] Mantener WhatsApp como alternativa.
-- [ ] No obligar a usar WhatsApp para completar compra.
+  - [x] método de pago,
+  - [x] confirmación.
+- [x] Mantener WhatsApp como alternativa.
+- [x] No obligar a usar WhatsApp para completar compra.
 - [ ] Registrar origen de conversión:
   - [ ] vitrina,
   - [ ] post,
@@ -379,99 +414,107 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 
 ## 7.3 Pedidos
 
-- [ ] Crear/ajustar entidad de pedidos.
+- [x] Crear/ajustar entidad de pedidos.
 - [ ] Estados:
-  - [ ] pendiente,
-  - [ ] pagado,
+  - [x] pendiente,
+  - [x] pagado,
   - [ ] preparando,
   - [ ] listo,
   - [ ] enviado,
   - [ ] entregado,
   - [ ] cancelado,
   - [ ] reembolsado.
-- [ ] Mostrar pedido en:
-  - [ ] comprador,
-  - [ ] negocio.
-- [ ] Notificar cambios de estado.
-- [ ] Guardar historial.
+- [x] Mostrar pedido en:
+  - [x] comprador,
+  - [x] negocio.
+- [x] Notificar cambios de estado.
+- [x] Guardar historial.
 
 ---
 
 # FASE 8 — Suscripciones y cobros recurrentes
 
+> **Nota (16 sep 2026):** implementado en `App\Domain\Subscriptions`,
+> reutilizando `Marketplace\Order`/`AccrueCommission` para el cobro
+> periódico en vez de un segundo mecanismo de comisión — el dinero de
+> cada periodo va directo a la cuenta Wompi del negocio, igual que una
+> compra única (misma arquitectura de Fase 7). Un plan por producto en
+> este alcance (sin niveles/tiers todavía).
+
 ## 8.1 Productos/servicios recurrentes
 
-- [ ] Permitir marcar producto/servicio como:
-  - [ ] compra única,
-  - [ ] suscripción.
-- [ ] Frecuencias:
-  - [ ] semanal,
-  - [ ] mensual,
-  - [ ] trimestral,
-  - [ ] anual.
-- [ ] Crear plan de suscripción.
-- [ ] Campos mínimos:
-  - [ ] nombre,
-  - [ ] precio,
-  - [ ] periodicidad,
-  - [ ] beneficios,
-  - [ ] trial opcional,
-  - [ ] estado.
+- [x] Permitir marcar producto/servicio como:
+  - [x] compra única,
+  - [x] suscripción.
+- [x] Frecuencias:
+  - [x] semanal,
+  - [x] mensual,
+  - [x] trimestral,
+  - [x] anual.
+- [x] Crear plan de suscripción.
+- [x] Campos mínimos:
+  - [x] nombre *(reutiliza el nombre del producto)*,
+  - [x] precio *(reutiliza el precio del producto)*,
+  - [x] periodicidad,
+  - [x] beneficios,
+  - [x] trial opcional,
+  - [x] estado (`is_active`, para aceptar o no nuevos suscriptores).
 
 ---
 
 ## 8.2 Motor de suscripciones
 
-- [ ] Crear entidades:
-  - [ ] `subscription_plans`,
-  - [ ] `subscriptions`,
-  - [ ] `subscription_payments`,
-  - [ ] `payment_sources`,
-  - [ ] `webhook_events`.
-- [ ] Estados:
-  - [ ] active,
-  - [ ] past_due,
-  - [ ] paused,
-  - [ ] canceled,
-  - [ ] expired.
-- [ ] Guardar:
-  - [ ] fecha inicio,
-  - [ ] próxima fecha de cobro,
-  - [ ] último pago,
-  - [ ] proveedor,
-  - [ ] referencia externa.
-- [ ] Implementar:
-  - [ ] renovación automática,
+- [x] Crear entidades:
+  - [x] `subscription_plans`,
+  - [x] `customer_subscriptions` *(nombre distinto de `subscriptions`, que ya existe para negocio → Merkamigo, intocable)*,
+  - [ ] `subscription_payments` *(cada cobro es un `Marketplace\Order` con `customer_subscription_id`, no una tabla aparte)*,
+  - [ ] `payment_sources` *(el token vive en `customer_subscriptions.wompi_payment_source_id`, una tarjeta por suscripción en este alcance)*,
+  - [ ] `webhook_events` *(el cobro es síncrono al suscribirse/renovar, como `ChargeCommission`; no hay webhook de suscripción todavía)*.
+- [x] Estados: `prueba`, `activa`, `pausada` *(reservado, sin acción todavía que la use)*, `cancelada`, `vencida`.
+- [x] Guardar:
+  - [x] fecha inicio (`current_period_starts_at`),
+  - [x] próxima fecha de cobro (`current_period_ends_at`),
+  - [ ] último pago *(se infiere de `orders` vía `customer_subscription_id`, no un campo aparte)*,
+  - [x] proveedor *(Wompi, implícito — cada negocio solo tiene una integración)*,
+  - [x] referencia externa (`wompi_payment_source_id` + `orders.wompi_transaction_id`).
+- [x] Implementar:
+  - [x] renovación automática (`RenewCustomerSubscriptions`, comando `subscriptions:renew`, diario),
   - [ ] reintentos,
   - [ ] periodo de gracia,
-  - [ ] cancelación,
+  - [x] cancelación (acceso sigue hasta el final del periodo ya pagado),
   - [ ] pausa,
   - [ ] reactivación.
-- [ ] No cancelar acceso inmediatamente si el proveedor tarda en confirmar.
-- [ ] Validar siempre eventos por webhook.
+- [ ] No cancelar acceso inmediatamente si el proveedor tarda en confirmar — **alcance reducido a propósito**: un cobro rechazado vence la suscripción de inmediato (ver nota en `ChargeSubscriptionPeriod`), sin el dunning con periodo de gracia que sí tiene `Billing\ProcessSubscriptionRenewals`. Revisar si se justifica una vez haya volumen real.
+- [x] Validar siempre eventos por webhook *(no aplica aquí — no hay webhook de suscripción, el cobro se confirma sondeando la API igual que `ChargeCommission`)*.
 
 ---
 
 # FASE 9 — Productos digitales
 
+> **Nota (16 sep 2026):** `Product.type` gana `digital`; un archivo por
+> producto en este alcance (`ProductFile`, disco `private`). Sirve tanto
+> para compra única como para suscripción — el mismo `Entitlement` cubre
+> los dos casos, solo cambia si `expires_at` es `null` (permanente) o
+> tiene fecha (se refresca en cada cobro de periodo).
+
 ## 9.1 Digitales
 
-- [ ] Permitir vender:
-  - [ ] ebook,
-  - [ ] archivos,
-  - [ ] plantillas,
-  - [ ] cursos,
-  - [ ] videos,
-  - [ ] membresías,
-  - [ ] contenido premium.
-- [ ] Controlar acceso por compra/suscripción.
-- [ ] Crear `entitlements` o mecanismo equivalente.
-- [ ] Al aprobar pago:
-  - [ ] habilitar acceso.
-- [ ] Al vencer suscripción:
-  - [ ] retirar acceso según reglas.
-- [ ] Proteger URLs de descarga.
-- [ ] Evitar URLs públicas permanentes.
+- [x] Permitir vender:
+  - [x] ebook,
+  - [x] archivos,
+  - [x] plantillas,
+  - [x] cursos,
+  - [x] videos,
+  - [x] membresías,
+  - [x] contenido premium. *(mismos tipos de archivo genéricos — pdf/zip/epub/mp4/mp3/docx/pptx — no hay categorías separadas por tipo de contenido todavía.)*
+- [x] Controlar acceso por compra/suscripción.
+- [x] Crear `entitlements` o mecanismo equivalente.
+- [x] Al aprobar pago:
+  - [x] habilitar acceso.
+- [x] Al vencer suscripción:
+  - [x] retirar acceso según reglas. *(pasivo: `Entitlement::isActive()` compara `expires_at` contra ahora — si la suscripción no se renueva, el acceso expira solo sin un job aparte que lo revoque activamente.)*
+- [x] Proteger URLs de descarga.
+- [x] Evitar URLs públicas permanentes.
 
 ---
 
@@ -481,50 +524,50 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 
 > Implementar después de Posts, Estados, Checkout y Productos.
 
-- [ ] Crear módulo de transmisión en vivo.
-- [ ] Integración sugerida:
-  - [ ] proveedor de streaming externo.
-- [ ] No desarrollar infraestructura de video en vivo desde cero si no es necesario.
-- [ ] Funciones:
-  - [ ] iniciar Live,
-  - [ ] terminar Live,
-  - [ ] contador de espectadores,
-  - [ ] chat,
-  - [ ] reacciones,
-  - [ ] compartir,
-  - [ ] seguir negocio.
-- [ ] Antes de iniciar:
-  - [ ] seleccionar productos/servicios.
-- [ ] Durante el Live:
-  - [ ] fijar producto,
-  - [ ] cambiar producto fijado,
-  - [ ] mostrar precio,
-  - [ ] mostrar inventario,
-  - [ ] botón Comprar.
-- [ ] Checkout sin abandonar la experiencia.
-- [ ] Al finalizar:
-  - [ ] guardar replay si aplica,
-  - [ ] mantener productos mostrados,
-  - [ ] permitir comprar desde grabación.
+- [x] Crear módulo de transmisión en vivo. *(Sprint 8: `LiveStream`, panel del negocio y página pública.)*
+- [x] Integración sugerida:
+  - [x] proveedor de streaming externo. *(MVP desacoplado: YouTube, Vimeo o URL directa; no se contrató proveedor ni se creó infraestructura propia.)*
+- [x] No desarrollar infraestructura de video en vivo desde cero si no es necesario.
+- [x] Funciones:
+  - [x] iniciar Live,
+  - [x] terminar Live,
+  - [x] contador de espectadores,
+  - [x] chat,
+  - [x] reacciones,
+  - [x] compartir,
+  - [x] seguir negocio.
+- [x] Antes de iniciar:
+  - [x] seleccionar productos/servicios.
+- [x] Durante el Live:
+  - [x] fijar producto,
+  - [x] cambiar producto fijado,
+  - [x] mostrar precio,
+  - [x] mostrar inventario,
+  - [x] botón Comprar.
+- [x] Checkout sin abandonar la experiencia. *(El pago seguro se abre en una pestaña aparte y el Live continúa reproduciéndose en la pestaña original.)*
+- [x] Al finalizar:
+  - [x] guardar replay si aplica,
+  - [x] mantener productos mostrados,
+  - [x] permitir comprar desde grabación.
 
 ---
 
 # FASE 11 — Notificaciones
 
-- [ ] Crear centro de notificaciones.
+- [x] Crear centro de notificaciones.
 - [ ] Tipos:
-  - [ ] nuevo seguidor,
-  - [ ] reacción,
-  - [ ] comentario,
+  - [x] nuevo seguidor,
+  - [x] reacción,
+  - [x] comentario,
   - [ ] mensaje,
   - [ ] pedido,
   - [ ] pago recibido,
   - [ ] pago rechazado,
   - [ ] suscripción renovada,
   - [ ] suscripción por vencer,
-  - [ ] Live iniciado,
+  - [x] Live iniciado,
   - [ ] promoción,
-  - [ ] nueva propuesta a solicitud.
+  - [x] nueva propuesta a solicitud.
 - [ ] Configuración por usuario:
   - [ ] in-app,
   - [ ] email,
@@ -536,13 +579,13 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 
 # FASE 12 — Favoritos y guardados
 
-- [ ] Conservar favoritos actuales.
+- [x] Conservar favoritos actuales.
 - [ ] Permitir favorito en:
-  - [ ] negocio,
-  - [ ] producto,
-  - [ ] servicio.
+  - [x] negocio,
+  - [x] producto,
+  - [x] servicio.
 - [ ] Crear guardados para:
-  - [ ] posts,
+  - [x] posts,
   - [ ] reels,
   - [ ] Lives/replays.
 - [ ] Permitir “Comprar después”.
@@ -589,19 +632,19 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 
 > Implementar cuando las funcionalidades base estén estables.
 
-- [ ] Generar descripción de producto.
-- [ ] Mejorar texto de publicación.
-- [ ] Crear copy de estado.
-- [ ] Crear texto de Reel.
-- [ ] Sugerir promociones.
+- [x] Generar descripción de producto. *(`GenerateProductDescription`, disponible en el editor de productos.)*
+- [x] Mejorar texto de publicación.
+- [x] Crear copy de estado.
+- [x] Crear texto de Reel.
+- [x] Sugerir promociones. *(El generador se reutiliza cuando la publicación/estado es de tipo promoción, siempre como borrador.)*
 - [ ] Sugerir títulos.
 - [ ] Crear variantes para:
   - [ ] Merkamigo,
   - [ ] WhatsApp,
   - [ ] Instagram,
   - [ ] Facebook.
-- [ ] No publicar automáticamente sin confirmación.
-- [ ] Reutilizar datos reales del catálogo.
+- [x] No publicar automáticamente sin confirmación.
+- [x] Reutilizar datos reales del catálogo.
 
 ---
 
@@ -620,12 +663,12 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
   - [ ] productos más vistos,
   - [ ] productos más vendidos,
   - [ ] clientes recurrentes.
-- [ ] Métricas por:
-  - [ ] post,
-  - [ ] estado,
-  - [ ] reel,
-  - [ ] Live.
-- [ ] Filtros por periodo.
+- [x] Métricas por:
+  - [x] post,
+  - [x] estado,
+  - [x] reel,
+  - [x] Live.
+- [x] Filtros por periodo. *(7, 30 y 90 días.)*
 
 ---
 
@@ -649,21 +692,21 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 
 # FASE 18 — Promoción pagada
 
-- [ ] Preparar sistema de contenidos destacados.
-- [ ] Permitir destacar:
-  - [ ] producto,
-  - [ ] post,
-  - [ ] estado,
-  - [ ] Live.
-- [ ] Segmentación:
-  - [ ] municipio,
-  - [ ] categoría,
-  - [ ] distancia.
-- [ ] Registrar:
-  - [ ] impresiones,
-  - [ ] clics,
-  - [ ] conversiones.
-- [ ] No implementar cobro hasta validar funcionalidad orgánica si aún no existe infraestructura.
+- [x] Preparar sistema de contenidos destacados. *(`ContentPromotion`, activación posterior a pago aprobado y prioridad visual en feed.)*
+- [x] Permitir destacar:
+  - [x] producto,
+  - [x] post,
+  - [x] estado,
+  - [x] Live.
+- [x] Segmentación:
+  - [x] municipio,
+  - [x] categoría,
+  - [x] distancia. *(Se guarda radio de 1/3/5/10/20 km; cuando no hay ubicación del comprador se conserva el filtro por municipio.)*
+- [x] Registrar:
+  - [x] impresiones,
+  - [x] clics,
+  - [x] conversiones.
+- [x] No implementar cobro hasta validar funcionalidad orgánica si aún no existe infraestructura. *(La capa orgánica y Wompi ya existían; se reutilizan los precios administrables de `BillingProduct`, sin crear tarifas nuevas.)*
 
 ---
 
@@ -710,29 +753,29 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 
 ## Recomendaciones
 
-- [ ] Revisar tablas actuales antes de crear nuevas.
+- [x] Revisar tablas actuales antes de crear nuevas.
 - [ ] Agregar índices en:
   - [ ] `user_id`,
   - [ ] `business_id`,
   - [ ] `municipality_id`,
   - [ ] `created_at`,
   - [ ] `status`.
-- [ ] Indexar relaciones necesarias para feed.
-- [ ] Evitar consultas N+1.
-- [ ] Preparar paginación/cursor pagination.
-- [ ] Evitar guardar métricas pesadas directamente en consultas de feed.
+- [x] Indexar relaciones necesarias para feed.
+- [x] Evitar consultas N+1.
+- [x] Preparar paginación/cursor pagination.
+- [x] Evitar guardar métricas pesadas directamente en consultas de feed.
 
 ### Tablas tentativas — crear solo si no existe equivalente
 
-- [ ] posts
-- [ ] post_media
-- [ ] post_products
-- [ ] post_reactions
-- [ ] post_comments
-- [ ] follows
-- [ ] saved_items
-- [ ] stories
-- [ ] story_views
+- [x] posts
+- [x] post_media
+- [x] post_products
+- [x] post_reactions
+- [x] post_comments
+- [x] follows
+- [x] saved_items
+- [x] stories
+- [x] story_views
 - [ ] reels
 - [ ] live_streams
 - [ ] live_products
@@ -754,8 +797,8 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
 
 # FASE 22 — API / backend
 
-- [ ] Crear servicios de dominio.
-- [ ] No colocar toda la lógica en controladores.
+- [x] Crear servicios de dominio.
+- [x] No colocar toda la lógica en controladores.
 - [ ] Separar:
   - [ ] SocialService.
   - [ ] FeedService.
@@ -764,7 +807,7 @@ Merkamigo controla la experiencia de compra. La pasarela procesa el dinero.
   - [ ] SubscriptionService.
   - [ ] NotificationService.
   - [ ] LocationService.
-- [ ] Agregar validaciones.
+- [x] Agregar validaciones.
 - [ ] Agregar policies/permisos.
 - [ ] Crear endpoints versionados si aplica.
 - [ ] Documentar endpoints nuevos.
@@ -902,60 +945,60 @@ Configuración
 # FASE 28 — Orden sugerido de ejecución para Codex
 
 ## Sprint 1
-- [ ] Auditar proyecto actual.
-- [ ] Documentar arquitectura actual.
-- [ ] Identificar usuarios, negocios, municipios, productos, servicios y roles.
-- [ ] Implementar cambio Comprador / Mi negocio.
-- [ ] Mejorar selector de municipio.
-- [ ] Mejorar buscador.
+- [x] Auditar proyecto actual.
+- [x] Documentar arquitectura actual.
+- [x] Identificar usuarios, negocios, municipios, productos, servicios y roles.
+- [x] Implementar cambio Comprador / Mi negocio.
+- [x] Mejorar selector de municipio.
+- [x] Mejorar buscador.
 
 ## Sprint 2
-- [ ] Crear modelo de posts.
-- [ ] Feed.
-- [ ] Reacciones.
-- [ ] Comentarios.
-- [ ] Guardados.
-- [ ] Seguir negocios.
+- [x] Crear modelo de posts.
+- [x] Feed.
+- [x] Reacciones.
+- [x] Comentarios.
+- [x] Guardados.
+- [x] Seguir negocios.
 
 ## Sprint 3
-- [ ] Estados.
-- [ ] Notificaciones sociales.
-- [ ] Integración de productos en posts/estados.
+- [x] Estados.
+- [x] Notificaciones sociales.
+- [x] Integración de productos en posts/estados.
 
 ## Sprint 4
-- [ ] Reels.
-- [ ] Optimización multimedia.
-- [ ] Feed de video.
+- [x] Reels.
+- [ ] Optimización multimedia. *(videos se guardan tal cual, sin recompresión — ver nota en Fase 4.)*
+- [x] Feed de video. *(los reels también aparecen en el feed normal, además de en `/reels`.)*
 
 ## Sprint 5
-- [ ] Checkout.
-- [ ] Pedidos.
-- [ ] Integración inicial con pasarela.
-- [ ] Webhooks.
+- [x] Checkout.
+- [x] Pedidos.
+- [x] Integración inicial con pasarela.
+- [x] Webhooks.
 
 ## Sprint 6
-- [ ] Suscripciones.
-- [ ] Cobros recurrentes.
-- [ ] Productos digitales.
-- [ ] Entitlements.
+- [x] Suscripciones.
+- [x] Cobros recurrentes.
+- [x] Productos digitales.
+- [x] Entitlements.
 
 ## Sprint 7
-- [ ] Merkamigo Cerca.
-- [ ] Mejoras por ubicación.
-- [ ] Promociones cercanas.
-- [ ] Feed por distancia.
+- [x] Merkamigo Cerca. *(radio de "Cerca de mí" como filtro real, ver Fase 5.)*
+- [x] Mejoras por ubicación. *(negocios, productos y promociones; Lives se filtran por municipio.)*
+- [x] Promociones cercanas. *(Segmentación por municipio y radio; si el comprador no comparte coordenadas se conserva el municipio.)*
+- [ ] Feed por distancia. *(el feed social sigue filtrando por municipio, no por radio — el radio quedó en `/buscar`; llevarlo al feed es la extensión natural pendiente.)*
 
 ## Sprint 8
-- [ ] Live Commerce.
-- [ ] Productos fijados.
-- [ ] Checkout desde Live.
-- [ ] Replay comprable.
+- [x] Live Commerce. *(MVP con transmisión externa; el proveedor administrado queda por decidir.)*
+- [x] Productos fijados.
+- [x] Checkout desde Live. *(Abre Wompi hospedado en otra pestaña para conservar la transmisión activa.)*
+- [x] Replay comprable.
 
 ## Sprint 9
-- [ ] Métricas.
-- [ ] Panel de negocio.
-- [ ] IA de ventas.
-- [ ] Promoción pagada.
+- [x] Métricas. *(Incluye rendimiento social y filtros de 7/30/90 días.)*
+- [x] Panel de negocio. *(Se amplió el panel existente, sin duplicarlo.)*
+- [x] IA de ventas. *(Borradores editables para publicación, estado, reel y Live; nunca autopublica.)*
+- [x] Promoción pagada. *(Producto, post, estado y Live; reutiliza los paquetes/precios existentes, segmenta por municipio/categoría/radio y atribuye impresiones, clics y ventas.)*
 
 ---
 
@@ -964,19 +1007,19 @@ Configuración
 La nueva versión se considera estable cuando:
 
 - [ ] No se pierde ninguna funcionalidad previa de Merkamigo.
-- [ ] Un usuario puede comprar y vender con una sola cuenta.
-- [ ] El municipio sigue siendo parte central de la navegación.
-- [ ] Las vitrinas existentes siguen funcionando.
-- [ ] Los productos existentes pueden publicarse sin duplicarse.
-- [ ] Existe feed social.
-- [ ] Se puede seguir a negocios.
-- [ ] Se pueden crear publicaciones y estados.
-- [ ] Se puede comprar desde contenido social.
-- [ ] Existen pedidos.
-- [ ] Existen pagos.
-- [ ] Existen suscripciones recurrentes.
-- [ ] Existe soporte para productos digitales.
-- [ ] Live Commerce funciona como una capa adicional, no como requisito del sistema.
+- [x] Un usuario puede comprar y vender con una sola cuenta.
+- [x] El municipio sigue siendo parte central de la navegación.
+- [x] Las vitrinas existentes siguen funcionando.
+- [x] Los productos existentes pueden publicarse sin duplicarse.
+- [x] Existe feed social.
+- [x] Se puede seguir a negocios.
+- [x] Se pueden crear publicaciones y estados.
+- [x] Se puede comprar desde contenido social.
+- [x] Existen pedidos.
+- [x] Existen pagos.
+- [x] Existen suscripciones recurrentes.
+- [x] Existe soporte para productos digitales.
+- [x] Live Commerce funciona como una capa adicional, no como requisito del sistema.
 - [ ] La interfaz sigue siendo limpia, profesional, rápida y enfocada en comercio local.
 
 ---

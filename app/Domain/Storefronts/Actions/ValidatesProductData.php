@@ -20,7 +20,8 @@ trait ValidatesProductData
 
         return [
             'name' => [$required, 'string', 'max:255', new NoLinks],
-            'type' => [$required, 'in:producto,servicio'],
+            'type' => [$required, 'in:producto,servicio,digital'],
+            'sale_type' => ['sometimes', 'in:unica,suscripcion'],
             'description' => ['sometimes', 'nullable', 'string', new NoLinks],
             'price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'price_type' => ['sometimes', 'in:exacto,desde,consultar,sin_precio'],

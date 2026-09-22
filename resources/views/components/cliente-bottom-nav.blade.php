@@ -7,7 +7,7 @@
 
 <nav class="fixed inset-x-0 bottom-0 z-30 shadow-lg border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-zinc-700 dark:bg-zinc-800">
     <div class="mx-auto flex max-w-7xl items-stretch justify-between px-2">
-        <a href="{{ route('buscar') }}" wire:navigate class="flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('buscar') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
+        <a href="{{ route('explorar') }}" wire:navigate class="flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('explorar') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
             <flux:icon.magnifying-glass class="size-5" variant="outline" />
             {{ __('Explorar') }}
         </a>

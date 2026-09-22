@@ -31,6 +31,16 @@ Schedule::command('billing:apply-plan-downgrades')->dailyAt('02:00');
 Schedule::command('analytics:send-weekly-reports')->weekly();
 Schedule::command('analytics:alert-incomplete-storefronts')->weekly();
 
+// TODO-Marketplace-Checkout.md: cobro semanal en lote de la comisión de
+// Merkamigo sobre las ventas de marketplace (el pago del cliente ya está
+// en la cuenta del negocio, esto es aparte, contra su tarjeta guardada).
+Schedule::command('marketplace:charge-commissions')->weeklyOn(1, '03:00');
+
+// Fase 8.2 del TODO social: cobra el primer periodo real de las
+// suscripciones cuya prueba venció y renueva las que ya cumplieron su
+// periodo pagado (dinero directo a la cuenta Wompi de cada negocio).
+Schedule::command('subscriptions:renew')->dailyAt('04:00');
+
 // Conciliación periódica de Google Merchant (Fase 10 de la integración):
 // sin flags, el comando solo encola los productos elegibles que nunca se
 // sincronizaron, quedaron en error/requiere_ajustes, o cambiaron desde su

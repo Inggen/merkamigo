@@ -81,6 +81,9 @@ new #[Title('Configuración de perfil')] class extends Component
 
         $validated = $this->validate($this->profileRules($user->id));
 
+        $validated['email'] = $validated['email'] ?: null;
+        $validated['phone'] = $validated['phone'] ?: null;
+
         $user->fill($validated);
 
         if ($user->isDirty('email')) {

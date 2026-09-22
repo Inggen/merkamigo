@@ -3,9 +3,22 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
+    @php $isEntrepreneur = auth()->user()->experience === 'emprendedor'; @endphp
+    <body @class([
+        'min-h-screen dark:bg-zinc-800',
+        'bg-zinc-50/60 entrepreneur-area' => $isEntrepreneur,
+        'bg-white' => ! $isEntrepreneur,
+    ])>
         <div class="min-h-screen lg:flex">
-            <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+            <flux:sidebar
+                sticky
+                collapsible="mobile"
+                @class([
+                    'border-e border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900',
+                    'entrepreneur-sidebar !w-64 !gap-2 !bg-white !px-3 !py-4' => $isEntrepreneur,
+                    'bg-zinc-50' => ! $isEntrepreneur,
+                ])
+            >
                 <flux:sidebar.header>
                     <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
                     <flux:sidebar.collapse class="lg:hidden" />
@@ -27,10 +40,24 @@
 
                 <flux:spacer />
 
-                <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
+                @unless ($isEntrepreneur)
+                    <x-desktop-user-menu class="hidden lg:block" />
+                @endunless
             </flux:sidebar>
 
             <div class="min-w-0 flex-1">
+                @if ($isEntrepreneur)
+                    <header class="entrepreneur-topbar sticky top-0 z-10 hidden h-14 items-center justify-end gap-3 border-b border-zinc-200 bg-white/95 px-6 backdrop-blur lg:flex dark:border-zinc-700 dark:bg-zinc-900/95">
+                        <a href="{{ route('clientes.actividad') }}" wire:navigate class="relative inline-flex size-9 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="{{ __('Actividad') }}">
+                            <flux:icon.bell class="size-5" variant="outline" />
+                            @if (($topbarUnread = auth()->user()->unreadNotifications()->count()) > 0)
+                                <span class="absolute right-1 top-1 size-2 rounded-full bg-brand-500 ring-2 ring-white dark:ring-zinc-900"></span>
+                            @endif
+                        </a>
+                        <x-desktop-user-menu placement="header" />
+                    </header>
+                @endif
+
                 <!-- Mobile User Menu -->
                 <flux:header class="lg:hidden">
                     <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
@@ -71,6 +98,9 @@
                             <flux:menu.separator />
 
                             <flux:menu.radio.group>
+                                <flux:menu.item :href="route('clientes.favoritos')" icon="heart" wire:navigate>
+                                    {{ __('Favoritos') }}
+                                </flux:menu.item>
                                 <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
                                     {{ __('Configuración') }}
                                 </flux:menu.item>

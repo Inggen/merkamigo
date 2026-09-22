@@ -9,8 +9,10 @@ use App\Domain\Storefronts\Actions\GenerateProductDescription;
 use App\Domain\Storefronts\Actions\GenerateProductImage;
 use App\Domain\Storefronts\Actions\MoveProductToBusiness;
 use App\Domain\Storefronts\Actions\UpdateProduct;
+use App\Domain\Storefronts\Actions\UpdateProductFile;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Storefronts\Models\ProductMedia;
+use App\Domain\Subscriptions\Actions\CreateSubscriptionPlan;
 use App\Support\Ai\AiImagePrompt;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -71,6 +73,21 @@ new #[Title('Productos y servicios')] class extends Component
     public ?string $brand = '';
 
     public string $condition = 'nuevo';
+
+    public string $sale_type = 'unica';
+
+    public string $subscription_frequency = 'mensual';
+
+    public ?int $subscription_trial_days = null;
+
+    public ?string $subscription_benefits = '';
+
+    public bool $subscription_is_active = true;
+
+    public $digitalFile = null;
+
+    /** @var array{id: int, name: string}|null */
+    public ?array $existingFile = null;
 
     /** @var array<int, array{label: string, price: ?float}> */
     public array $variants = [];
@@ -149,11 +166,14 @@ new #[Title('Productos y servicios')] class extends Component
     {
         $this->authorize('update', $this->business);
 
-        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'removeMediaIds', 'photoAlts', 'gtin', 'mpn', 'brand']);
+        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'removeMediaIds', 'photoAlts', 'gtin', 'mpn', 'brand', 'digitalFile', 'existingFile', 'subscription_trial_days', 'subscription_benefits']);
         $this->type = 'producto';
         $this->price_type = 'exacto';
         $this->is_available = true;
         $this->condition = 'nuevo';
+        $this->sale_type = 'unica';
+        $this->subscription_frequency = 'mensual';
+        $this->subscription_is_active = true;
         $this->productBusinessId = $this->selectedBusinessId;
         $this->resetValidation();
     }
@@ -162,12 +182,30 @@ new #[Title('Productos y servicios')] class extends Component
     {
         $this->authorize('update', $this->business);
 
-        $product = $this->business->products()->with(['variants', 'media'])->findOrFail($productId);
+        $product = $this->business->products()->with(['variants', 'media', 'files', 'subscriptionPlan'])->findOrFail($productId);
 
         $this->editingId = $product->id;
         $this->productBusinessId = $product->business_id;
         $this->name = $product->name;
         $this->type = $product->type;
+        $this->sale_type = $product->sale_type;
+        $this->digitalFile = null;
+        $this->existingFile = $product->files->first()
+            ? ['id' => $product->files->first()->id, 'name' => $product->files->first()->original_name]
+            : null;
+
+        if ($plan = $product->subscriptionPlan) {
+            $this->subscription_frequency = $plan->frequency;
+            $this->subscription_trial_days = $plan->trial_days;
+            $this->subscription_benefits = $plan->benefits;
+            $this->subscription_is_active = $plan->is_active;
+        } else {
+            $this->subscription_frequency = 'mensual';
+            $this->subscription_trial_days = null;
+            $this->subscription_benefits = null;
+            $this->subscription_is_active = true;
+        }
+
         $this->description = $product->description;
         $this->price = $product->price ? (float) $product->price : null;
         $this->price_type = $product->price_type;
@@ -321,6 +359,7 @@ new #[Title('Productos y servicios')] class extends Component
         $data = [
             'name' => $this->name,
             'type' => $this->type,
+            'sale_type' => $this->sale_type,
             'description' => $this->description,
             'price' => $this->price,
             'price_type' => $this->price_type,
@@ -374,6 +413,19 @@ new #[Title('Productos y servicios')] class extends Component
                     ->each(function (ProductMedia $media) use (&$nextPosition) {
                         $media->update(['position' => $nextPosition++]);
                     });
+            }
+
+            if ($this->sale_type === 'suscripcion') {
+                app(CreateSubscriptionPlan::class)->handle($product, [
+                    'frequency' => $this->subscription_frequency,
+                    'trial_days' => $this->subscription_trial_days,
+                    'benefits' => $this->subscription_benefits,
+                    'is_active' => $this->subscription_is_active,
+                ]);
+            }
+
+            if ($this->type === 'digital' && $this->digitalFile) {
+                app(UpdateProductFile::class)->handle($product, $this->digitalFile);
             }
         } catch (PlanLimitException $e) {
             Flux::toast(variant: 'danger', text: $e->getMessage());
@@ -572,6 +624,9 @@ new #[Title('Productos y servicios')] class extends Component
                             @if ($product->isSoldOut())
                                 <flux:badge size="sm" color="red">{{ __('Agotado') }}</flux:badge>
                             @endif
+                            @if ($product->isSubscription())
+                                <flux:badge size="sm" color="purple">{{ __('Suscripción') }}</flux:badge>
+                            @endif
                         </div>
                     </div>
 
@@ -645,9 +700,15 @@ new #[Title('Productos y servicios')] class extends Component
                 @endforeach
             </flux:select>
 
-            <flux:select wire:model="type" :label="__('Tipo')">
+            <flux:select wire:model.live="type" :label="__('Tipo')">
                 <flux:select.option value="producto">{{ __('Producto') }}</flux:select.option>
                 <flux:select.option value="servicio">{{ __('Servicio') }}</flux:select.option>
+                <flux:select.option value="digital">{{ __('Digital (ebook, curso, plantilla...)') }}</flux:select.option>
+            </flux:select>
+
+            <flux:select wire:model.live="sale_type" :label="__('Venta')">
+                <flux:select.option value="unica">{{ __('Compra única') }}</flux:select.option>
+                <flux:select.option value="suscripcion">{{ __('Suscripción (cobro periódico)') }}</flux:select.option>
             </flux:select>
 
             <flux:input wire:model="name" :label="__('Nombre')" required />
@@ -693,6 +754,41 @@ new #[Title('Productos y servicios')] class extends Component
                     </div>
                 @endif
             </div>
+
+            @if ($sale_type === 'suscripcion')
+                <div class="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                    <flux:text class="font-medium">{{ __('Plan de suscripción') }}</flux:text>
+
+                    <flux:select wire:model="subscription_frequency" :label="__('Frecuencia de cobro')">
+                        <flux:select.option value="semanal">{{ __('Semanal') }}</flux:select.option>
+                        <flux:select.option value="mensual">{{ __('Mensual') }}</flux:select.option>
+                        <flux:select.option value="trimestral">{{ __('Trimestral') }}</flux:select.option>
+                        <flux:select.option value="anual">{{ __('Anual') }}</flux:select.option>
+                    </flux:select>
+
+                    <flux:input wire:model="subscription_trial_days" :label="__('Días de prueba gratis (opcional)')" type="number" min="0" max="365" />
+
+                    <flux:textarea wire:model="subscription_benefits" :label="__('Beneficios (opcional)')" rows="2" placeholder="{{ __('Ej: Acceso a todo el contenido, soporte prioritario') }}" />
+
+                    <flux:checkbox wire:model="subscription_is_active" :label="__('Aceptar nuevos suscriptores')" />
+                </div>
+            @endif
+
+            @if ($type === 'digital')
+                <div class="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                    <flux:text class="font-medium">{{ __('Archivo entregable') }}</flux:text>
+                    <flux:text class="text-sm text-zinc-500">{{ __('Solo lo pueden descargar clientes con acceso vigente (compra o suscripción activa).') }}</flux:text>
+
+                    @if ($existingFile)
+                        <flux:text class="text-sm">{{ __('Archivo actual: :name', ['name' => $existingFile['name']]) }}</flux:text>
+                    @endif
+
+                    <input type="file" wire:model="digitalFile" class="block w-full text-sm">
+                    @error('digitalFile')
+                        <flux:text class="text-sm text-red-600 dark:text-red-400">{{ $message }}</flux:text>
+                    @enderror
+                </div>
+            @endif
 
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
@@ -787,68 +883,20 @@ new #[Title('Productos y servicios')] class extends Component
                     </div>
                 @endif
 
-                <label class="block cursor-pointer rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/90 p-4 transition hover:border-brand-400 hover:bg-white">
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div class="flex min-w-0 items-center gap-3">
-                            <span class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
-                                <flux:icon.photo class="size-5" variant="outline" />
-                            </span>
-
-                            <div class="min-w-0">
-                                <div class="text-sm font-semibold text-zinc-800">{{ __('Subir fotos') }}</div>
-                                <div class="text-xs text-zinc-500">{{ __('Haz clic para elegir imágenes JPG, PNG o WEBP desde tu dispositivo.') }}</div>
-                            </div>
-                        </div>
-
-                        <span class="inline-flex items-center rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm">
-                            {{ __('Seleccionar archivos') }}
-                        </span>
-                    </div>
-
-                    <input
-                        type="file"
-                        wire:model="photos"
-                        multiple
-                        accept="image/*"
-                        class="sr-only"
-                    >
-                </label>
+                <x-forms.image-upload-field
+                    wire:model="photos"
+                    multiple
+                    accept="image/*"
+                    :title="null"
+                    :preview-urls="collect($photos)->map(fn ($photo) => $photo->temporaryUrl())->all()"
+                    remove-action="removePendingPhoto"
+                    :error="$errors->first('photos')"
+                />
 
                 <div wire:loading wire:target="photos" class="mt-2">
                     <flux:text class="text-sm text-zinc-500">{{ __('Cargando fotos...') }}</flux:text>
                 </div>
 
-                @if ($photos !== [])
-                    <div class="mt-3 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
-                        <div class="mb-3 flex items-center justify-between gap-3">
-                            <flux:text class="text-sm font-medium text-zinc-800">
-                                {{ trans_choice(':count foto lista para guardar|:count fotos listas para guardar', count($photos), ['count' => count($photos)]) }}
-                            </flux:text>
-                            <flux:text class="text-xs text-zinc-500">{{ __('Se guardarán cuando presiones "Guardar".') }}</flux:text>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                            @foreach ($photos as $index => $photo)
-                                <div class="relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-                                    <img src="{{ $photo->temporaryUrl() }}" class="aspect-square h-full w-full object-cover" alt="{{ __('Vista previa de la foto') }}">
-                                    <flux:button
-                                        type="button"
-                                        size="sm"
-                                        variant="danger"
-                                        icon="trash"
-                                        wire:click="removePendingPhoto({{ $index }})"
-                                        class="absolute right-2 top-2"
-                                        aria-label="{{ __('Eliminar esta imagen') }}"
-                                    />
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                @error('photos')
-                    <flux:text class="mt-2 text-sm text-red-600">{{ $message }}</flux:text>
-                @enderror
             </div>
 
             <div class="flex justify-end gap-2">

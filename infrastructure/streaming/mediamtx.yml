@@ -1,0 +1,31 @@
+logLevel: info
+
+rtsp: true
+rtspAddress: :8554
+
+rtmp: true
+rtmpAddress: :1935
+
+hls: true
+hlsAddress: :8888
+hlsAllowOrigins: ['*']
+hlsAlwaysRemux: true
+
+webrtc: true
+webrtcAddress: :8889
+webrtcAllowOrigins: ['*']
+webrtcLocalUDPAddress: :8189
+
+api: true
+apiAddress: :9997
+metrics: true
+metricsAddress: :9998
+
+pathDefaults:
+  source: publisher
+  record: true
+  recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordFormat: fmp4
+
+paths:
+  all_others:

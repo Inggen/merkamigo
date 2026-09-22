@@ -24,6 +24,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
 /**
@@ -214,6 +215,38 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->savedAt = now()->format('H:i');
 
         Flux::toast(variant: 'success', text: __('Cambios guardados.'));
+    }
+
+    public function removeLogo(): void
+    {
+        if ($this->logo) {
+            $this->reset('logo');
+
+            return;
+        }
+
+        $this->authorize('update', $this->business);
+        app(UpdateStorefront::class)->handle($this->business, ['remove_logo' => true], Auth::user());
+        unset($this->business);
+        $this->savedAt = now()->format('H:i');
+
+        Flux::toast(variant: 'success', text: __('Logo eliminado.'));
+    }
+
+    public function removeCover(): void
+    {
+        if ($this->cover) {
+            $this->reset('cover');
+
+            return;
+        }
+
+        $this->authorize('update', $this->business);
+        app(UpdateStorefront::class)->handle($this->business, ['remove_cover' => true], Auth::user());
+        unset($this->business);
+        $this->savedAt = now()->format('H:i');
+
+        Flux::toast(variant: 'success', text: __('Portada eliminada.'));
     }
 
     /**
@@ -594,9 +627,10 @@ new #[Title('Editar mi vitrina')] class extends Component
                         wire:model="logo"
                         accept="image/*"
                         :title="__('Logo o foto principal')"
-                        :preview-url="$this->business->logoUrl() && ! $logo ? $this->business->logoUrl() : null"
+                        :preview-url="$logo instanceof TemporaryUploadedFile ? $logo->temporaryUrl() : $this->business->logoUrl()"
                         :preview-alt="$this->business->logo_alt_text ?? $this->business->name"
                         :preview-class="'size-20 rounded-xl object-cover'"
+                        remove-action="removeLogo"
                         :error="$errors->first('logo')"
                     />
                     <flux:input wire:model.live.debounce.900ms="logo_alt_text" class="mt-2" :label="__('Texto alternativo del logo (opcional)')" />
@@ -622,8 +656,9 @@ new #[Title('Editar mi vitrina')] class extends Component
                         wire:model="cover"
                         accept="image/*"
                         :title="__('Portada de la vitrina')"
-                        :preview-url="$this->business->storefront?->coverUrl() && ! $cover ? $this->business->storefront->coverUrl() : null"
+                        :preview-url="$cover instanceof TemporaryUploadedFile ? $cover->temporaryUrl() : $this->business->storefront?->coverUrl()"
                         :preview-alt="$this->business->storefront->cover_alt_text ?? __('Portada actual')"
+                        remove-action="removeCover"
                         :error="$errors->first('cover')"
                     />
                     <flux:input wire:model.live.debounce.900ms="cover_alt_text" class="mt-2" :label="__('Texto alternativo de la portada (opcional)')" />

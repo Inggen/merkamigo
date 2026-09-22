@@ -1,0 +1,53 @@
+# Desarrollo local únicamente. Todos los listeners quedan restringidos al
+# equipo para que ninguna persona de la red pueda publicar o leer señales.
+logLevel: info
+
+rtsp: true
+rtspAddress: 127.0.0.1:8554
+
+srt: false
+moq: false
+
+rtmp: true
+rtmpAddress: 127.0.0.1:1935
+
+hls: true
+hlsAddress: 127.0.0.1:8888
+hlsAllowOrigins: ['https://merkamigo.test']
+hlsAlwaysRemux: true
+
+webrtc: true
+webrtcAddress: 127.0.0.1:8889
+webrtcAllowOrigins: ['https://merkamigo.test']
+webrtcLocalUDPAddress: 127.0.0.1:8189
+
+api: true
+apiAddress: 127.0.0.1:9997
+metrics: true
+metricsAddress: 127.0.0.1:9998
+
+authMethod: internal
+authInternalUsers:
+  - user: any
+    pass:
+    ips: ['127.0.0.1', '::1']
+    permissions:
+      - action: publish
+        path: '~^live/[a-zA-Z0-9-]+$'
+      - action: read
+        path: '~^live/[a-zA-Z0-9-]+$'
+      - action: playback
+        path: '~^live/[a-zA-Z0-9-]+$'
+      - action: api
+      - action: metrics
+
+pathDefaults:
+  source: publisher
+  record: true
+  recordPath: storage/app/private/live-recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordFormat: fmp4
+  runOnReady: /opt/homebrew/bin/php /Users/johnalexanderramirezrodriguez/Herd/merkamigo/artisan live:relay "$MTX_PATH"
+  runOnReadyRestart: yes
+
+paths:
+  all_others:

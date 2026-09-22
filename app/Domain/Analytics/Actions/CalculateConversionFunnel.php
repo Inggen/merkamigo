@@ -16,8 +16,6 @@ use App\Domain\Trust\Models\OrderConfirmation;
  */
 class CalculateConversionFunnel
 {
-    private const DAYS = 7;
-
     /**
      * @return array{
      *     visits: int,
@@ -27,9 +25,10 @@ class CalculateConversionFunnel
      *     click_to_order_rate: float|null,
      * }
      */
-    public function handle(Business $business): array
+    public function handle(Business $business, int $days = 7): array
     {
-        $periodStart = now()->subDays(self::DAYS - 1)->startOfDay();
+        $days = in_array($days, [7, 30, 90], true) ? $days : 7;
+        $periodStart = now()->subDays($days - 1)->startOfDay();
         $periodEnd = now()->endOfDay();
 
         $visits = AnalyticsEvent::query()

@@ -28,7 +28,6 @@
     page-schema-type="SearchResultsPage"
     :page-schema-data="['query' => $query]"
     :schema-graph="$schemaGraph"
-    :show-municipality-selector="false"
 >
     <x-clientes.search-hero
         :municipality="$selectedMunicipality"
@@ -36,6 +35,7 @@
         :category="$selectedCategory"
         :query="$query"
         :near="$near"
+        :radius-km="$radiusKm"
         :show-immersive-cta="$selectedMunicipality !== null"
         :title="__('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad')"
         :description="$selectedMunicipality
@@ -76,6 +76,7 @@
                 :query="$query"
                 :latitude="$near['lat'] ?? null"
                 :longitude="$near['lng'] ?? null"
+                :radius-km="$radiusKm"
                 :per-page="12"
             />
         @endif
@@ -126,17 +127,43 @@
 
         @if ($products->isNotEmpty())
             <div class="mt-10">
-                <form method="GET" action="{{ url()->current() }}" class="mb-4 flex items-center justify-between gap-3">
+                <form method="GET" action="{{ url()->current() }}" class="mb-4 flex flex-wrap items-center justify-between gap-3">
                     @if ($query !== '')
                         <input type="hidden" name="q" value="{{ $query }}">
                     @endif
 
                     <flux:heading size="lg">{{ __('Productos para ti') }}</flux:heading>
 
-                    <label class="flex shrink-0 items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-                        <input type="checkbox" name="disponibles" value="1" {{ $onlyAvailable ? 'checked' : '' }} onchange="this.form.submit()">
-                        {{ __('Solo disponibles') }}
-                    </label>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-300">
+                            <input
+                                type="number"
+                                name="precio_min"
+                                min="0"
+                                step="1000"
+                                value="{{ $minPrice }}"
+                                placeholder="{{ __('Precio mín.') }}"
+                                class="w-28 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                                onchange="this.form.submit()"
+                            >
+                            <span>–</span>
+                            <input
+                                type="number"
+                                name="precio_max"
+                                min="0"
+                                step="1000"
+                                value="{{ $maxPrice }}"
+                                placeholder="{{ __('Precio máx.') }}"
+                                class="w-28 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                                onchange="this.form.submit()"
+                            >
+                        </div>
+
+                        <label class="flex shrink-0 items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                            <input type="checkbox" name="disponibles" value="1" {{ $onlyAvailable ? 'checked' : '' }} onchange="this.form.submit()">
+                            {{ __('Solo disponibles') }}
+                        </label>
+                    </div>
                 </form>
 
                 <livewire:catalog-results
@@ -145,6 +172,11 @@
                     :category-id="$selectedCategory?->id"
                     :query="$query"
                     :only-available="$onlyAvailable"
+                    :min-price="$minPrice"
+                    :max-price="$maxPrice"
+                    :latitude="$near['lat'] ?? null"
+                    :longitude="$near['lng'] ?? null"
+                    :radius-km="$radiusKm"
                     :per-page="8"
                 />
             </div>

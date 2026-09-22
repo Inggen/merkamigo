@@ -2,7 +2,15 @@
 
 use App\Domain\Billing\Models\BillingProduct;
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Discovery\Models\Category;
+use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Social\Actions\CreateContentPromotion;
+use App\Domain\Social\Models\LiveStream;
+use App\Domain\Social\Models\Post;
+use App\Domain\Social\Models\Story;
+use App\Domain\Storefronts\Models\Product;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -14,9 +22,18 @@ use Livewire\Component;
  * compra pasa por el checkout de Wompi (4.2) — nada se activa sin un pago
  * aprobado.
  */
-new #[Title('Impulsa tu negocio')] class extends Component {
+new #[Title('Impulsa tu negocio')] class extends Component
+{
     #[Locked]
     public int $businessId;
+
+    public string $promotionTarget = '';
+
+    public ?int $promotionMunicipalityId = null;
+
+    public ?int $promotionCategoryId = null;
+
+    public ?int $promotionRadiusKm = null;
 
     public function boot(): void
     {
@@ -34,6 +51,8 @@ new #[Title('Impulsa tu negocio')] class extends Component {
         $this->authorize('update', $business);
 
         $this->businessId = $business->id;
+        $this->promotionMunicipalityId = $business->municipality_id;
+        $this->promotionCategoryId = $business->category_id;
     }
 
     #[Computed]
@@ -100,6 +119,67 @@ new #[Title('Impulsa tu negocio')] class extends Component {
     public function otherProducts()
     {
         return $this->products->where('kind', '!=', BillingProduct::DESTACADO)->values();
+    }
+
+    #[Computed]
+    public function promotionTargets(): array
+    {
+        $products = $this->business->products()->where('status', 'publicado')->latest()->get()
+            ->map(fn (Product $product) => ['value' => 'product:'.$product->id, 'label' => __('Producto: :name', ['name' => $product->name])]);
+        $posts = $this->business->posts()->where('status', 'publicado')->latest('published_at')->get()
+            ->map(fn (Post $post) => ['value' => 'post:'.$post->id, 'label' => __('Publicación: :name', ['name' => str($post->body ?: __('Sin texto'))->limit(55)])]);
+        $stories = $this->business->stories()->where('expires_at', '>', now())->latest()->get()
+            ->map(fn (Story $story) => ['value' => 'story:'.$story->id, 'label' => __('Estado: :name', ['name' => str($story->caption ?: __('Sin texto'))->limit(55)])]);
+        $lives = $this->business->liveStreams()->where('status', '!=', LiveStream::BORRADOR)->get()
+            ->map(fn (LiveStream $live) => ['value' => 'live:'.$live->id, 'label' => __('Live: :name', ['name' => $live->title])]);
+
+        return $products->concat($posts)->concat($stories)->concat($lives)->values()->all();
+    }
+
+    #[Computed]
+    public function municipalities()
+    {
+        return Municipality::where('is_active', true)->orderBy('name')->get();
+    }
+
+    #[Computed]
+    public function categories()
+    {
+        return Category::where('is_active', true)->orderBy('name')->get();
+    }
+
+    public function promoteContent(int $billingProductId): void
+    {
+        $data = $this->validate([
+            'promotionTarget' => ['required', 'regex:/^(product|post|story|live):[0-9]+$/'],
+            'promotionMunicipalityId' => ['nullable', 'integer', 'exists:municipalities,id'],
+            'promotionCategoryId' => ['nullable', 'integer', 'exists:categories,id'],
+            'promotionRadiusKm' => ['nullable', 'integer', Rule::in([1, 3, 5, 10, 20])],
+        ]);
+
+        [$type, $id] = explode(':', $data['promotionTarget'], 2);
+        $content = match ($type) {
+            'product' => $this->business->products()->findOrFail($id),
+            'post' => $this->business->posts()->findOrFail($id),
+            'story' => $this->business->stories()->findOrFail($id),
+            'live' => $this->business->liveStreams()->findOrFail($id),
+        };
+        $billingProduct = BillingProduct::query()
+            ->where('is_active', true)
+            ->where('kind', BillingProduct::DESTACADO)
+            ->findOrFail($billingProductId);
+
+        $promotion = app(CreateContentPromotion::class)->handle($this->business, $content, [
+            'municipality_id' => $data['promotionMunicipalityId'],
+            'category_id' => $data['promotionCategoryId'],
+            'radius_km' => $data['promotionRadiusKm'],
+        ], Auth::user());
+
+        $this->redirectRoute('emprendedores.negocios.impulsar.checkout', [
+            'business' => $this->business,
+            'billingProduct' => $billingProduct,
+            'promotion' => $promotion->id,
+        ]);
     }
 }; ?>
 
@@ -176,6 +256,51 @@ new #[Title('Impulsa tu negocio')] class extends Component {
                             {{ __('Elegir :days días', ['days' => $item['days']]) }}
                         </flux:button>
                     </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    @if (! empty($this->destacados) && ! empty($this->promotionTargets))
+        <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-700">
+            <flux:heading size="lg">{{ __('Destaca contenido') }}</flux:heading>
+            <flux:subheading>{{ __('Promociona un producto, publicación, estado o Live con los paquetes existentes.') }}</flux:subheading>
+
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                <flux:select wire:model="promotionTarget" :label="__('Contenido')" placeholder="{{ __('Selecciona contenido') }}">
+                    @foreach ($this->promotionTargets as $target)
+                        <flux:select.option :value="$target['value']">{{ $target['label'] }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:select wire:model="promotionMunicipalityId" :label="__('Municipio')">
+                    @foreach ($this->municipalities as $municipality)
+                        <flux:select.option :value="$municipality->id">{{ $municipality->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:select wire:model="promotionCategoryId" :label="__('Categoría')">
+                    @foreach ($this->categories as $category)
+                        <flux:select.option :value="$category->id">{{ $category->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:select wire:model="promotionRadiusKm" :label="__('Distancia')">
+                    <flux:select.option value="">{{ __('Todo el municipio') }}</flux:select.option>
+                    @foreach ([1, 3, 5, 10, 20] as $radius)
+                        <flux:select.option :value="$radius">{{ __(':radius km', ['radius' => $radius]) }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+
+            <div class="mt-5 flex flex-wrap gap-2">
+                @foreach ($this->destacados as $item)
+                    <flux:button variant="primary" wire:click="promoteContent({{ $item['product']->id }})">
+                        {{ __('Promocionar :days días · :price', [
+                            'days' => $item['days'],
+                            'price' => '$'.number_format($item['product']->price_cents / 100, 0, ',', '.'),
+                        ]) }}
+                    </flux:button>
                 @endforeach
             </div>
         </div>

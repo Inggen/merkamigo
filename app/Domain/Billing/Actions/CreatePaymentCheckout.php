@@ -7,6 +7,7 @@ use App\Domain\Billing\Models\Coupon;
 use App\Domain\Billing\Models\Payment;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Social\Models\ContentPromotion;
 use App\Models\User;
 use App\Support\Wompi\WompiClient;
 use Illuminate\Support\Str;
@@ -19,7 +20,7 @@ use InvalidArgumentException;
  */
 class CreatePaymentCheckout
 {
-    public function handle(Business $business, Plan|BillingProduct $item, ?string $couponCode, User $actor): Payment
+    public function handle(Business $business, Plan|BillingProduct $item, ?string $couponCode, User $actor, ?ContentPromotion $promotion = null): Payment
     {
         if ($item instanceof Plan && $item->isFree()) {
             throw new InvalidArgumentException('Los planes gratuitos no requieren checkout.');
@@ -43,6 +44,7 @@ class CreatePaymentCheckout
             'business_id' => $business->id,
             'plan_id' => $item instanceof Plan ? $item->id : null,
             'billing_product_id' => $item instanceof BillingProduct ? $item->id : null,
+            'content_promotion_id' => $promotion?->id,
             'reference' => 'MKA-'.$business->id.'-'.Str::upper(Str::random(12)),
             'amount_cents' => $amountCents,
             'currency' => 'COP',

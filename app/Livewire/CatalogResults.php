@@ -30,7 +30,20 @@ class CatalogResults extends Component
 
     public ?float $longitude = null;
 
+    /**
+     * Radio de "Cerca de mí" en km (Fase 5.1 del TODO social) — a
+     * diferencia del orden por cercanía (siempre activo con
+     * latitude/longitude, nunca excluye), esto SÍ filtra: un negocio o
+     * producto fuera del radio (o sin coordenadas) queda fuera de la
+     * lista, no solo al final.
+     */
+    public ?float $radiusKm = null;
+
     public bool $onlyAvailable = false;
+
+    public ?float $minPrice = null;
+
+    public ?float $maxPrice = null;
 
     public bool $excludeFeatured = false;
 
@@ -106,6 +119,10 @@ class CatalogResults extends Component
             })
             ->values();
 
+        if ($this->radiusKm !== null) {
+            $businesses = $businesses->filter(fn (Business $business) => $business->distance_km !== null && $business->distance_km <= $this->radiusKm)->values();
+        }
+
         $page = $this->getPage($this->pageName());
 
         return new LengthAwarePaginator(
@@ -122,9 +139,11 @@ class CatalogResults extends Component
 
     private function products(): LengthAwarePaginator
     {
-        return Product::query()
+        $query = Product::query()
             ->where('status', 'publicado')
             ->when($this->onlyAvailable, fn (Builder $query) => $query->where('is_available', true))
+            ->when($this->minPrice !== null, fn (Builder $query) => $query->where('price', '>=', $this->minPrice))
+            ->when($this->maxPrice !== null, fn (Builder $query) => $query->where('price', '<=', $this->maxPrice))
             ->when(
                 $this->query !== '',
                 fn (Builder $query) => $query->where(function (Builder $query) {
@@ -137,9 +156,52 @@ class CatalogResults extends Component
                 ->where('status', 'publicado')
                 ->when($this->municipalityId, fn (Builder $businesses) => $businesses->servesMunicipality($this->municipalityId))
                 ->when($this->categoryId, fn (Builder $businesses) => $businesses->where('category_id', $this->categoryId)))
-            ->with(['business', 'media'])
-            ->orderByDesc('created_at')
-            ->paginate($this->perPage, ['*'], $this->pageName());
+            ->with(['business', 'media']);
+
+        if ($this->latitude === null || $this->longitude === null) {
+            return $query
+                ->orderByDesc('created_at')
+                ->paginate($this->perPage, ['*'], $this->pageName());
+        }
+
+        // "Productos cercanos" (Fase 5.1 del TODO social): un producto no
+        // tiene coordenadas propias, hereda las de su negocio — mismo
+        // criterio de orden/filtro que `businesses()`.
+        $products = $query->get()
+            ->each(function (Product $product) {
+                $product->distance_km = $product->business->hasCoordinates()
+                    ? Distance::kilometers($this->latitude, $this->longitude, $product->business->latitude, $product->business->longitude)
+                    : null;
+            })
+            ->sort(function (Product $first, Product $second) {
+                if (($first->distance_km === null) !== ($second->distance_km === null)) {
+                    return $first->distance_km === null ? 1 : -1;
+                }
+
+                if ($first->distance_km !== null) {
+                    return $first->distance_km <=> $second->distance_km;
+                }
+
+                return $second->created_at <=> $first->created_at;
+            })
+            ->values();
+
+        if ($this->radiusKm !== null) {
+            $products = $products->filter(fn (Product $product) => $product->distance_km !== null && $product->distance_km <= $this->radiusKm)->values();
+        }
+
+        $page = $this->getPage($this->pageName());
+
+        return new LengthAwarePaginator(
+            $products->forPage($page, $this->perPage)->values(),
+            $products->count(),
+            $this->perPage,
+            $page,
+            [
+                'path' => Paginator::resolveCurrentPath(),
+                'pageName' => $this->pageName(),
+            ],
+        );
     }
 
     private function pageName(): string

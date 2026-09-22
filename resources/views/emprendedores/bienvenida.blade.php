@@ -12,7 +12,6 @@
     :description="__('Crea gratis tu vitrina digital en Merkamigo, publica productos o servicios y recibe contactos por WhatsApp.')"
     :canonical="route('emprendedores.bienvenida')"
     :schema-graph="$schemaGraph"
-    :show-municipality-selector="false"
 >
     @php
         $heroBackground = $municipality?->coverUrl() ?? asset('images/backgrounds/fondo-buscador-principal.webp');

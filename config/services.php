@@ -79,6 +79,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Marketplace (checkout de terceros)
+    |--------------------------------------------------------------------------
+    |
+    | El pago del cliente va directo a la cuenta Wompi DEL NEGOCIO (ver
+    | `App\Domain\Marketplace\Models\BusinessWompiCredential`) — Merkamigo
+    | nunca recauda dinero de terceros. Esta tasa es solo la comisión de
+    | Merkamigo por facilitar la venta, cobrada aparte contra la tarjeta
+    | ya guardada del negocio (decisión del usuario, sesión del 15 sep
+    | 2026). Un solo valor global por ahora — tasas distintas por plan
+    | quedan para cuando haya demanda real de esa diferenciación.
+    |
+    */
+    'marketplace' => [
+        'commission_rate' => (float) env('MARKETPLACE_COMMISSION_RATE', 0.05),
+    ],
+
+    'live_streaming' => [
+        'driver' => env('LIVE_STREAMING_DRIVER', 'mediamtx'),
+        'webrtc_internal_url' => env('LIVE_STREAMING_WEBRTC_INTERNAL_URL', 'http://127.0.0.1:8889'),
+        'hls_url' => env('LIVE_STREAMING_HLS_URL', 'http://127.0.0.1:8888'),
+        'hls_internal_url' => env('LIVE_STREAMING_HLS_INTERNAL_URL', 'http://127.0.0.1:8888'),
+        'rtsp_internal_url' => env('LIVE_STREAMING_RTSP_INTERNAL_URL', 'rtsp://127.0.0.1:8554'),
+        'proxy_hls' => (bool) env('LIVE_STREAMING_PROXY_HLS', env('APP_ENV') === 'local'),
+        'rtmp_url' => env('LIVE_STREAMING_RTMP_URL', 'rtmp://127.0.0.1:1935'),
+        'api_url' => env('LIVE_STREAMING_API_URL', 'http://127.0.0.1:9997'),
+        'auth_url' => env('LIVE_STREAMING_AUTH_URL', env('APP_URL').'/api/streaming/auth'),
+        'ffmpeg_binary' => env('LIVE_STREAMING_FFMPEG_BINARY', PHP_OS_FAMILY === 'Darwin' ? '/opt/homebrew/bin/ffmpeg' : '/usr/bin/ffmpeg'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Firebase Cloud Messaging (5.2 del TODO)
     |--------------------------------------------------------------------------
     |

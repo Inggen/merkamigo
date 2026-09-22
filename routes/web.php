@@ -10,12 +10,22 @@ use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
 use App\Http\Controllers\ExperienceController;
+use App\Http\Controllers\FeedController;
 use App\Http\Controllers\GoogleMerchantFeedController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\Marketplace\BusinessWompiWebhookController;
+use App\Http\Controllers\Marketplace\OrderCheckoutController;
 use App\Http\Controllers\NeedsController;
 use App\Http\Controllers\PlazaController;
+use App\Http\Controllers\ProductDownloadController;
+use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\ReelController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\Streaming\HlsProxyController;
+use App\Http\Controllers\Streaming\WhepProxyController;
+use App\Http\Controllers\Streaming\WhipProxyController;
+use App\Http\Controllers\Subscriptions\SubscriptionCheckoutController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\VitrinaController;
 use App\Http\Middleware\AddAgentDiscoveryHeaders;
@@ -80,13 +90,24 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(AddAgentDiscoveryHeaders::class)->group(function () {
-    Route::get('/', [ClientesController::class, 'home'])->name('home');
+    // Decisión del usuario (sesión 15 sep 2026): el feed social es ahora la
+    // página de Inicio; el descubrimiento tradicional (municipio,
+    // categorías, negocios/productos destacados) que antes vivía aquí se
+    // mueve a `Explorar` (2.1 del TODO social: "Mover descubrimiento
+    // tradicional a Explorar").
+    Route::get('/', [FeedController::class, 'index'])->name('home');
+    Route::get('explorar', [ClientesController::class, 'home'])->name('explorar');
     Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
     Route::get('.well-known/api-catalog', [AgentDiscoveryController::class, 'catalog'])->name('well-known.api-catalog');
     Route::get('docs/api', [AgentDiscoveryController::class, 'openApi'])->name('docs.api');
     Route::get('docs/api/reference', [AgentDiscoveryController::class, 'documentation'])->name('docs.api.reference');
 });
 Route::get('feeds/google-merchant.xml', [GoogleMerchantFeedController::class, 'index'])->name('feeds.google-merchant');
+
+Route::get('streaming/live/{liveStream:slug}/{asset}', HlsProxyController::class)
+    ->where('asset', '.*')
+    ->middleware('throttle:2400,1')
+    ->name('streaming.hls');
 
 Route::view('terminos', 'legal.terminos')->name('terminos');
 Route::view('privacidad', 'legal.privacidad')->name('privacidad');
@@ -108,6 +129,15 @@ Route::get('billing/checkout/retorno', [CheckoutController::class, 'return'])->n
 Route::post('webhooks/wompi', [WompiWebhookController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('webhooks.wompi');
+
+// Marketplace: pago de un pedido va directo a la cuenta Wompi DEL
+// NEGOCIO (no a la de Merkamigo) — ver App\Domain\Marketplace. El
+// webhook está por negocio: cada uno lo pega en el panel de SU propia
+// cuenta Wompi, verificado con el `events_secret` de ese negocio.
+Route::get('pedidos/{order}/retorno', [OrderCheckoutController::class, 'return'])->name('marketplace.checkout.return');
+Route::post('webhooks/wompi/negocios/{business}', [BusinessWompiWebhookController::class, 'handle'])
+    ->middleware('throttle:60,1')
+    ->name('webhooks.wompi.negocio');
 
 Route::get('emprendedores/bienvenida', [EmprendedoresController::class, 'bienvenida'])
     ->name('emprendedores.bienvenida');
@@ -156,6 +186,32 @@ Route::get('plaza/{municipio:slug}/categorias/{categoria:slug}', [PlazaControlle
     ->withoutScopedBindings();
 Route::get('plaza/{municipio?}/{categoria?}', [PlazaController::class, 'buscar'])->name('buscar');
 
+// Feed social (2.1/2.2 del TODO social, Sprint 2) — sin registro
+// obligatorio para ver, igual que el resto de descubrimiento público.
+// `/feed` se conserva como alias de Inicio para no romper enlaces
+// existentes, ahora que el feed es la página de Inicio (ver arriba).
+Route::get('feed', [FeedController::class, 'index'])->name('feed');
+
+// Reels (Fase 4 del TODO social, Sprint 4): reutiliza la infraestructura
+// de `posts` (reacciones, comentarios, seguir) con `type = video` — sin
+// duplicar un dominio social paralelo para esto.
+Route::get('reels', [ReelController::class, 'index'])->name('reels');
+
+// Live Commerce (Sprint 8): la reproducción es pública; la gestión vive
+// dentro del panel del negocio y sigue protegida por `business.team`.
+Route::livewire('en-vivo/{liveStream:slug}', 'pages::live.show')->name('live.show');
+
+// Lectura WebRTC (WHEP) del Live, pública igual que la página — el cliente
+// consume la misma señal que publica el vendedor (VP8/Opus) sin pasar por
+// el muxer HLS (que solo soporta H.264).
+Route::post('streaming/live/{liveStream:slug}/whep', [WhepProxyController::class, 'publish'])
+    ->middleware('throttle:120,1')
+    ->name('streaming.whep');
+Route::delete('streaming/live/{liveStream:slug}/whep', [WhepProxyController::class, 'destroy'])
+    ->middleware('throttle:120,1')
+    ->name('streaming.whep.destroy');
+Route::get('promociones/{promotion}/abrir', [PromotionController::class, 'click'])->name('promotions.click');
+
 Route::get('m/{business:slug}', [VitrinaController::class, 'show'])->name('vitrinas.show');
 Route::get('m/{business:slug}/productos/{product:slug}', [VitrinaController::class, 'product'])->name('vitrinas.product');
 Route::get('m/{business:slug}/qr', [VitrinaController::class, 'qr'])->name('vitrinas.qr');
@@ -197,6 +253,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('clientes/actividad/{notification}/leida', [ClientesController::class, 'marcarActividadLeida'])
         ->name('clientes.actividad.leida');
     Route::livewire('clientes/pedidos', 'pages::clientes.pedidos')->name('clientes.pedidos');
+    Route::livewire('clientes/compras', 'pages::clientes.compras')->name('clientes.compras');
+
+    // Marketplace (checkout pagado con Wompi, distinto de "Mis pedidos" /
+    // OrderConfirmation, que es una constancia sin pago en línea).
+    Route::get('productos/{product}/comprar', [OrderCheckoutController::class, 'create'])->name('marketplace.checkout.create');
+    Route::post('en-vivo/{liveStream:slug}/comprar', [OrderCheckoutController::class, 'createForLive'])
+        ->middleware('throttle:10,1')
+        ->name('marketplace.live.checkout');
+
+    // Suscripciones cliente → negocio (Fase 8.2 del TODO social): mismo
+    // patrón de tokenización que la tarjeta de renovación del negocio,
+    // pero contra la cuenta Wompi DEL NEGOCIO al que el cliente se
+    // suscribe — nunca dentro de `emprendedores.negocios.` (ese prefijo
+    // exige ser dueño del negocio, aquí es justo lo contrario).
+    Route::get('negocios/{business}/suscripciones/tokens-aceptacion', [SubscriptionCheckoutController::class, 'acceptanceTokens'])->name('subscriptions.tokens-aceptacion');
+    Route::post('negocios/{business}/suscripciones/tarjeta', [SubscriptionCheckoutController::class, 'savePaymentSource'])->name('subscriptions.tarjeta.store');
+    Route::get('negocios/{business}/suscripciones/tarjeta/{paymentSourceId}/estado', [SubscriptionCheckoutController::class, 'paymentSourceStatus'])->name('subscriptions.tarjeta.estado');
+    Route::post('productos/{product}/suscribirme', [SubscriptionCheckoutController::class, 'subscribe'])->name('subscriptions.subscribe');
+    Route::delete('suscripciones/{subscription}', [SubscriptionCheckoutController::class, 'cancel'])->name('subscriptions.cancel');
+
+    // Descarga protegida de un producto digital (Fase 9 del TODO social).
+    Route::get('productos/{product}/descargar', [ProductDownloadController::class, 'download'])->name('products.download');
 
     Route::livewire('pidelo/nueva', 'pages::pidelo.nueva')->name('pidelo.nueva');
     Route::get('mis-solicitudes', [NeedsController::class, 'misSolicitudes'])->name('mis-solicitudes');
@@ -213,6 +291,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('vitrina', 'pages::emprendedores.negocios.vitrina')->name('vitrina');
         Route::livewire('mi-stand', 'pages::emprendedores.negocios.mi-stand')->name('mi-stand');
         Route::livewire('productos', 'pages::emprendedores.negocios.productos')->name('productos');
+        Route::livewire('publicaciones', 'pages::emprendedores.negocios.publicaciones')->name('publicaciones');
+        Route::livewire('estados', 'pages::emprendedores.negocios.estados')->name('estados');
+        Route::livewire('reels', 'pages::emprendedores.negocios.reels')->name('reels');
+        Route::livewire('lives', 'pages::emprendedores.negocios.lives')->name('lives');
+        Route::livewire('lives/{liveStream}/estudio', 'pages::emprendedores.negocios.live-studio')->name('lives.studio');
+        Route::post('lives/{liveStream}/estudio/whip', [WhipProxyController::class, 'publish'])
+            ->middleware('throttle:20,1')
+            ->name('lives.studio.publish');
+        Route::delete('lives/{liveStream}/estudio/whip', [WhipProxyController::class, 'destroy'])
+            ->middleware('throttle:20,1')
+            ->name('lives.studio.destroy');
         Route::livewire('colaboradores', 'pages::emprendedores.negocios.colaboradores')->name('colaboradores');
         Route::livewire('metricas', 'pages::emprendedores.negocios.metricas')->name('metricas');
         Route::get('metricas/exportar', [MetricsExportController::class, 'export'])->name('metricas.exportar');
@@ -231,6 +320,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('verificacion/documento', [BusinessVerificationDocumentController::class, 'show'])->name('verificacion.documento');
         Route::get('vista-previa', [EmprendedoresController::class, 'vistaPrevia'])->name('vista-previa');
         Route::get('compartir', [EmprendedoresController::class, 'compartir'])->name('compartir');
+        Route::livewire('cobros-en-linea', 'pages::emprendedores.negocios.cobros-en-linea')->name('cobros-en-linea');
+        Route::livewire('ventas', 'pages::emprendedores.negocios.ventas')->name('ventas');
     });
 });
 

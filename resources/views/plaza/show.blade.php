@@ -32,7 +32,6 @@
     page-schema-type="CollectionPage"
     :page-schema-data="['about' => $municipio->name]"
     :schema-graph="$schemaGraph"
-    :show-municipality-selector="false"
 >
     <x-clientes.search-hero
         :municipality="$municipio"
@@ -41,6 +40,7 @@
         :category-id="$category?->id"
         :query="request('q', '')"
         :near="$near"
+        :radius-km="$radiusKm"
         :show-immersive-cta="true"
     />
 
@@ -57,6 +57,14 @@
         <form method="GET" action="{{ $category ? route('buscar', ['municipio' => $municipio->slug, 'categoria' => $category->slug]) : route('buscar', ['municipio' => $municipio->slug]) }}" class="mb-6 flex flex-wrap items-center gap-2">
             @if ($onlyAvailable)
                 <input type="hidden" name="disponibles" value="1">
+            @endif
+
+            @if ($minPrice !== null)
+                <input type="hidden" name="precio_min" value="{{ $minPrice }}">
+            @endif
+
+            @if ($maxPrice !== null)
+                <input type="hidden" name="precio_max" value="{{ $maxPrice }}">
             @endif
 
             @if ($zones->isNotEmpty())
@@ -122,6 +130,7 @@
                 :zone="$zone"
                 :latitude="$near['lat'] ?? null"
                 :longitude="$near['lng'] ?? null"
+                :radius-km="$radiusKm"
                 :exclude-featured="true"
                 :per-page="12"
             />
@@ -213,7 +222,31 @@
 
                     <flux:heading size="lg">{{ __('Productos para ti') }}</flux:heading>
 
-                    <div class="flex shrink-0 items-center gap-4">
+                    <div class="flex flex-wrap shrink-0 items-center gap-4">
+                        <div class="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-300">
+                            <input
+                                type="number"
+                                name="precio_min"
+                                min="0"
+                                step="1000"
+                                value="{{ $minPrice }}"
+                                placeholder="{{ __('Precio mín.') }}"
+                                class="w-28 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                                onchange="this.form.submit()"
+                            >
+                            <span>–</span>
+                            <input
+                                type="number"
+                                name="precio_max"
+                                min="0"
+                                step="1000"
+                                value="{{ $maxPrice }}"
+                                placeholder="{{ __('Precio máx.') }}"
+                                class="w-28 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                                onchange="this.form.submit()"
+                            >
+                        </div>
+
                         <label class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
                             <input type="checkbox" name="disponibles" value="1" {{ $onlyAvailable ? 'checked' : '' }} onchange="this.form.submit()">
                             {{ __('Solo disponibles') }}
@@ -227,6 +260,11 @@
                     :municipality-id="$municipio->id"
                     :category-id="$category?->id"
                     :only-available="$onlyAvailable"
+                    :min-price="$minPrice"
+                    :max-price="$maxPrice"
+                    :latitude="$near['lat'] ?? null"
+                    :longitude="$near['lng'] ?? null"
+                    :radius-km="$radiusKm"
                     :per-page="9"
                 />
             </div>

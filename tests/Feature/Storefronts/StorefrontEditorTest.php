@@ -11,6 +11,8 @@ use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
 use App\Support\Ai\Contracts\GeneratesAssistedText;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -145,6 +147,61 @@ class StorefrontEditorTest extends TestCase
 
         $this->assertSame('Logo de Negocio Alt Text', $business->fresh()->logo_alt_text);
         $this->assertSame('Fachada de Negocio Alt Text', $business->fresh()->storefront->cover_alt_text);
+    }
+
+    public function test_saved_images_replace_the_file_input_and_can_be_removed(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio con imágenes',
+            'whatsapp_number' => '+573001112233',
+        ])->business;
+
+        Storage::disk('public')->put('businesses/logo.webp', 'logo');
+        Storage::disk('public')->put('storefronts/cover.webp', 'cover');
+        $business->update(['logo_path' => 'businesses/logo.webp']);
+        $business->storefront->update(['cover_path' => 'storefronts/cover.webp']);
+
+        $this->actingAs($owner);
+
+        $component = Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->assertSeeHtml('wire:click="removeLogo"')
+            ->assertSeeHtml('wire:click="removeCover"')
+            ->assertDontSeeHtml('wire:model="logo"')
+            ->assertDontSeeHtml('wire:model="cover"');
+
+        $component->call('removeCover')
+            ->assertSeeHtml('wire:model="cover"')
+            ->assertDontSeeHtml('wire:model="logo"');
+
+        $this->assertNull($business->fresh()->storefront->cover_path);
+        Storage::disk('public')->assertMissing('storefronts/cover.webp');
+    }
+
+    public function test_removing_a_new_selection_keeps_the_saved_image(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio que cambia portada',
+            'whatsapp_number' => '+573001112233',
+        ])->business;
+        Storage::disk('public')->put('storefronts/original.webp', 'cover');
+        $business->storefront->update(['cover_path' => 'storefronts/original.webp']);
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->set('cover', UploadedFile::fake()->image('nueva.jpg'))
+            ->call('removeCover')
+            ->assertSet('cover', null)
+            ->assertSeeHtml('wire:click="removeCover"');
+
+        $this->assertSame('storefronts/original.webp', $business->fresh()->storefront->cover_path);
+        Storage::disk('public')->assertExists('storefronts/original.webp');
     }
 
     public function test_autosave_survives_losing_the_permissions_team_context_between_requests(): void

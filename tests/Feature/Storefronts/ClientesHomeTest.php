@@ -9,15 +9,37 @@ use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Tests\TestCase;
 
 /**
- * 1.1.1 del TODO: Inicio de Clientes con municipio, buscador, categorías y
- * negocios destacados.
+ * 1.1.1 del TODO: municipio, buscador, categorías y negocios destacados.
+ * Vivía en Inicio (`/`); desde la sesión 15 sep 2026 esto es `Explorar`
+ * (`/explorar`) — el feed social pasó a ser Inicio (2.1 del TODO social).
  */
 class ClientesHomeTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_the_public_header_matches_the_client_navigation(): void
+    {
+        $user = User::factory()->create(['name' => 'Valentina Pérez']);
+        $this->actingAs($user);
+
+        $header = Blade::render('<x-cliente-nav />');
+
+        $this->assertStringContainsString(route('explorar'), $header);
+        $this->assertStringContainsString(route('clientes.actividad'), $header);
+        $this->assertStringContainsString(__('Mensajes'), $header);
+        $this->assertStringContainsString(route('clientes.favoritos'), $header);
+        $this->assertSame(1, substr_count($header, route('clientes.favoritos')));
+        $this->assertStringContainsString(__('Hola,'), $header);
+        $this->assertStringContainsString('Valentina', $header);
+        $this->assertStringNotContainsString(route('reels'), $header);
+        $this->assertStringNotContainsString(route('mis-solicitudes'), $header);
+        $this->assertStringNotContainsString('type="search"', $header);
+        $this->assertStringNotContainsString(__('Cerca de mí'), $header);
+    }
 
     /**
      * Pedido del usuario: el título del hero siempre en dos líneas, una
@@ -25,8 +47,10 @@ class ClientesHomeTest extends TestCase
      */
     public function test_the_search_hero_title_breaks_into_two_lines(): void
     {
-        $this->get(route('home'))
+        $this->get(route('explorar'))
             ->assertOk()
+            ->assertSee(route('feed'), false)
+            ->assertSee(__('Publicaciones'))
             ->assertSee('Descubre lo mejor de tu municipio.<br>', false)
             ->assertDontSee('Descubre lo mejor de tu municipio. Compra local', false);
     }
@@ -43,7 +67,7 @@ class ClientesHomeTest extends TestCase
             Category::create(['name' => "Categoría {$i}", 'slug' => "categoria-{$i}", 'is_active' => true]);
         }
 
-        $response = $this->get(route('home'));
+        $response = $this->get(route('explorar'));
 
         $response->assertOk()
             ->assertSee(__('Ver más'))
@@ -65,7 +89,7 @@ class ClientesHomeTest extends TestCase
     {
         Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
 
-        $this->get(route('home'))
+        $this->get(route('explorar'))
             ->assertOk()
             ->assertSee(__('Ver más'))
             ->assertSee(route('categorias'), false);

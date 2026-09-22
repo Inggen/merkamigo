@@ -37,7 +37,6 @@
     :description="$seoDescription"
     :image="$pageImage"
     :canonical="$productUrl"
-    :show-municipality-selector="false"
     :show-chat-widget="false"
     page-schema-type="ItemPage"
     :page-schema-data="[
@@ -263,14 +262,31 @@
                             </div>
                         @endif
 
-                        <div class="space-y-3">
-                            <div class="text-sm font-semibold text-zinc-950 dark:text-white">{{ __('Cantidad') }}</div>
-                            <div class="inline-flex items-center rounded-2xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
-                                <button type="button" x-on:click="quantity = Math.max(1, quantity - 1)" class="inline-flex size-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">-</button>
-                                <div class="min-w-12 text-center text-lg font-semibold text-zinc-950 dark:text-white" x-text="quantity"></div>
-                                <button type="button" x-on:click="quantity = quantity + 1" class="inline-flex size-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">+</button>
+                        @unless ($product->isSubscription())
+                            <div class="space-y-3">
+                                <div class="text-sm font-semibold text-zinc-950 dark:text-white">{{ __('Cantidad') }}</div>
+                                <div class="inline-flex items-center rounded-2xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
+                                    <button type="button" x-on:click="quantity = Math.max(1, quantity - 1)" class="inline-flex size-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">-</button>
+                                    <div class="min-w-12 text-center text-lg font-semibold text-zinc-950 dark:text-white" x-text="quantity"></div>
+                                    <button type="button" x-on:click="quantity = quantity + 1" class="inline-flex size-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">+</button>
+                                </div>
                             </div>
-                        </div>
+
+                            @if ($business->hasWompiConnected() && ! $product->isSoldOut() && in_array($product->price_type, ['exacto', 'desde'], true) && $product->price)
+                                <a
+                                    x-bind:href="`{{ route('marketplace.checkout.create', $product) }}?cantidad=${quantity}&promotion={{ request()->integer('promotion') }}`"
+                                    class="inline-flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-brand-600 px-5 py-4 text-lg font-semibold text-brand-600 transition hover:bg-brand-50 dark:hover:bg-brand-500/10"
+                                >
+                                    <flux:icon.credit-card class="size-6" />
+                                    {{ __('Comprar ahora') }}
+                                </a>
+                                <flux:text class="text-center text-xs text-zinc-400">
+                                    {{ __('Pago en línea directo a :business, procesado por Wompi.', ['business' => $business->name]) }}
+                                </flux:text>
+                            @endif
+                        @else
+                            @include('vitrinas.partials.subscribe-form', ['business' => $business, 'product' => $product])
+                        @endunless
 
                         @if ($business->whatsapp_number)
                             <a

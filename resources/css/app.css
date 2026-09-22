@@ -86,6 +86,186 @@ select:focus[data-flux-control] {
     @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
 }
 
+@layer components {
+    @keyframes live-reaction-rise {
+        0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.65) rotate(-8deg); }
+        15% { opacity: 1; transform: translate3d(var(--reaction-x, 0), -24px, 0) scale(1.1) rotate(5deg); }
+        100% { opacity: 0; transform: translate3d(calc(0px - var(--reaction-x, 0px)), -190px, 0) scale(1.35) rotate(-10deg); }
+    }
+
+    .live-floating-reaction {
+        animation: live-reaction-rise 1.8s ease-out forwards;
+    }
+
+    .live-chat-surface {
+        background-color: #f8f3f2;
+        background-image:
+            radial-gradient(circle at 12px 12px, rgb(185 36 27 / 0.08) 0 2px, transparent 2.5px),
+            radial-gradient(circle at 36px 36px, rgb(31 31 33 / 0.06) 0 2px, transparent 2.5px),
+            linear-gradient(45deg, transparent 46%, rgb(185 36 27 / 0.035) 47% 53%, transparent 54%);
+        background-size: 48px 48px, 48px 48px, 48px 48px;
+    }
+
+    .dark .live-chat-surface {
+        background-color: #171112;
+        background-image:
+            radial-gradient(circle at 12px 12px, rgb(227 107 92 / 0.12) 0 2px, transparent 2.5px),
+            radial-gradient(circle at 36px 36px, rgb(255 255 255 / 0.07) 0 2px, transparent 2.5px),
+            linear-gradient(45deg, transparent 46%, rgb(227 107 92 / 0.045) 47% 53%, transparent 54%);
+    }
+
+    .entrepreneur-area {
+        color: #172033;
+    }
+
+    .entrepreneur-sidebar {
+        scrollbar-width: none;
+        box-shadow: 1px 0 0 rgb(228 228 231 / 0.65);
+    }
+
+    .entrepreneur-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .entrepreneur-sidebar [data-flux-sidebar-nav] {
+        gap: 0.1rem;
+    }
+
+    .entrepreneur-sidebar .entrepreneur-nav-group > div:first-child > div {
+        color: #71717a;
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+    }
+
+    .entrepreneur-sidebar [data-flux-sidebar-item] {
+        min-height: 2rem;
+        border-color: transparent;
+        border-radius: 0.65rem;
+        color: #5f6675;
+    }
+
+    .entrepreneur-sidebar [data-flux-sidebar-item][data-current] {
+        border-color: transparent !important;
+        background: var(--color-brand-50) !important;
+        color: var(--color-brand-600) !important;
+        box-shadow: none !important;
+    }
+
+    .entrepreneur-sidebar [data-flux-sidebar-item]:hover {
+        background: #f7f7f8;
+        color: #252936;
+    }
+
+    .entrepreneur-sidebar .entrepreneur-content-group > button {
+        color: #5f6675;
+    }
+
+    .entrepreneur-topbar {
+        box-shadow: 0 1px 8px rgb(15 23 42 / 0.025);
+    }
+
+    .entrepreneur-main {
+        width: 100%;
+        max-width: 72rem;
+        margin-inline: auto;
+        padding: 1.75rem 2rem 5rem;
+    }
+
+    .entrepreneur-card {
+        border: 1px solid #e7e9ee;
+        border-radius: 1rem;
+        background: white;
+        box-shadow: 0 8px 24px rgb(15 23 42 / 0.035);
+    }
+
+    .entrepreneur-soft-card {
+        border: 1px solid #f5ddd6;
+        border-radius: 1rem;
+        background: linear-gradient(135deg, #fffaf8 0%, #fff6f1 100%);
+    }
+
+    .whatsapp-preview-textarea textarea {
+        min-height: 10rem;
+        resize: vertical;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        color: #27272a;
+        box-shadow: none;
+        line-height: 1.45;
+    }
+
+    .whatsapp-preview-textarea textarea:focus {
+        box-shadow: none;
+        outline: none;
+    }
+
+    .video-control-button {
+        display: inline-flex;
+        width: 2rem;
+        height: 2rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        color: white;
+        transition: background-color 150ms ease, transform 150ms ease;
+    }
+
+    .video-control-button:hover,
+    .video-control-button:focus-visible {
+        background: rgb(255 255 255 / 0.16);
+        outline: none;
+        transform: scale(1.05);
+    }
+
+    .merkamigo-video-progress {
+        height: 0.3rem;
+        cursor: pointer;
+        appearance: none;
+        border-radius: 9999px;
+        background: linear-gradient(
+            to right,
+            var(--color-brand-500) 0,
+            var(--color-brand-500) var(--video-progress),
+            rgb(255 255 255 / 0.38) var(--video-progress),
+            rgb(255 255 255 / 0.38) 100%
+        );
+    }
+
+    .merkamigo-video-progress::-webkit-slider-thumb {
+        width: 0.85rem;
+        height: 0.85rem;
+        appearance: none;
+        border: 2px solid white;
+        border-radius: 9999px;
+        background: var(--color-brand-500);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+    }
+
+    .merkamigo-video-progress::-moz-range-thumb {
+        width: 0.65rem;
+        height: 0.65rem;
+        border: 2px solid white;
+        border-radius: 9999px;
+        background: var(--color-brand-500);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+    }
+
+    @media (max-width: 1023px) {
+        .entrepreneur-main {
+            padding: 1.25rem 1rem 5rem;
+        }
+    }
+
+    .dark .entrepreneur-card,
+    .dark .entrepreneur-soft-card {
+        border-color: #3f3f46;
+        background: #18181b;
+    }
+}
+
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */

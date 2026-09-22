@@ -4,9 +4,12 @@ namespace App\Domain\Storefronts\Models;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Concerns\Favoritable;
+use App\Domain\Social\Concerns\Promotable;
+use App\Domain\Subscriptions\Models\SubscriptionPlan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -16,13 +19,14 @@ use Illuminate\Support\Carbon;
  */
 class Product extends Model
 {
-    use Favoritable, SoftDeletes;
+    use Favoritable, Promotable, SoftDeletes;
 
     protected $fillable = [
         'business_id',
         'name',
         'slug',
         'type',
+        'sale_type',
         'description',
         'price',
         'price_type',
@@ -82,6 +86,32 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class)->orderBy('position');
+    }
+
+    /**
+     * @return HasMany<ProductFile, $this>
+     */
+    public function files(): HasMany
+    {
+        return $this->hasMany(ProductFile::class)->orderBy('position');
+    }
+
+    /**
+     * @return HasOne<SubscriptionPlan, $this>
+     */
+    public function subscriptionPlan(): HasOne
+    {
+        return $this->hasOne(SubscriptionPlan::class);
+    }
+
+    public function isSubscription(): bool
+    {
+        return $this->sale_type === 'suscripcion';
+    }
+
+    public function isDigital(): bool
+    {
+        return $this->type === 'digital';
     }
 
     public function isPublished(): bool

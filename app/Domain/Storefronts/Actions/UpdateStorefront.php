@@ -57,8 +57,10 @@ class UpdateStorefront
             'headline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'logo' => ['sometimes', 'nullable'],
+            'remove_logo' => ['sometimes', 'boolean'],
             'logo_alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'cover' => ['sometimes', 'nullable'],
+            'remove_cover' => ['sometimes', 'boolean'],
             'cover_alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             // Color del stand en la plaza inmersiva 3D, elegido libremente
             // por el emprendedor — formato exacto que ya produce
@@ -69,7 +71,10 @@ class UpdateStorefront
         return DB::transaction(function () use ($business, $validated, $actor) {
             $business->fill(Arr::only($validated, self::BUSINESS_FIELDS));
 
-            if (! empty($validated['logo']) && $validated['logo'] instanceof UploadedFile) {
+            if ($validated['remove_logo'] ?? false) {
+                app(MediaUploader::class)->delete($business->logo_path);
+                $business->logo_path = null;
+            } elseif (! empty($validated['logo']) && $validated['logo'] instanceof UploadedFile) {
                 app(MediaUploader::class)->delete($business->logo_path);
                 $business->logo_path = app(MediaUploader::class)->store(
                     $validated['logo'],
@@ -87,7 +92,10 @@ class UpdateStorefront
             $storefront = $business->storefront;
             $storefront->fill(Arr::only($validated, self::STOREFRONT_FIELDS));
 
-            if (! empty($validated['cover']) && $validated['cover'] instanceof UploadedFile) {
+            if ($validated['remove_cover'] ?? false) {
+                app(MediaUploader::class)->delete($storefront->cover_path);
+                $storefront->cover_path = null;
+            } elseif (! empty($validated['cover']) && $validated['cover'] instanceof UploadedFile) {
                 app(MediaUploader::class)->delete($storefront->cover_path);
                 $storefront->cover_path = app(MediaUploader::class)->store(
                     $validated['cover'],

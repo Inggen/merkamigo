@@ -1,23 +1,22 @@
-@props([
-    'showMunicipalitySelector' => true,
-])
-
 @php
-    use App\Domain\Discovery\Models\Municipality;
-
-    $currentMunicipio = request()->cookie('municipio')
-        ? Municipality::where('slug', request()->cookie('municipio'))->where('is_active', true)->first()
-        : null;
-    $allMunicipios = Municipality::where('is_active', true)->orderBy('name')->get();
-    $guestLoginUrl = route('login');
-    $guestNeedsMessage = __('Necesitas ingresar o crear una cuenta para publicar en Pídelo.');
+    $unreadNotifications = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
+    $firstName = auth()->check() ? \Illuminate\Support\Str::before(trim(auth()->user()->name), ' ') : null;
+    $isPlazaView = request()->routeIs(
+        'explorar',
+        'clientes.home',
+        'buscar',
+        'municipios',
+        'categorias',
+        'categorias.show',
+        'labs.generic-plaza',
+    );
 @endphp
 
 <header
     class="sticky bg-white z-50 top-0 dark:bg-zinc-800"
     style="box-shadow: 0 0 15px rgba(0, 0, 0, .2);"
 >
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-6 py-3">
+    <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
         <a
             href="{{ route('home') }}"
             class="flex shrink-0 items-center gap-2.5"
@@ -30,87 +29,49 @@
             <span class="sr-only">{{ __('Merkamigo') }}</span>
         </a>
 
-        @if ($showMunicipalitySelector)
-            <flux:dropdown class="shrink-0">
-                <flux:button size="sm" variant="ghost" icon="map-pin" icon-trailing="chevron-down">
-                    {{ $currentMunicipio?->name ?? __('Todos') }}
-                </flux:button>
-                <flux:menu>
-                    <form method="POST" action="{{ route('clientes.municipio') }}">
-                        @csrf
-                        <input type="hidden" name="municipality_id" value="">
-                        <flux:menu.item as="button" type="submit" :icon="is_null($currentMunicipio) ? 'check' : null" class="w-full cursor-pointer">
-                            {{ __('Todos') }}
-                        </flux:menu.item>
-                    </form>
+        <nav aria-label="{{ __('Navegación principal') }}" class="ml-auto flex shrink-0 items-center gap-1">
+            <flux:button
+                size="sm"
+                variant="ghost"
+                :icon="$isPlazaView ? 'newspaper' : 'magnifying-glass'"
+                :href="$isPlazaView ? route('feed') : route('explorar')"
+                wire:navigate
+            >
+                <span class="hidden md:inline">{{ $isPlazaView ? __('Publicaciones') : __('Explorar') }}</span>
+            </flux:button>
 
-                    @foreach ($allMunicipios as $option)
-                        <form method="POST" action="{{ route('clientes.municipio') }}">
-                            @csrf
-                            <input type="hidden" name="municipality_id" value="{{ $option->id }}">
-                            <flux:menu.item as="button" type="submit" :icon="$currentMunicipio?->id === $option->id ? 'check' : null" class="w-full cursor-pointer">
-                                {{ $option->name }}
-                            </flux:menu.item>
-                        </form>
-                    @endforeach
-                </flux:menu>
-            </flux:dropdown>
-        @endif
-
-        <nav aria-label="{{ __('Navegación principal') }}" class="hidden items-center gap-1 lg:flex">
-            <a href="{{ route('municipios') }}" wire:navigate class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-brand-700 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-brand-300">
-                {{ __('Municipios') }}
-            </a>
-            <a href="{{ route('categorias') }}" wire:navigate class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-brand-700 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-brand-300">
-                {{ __('Categorías') }}
-            </a>
-            <a href="{{ route('como-funciona') }}" wire:navigate class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-brand-700 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-brand-300">
-                {{ __('Cómo funciona') }}
-            </a>
-        </nav>
-
-        <nav class="ml-auto flex shrink-0 items-center gap-1">
             @auth
                 <flux:button
                     size="sm"
                     variant="ghost"
-                    icon="clipboard-document-list"
-                    :href="route('mis-solicitudes')"
+                    icon="bell"
+                    :href="route('clientes.actividad')"
                     wire:navigate
-                    class="[&_[data-flux-icon]]:text-brand-600"
+                    class="relative"
                 >
-                    <span class="hidden md:inline">{{ __('Mis solicitudes') }}</span>
+                    <span class="hidden md:inline">{{ __('Mensajes') }}</span>
+                    @if ($unreadNotifications > 0)
+                        <span class="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-semibold leading-5 text-white">
+                            {{ $unreadNotifications > 99 ? '99+' : $unreadNotifications }}
+                        </span>
+                    @endif
                 </flux:button>
 
-                <flux:button
-                    size="sm"
-                    variant="ghost"
-                    icon="shopping-bag"
-                    :href="route('pidelo.nueva')"
-                    wire:navigate
-                    class="[&_[data-flux-icon]]:text-brand-600"
-                >
-                    <span class="hidden md:inline">{{ __('Pídelo') }}</span>
-                </flux:button>
-
-                <flux:button
-                    size="sm"
-                    variant="primary"
-                    :href="route('emprendedores.bienvenida')"
-                    wire:navigate
-                    class="rounded-xl px-4"
-                >
-                    <span class="hidden md:inline">{{ __('Publicar') }}</span>
-                    <span class="md:hidden">{{ __('Publica') }}</span>
-                </flux:button>
+                <div class="mx-2 hidden h-8 w-px bg-zinc-200 md:block dark:bg-zinc-700"></div>
 
                 <flux:dropdown position="bottom" align="end">
-                    <flux:profile
-                        :avatar="auth()->user()->avatarUrl()"
-                        :initials="auth()->user()->initials()"
-                        circle
-                        :chevron="false"
-                    />
+                    <button type="button" class="flex items-center gap-2 rounded-xl p-1.5 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                        <flux:avatar
+                            :src="auth()->user()->avatarUrl()"
+                            :initials="auth()->user()->initials()"
+                            circle
+                            size="sm"
+                        />
+                        <span class="hidden whitespace-nowrap md:inline">
+                            {{ __('Hola,') }} <strong class="font-semibold text-zinc-900 dark:text-white">{{ $firstName }}</strong>
+                        </span>
+                        <flux:icon.chevron-down class="hidden size-4 md:block" variant="outline" />
+                    </button>
                     <flux:menu>
                         <flux:menu.item :href="route('profile.edit')" icon="user-circle" wire:navigate>{{ __('Mi cuenta') }}</flux:menu.item>
                         <flux:menu.item :href="route('clientes.favoritos')" icon="heart" wire:navigate>{{ __('Favoritos') }}</flux:menu.item>
@@ -129,24 +90,11 @@
                 <flux:button
                     size="sm"
                     variant="ghost"
-                    icon="shopping-bag"
-                    x-data
-                    x-on:click.prevent="$flux.toast({ text: '{{ e($guestNeedsMessage) }}' }); setTimeout(() => window.location.href = '{{ $guestLoginUrl }}', 900)"
-                    class="[&_[data-flux-icon]]:text-brand-600"
-                >
-                    {{ __('Pídelo') }}
-                </flux:button>
-                <flux:button
-                    size="sm"
-                    variant="ghost"
+                    icon="user-circle"
                     :href="route('login')"
                     wire:navigate
-                    class="rounded-xl border border-brand-300 px-4 text-brand-700 hover:border-brand-400 hover:bg-brand-50"
                 >
                     {{ __('Ingresa') }}
-                </flux:button>
-                <flux:button size="sm" variant="primary" :href="route('emprendedores.bienvenida')" wire:navigate class="rounded-xl px-4">
-                    {{ __('Publicar') }}
                 </flux:button>
             @endauth
         </nav>

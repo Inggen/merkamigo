@@ -64,7 +64,6 @@
     :description="$seoDescription"
     :image="$pageImage"
     :canonical="$pageUrl"
-    :show-municipality-selector="false"
     :show-chat-widget="false"
     page-schema-type="ProfilePage"
     :page-schema-data="[
@@ -163,6 +162,7 @@
 
                         <div class="flex flex-wrap items-center gap-2 pb-4">
                             <livewire:favorite-button :favoritable="$business" :key="'business-'.$business->id" />
+                            <livewire:follow-button :business="$business" :key="'follow-'.$business->id" />
                         </div>
                     </div>
 

@@ -7,8 +7,11 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Favorite;
 use App\Domain\Discovery\Models\RecentlyViewedBusiness;
 use App\Domain\Identity\Models\UserDevice;
+use App\Domain\Marketplace\Models\Order;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Platform\Actions\StartUserImpersonation;
+use App\Domain\Social\Models\Follow;
+use App\Domain\Subscriptions\Models\CustomerSubscription;
 use App\Domain\Trust\Models\BusinessVerification;
 use App\Domain\Trust\Models\OrderConfirmation;
 use App\Domain\Trust\Models\Recommendation;
@@ -178,6 +181,45 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    /**
+     * Negocios que sigue (2.3 del TODO social, Sprint 2).
+     *
+     * @return BelongsToMany<Business, $this>
+     */
+    public function following(): BelongsToMany
+    {
+        return $this->belongsToMany(Business::class, 'follows')->withTimestamps();
+    }
+
+    public function isFollowing(Business $business): bool
+    {
+        return Follow::query()
+            ->where('user_id', $this->id)
+            ->where('business_id', $business->id)
+            ->exists();
+    }
+
+    /**
+     * "Mis compras" — pedidos hechos como comprador.
+     *
+     * @return HasMany<Order, $this>
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'buyer_user_id')->latest();
+    }
+
+    /**
+     * "Mis suscripciones" — suscripciones a productos de negocios (Fase
+     * 8.2 del TODO social).
+     *
+     * @return HasMany<CustomerSubscription, $this>
+     */
+    public function customerSubscriptions(): HasMany
+    {
+        return $this->hasMany(CustomerSubscription::class, 'buyer_user_id')->latest();
     }
 
     /**

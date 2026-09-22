@@ -15,7 +15,12 @@ use App\Http\Controllers\Api\V1\NotificationPreferencesController;
 use App\Http\Controllers\Api\V1\OfferController;
 use App\Http\Controllers\Api\V1\OrderConfirmationController;
 use App\Http\Controllers\Api\V1\WhatsAppContentController;
+use App\Http\Controllers\Streaming\StreamAuthController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('streaming/auth', StreamAuthController::class)
+    ->middleware('throttle:120,1')
+    ->name('streaming.auth');
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('health', HealthController::class)->name('health');

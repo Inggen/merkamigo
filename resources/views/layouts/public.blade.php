@@ -8,7 +8,6 @@
     'pageSchemaData' => [],
     'schemaGraph' => [],
     'ogType' => 'website',
-    'showMunicipalitySelector' => false,
 ])
 
 <!DOCTYPE html>
@@ -27,7 +26,7 @@
         ])
     </head>
     <body class="min-h-screen bg-mist dark:bg-zinc-900 dark:text-white">
-        <x-cliente-nav :show-municipality-selector="$showMunicipalitySelector" />
+        <x-cliente-nav />
 
         <main>
             {{ $slot }}

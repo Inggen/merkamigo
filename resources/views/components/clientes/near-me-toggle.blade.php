@@ -1,6 +1,7 @@
 @props([
     'near' => null,
     'compact' => false,
+    'menu' => false,
 ])
 
 {{--
@@ -16,6 +17,7 @@
         'inline-flex items-center gap-2',
         'flex-wrap' => ! $compact,
         'shrink-0' => $compact,
+        'w-full' => $menu,
     ])
 >
     <input x-ref="lat" type="hidden" name="lat" value="{{ $near['lat'] ?? '' }}">
@@ -31,6 +33,7 @@
         @class([
             'whitespace-nowrap rounded-xl',
             'h-10 px-4' => $compact,
+            'w-full justify-start px-3 py-2 text-zinc-700 dark:text-zinc-200' => $menu,
         ])
     >
         <span x-show="!loading">{{ $near ? __('Cerca de mí ✓') : __('Cerca de mí') }}</span>

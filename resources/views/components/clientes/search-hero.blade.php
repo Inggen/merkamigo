@@ -8,6 +8,7 @@
     'title' => __('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad'),
     'description' => null,
     'near' => null,
+    'radiusKm' => null,
     'showImmersiveCta' => false,
 ])
 
@@ -209,6 +210,10 @@
                     <div class="shrink-0">
                         <x-clientes.near-me-toggle :near="$near" compact />
                     </div>
+
+                    @if ($near)
+                        <x-clientes.radius-filter :radius-km="$radiusKm" />
+                    @endif
                 </div>
             </div>
 

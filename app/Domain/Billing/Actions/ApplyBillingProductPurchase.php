@@ -7,6 +7,7 @@ use App\Domain\Billing\Models\BusinessEntitlement;
 use App\Domain\Billing\Models\Payment;
 use App\Domain\Moderation\Actions\SubmitSupportTicket;
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Social\Models\ContentPromotion;
 use App\Models\User;
 
 /**
@@ -40,6 +41,22 @@ class ApplyBillingProductPurchase
     {
         $business = $payment->business;
         $days = (int) ($product->payload['days'] ?? 7);
+
+        if ($payment->contentPromotion) {
+            $promotion = $payment->contentPromotion;
+            $promotion->update([
+                'status' => ContentPromotion::ACTIVA,
+                'starts_at' => now(),
+                'ends_at' => now()->addDays($days),
+            ]);
+
+            app(RecordAuditLog::class)->handle(null, 'content.promotion_started', $promotion, [
+                'payment_id' => $payment->id,
+                'days' => $days,
+            ]);
+
+            return;
+        }
 
         $base = $business->isFeatured() ? $business->featured_until : now();
         $business->update(['featured_until' => $base->addDays($days)]);

@@ -27,6 +27,28 @@ class AnalyticsEvent extends Model
 
     public const OFERTA_VIEW = 'oferta_view';
 
+    public const POST_VIEW = 'post_view';
+
+    public const STORY_VIEW = 'story_view';
+
+    public const REEL_VIEW = 'reel_view';
+
+    public const LIVE_VIEW = 'live_view';
+
+    public const LIVE_PRODUCT_CLICK = 'live_product_click';
+
+    public const LIVE_CART_ADD = 'live_cart_add';
+
+    public const LIVE_CHECKOUT_STARTED = 'live_checkout_started';
+
+    public const LIVE_PURCHASE = 'live_purchase';
+
+    public const PROMOTION_IMPRESSION = 'promotion_impression';
+
+    public const PROMOTION_CLICK = 'promotion_click';
+
+    public const PROMOTION_CONVERSION = 'promotion_conversion';
+
     protected $fillable = ['business_id', 'type', 'subject_type', 'subject_id', 'visitor_hash'];
 
     /**

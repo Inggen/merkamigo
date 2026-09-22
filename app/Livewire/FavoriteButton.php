@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Actions\ToggleFavorite;
+use App\Domain\Social\Models\Post;
 use App\Domain\Storefronts\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -30,7 +31,7 @@ class FavoriteButton extends Component
      */
     public bool $compact = false;
 
-    public function mount(Business|Product $favoritable, bool $compact = false): void
+    public function mount(Business|Product|Post $favoritable, bool $compact = false): void
     {
         $this->favoritableType = $favoritable->getMorphClass();
         $this->favoritableId = (int) $favoritable->getKey();

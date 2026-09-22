@@ -1,0 +1,28 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.0
+    restart: unless-stopped
+    environment:
+      MTX_AUTHMETHOD: http
+      MTX_AUTHHTTPADDRESS: ${LIVE_STREAMING_AUTH_URL}
+      MTX_API: "yes"
+      MTX_APIADDRESS: :9997
+      MTX_METRICS: "yes"
+      MTX_METRICSADDRESS: :9998
+      MTX_HLS: "yes"
+      MTX_WEBRTC: "yes"
+      MTX_WEBRTCADDITIONALHOSTS: ${LIVE_STREAMING_PUBLIC_HOST}
+    ports:
+      - "127.0.0.1:8554:8554"
+      - "1935:1935"
+      - "8888:8888"
+      - "8889:8889"
+      - "8189:8189/udp"
+      - "127.0.0.1:9997:9997"
+      - "127.0.0.1:9998:9998"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+      - live_recordings:/recordings
+
+volumes:
+  live_recordings:

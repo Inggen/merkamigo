@@ -38,6 +38,30 @@ return [
         'quality' => 90,
     ],
 
+    'post_photo' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 10,
+        'max_width' => 1600,
+        'target_extension' => 'webp',
+        'quality' => 88,
+    ],
+
+    'post_video' => [
+        'mimes' => ['mp4', 'webm', 'mov'],
+        'max_kb' => 51200,
+        'max_files' => 1,
+    ],
+
+    'story_photo' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+        'max_width' => 1280,
+        'target_extension' => 'webp',
+        'quality' => 86,
+    ],
+
     'storefront_cover' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
@@ -89,6 +113,16 @@ return [
         'max_width' => 1280,
         'target_extension' => 'webp',
         'quality' => 86,
+    ],
+
+    // Fase 9 del TODO social: archivo de un producto digital (ebook,
+    // curso, plantilla...). Disco `private` a propósito — nunca una URL
+    // pública permanente, se sirve solo con un `Entitlement` vigente.
+    'product_digital_file' => [
+        'mimes' => ['pdf', 'zip', 'epub', 'mp4', 'mp3', 'docx', 'pptx'],
+        'max_kb' => 307200,
+        'max_files' => 1,
+        'disk' => 'private',
     ],
 
     'need_photo' => [

@@ -14,10 +14,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Copiloto de WhatsApp inicial (1.7 del TODO): plantillas de texto listas
- * para copiar y compartir. No genera nada con IA todavía (diferido hasta
- * elegir proveedor, ver docs/architecture/decisiones.md), no envía nada
- * automáticamente y no es un chat en vivo — solo produce texto editable.
+ * Copiloto de WhatsApp: genera texto editable para copiar, guardar y
+ * compartir. Nunca envía mensajes automáticamente.
  */
 new #[Title('Copiloto de WhatsApp')] class extends Component {
     #[Locked]
@@ -125,6 +123,32 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
         $this->hasGenerated = true;
     }
 
+    public function selectType(string $type): void
+    {
+        abort_unless(in_array($type, [
+            WhatsAppContent::PROMOCION,
+            WhatsAppContent::ESTADO,
+            WhatsAppContent::RESPUESTA,
+            WhatsAppContent::PRESENTACION,
+        ], true), 422);
+
+        $this->type = $type;
+    }
+
+    public function selectTone(string $tone): void
+    {
+        abort_unless(in_array($tone, ['cercano', 'formal'], true), 422);
+
+        $this->tone = $tone;
+    }
+
+    public function selectLength(string $length): void
+    {
+        abort_unless(in_array($length, ['corto', 'medio', 'largo'], true), 422);
+
+        $this->length = $length;
+    }
+
     public function saveDraft(): void
     {
         $this->authorize('update', $this->business);
@@ -188,140 +212,308 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
     }
 }; ?>
 
-<section class="mx-auto w-full max-w-2xl space-y-8">
-    <div>
-        <div class="flex items-center gap-1.5">
-            <flux:heading size="xl">{{ __('Copiloto de WhatsApp') }}</flux:heading>
-            <flux:tooltip :content="__('Revisa siempre el texto generado antes de enviarlo: Merkamigo no verifica automáticamente que los datos sean correctos.')">
-                <flux:icon.question-mark-circle class="size-4 shrink-0 text-zinc-400" variant="outline" />
-            </flux:tooltip>
+<section class="w-full space-y-4 lg:space-y-5" x-data="{ tab: 'opportunities' }">
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <div class="flex items-center gap-2">
+                <flux:heading size="xl" class="!text-3xl !font-bold !tracking-tight">{{ __('Copiloto de WhatsApp') }}</flux:heading>
+                <flux:tooltip :content="__('Revisa siempre el texto generado antes de enviarlo: Merkamigo no verifica automáticamente que los datos sean correctos.')">
+                    <flux:icon.information-circle class="size-5 shrink-0 text-zinc-400" variant="outline" />
+                </flux:tooltip>
+            </div>
+            <flux:subheading class="mt-1">
+                {{ __('Crea mensajes para vender, responder clientes y mantener activo tu negocio.') }}
+            </flux:subheading>
         </div>
-        <flux:subheading>
-            {{ __('Genera un texto listo para copiar y compartir. Nada se envía automáticamente: tú decides cuándo y a quién.') }}
-        </flux:subheading>
-        <flux:text class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            {{ __('Si OpenAI está activo en administración, el texto puede mejorarse con IA; si no, Merkamigo sigue usando su generación guiada sin IA.') }}
-        </flux:text>
-    </div>
+        <flux:modal.trigger name="copilot-message-composer">
+            <flux:button variant="primary" icon="pencil-square">
+                {{ __('Crear mensaje') }}
+            </flux:button>
+        </flux:modal.trigger>
+    </header>
+
+    <nav class="entrepreneur-card grid overflow-hidden p-1 sm:grid-cols-3" aria-label="{{ __('Secciones del Copiloto') }}">
+        <button
+            type="button"
+            x-on:click="tab = 'opportunities'"
+            x-bind:class="tab === 'opportunities' ? 'bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200 font-semibold' : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800'"
+            class="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm transition"
+        >
+            <flux:icon.light-bulb class="size-4" />
+            {{ __('Oportunidades') }}
+        </button>
+        <button
+            type="button"
+            x-on:click="tab = 'quick-replies'"
+            x-bind:class="tab === 'quick-replies' ? 'bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200 font-semibold' : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800'"
+            class="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm transition"
+        >
+            <flux:icon.chat-bubble-oval-left class="size-4" />
+            {{ __('Respuestas rápidas') }}
+        </button>
+        <button
+            type="button"
+            x-on:click="tab = 'history'"
+            x-bind:class="tab === 'history' ? 'bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200 font-semibold' : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800'"
+            class="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm transition"
+        >
+            <flux:icon.clock class="size-4" />
+            {{ __('Historial') }}
+        </button>
+    </nav>
 
     @if (! empty($this->suggestions))
-        <div class="space-y-2 rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-900 dark:bg-brand-950">
-            @foreach ($this->suggestions as $suggestion)
-                <flux:text class="text-sm">💡 {{ $suggestion }}</flux:text>
-            @endforeach
-        </div>
-    @endif
-
-    <div class="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
-        <flux:select wire:model.live="type" :label="__('¿Qué quieres generar?')">
-            <flux:select.option value="promocion">{{ __('Promoción de un producto o servicio') }}</flux:select.option>
-            <flux:select.option value="estado">{{ __('Estado de WhatsApp') }}</flux:select.option>
-            <flux:select.option value="respuesta">{{ __('Respuesta a preguntas frecuentes') }}</flux:select.option>
-            <flux:select.option value="presentacion">{{ __('Presentación del negocio') }}</flux:select.option>
-        </flux:select>
-
-        @if ($type === 'promocion')
-            <flux:select wire:model="productId" :label="__('Producto o servicio (opcional)')">
-                <flux:select.option value="">{{ __('Sin producto específico') }}</flux:select.option>
-                @foreach ($this->products as $product)
-                    <flux:select.option value="{{ $product->id }}">{{ $product->name }}</flux:select.option>
-                @endforeach
-            </flux:select>
-        @endif
-
-        <flux:select wire:model="tone" :label="__('Tono')">
-            <flux:select.option value="cercano">{{ __('Cercano (con emoji)') }}</flux:select.option>
-            <flux:select.option value="formal">{{ __('Formal (sin emoji)') }}</flux:select.option>
-        </flux:select>
-
-        <flux:select wire:model="length" :label="__('Longitud')">
-            <flux:select.option value="corto">{{ __('Corto') }}</flux:select.option>
-            <flux:select.option value="medio">{{ __('Medio') }}</flux:select.option>
-            <flux:select.option value="largo">{{ __('Largo') }}</flux:select.option>
-        </flux:select>
-
-        <flux:button variant="primary" wire:click="generate" class="w-full">
-            {{ __('Generar texto') }}
-        </flux:button>
-    </div>
-
-    @if ($hasGenerated)
-        <div class="space-y-3 rounded-2xl border border-amber-300 bg-amber-50 p-6 dark:border-amber-800 dark:bg-amber-950">
-            <flux:text class="text-sm font-medium">
-                {{ __('Revisa y edita el texto antes de compartirlo. Merkamigo no verifica automáticamente su contenido.') }}
-            </flux:text>
-
-            <flux:textarea wire:model="generated" rows="6" />
-
-            <flux:input type="date" wire:model="scheduledFor" :label="__('Fecha sugerida para usarlo (opcional)')" />
-
-            <div x-data class="flex flex-wrap gap-2">
-                <flux:button
-                    type="button"
-                    variant="primary"
-                    x-on:click="navigator.clipboard.writeText($wire.generated); $flux.toast('{{ __('Texto copiado') }}')"
-                >
-                    {{ __('Copiar') }}
-                </flux:button>
-
-                <flux:button
-                    type="button"
-                    variant="ghost"
-                    icon="chat-bubble-left-right"
-                    x-on:click="window.open('https://wa.me/?text=' + encodeURIComponent($wire.generated), '_blank')"
-                >
-                    {{ __('Abrir WhatsApp') }}
-                </flux:button>
-
-                <flux:button type="button" variant="ghost" wire:click="saveDraft">
-                    {{ __('Guardar borrador') }}
-                </flux:button>
+        <section x-show="tab === 'opportunities'" x-cloak class="entrepreneur-soft-card p-4 sm:p-5">
+            <div class="mb-3 flex items-start gap-3">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300">
+                    <flux:icon.light-bulb class="size-6" />
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h2 class="font-semibold text-zinc-900 dark:text-white">{{ __('Oportunidades para hoy') }}</h2>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Ideas basadas en la actividad de tu negocio para volver a conectar con tus clientes.') }}</p>
+                </div>
             </div>
-        </div>
-    @endif
-
-    <div class="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
-        <div>
-            <flux:subheading>{{ __('Respuestas automáticas') }}</flux:subheading>
-            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
-                {{ __('Sobrescribe lo que dice el Copiloto en "Respuesta a preguntas frecuentes". Déjalo vacío para usar el texto automático.') }}
-            </flux:text>
-        </div>
-
-        <flux:textarea wire:model="faqDisponibilidad" :label="__('Disponibilidad')" rows="2" />
-        <flux:textarea wire:model="faqHorario" :label="__('Horario')" rows="2" />
-        <flux:textarea wire:model="faqDomicilio" :label="__('Domicilios')" rows="2" />
-
-        <flux:button type="button" variant="ghost" wire:click="saveFaqAnswers">
-            {{ __('Guardar respuestas') }}
-        </flux:button>
-    </div>
-
-    <div>
-        <flux:subheading class="mb-3">{{ __('Historial (últimos 20)') }}</flux:subheading>
-
-        @if ($this->history->isEmpty())
-            <x-states.empty title="{{ __('Todavía no has guardado borradores') }}" />
-        @else
             <div class="space-y-2">
-                @foreach ($this->history as $draft)
-                    <div class="flex items-start justify-between gap-3 rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-700">
-                        <div class="min-w-0">
-                            <div class="font-medium">
-                                {{ ucfirst($draft->type) }} · {{ $draft->created_at->diffForHumans() }}
-                                @if ($draft->scheduled_for)
-                                    <flux:badge size="sm" color="amber">{{ __('Para el :date', ['date' => $draft->scheduled_for->translatedFormat('d \\d\\e F')]) }}</flux:badge>
-                                @endif
-                            </div>
-                            <div class="truncate text-zinc-500">{{ \Illuminate\Support\Str::limit($draft->content, 80) }}</div>
+                @foreach ($this->suggestions as $suggestion)
+                    <div class="flex flex-col gap-3 rounded-xl bg-white/85 px-4 py-3 ring-1 ring-zinc-200/70 sm:flex-row sm:items-center dark:bg-zinc-900/80 dark:ring-zinc-700">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ $suggestion }}</p>
                         </div>
-                        <div class="flex shrink-0 gap-2">
-                            <flux:button size="xs" variant="ghost" wire:click="reuse({{ $draft->id }})">{{ __('Reutilizar') }}</flux:button>
-                            <flux:button size="xs" variant="ghost" wire:click="deleteDraft({{ $draft->id }})" wire:confirm="{{ __('¿Borrar este borrador?') }}">{{ __('Borrar') }}</flux:button>
-                        </div>
+                        <flux:modal.trigger name="copilot-message-composer">
+                            <flux:button type="button" size="sm" variant="ghost" class="!border !border-brand-300 !text-brand-600 hover:!bg-brand-50 dark:!border-brand-700 dark:!text-brand-300">
+                                {{ __('Crear promoción') }}
+                            </flux:button>
+                        </flux:modal.trigger>
                     </div>
                 @endforeach
             </div>
-        @endif
+        </section>
+    @else
+        <section x-show="tab === 'opportunities'" x-cloak class="entrepreneur-card p-6">
+            <x-states.empty title="{{ __('No hay oportunidades pendientes para hoy') }}" />
+        </section>
+    @endif
+
+    <flux:modal name="copilot-message-composer" class="w-full !max-w-5xl">
+        <div class="mb-5">
+            <div>
+                <flux:heading size="lg">{{ __('Crear mensaje') }}</flux:heading>
+                <flux:subheading>{{ __('Configura tu mensaje y revisa cómo se verá antes de compartirlo.') }}</flux:subheading>
+            </div>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+        <section class="entrepreneur-card p-5">
+            <div class="mb-5 flex items-start gap-3">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
+                    <flux:icon.pencil class="size-5" />
+                </div>
+                <div>
+                    <h2 class="font-semibold text-zinc-900 dark:text-white">{{ __('¿Qué quieres comunicar?') }}</h2>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Selecciona el objetivo y personaliza tu mensaje.') }}</p>
+                </div>
+            </div>
+
+            <div class="space-y-5">
+                <fieldset>
+                    <legend class="mb-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">{{ __('Objetivo del mensaje') }}</legend>
+                    <div class="grid grid-cols-2 gap-2">
+                        @foreach ([
+                            'promocion' => [__('Promoción'), 'megaphone'],
+                            'respuesta' => [__('Respuesta'), 'chat-bubble-oval-left'],
+                            'estado' => [__('Estado'), 'bolt'],
+                            'presentacion' => [__('Presentación'), 'building-storefront'],
+                        ] as $value => [$label, $icon])
+                            <button
+                                type="button"
+                                @class([
+                                    'flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500',
+                                    'border-brand-600 bg-brand-600 text-white' => $type === $value,
+                                    'border-zinc-200 bg-white text-zinc-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200' => $type !== $value,
+                                ])
+                                wire:click="selectType('{{ $value }}')"
+                            >
+                                <flux:icon :name="$icon" class="size-4 shrink-0" />
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
+                </fieldset>
+
+                @if ($type === 'promocion')
+                    <flux:select wire:model="productId" :label="__('Producto o servicio (opcional)')">
+                        <flux:select.option value="">{{ __('Sin producto específico') }}</flux:select.option>
+                        @foreach ($this->products as $product)
+                            <flux:select.option value="{{ $product->id }}">{{ $product->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                @endif
+
+                <fieldset>
+                    <legend class="mb-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">{{ __('Tono del mensaje') }}</legend>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            @class([
+                                'min-h-10 w-full rounded-lg border px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500',
+                                'border-brand-600 bg-brand-600 text-white' => $tone === 'cercano',
+                                'border-zinc-200 bg-white text-zinc-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200' => $tone !== 'cercano',
+                            ])
+                            wire:click="selectTone('cercano')"
+                        >
+                            {{ __('Cercano 😊') }}
+                        </button>
+                        <button
+                            type="button"
+                            @class([
+                                'min-h-10 w-full rounded-lg border px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500',
+                                'border-brand-600 bg-brand-600 text-white' => $tone === 'formal',
+                                'border-zinc-200 bg-white text-zinc-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200' => $tone !== 'formal',
+                            ])
+                            wire:click="selectTone('formal')"
+                        >
+                            {{ __('Profesional') }}
+                        </button>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend class="mb-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">{{ __('Longitud del mensaje') }}</legend>
+                    <div class="grid grid-cols-3 gap-2">
+                        @foreach (['corto' => __('Corta'), 'medio' => __('Media'), 'largo' => __('Larga')] as $value => $label)
+                            <button
+                                type="button"
+                                @class([
+                                    'min-h-10 w-full rounded-lg border px-2 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500',
+                                    'border-brand-600 bg-brand-600 text-white' => $length === $value,
+                                    'border-zinc-200 bg-white text-zinc-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200' => $length !== $value,
+                                ])
+                                wire:click="selectLength('{{ $value }}')"
+                            >
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
+                </fieldset>
+
+                <flux:button variant="primary" icon="sparkles" wire:click="generate" class="!w-full !justify-center">
+                    {{ $hasGenerated ? __('Generar otra versión') : __('Generar mensaje') }}
+                </flux:button>
+                <p class="text-center text-xs text-zinc-400">{{ __('Puedes generar varias versiones hasta encontrar la ideal.') }}</p>
+            </div>
+        </section>
+
+        <section class="entrepreneur-card overflow-hidden p-5">
+            <div class="mb-4 flex items-start gap-3">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm">
+                    <flux:icon.chat-bubble-left-right class="size-5" />
+                </div>
+                <div>
+                    <h2 class="font-semibold text-zinc-900 dark:text-white">{{ __('Vista previa') }}</h2>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Así se verá tu mensaje en WhatsApp.') }}</p>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-2xl border border-emerald-900/10 bg-[#efeae2] shadow-inner">
+                <div class="flex items-center gap-3 bg-[#075e54] px-4 py-3 text-white">
+                    <div class="flex size-9 items-center justify-center rounded-full bg-white font-bold text-brand-600">M</div>
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold">{{ $this->business->name }}</p>
+                        <p class="text-xs text-emerald-100">{{ __('en línea') }}</p>
+                    </div>
+                    <flux:icon.phone class="size-5" />
+                </div>
+                <div class="min-h-72 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,.72),transparent_32%),radial-gradient(circle_at_80%_55%,rgba(208,230,211,.65),transparent_34%)] p-5">
+                    <div class="ml-auto max-w-[92%] rounded-2xl rounded-tr-sm bg-[#d9fdd3] p-3 text-sm text-zinc-800 shadow-sm">
+                        @if ($hasGenerated)
+                            <flux:textarea wire:model="generated" rows="8" class="whatsapp-preview-textarea" />
+                        @else
+                            <p class="whitespace-pre-line leading-relaxed">{{ __("¡Hola! 👋\nCrea tu mensaje y aquí podrás revisarlo antes de compartirlo con tus clientes.") }}</p>
+                        @endif
+                        <p class="mt-2 text-right text-[11px] text-zinc-500">{{ now()->format('g:i a') }} <span class="text-sky-500">✓✓</span></p>
+                    </div>
+                </div>
+            </div>
+
+            @if ($hasGenerated)
+                <div class="mt-3 space-y-3" x-data>
+                    <flux:input type="date" wire:model="scheduledFor" :label="__('Fecha sugerida para usarlo (opcional)')" />
+                    <div class="grid grid-cols-3 gap-2">
+                        <flux:button type="button" size="sm" icon="document-duplicate" variant="ghost" class="!justify-center" x-on:click="navigator.clipboard.writeText($wire.generated); $flux.toast('{{ __('Texto copiado') }}')">
+                            {{ __('Copiar') }}
+                        </flux:button>
+                        <flux:button type="button" size="sm" icon="chat-bubble-left-right" variant="ghost" class="!justify-center" x-on:click="window.open('https://wa.me/?text=' + encodeURIComponent($wire.generated), '_blank')">
+                            {{ __('WhatsApp') }}
+                        </flux:button>
+                        <flux:button type="button" size="sm" icon="bookmark" variant="ghost" class="!justify-center" wire:click="saveDraft">
+                            {{ __('Guardar') }}
+                        </flux:button>
+                    </div>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Revisa y edita el texto antes de compartirlo. Nada se envía automáticamente.') }}</p>
+                </div>
+            @endif
+        </section>
+        </div>
+    </flux:modal>
+
+    <div>
+        <section x-show="tab === 'quick-replies'" x-cloak class="entrepreneur-card p-5">
+            <div class="mb-4 flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+                        <flux:icon.chat-bubble-oval-left-ellipsis class="size-5" />
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-zinc-900 dark:text-white">{{ __('Respuestas rápidas') }}</h2>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Textos útiles para responder más rápido.') }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <flux:textarea wire:model="faqHorario" :label="__('Horarios')" rows="2" />
+                <flux:textarea wire:model="faqDomicilio" :label="__('Domicilios')" rows="2" />
+                <flux:textarea wire:model="faqDisponibilidad" :label="__('Disponibilidad')" rows="2" />
+                <flux:button type="button" variant="primary" wire:click="saveFaqAnswers" class="!w-full !justify-center">
+                    {{ __('Guardar respuestas') }}
+                </flux:button>
+            </div>
+        </section>
+
+        <section x-show="tab === 'history'" x-cloak class="entrepreneur-card p-5">
+            <div class="mb-4 flex items-start gap-3">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+                    <flux:icon.clock class="size-5" />
+                </div>
+                <div>
+                    <h2 class="font-semibold text-zinc-900 dark:text-white">{{ __('Historial reciente') }}</h2>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Tus últimos mensajes guardados.') }}</p>
+                </div>
+            </div>
+
+            @if ($this->history->isEmpty())
+                <x-states.empty title="{{ __('Todavía no has guardado borradores') }}" />
+            @else
+                <div class="space-y-2">
+                    @foreach ($this->history as $draft)
+                        <div class="flex items-start justify-between gap-3 rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-700">
+                            <div class="min-w-0">
+                                <div class="font-medium text-zinc-800 dark:text-zinc-100">
+                                    {{ ucfirst($draft->type) }} · {{ $draft->created_at->diffForHumans() }}
+                                    @if ($draft->scheduled_for)
+                                        <flux:badge size="sm" color="amber">{{ __('Para el :date', ['date' => $draft->scheduled_for->translatedFormat('d \\d\\e F')]) }}</flux:badge>
+                                    @endif
+                                </div>
+                                <div class="truncate text-zinc-500">{{ \Illuminate\Support\Str::limit($draft->content, 80) }}</div>
+                            </div>
+                            <div class="flex shrink-0 gap-1">
+                                <flux:button size="xs" variant="ghost" icon="arrow-path" wire:click="reuse({{ $draft->id }})" aria-label="{{ __('Reutilizar') }}" />
+                                <flux:button size="xs" variant="ghost" icon="trash" wire:click="deleteDraft({{ $draft->id }})" wire:confirm="{{ __('¿Borrar este borrador?') }}" aria-label="{{ __('Borrar') }}" />
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </section>
     </div>
 </section>

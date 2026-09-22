@@ -17,12 +17,10 @@ use Illuminate\Support\Carbon;
  */
 class CalculateProductPerformance
 {
-    private const DAYS = 7;
-
     /**
      * @return array<int, array{product: Product, views: int, whatsapp_clicks: int, last_viewed_at: Carbon|null}>
      */
-    public function handle(Business $business): array
+    public function handle(Business $business, int $days = 7): array
     {
         $products = $business->products()->where('status', 'publicado')->get();
 
@@ -31,7 +29,8 @@ class CalculateProductPerformance
         }
 
         $productMorphClass = (new Product)->getMorphClass();
-        $periodStart = now()->subDays(self::DAYS - 1)->startOfDay();
+        $days = in_array($days, [7, 30, 90], true) ? $days : 7;
+        $periodStart = now()->subDays($days - 1)->startOfDay();
 
         $views = AnalyticsEvent::query()
             ->where('business_id', $business->id)

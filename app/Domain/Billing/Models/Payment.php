@@ -3,6 +3,7 @@
 namespace App\Domain\Billing\Models;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Social\Models\ContentPromotion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -30,6 +31,7 @@ class Payment extends Model
         'business_id',
         'plan_id',
         'billing_product_id',
+        'content_promotion_id',
         'reference',
         'wompi_transaction_id',
         'amount_cents',
@@ -70,5 +72,10 @@ class Payment extends Model
     public function billingProduct(): BelongsTo
     {
         return $this->belongsTo(BillingProduct::class);
+    }
+
+    public function contentPromotion(): BelongsTo
+    {
+        return $this->belongsTo(ContentPromotion::class);
     }
 }
