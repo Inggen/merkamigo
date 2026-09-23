@@ -7,6 +7,8 @@
             </flux:button>
         </div>
 
+        <x-push-notification-settings />
+
         @if ($recentlyViewed->isNotEmpty())
             <div>
                 <flux:subheading class="mb-3">{{ __('Vistos recientemente') }}</flux:subheading>
@@ -37,7 +39,7 @@
 
                             @if (! empty($notification->data['url']))
                                 <div class="mt-2">
-                                    <flux:link :href="$notification->data['url']" wire:navigate>{{ __('Ver solicitud') }}</flux:link>
+                                    <flux:link :href="$notification->data['url']" wire:navigate>{{ $notification->data['action_label'] ?? __('Ver detalle') }}</flux:link>
                                 </div>
                             @endif
                         </div>

@@ -325,20 +325,12 @@ class SchemaBuilder
     {
         $price = $product->hasActivePromo() ? $product->promo_price : $product->price;
 
+        // Un Offer sin `price` es un dato estructurado inválido para
+        // Google (Search Console lo reporta como "Falta el campo 'price'").
+        // Cuando el precio es "a consultar" es mejor omitir `offers` por
+        // completo que publicar un Offer incompleto.
         if (! filled($price) || $product->price_type === 'consultar') {
-            return self::clean([
-                '@type' => 'Offer',
-                '@id' => route('vitrinas.product', [$business, $product]).'#offer',
-                'url' => route('vitrinas.product', [$business, $product]),
-                'priceCurrency' => 'COP',
-                'availability' => $product->isSoldOut()
-                    ? 'https://schema.org/OutOfStock'
-                    : 'https://schema.org/InStock',
-                'itemCondition' => self::itemCondition($product->condition),
-                'seller' => [
-                    '@id' => route('vitrinas.show', $business).'#store',
-                ],
-            ]);
+            return null;
         }
 
         $offer = [

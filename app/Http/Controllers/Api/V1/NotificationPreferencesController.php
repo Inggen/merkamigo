@@ -7,6 +7,7 @@ use App\Domain\Analytics\Notifications\WeeklyBusinessReport;
 use App\Domain\Billing\Notifications\PaymentFailed;
 use App\Domain\Needs\Notifications\OfferSubmitted;
 use App\Domain\Needs\Notifications\OfferWithdrawn;
+use App\Domain\Social\Notifications\NewPostPublished;
 use App\Domain\Trust\Notifications\OrderConfirmedByBusiness;
 use App\Domain\Trust\Notifications\OrderPendingYourConfirmation;
 use App\Domain\Trust\Notifications\VerificationExpiringSoon;
@@ -34,6 +35,7 @@ class NotificationPreferencesController extends Controller
         'weekly_business_report' => WeeklyBusinessReport::class,
         'storefront_needs_attention' => StorefrontNeedsAttention::class,
         'payment_failed' => PaymentFailed::class,
+        'new_post' => NewPostPublished::class,
     ];
 
     public function update(Request $request): JsonResponse

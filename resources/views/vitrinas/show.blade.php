@@ -217,14 +217,37 @@
                                 <div>
                                     <div class="mb-4 flex items-center justify-between gap-4">
                                         <h2 class="text-2xl font-semibold text-zinc-950 dark:text-white">{{ __('Productos destacados') }}</h2>
-                                        <button type="button" x-on:click="tab = 'productos'" class="text-sm font-semibold text-brand-600 transition hover:text-brand-700">
-                                            {{ __('Ver todos') }}
-                                        </button>
+                                        <div class="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                x-on:click="$refs.featuredProducts.scrollBy({ left: -$refs.featuredProducts.clientWidth * 0.8, behavior: 'smooth' })"
+                                                class="inline-flex size-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-zinc-700 dark:text-zinc-300"
+                                                aria-label="{{ __('Productos anteriores') }}"
+                                            >
+                                                <flux:icon.chevron-left class="size-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                x-on:click="$refs.featuredProducts.scrollBy({ left: $refs.featuredProducts.clientWidth * 0.8, behavior: 'smooth' })"
+                                                class="inline-flex size-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-zinc-700 dark:text-zinc-300"
+                                                aria-label="{{ __('Productos siguientes') }}"
+                                            >
+                                                <flux:icon.chevron-right class="size-4" />
+                                            </button>
+                                            <button type="button" x-on:click="tab = 'productos'" class="ml-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">
+                                                {{ __('Ver todos') }}
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                    <div
+                                        x-ref="featuredProducts"
+                                        class="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                    >
                                         @foreach ($featuredProducts as $product)
-                                            @include('vitrinas.partials.product-card', ['business' => $business, 'product' => $product])
+                                            <div class="w-[85%] shrink-0 snap-start sm:w-[48%] xl:w-[32%]">
+                                                @include('vitrinas.partials.product-card', ['business' => $business, 'product' => $product])
+                                            </div>
                                         @endforeach
                                     </div>
                                 </div>

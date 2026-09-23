@@ -38,27 +38,30 @@
         <div class="mt-3 grid gap-2 overflow-hidden rounded-xl {{ $post->media->count() > 1 ? 'grid-cols-2' : 'grid-cols-1' }}">
             @foreach ($post->media as $media)
                 @if ($media->isVideo())
-                    <x-media.video-player :src="$media->url()" fit="cover" loop />
+                    <x-media.video-player :src="$media->url()" aspect="feed" fit="contain" loop />
                 @else
-                    <img src="{{ $media->url() }}" alt="{{ $media->alt_text }}" class="w-full object-cover {{ $post->media->count() > 1 ? 'aspect-square' : 'aspect-video' }}" loading="lazy">
+                    <img src="{{ $media->url() }}" alt="{{ $media->alt_text }}" class="w-full object-cover {{ $post->media->count() > 1 ? 'aspect-square' : 'aspect-[4/3]' }}" loading="lazy">
                 @endif
             @endforeach
         </div>
     @endif
 
     @if ($post->products->isNotEmpty())
-        <div class="mt-3 space-y-2">
+        <div
+            class="mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="{{ __('Productos de la publicación') }}"
+        >
             @foreach ($post->products as $product)
                 @php $photo = $product->media->first(); @endphp
-                <div class="flex items-center gap-3 rounded-xl border border-zinc-200 p-2.5 dark:border-zinc-700">
-                    <a href="{{ route('vitrinas.product', [$business, $product]) }}" wire:navigate class="flex min-w-0 flex-1 items-center gap-3">
-                        <div class="size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                <div class="flex w-72 shrink-0 snap-start items-center gap-2 rounded-xl border border-zinc-200 p-2 dark:border-zinc-700">
+                    <a href="{{ route('vitrinas.product', [$business, $product]) }}" wire:navigate class="flex min-w-0 flex-1 items-center gap-2.5">
+                        <div class="size-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                             @if ($photo)
                                 <img src="{{ $photo->url() }}" class="h-full w-full object-cover" alt="{{ $product->name }}" loading="lazy">
                             @endif
                         </div>
                         <div class="min-w-0">
-                            <p class="truncate text-sm font-medium text-zinc-950 dark:text-white">{{ $product->name }}</p>
+                            <p class="line-clamp-2 text-sm font-medium leading-tight text-zinc-950 dark:text-white">{{ $product->name }}</p>
                             @if ($product->price_type === 'exacto' && $product->price)
                                 <p class="text-sm font-semibold text-brand-600 dark:text-brand-300">${{ number_format((float) $product->price, 0, ',', '.') }}</p>
                             @elseif ($product->price_type === 'desde' && $product->price)
@@ -87,19 +90,8 @@
         </div>
     @endif
 
-    <div class="mt-3 flex items-center gap-1 border-t border-zinc-100 pt-2 dark:border-zinc-800">
+    <div class="mt-3 flex flex-wrap items-center gap-1 border-t border-zinc-100 pt-2 dark:border-zinc-800">
         <livewire:post-reaction-button :post="$post" :key="'reaction-'.$post->id" />
-
-        @if ($business->whatsapp_number)
-            <a
-                href="{{ route('vitrinas.whatsapp', $business) }}"
-                target="_blank"
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            >
-                <flux:icon.chat-bubble-left-right class="size-4" variant="outline" />
-                {{ __('WhatsApp') }}
-            </a>
-        @endif
 
         <button
             type="button"
@@ -111,8 +103,8 @@
             {{ __('Compartir') }}
         </button>
 
+        <livewire:post-comments :post="$post" :key="'comments-'.$post->id" />
+
         <livewire:favorite-button :favoritable="$post" compact :key="'save-'.$post->id" />
     </div>
-
-    <livewire:post-comments :post="$post" :key="'comments-'.$post->id" />
 </article>

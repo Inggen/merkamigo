@@ -113,15 +113,22 @@ return [
     | Firebase Cloud Messaging (5.2 del TODO)
     |--------------------------------------------------------------------------
     |
-    | Notificaciones push. Sin `FCM_SERVER_KEY` real configurada, el envío
-    | sigue siendo una llamada HTTP real (nunca simulada en código), solo
-    | que Firebase la rechazará hasta que se configure una llave de
-    | producción — igual criterio que Wompi en modo sandbox.
+    | Notificaciones push por Firebase Cloud Messaging HTTP v1.
     |
     */
     'fcm' => [
-        'server_key' => env('FCM_SERVER_KEY'),
-        'endpoint' => env('FCM_ENDPOINT', 'https://fcm.googleapis.com/fcm/send'),
+        'project_id' => env('FCM_PROJECT_ID'),
+        'credentials' => env('FCM_CREDENTIALS', 'storage/app/private/firebase-service-account.json'),
+        'endpoint' => env('FCM_ENDPOINT', 'https://fcm.googleapis.com'),
+        'web' => [
+            'api_key' => env('FIREBASE_WEB_API_KEY'),
+            'auth_domain' => env('FIREBASE_WEB_AUTH_DOMAIN'),
+            'project_id' => env('FIREBASE_WEB_PROJECT_ID', env('FCM_PROJECT_ID')),
+            'storage_bucket' => env('FIREBASE_WEB_STORAGE_BUCKET'),
+            'messaging_sender_id' => env('FIREBASE_WEB_MESSAGING_SENDER_ID'),
+            'app_id' => env('FIREBASE_WEB_APP_ID'),
+            'vapid_key' => env('FIREBASE_WEB_VAPID_KEY'),
+        ],
     ],
 
 ];

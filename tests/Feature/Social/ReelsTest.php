@@ -6,12 +6,14 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Social\Actions\CreatePost;
+use App\Domain\Social\Notifications\NewPostPublished;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -41,6 +43,28 @@ class ReelsTest extends TestCase
         $this->assertSame('video', $post->type);
         $this->assertCount(1, $post->media);
         $this->assertTrue($post->media->first()->isVideo());
+    }
+
+    public function test_a_reel_notification_identifies_the_content_as_a_reel(): void
+    {
+        Notification::fake();
+        Storage::fake('public');
+
+        $business = $this->publishedBusiness();
+        $recipient = User::factory()->create();
+
+        app(CreatePost::class)->handle($business, [
+            'type' => 'video',
+            'body' => 'Nuevo reel',
+        ], [UploadedFile::fake()->create('reel.mp4', 2048, 'video/mp4')], $business->organization->owner);
+
+        Notification::assertSentTo($recipient, NewPostPublished::class, function ($notification) use ($recipient) {
+            $data = $notification->toArray($recipient);
+
+            return $data['type'] === 'new_reel'
+                && str_contains($data['message'], 'nuevo reel')
+                && $notification->toPush($recipient)['title'] === 'Nuevo reel';
+        });
     }
 
     public function test_a_video_post_requires_exactly_one_video_file(): void

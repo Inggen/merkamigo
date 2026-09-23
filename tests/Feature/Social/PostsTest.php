@@ -6,11 +6,12 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Actions\ToggleFavorite;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Identity\Notifications\Channels\PushChannel;
 use App\Domain\Social\Actions\CreatePost;
 use App\Domain\Social\Actions\CreatePostComment;
 use App\Domain\Social\Actions\ToggleFollowBusiness;
 use App\Domain\Social\Actions\TogglePostReaction;
-use App\Domain\Social\Notifications\NewPostFromFollowedBusiness;
+use App\Domain\Social\Notifications\NewPostPublished;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -162,20 +163,39 @@ class PostsTest extends TestCase
         $this->assertFalse($visitor->fresh()->isFollowing($business));
     }
 
-    public function test_following_a_business_notifies_the_follower_when_it_publishes(): void
+    public function test_publishing_notifies_every_registered_user(): void
     {
         Notification::fake();
 
         $business = $this->publishedBusiness();
         $owner = $business->organization->owner;
-        $follower = User::factory()->create();
-        app(ToggleFollowBusiness::class)->handle($follower, $business);
+        $users = User::factory()->count(3)->create();
 
         $post = app(CreatePost::class)->handle($business, ['type' => 'texto', 'body' => 'Novedades'], [], $owner);
 
-        Notification::assertSentTo($follower, NewPostFromFollowedBusiness::class, function ($notification) use ($post, $follower) {
-            return $notification->toArray($follower)['post_id'] === $post->id;
-        });
+        foreach ($users->push($owner) as $user) {
+            Notification::assertSentTo($user, NewPostPublished::class, function ($notification) use ($post, $user) {
+                return $notification->toArray($user)['post_id'] === $post->id
+                    && $notification->via($user) === ['database', PushChannel::class];
+            });
+        }
+
+        Notification::assertCount(4);
+    }
+
+    public function test_a_draft_does_not_notify_registered_users(): void
+    {
+        Notification::fake();
+
+        $business = $this->publishedBusiness();
+
+        app(CreatePost::class)->handle($business, [
+            'type' => 'texto',
+            'body' => 'Todavía no se publica',
+            'status' => 'borrador',
+        ], [], $business->organization->owner);
+
+        Notification::assertNothingSent();
     }
 
     public function test_the_feed_shows_recent_posts_from_the_users_municipality(): void
@@ -196,6 +216,16 @@ class PostsTest extends TestCase
      */
     public function test_the_home_page_shows_the_feed(): void
     {
+        config()->set('services.fcm.web', [
+            'api_key' => 'web-key',
+            'auth_domain' => 'merkamigo.firebaseapp.com',
+            'project_id' => 'merkamigo',
+            'storage_bucket' => null,
+            'messaging_sender_id' => '123',
+            'app_id' => 'app-id',
+            'vapid_key' => 'vapid-key',
+        ]);
+
         $business = $this->publishedBusiness();
         $owner = $business->organization->owner;
         app(CreatePost::class)->handle($business, ['type' => 'texto', 'body' => 'Post en Inicio'], [], $owner);
@@ -211,6 +241,7 @@ class PostsTest extends TestCase
             ->assertSee(__('Comprador'))
             ->assertSee(__('Cerca de mí'))
             ->assertSee(__('Historias'))
+            ->assertSee(__('Activar notificaciones'))
             ->assertSee(__('Publicaciones para ti'))
             ->assertSee(__('Más recientes'))
             ->assertSee(__('Negocios cerca de ti'))

@@ -1,14 +1,16 @@
-<div class="mt-2">
+<div class="contents">
     <button
         type="button"
         wire:click="toggleExpanded"
-        class="text-sm font-medium text-zinc-500 transition hover:text-brand-600 dark:text-zinc-400"
+        aria-expanded="{{ $expanded ? 'true' : 'false' }}"
+        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-brand-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
     >
+        <flux:icon.chat-bubble-left class="size-4" variant="outline" />
         {{ $comments->count() > 0 ? trans_choice(':count comentario|:count comentarios', $comments->count(), ['count' => $comments->count()]) : __('Comentar') }}
     </button>
 
     @if ($expanded)
-        <div class="mt-3 space-y-3">
+        <div class="order-last mt-3 w-full basis-full space-y-3">
             @foreach ($comments as $comment)
                 <div class="flex items-start gap-2">
                     <flux:avatar size="xs" :name="$comment->user->name" :src="$comment->user->avatarUrl()" circle />

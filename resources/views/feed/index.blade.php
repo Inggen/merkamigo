@@ -53,6 +53,10 @@
         @include('feed.partials.sidebar')
 
         <div class="min-w-0">
+            @auth
+                <x-push-notification-settings class="mb-4" />
+            @endauth
+
             <section class="mb-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div class="mb-3 flex items-center justify-between">
                     <flux:heading size="lg">{{ __('Historias') }}</flux:heading>

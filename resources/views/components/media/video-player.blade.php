@@ -13,6 +13,7 @@
 @php
     $aspectClass = match ($aspect) {
         'reel' => 'aspect-[9/16]',
+        'feed' => 'aspect-[4/3]',
         'auto' => '',
         default => 'aspect-video',
     };

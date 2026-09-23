@@ -73,6 +73,7 @@
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
 <title>{{ $pageTitle }}</title>
 <meta name="description" content="{{ $pageDescription }}">
@@ -108,6 +109,28 @@
 <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 
 @fonts
+
+@auth
+    @php
+        $firebaseWeb = config('services.fcm.web');
+        $firebaseWebConfigured = collect($firebaseWeb)->except('storage_bucket')->every(fn ($value) => filled($value));
+    @endphp
+    <script>
+        window.merkamigoPushConfig = @js([
+            'enabled' => $firebaseWebConfigured,
+            'registerUrl' => route('api.v1.devices.store'),
+            'vapidKey' => $firebaseWeb['vapid_key'],
+            'firebase' => [
+                'apiKey' => $firebaseWeb['api_key'],
+                'authDomain' => $firebaseWeb['auth_domain'],
+                'projectId' => $firebaseWeb['project_id'],
+                'storageBucket' => $firebaseWeb['storage_bucket'],
+                'messagingSenderId' => $firebaseWeb['messaging_sender_id'],
+                'appId' => $firebaseWeb['app_id'],
+            ],
+        ]);
+    </script>
+@endauth
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @fluxAppearance

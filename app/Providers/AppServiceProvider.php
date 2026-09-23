@@ -17,7 +17,7 @@ use App\Domain\Needs\Policies\NeedPolicy;
 use App\Domain\Needs\Policies\OfferPolicy;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Social\Events\PostPublished;
-use App\Domain\Social\Jobs\NotifyFollowersOfNewPost;
+use App\Domain\Social\Jobs\NotifyUsersOfNewPost;
 use App\Domain\Storefronts\Events\ProductCreated;
 use App\Domain\Storefronts\Events\ProductUpdated;
 use App\Domain\Storefronts\Jobs\DeleteProductFromGoogleMerchant;
@@ -157,15 +157,15 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * 2.3 del TODO social: notificar a los seguidores de un negocio
-     * cuando publica algo nuevo — mismo patrón `afterCommit()` que
+     * Notifica a todas las personas registradas cuando un negocio publica
+     * contenido nuevo — mismo patrón `afterCommit()` que
      * `configureGoogleMerchantSync()`, para no encolar antes de que la
      * transacción de `CreatePost` confirme.
      */
     protected function configureSocialNotifications(): void
     {
         Event::listen(function (PostPublished $event) {
-            NotifyFollowersOfNewPost::dispatch($event->postId)->afterCommit();
+            NotifyUsersOfNewPost::dispatch($event->postId)->afterCommit();
         });
     }
 

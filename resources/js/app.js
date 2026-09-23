@@ -1,6 +1,7 @@
 import Hls from 'hls.js';
 import './live-studio';
 import './live-viewer';
+import './push-notifications';
 
 // Registro del service worker (1.10 del TODO): habilita la instalación como
 // PWA y la página offline informativa. Ver public/sw.js.

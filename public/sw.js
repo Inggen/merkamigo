@@ -30,3 +30,29 @@ self.addEventListener('fetch', (event) => {
         fetch(event.request).catch(() => caches.match(OFFLINE_URL)),
     );
 });
+
+self.addEventListener('push', (event) => {
+    const payload = event.data?.json() || {};
+    const notification = payload.notification || payload.data?.notification || {};
+    const data = payload.data || {};
+
+    event.waitUntil(self.registration.showNotification(notification.title || 'Merkamigo', {
+        body: notification.body || '',
+        icon: notification.icon || '/icons/icon-192.png',
+        badge: notification.badge || '/icons/icon-192.png',
+        data: { url: data.url || notification.click_action || '/' },
+    }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = new URL(event.notification.data?.url || '/', self.location.origin).href;
+
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+            const existing = windows.find((client) => client.url === url);
+
+            return existing ? existing.focus() : self.clients.openWindow(url);
+        }),
+    );
+});

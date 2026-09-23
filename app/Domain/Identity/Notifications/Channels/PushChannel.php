@@ -26,10 +26,11 @@ class PushChannel
         }
 
         $payload = $notification->toPush($notifiable);
+        $client = app(FcmClient::class);
 
         foreach ($notifiable->devices as $device) {
             try {
-                app(FcmClient::class)->send($device->push_token, $payload);
+                $client->send($device->push_token, $payload);
             } catch (Throwable) {
                 // Un dispositivo con token vencido/inválido no debe impedir
                 // que los demás dispositivos del usuario reciban el push.

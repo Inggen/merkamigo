@@ -11,6 +11,7 @@ use App\Domain\Needs\Models\Offer;
 use App\Domain\Needs\Notifications\OfferSubmitted;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
+use App\Support\Push\FcmClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
@@ -68,6 +69,8 @@ class DevicesAndPushApiTest extends TestCase
 
     public function test_the_push_channel_calls_fcm_for_each_registered_device_and_isolates_failures(): void
     {
+        $this->app->instance(FcmClient::class, new FcmClient(fn (): string => 'test-access-token'));
+
         Http::fake([
             'fcm.test/*' => Http::sequence()
                 ->push(['success' => 1], 200)
@@ -81,6 +84,11 @@ class DevicesAndPushApiTest extends TestCase
         $user->notify(new OfferSubmitted($this->makeOffer($user)));
 
         Http::assertSentCount(2);
+        Http::assertSent(fn ($request) => $request->url() === 'https://fcm.test/v1/projects/test-project/messages:send'
+            && $request->hasHeader('Authorization', 'Bearer test-access-token')
+            && $request['message']['token'] === 'good-token'
+            && filled($request['message']['notification']['title'])
+            && filled($request['message']['webpush']['fcm_options']['link']));
     }
 
     public function test_a_user_can_disable_push_for_a_notification_type(): void

@@ -63,7 +63,7 @@
                                 <p class="mt-3 whitespace-pre-line text-sm leading-6 text-zinc-700 dark:text-zinc-200">{{ $reel->body }}</p>
                             @endif
 
-                            <div class="mt-3 flex items-center gap-1 border-t border-zinc-100 pt-2 dark:border-zinc-800">
+                            <div class="mt-3 flex flex-wrap items-center gap-1 border-t border-zinc-100 pt-2 dark:border-zinc-800">
                                 <livewire:post-reaction-button :post="$reel" :key="'reaction-reel-'.$reel->id" />
 
                                 <button
@@ -76,10 +76,10 @@
                                     {{ __('Compartir') }}
                                 </button>
 
+                                <livewire:post-comments :post="$reel" :key="'comments-reel-'.$reel->id" />
+
                                 <livewire:favorite-button :favoritable="$reel" compact :key="'save-reel-'.$reel->id" />
                             </div>
-
-                            <livewire:post-comments :post="$reel" :key="'comments-reel-'.$reel->id" />
                         </div>
                     </article>
                 @endforeach

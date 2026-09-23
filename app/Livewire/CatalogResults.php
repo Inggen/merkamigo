@@ -208,4 +208,14 @@ class CatalogResults extends Component
     {
         return $this->type === 'products' ? 'productos_page' : 'page';
     }
+
+    /**
+     * Tema de paginación con <a href> reales en vez del <button wire:click>
+     * por defecto de Livewire, para que los buscadores puedan descubrir y
+     * seguir el enlace a las páginas de resultados siguientes.
+     */
+    public function paginationView(): string
+    {
+        return 'livewire.pagination.crawlable-tailwind';
+    }
 }
