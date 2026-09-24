@@ -617,12 +617,12 @@ new #[Layout('layouts::cliente')] class extends Component
             </div>
             @if ($this->cartItems->isNotEmpty())
                 <div class="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-700"><span class="font-semibold">{{ __('Subtotal') }}</span><span class="text-2xl font-bold">${{ number_format($this->cartItems->sum('total'), 0, ',', '.') }}</span></div>
-                <form method="POST" action="{{ route('marketplace.live.checkout', $this->live) }}" target="_blank" x-data x-on:submit="$wire.registerCheckout()">
+                <form method="POST" action="{{ route('marketplace.live.checkout', $this->live) }}" target="_blank" x-data x-on:submit.prevent="$wire.registerCheckout(); window.merkamigoOpenWompiCheckoutPost($event.target)">
                     @csrf
                     <flux:button type="submit" variant="primary" icon="lock-closed" class="w-full">
                         {{ __('Pagar con Wompi') }}
                     </flux:button>
-                    <p class="mt-2 text-center text-xs text-zinc-500">{{ __('Wompi abrirá el pago seguro aparte; este Live permanecerá abierto.') }}</p>
+                    <p class="mt-2 text-center text-xs text-zinc-500">{{ __('El pago se abre en una ventana segura sin salir del Live.') }}</p>
                 </form>
             @endif
         </div>

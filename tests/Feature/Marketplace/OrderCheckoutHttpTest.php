@@ -5,6 +5,7 @@ namespace Tests\Feature\Marketplace;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Marketplace\Actions\ConnectBusinessWompi;
 use App\Domain\Marketplace\Models\Order;
+use App\Domain\Social\Models\LiveStream;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Trust\Models\BusinessVerification;
@@ -30,6 +31,54 @@ class OrderCheckoutHttpTest extends TestCase
         $order = Order::where('product_id', $product->id)->firstOrFail();
         $expectedSignature = hash('sha256', $order->reference.$order->amount_cents.'COP'.'integrity-secret-business');
         $response->assertSee($expectedSignature, false);
+    }
+
+    public function test_checkout_returns_json_for_the_wompi_widget_when_the_client_asks_for_it(): void
+    {
+        [$business, $product] = $this->businessWithConnectedWompi();
+        $buyer = User::factory()->create();
+
+        $response = $this->actingAs($buyer)
+            ->getJson(route('marketplace.checkout.create', $product));
+
+        $response->assertOk();
+        $order = Order::where('product_id', $product->id)->firstOrFail();
+
+        $response->assertExactJson([
+            'publicKey' => 'pub_test_business',
+            'currency' => $order->currency,
+            'amountInCents' => $order->amount_cents,
+            'reference' => $order->reference,
+            'signature' => hash('sha256', $order->reference.$order->amount_cents.'COP'.'integrity-secret-business'),
+            'redirectUrl' => route('marketplace.checkout.return', $order),
+        ]);
+    }
+
+    public function test_live_checkout_returns_json_for_the_wompi_widget_when_the_client_asks_for_it(): void
+    {
+        [$business, $product] = $this->businessWithConnectedWompi();
+        $streamer = User::factory()->create();
+        $buyer = User::factory()->create();
+
+        $liveStream = LiveStream::create([
+            'business_id' => $business->id,
+            'user_id' => $streamer->id,
+            'title' => 'Live de prueba',
+            'slug' => 'live-de-prueba',
+            'provider' => 'youtube',
+            'stream_url' => 'https://youtube.com/watch?v=test',
+            'status' => LiveStream::EN_VIVO,
+        ]);
+        $liveStream->products()->attach($product->id);
+
+        $this->actingAs($buyer)
+            ->withSession(["live_cart.{$liveStream->id}" => [
+                ['product_id' => $product->id, 'variant_id' => null, 'quantity' => 2],
+            ]])
+            ->postJson(route('marketplace.live.checkout', $liveStream))
+            ->assertOk()
+            ->assertJsonStructure(['publicKey', 'currency', 'amountInCents', 'reference', 'signature', 'redirectUrl'])
+            ->assertJson(['publicKey' => 'pub_test_business', 'amountInCents' => 10000000]);
     }
 
     public function test_a_guest_is_redirected_to_login_before_checkout(): void

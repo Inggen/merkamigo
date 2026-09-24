@@ -128,7 +128,7 @@ class TrustPhaseThreeTest extends TestCase
 
         $this->get(route('vitrinas.show', $business))
             ->assertOk()
-            ->assertSee('Verificación básica')
+            ->assertSee('Vitrina verificada')
             ->assertSee('1 pedido confirmado')
             ->assertSee('Llegó puntual y el producto estaba fresco.')
             ->assertSee('Gracias por confiar en nosotros.')
@@ -158,7 +158,7 @@ class TrustPhaseThreeTest extends TestCase
 
         $this->get(route('vitrinas.show', $business))
             ->assertOk()
-            ->assertDontSee('Verificación básica');
+            ->assertDontSee('Vitrina verificada');
     }
 
     public function test_an_order_cannot_be_completed_unilaterally_and_leaves_audit_trail_when_both_sides_confirm(): void

@@ -264,6 +264,32 @@ select:focus[data-flux-control] {
         border-color: #3f3f46;
         background: #18181b;
     }
+
+    /* Bug real reportado por el usuario: estos colores del sidebar de
+       emprendedores (área, labels de sección, items, hover) estaban
+       fijos en tonos oscuros pensados solo para fondo claro — en modo
+       oscuro el fondo del sidebar sí cambia (lo maneja Flux), pero el
+       texto se quedaba casi del mismo tono que el fondo, invisible. */
+    .dark .entrepreneur-area {
+        color: #e4e4e7;
+    }
+
+    .dark .entrepreneur-sidebar .entrepreneur-nav-group > div:first-child > div {
+        color: #a1a1aa;
+    }
+
+    .dark .entrepreneur-sidebar [data-flux-sidebar-item] {
+        color: #a1a1aa;
+    }
+
+    .dark .entrepreneur-sidebar [data-flux-sidebar-item]:hover {
+        background: rgb(255 255 255 / 0.06);
+        color: #f4f4f5;
+    }
+
+    .dark .entrepreneur-sidebar .entrepreneur-content-group > button {
+        color: #a1a1aa;
+    }
 }
 
 /* \[:where(&)\]:size-4 {

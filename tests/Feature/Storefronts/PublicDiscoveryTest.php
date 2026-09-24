@@ -53,7 +53,7 @@ class PublicDiscoveryTest extends TestCase
             'municipality_id' => $municipality->id,
         ])->business;
 
-        $this->get(route('plaza.show', $municipality))
+        $this->get(route('buscar', ['municipio' => $municipality->slug]))
             ->assertOk()
             ->assertDontSee('Negocio Borrador');
 
@@ -68,11 +68,11 @@ class PublicDiscoveryTest extends TestCase
 
         $business = $this->publishedBusiness($municipality, $category);
 
-        $this->get(route('plaza.show', $municipality))
+        $this->get(route('buscar', ['municipio' => $municipality->slug]))
             ->assertOk()
             ->assertSee($business->name);
 
-        $this->get(route('plaza.show', $otherMunicipality))
+        $this->get(route('buscar', ['municipio' => $otherMunicipality->slug]))
             ->assertOk()
             ->assertDontSee($business->name);
 
@@ -97,18 +97,16 @@ class PublicDiscoveryTest extends TestCase
 
     public function test_filtering_the_plaza_by_category_does_not_error(): void
     {
-        // Regresión: la ruta plaza.category tiene dos parámetros de modelo
-        // ({municipio}/categorias/{categoria}) y Laravel intentaba aplicar
-        // scoping anidado automático buscando un método
-        // Municipality::categorias(), que no existe — la ruta debe declarar
-        // withoutScopedBindings() ya que una categoría no es un recurso hijo
-        // de un municipio.
+        // Regresión: la ruta canónica es `buscar` (plaza/{municipio?}/{categoria?},
+        // con params planos, no model binding), no la vieja `plaza.category`
+        // (plaza/{municipio}/categorias/{categoria}) que ahora solo vive como
+        // `plaza.category.legacy` para redirigir 301 al URL canónico.
         $municipality = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true]);
         $category = Category::create(['name' => 'Alimentos', 'slug' => 'alimentos', 'is_active' => true]);
 
         $business = $this->publishedBusiness($municipality, $category);
 
-        $this->get(route('plaza.category', [$municipality, $category]))
+        $this->get(route('buscar', ['municipio' => $municipality->slug, 'categoria' => $category->slug]))
             ->assertOk()
             ->assertSee($business->name);
     }
@@ -142,7 +140,7 @@ class PublicDiscoveryTest extends TestCase
             ->assertSee($category->name)
             ->assertSee($municipality->name)
             ->assertDontSee($otherMunicipality->name)
-            ->assertSee(route('plaza.category', [$municipality, $category]), false);
+            ->assertSee(route('buscar', ['municipio' => $municipality->slug, 'categoria' => $category->slug]), false);
     }
 
     public function test_the_public_product_page_reflects_promo_price_variants_and_sold_out(): void

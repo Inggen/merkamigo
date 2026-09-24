@@ -118,13 +118,14 @@
                             </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <div class="flex flex-wrap items-center gap-3">
-                                <h1 class="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-4xl">{{ $business->name }}</h1>
+                        <div class="min-w-0 space-y-4">
+                            <div class="flex min-w-0 flex-wrap items-center gap-3">
+                                <h1 class="min-w-0 break-words text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-4xl">{{ $business->name }}</h1>
 
                                 @if ($business->hasVerifiedBadge())
-                                    <span class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-200 dark:ring-brand-500/30">
-                                        {{ $business->verifiedBadgeLabel() }}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-200 dark:ring-brand-500/30">
+                                        <flux:icon.check-badge class="size-4" />
+                                        {{ __('Vitrina verificada') }}
                                     </span>
                                 @endif
                             </div>
@@ -210,6 +211,19 @@
                                             </div>
                                         </div>
                                     @endforeach
+                                </div>
+                            @endif
+
+                            @if ($galleryPhotos->isNotEmpty())
+                                <div>
+                                    <h2 class="mb-4 text-2xl font-semibold text-zinc-950 dark:text-white">{{ __('Galería') }}</h2>
+                                    <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                                        @foreach ($galleryPhotos as $photo)
+                                            <div class="aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                                <img src="{{ $photo->url() }}" class="h-full w-full object-cover" alt="{{ $photo->alt_text ?? __('Foto de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @endif
 
@@ -405,19 +419,7 @@
             </section>
 
             <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
-                @if ($business->whatsapp_number)
-                    <a href="{{ route('vitrinas.whatsapp', $business) }}" target="_blank" class="block rounded-xl  bg-brand-600 p-5 text-white shadow-sm transition hover:bg-brand-700">
-                        <div class="flex items-center gap-3">
-                            <span class="inline-flex size-11 items-center justify-center rounded-2xl bg-white/15">
-                                <flux:icon.chat-bubble-left-right class="size-6" />
-                            </span>
-                            <div>
-                                <div class="text-lg font-semibold">{{ __('Escríbenos por WhatsApp') }}</div>
-                                <div class="text-sm text-white/80">{{ __('Atención directa del negocio') }}</div>
-                            </div>
-                        </div>
-                    </a>
-                @endif
+                
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte esta vitrina') }}</h3>
@@ -455,6 +457,8 @@
                         </div>
                     </div>
                 </div>
+
+                
 
                 @if ($socialLinks->isNotEmpty())
                     <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -500,6 +504,19 @@
                             </div>
                         @endif
                     </div>
+                @endif
+
+                @if ($business->whatsapp_number)
+                    <a href="{{ route('vitrinas.whatsapp', $business) }}" target="_blank" class="block rounded-xl  bg-brand-600 p-5 text-white shadow-sm transition hover:bg-brand-700">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex size-11 items-center justify-center rounded-2xl bg-white/15">
+                                <flux:icon.chat-bubble-left-right class="size-6" />
+                            </span>
+                            <div>
+                                <div class="text-lg font-semibold">{{ __('Escríbenos por WhatsApp') }}</div>
+                            </div>
+                        </div>
+                    </a>
                 @endif
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">

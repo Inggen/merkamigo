@@ -81,7 +81,7 @@
         </nav>
     </div>
 
-    <div class="rounded-2xl border border-brand-100 bg-brand-50 p-4 text-center dark:border-brand-900/40 dark:bg-brand-950/20">
+    <div class="rounded-2xl border border-brand-100 bg-brand-50 p-4 text-center dark:border-transparent dark:bg-[#6e2006]">
         <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-white text-brand-600 shadow-sm dark:bg-zinc-900">
             <flux:icon.user-group class="size-7" variant="outline" />
         </div>

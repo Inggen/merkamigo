@@ -63,7 +63,7 @@
         </div>
     </section>
 
-    <section class="rounded-2xl bg-gradient-to-br from-brand-50 to-red-50 p-5 text-center shadow-sm dark:from-brand-950/40 dark:to-red-950/30">
+    <section class="rounded-2xl bg-gradient-to-br from-brand-50 to-red-50 p-5 text-center shadow-sm dark:bg-none dark:bg-[#6e2006]">
         <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-white text-brand-600 shadow-sm dark:bg-zinc-900">
             <flux:icon.building-storefront class="size-6" variant="outline" />
         </div>

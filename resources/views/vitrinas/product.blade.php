@@ -24,6 +24,21 @@
     $ratedRecommendations = $recommendations->whereNotNull('rating');
     $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
     $acceptedPaymentMethods = $business->paymentMethods;
+    // Pedido del usuario: si el negocio tiene pago en línea disponible para
+    // este producto, el CTA es el pago — no WhatsApp. WhatsApp solo vuelve
+    // como respaldo cuando el pago en línea no aplica (sin Wompi, agotado,
+    // o price_type sin precio fijo que cobrar).
+    $canPayOnline = ! $product->isSubscription()
+        && $business->hasWompiConnected()
+        && ! $product->isSoldOut()
+        && in_array($product->price_type, ['exacto', 'desde'], true)
+        && $product->price;
+    // Pedido del usuario: el selector de Cantidad no movía el precio en
+    // pantalla — el precio de arriba es siempre el unitario ("Desde
+    // $80.000 / M2"), a propósito (informa la tarifa por unidad), así que
+    // el total se muestra aparte, junto al selector.
+    $hasNumericUnitPrice = in_array($product->price_type, ['exacto', 'desde'], true) && filled($product->price);
+    $unitPrice = $product->hasActivePromo() ? (float) $product->promo_price : (float) $product->price;
     $gallery = $product->media;
     $galleryItems = $gallery->map(fn ($media) => [
         'url' => $media->url(),
@@ -50,6 +65,10 @@
         x-data="{
             tab: 'descripcion',
             quantity: 1,
+            unitPrice: @js($unitPrice),
+            formatPrice(value) {
+                return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(value);
+            },
             // Bug real reportado por el usuario: en el navegador de
             // escritorio los enlaces `https://wa.me/...`,
             // `facebook.com/sharer/...`, etc. sí abren el diálogo de
@@ -155,8 +174,14 @@
                                 <span class="absolute left-4 top-4 inline-flex rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
                                     {{ $product->promo_label ?: __('Promo') }}
                                 </span>
-                            @elseif (! $product->isSoldOut())
-                                <span class="absolute left-4 top-4 inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-700 shadow-sm dark:bg-zinc-900 dark:text-zinc-100">
+                            @endif
+
+                            @if ($product->isSoldOut())
+                                <span class="absolute right-4 top-4 inline-flex rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                                    {{ __('Agotado') }}
+                                </span>
+                            @else
+                                <span class="absolute right-4 top-4 inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-700 shadow-sm dark:bg-zinc-900 dark:text-zinc-100">
                                     {{ __('Disponible') }}
                                 </span>
                             @endif
@@ -187,10 +212,10 @@
 
                     <div class="self-start space-y-5 p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
                         <div class="space-y-3">
-                            <a href="{{ route('vitrinas.show', $business) }}" class="inline-flex items-center gap-2 text-lg text-zinc-600 transition hover:text-brand-600 dark:text-zinc-300" wire:navigate>
-                                {{ $business->name }}
+                            <a href="{{ route('vitrinas.show', $business) }}" class="flex min-w-0 items-center gap-2 text-lg text-zinc-600 transition hover:text-brand-600 dark:text-zinc-300" wire:navigate>
+                                <span class="min-w-0 break-words">{{ $business->name }}</span>
                                 @if ($business->hasVerifiedBadge())
-                                    <span class="inline-flex size-6 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
+                                    <span class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
                                         <flux:icon.check-badge class="size-4" />
                                     </span>
                                 @endif
@@ -270,12 +295,20 @@
                                     <div class="min-w-12 text-center text-lg font-semibold text-zinc-950 dark:text-white" x-text="quantity"></div>
                                     <button type="button" x-on:click="quantity = quantity + 1" class="inline-flex size-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">+</button>
                                 </div>
+
+                                @if ($hasNumericUnitPrice)
+                                    <div class="flex items-center justify-between text-sm" x-show="quantity > 1">
+                                        <span class="text-zinc-500 dark:text-zinc-400">{{ __('Total') }}</span>
+                                        <span class="font-semibold text-zinc-950 dark:text-white" x-text="'$' + formatPrice(unitPrice * quantity)"></span>
+                                    </div>
+                                @endif
                             </div>
 
-                            @if ($business->hasWompiConnected() && ! $product->isSoldOut() && in_array($product->price_type, ['exacto', 'desde'], true) && $product->price)
+                            @if ($canPayOnline)
                                 <a
                                     x-bind:href="`{{ route('marketplace.checkout.create', $product) }}?cantidad=${quantity}&promotion={{ request()->integer('promotion') }}`"
-                                    class="inline-flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-brand-600 px-5 py-4 text-lg font-semibold text-brand-600 transition hover:bg-brand-50 dark:hover:bg-brand-500/10"
+                                    x-on:click.prevent="window.merkamigoOpenWompiCheckout($el.href)"
+                                    class="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-600 px-5 py-4 text-lg font-semibold text-white transition hover:bg-brand-700"
                                 >
                                     <flux:icon.credit-card class="size-6" />
                                     {{ __('Comprar ahora') }}
@@ -288,7 +321,7 @@
                             @include('vitrinas.partials.subscribe-form', ['business' => $business, 'product' => $product])
                         @endunless
 
-                        @if ($business->whatsapp_number)
+                        @if ($business->whatsapp_number && ! $canPayOnline)
                             <a
                                 href="{{ route('vitrinas.whatsapp.product', [$business, $product]) }}"
                                 target="_blank"
@@ -467,23 +500,23 @@
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-center gap-3">
-                            <div class="flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <div class="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950">
                                 @if ($business->logoUrl())
                                     <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->logo_alt_text ?? $business->name }}" loading="lazy" decoding="async">
                                 @else
                                     <flux:icon.building-storefront class="size-6 text-zinc-400" variant="outline" />
                                 @endif
                             </div>
-                            <div>
-                                <h3 class="font-semibold text-zinc-950 dark:text-white">{{ $business->name }}</h3>
+                            <div class="min-w-0">
+                                <h3 class="break-words font-semibold text-zinc-950 dark:text-white">{{ $business->name }}</h3>
                                 <a href="{{ route('vitrinas.show', $business) }}" class="mt-2 inline-flex items-center rounded-xl border border-brand-200 px-3 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-200 dark:hover:bg-brand-500/10" wire:navigate>
                                     {{ __('Ver tienda') }}
                                 </a>
                             </div>
                         </div>
                         @if ($business->hasVerifiedBadge())
-                            <span class="inline-flex size-7 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
+                            <span class="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
                                 <flux:icon.check-badge class="size-4" />
                             </span>
                         @endif

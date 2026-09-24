@@ -5,9 +5,9 @@
     </head>
     @php $isEntrepreneur = auth()->user()->experience === 'emprendedor'; @endphp
     <body @class([
-        'min-h-screen dark:bg-zinc-800',
-        'bg-zinc-50/60 entrepreneur-area' => $isEntrepreneur,
-        'bg-white' => ! $isEntrepreneur,
+        'min-h-screen',
+        'bg-zinc-50/60 entrepreneur-area dark:bg-zinc-950' => $isEntrepreneur,
+        'bg-white dark:bg-zinc-800' => ! $isEntrepreneur,
     ])>
         <div class="min-h-screen lg:flex">
             <flux:sidebar
@@ -15,7 +15,7 @@
                 collapsible="mobile"
                 @class([
                     'border-e border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900',
-                    'entrepreneur-sidebar !w-64 !gap-2 !bg-white !px-3 !py-4' => $isEntrepreneur,
+                    'entrepreneur-sidebar !w-64 !gap-2 !bg-white !px-3 !py-4 dark:!bg-zinc-900' => $isEntrepreneur,
                     'bg-zinc-50' => ! $isEntrepreneur,
                 ])
             >
