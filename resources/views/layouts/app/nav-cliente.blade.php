@@ -12,6 +12,16 @@
     </flux:sidebar.item>
 
     <flux:sidebar.item
+        icon="chat-bubble-left-right"
+        :href="route('messages.index')"
+        :current="request()->routeIs('messages.*')"
+        :badge="($unreadMessages = auth()->user()->unreadBusinessMessagesCount()) > 0 ? $unreadMessages : null"
+        wire:navigate
+    >
+        {{ __('Mensajes') }}
+    </flux:sidebar.item>
+
+    <flux:sidebar.item
         icon="bell"
         :href="route('clientes.actividad')"
         :current="request()->routeIs('clientes.actividad')"

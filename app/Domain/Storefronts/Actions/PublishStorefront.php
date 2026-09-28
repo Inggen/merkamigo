@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Publica una vitrina: valida los datos mínimos de
- * docs/product/alcance-fase0.md (nombre, categoría, municipio, WhatsApp,
+ * docs/product/alcance-fase0.md (nombre, categoría, municipio, contacto,
  * descripción, logo, al menos un producto) y transiciona negocio + vitrina
  * a "publicado".
  */
@@ -77,8 +77,12 @@ class PublishStorefront
             $missing[] = 'Municipio';
         }
 
-        if (blank($business->whatsapp_number)) {
-            $missing[] = 'WhatsApp';
+        if (in_array($business->contact_channel, ['whatsapp', 'phone'], true) && blank($business->whatsapp_number)) {
+            $missing[] = $business->contact_channel === 'phone' ? 'Teléfono' : 'WhatsApp';
+        }
+
+        if ($business->contact_channel === 'external_link' && blank($business->social_links['website'] ?? null)) {
+            $missing[] = 'Enlace de contacto';
         }
 
         if (blank($storefront->description)) {

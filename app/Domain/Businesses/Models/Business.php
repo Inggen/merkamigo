@@ -11,6 +11,7 @@ use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Immersive\Models\StandAssignment;
 use App\Domain\Marketplace\Models\BusinessWompiCredential;
 use App\Domain\Marketplace\Models\Order;
+use App\Domain\Messaging\Models\BusinessConversation;
 use App\Domain\Needs\Models\Offer;
 use App\Domain\Social\Models\ContentPromotion;
 use App\Domain\Social\Models\Follow;
@@ -96,6 +97,7 @@ class Business extends Model
         'has_physical_location',
         'google_business_store_code',
         'whatsapp_number',
+        'contact_channel',
         'logo_path',
         'logo_alt_text',
         'hours',
@@ -693,5 +695,13 @@ class Business extends Model
         return $this->belongsToMany(User::class, 'business_memberships')
             ->withPivot(['status'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<BusinessConversation, $this>
+     */
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(BusinessConversation::class);
     }
 }

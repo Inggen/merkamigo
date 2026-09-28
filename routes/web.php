@@ -7,6 +7,7 @@ use App\Http\Controllers\Billing\PaymentSourceController;
 use App\Http\Controllers\Billing\WompiWebhookController;
 use App\Http\Controllers\BusinessVerificationDocumentController;
 use App\Http\Controllers\ClientesController;
+use App\Http\Controllers\ContactBusinessController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
 use App\Http\Controllers\ExperienceController;
@@ -213,6 +214,8 @@ Route::delete('streaming/live/{liveStream:slug}/whep', [WhepProxyController::cla
 Route::get('promociones/{promotion}/abrir', [PromotionController::class, 'click'])->name('promotions.click');
 
 Route::get('m/{business:slug}', [VitrinaController::class, 'show'])->name('vitrinas.show');
+Route::get('m/{business:slug}/contactar', ContactBusinessController::class)->name('vitrinas.contact');
+Route::get('m/{business:slug}/mensaje', [ContactBusinessController::class, 'internal'])->name('vitrinas.contact.internal');
 Route::get('m/{business:slug}/productos/{product:slug}', [VitrinaController::class, 'product'])->name('vitrinas.product');
 Route::get('m/{business:slug}/qr', [VitrinaController::class, 'qr'])->name('vitrinas.qr');
 Route::get('m/{business:slug}/productos/{product:slug}/qr', [VitrinaController::class, 'qrProduct'])->name('vitrinas.qr.product');
@@ -252,6 +255,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('clientes/actividad', [ClientesController::class, 'actividad'])->name('clientes.actividad');
     Route::post('clientes/actividad/{notification}/leida', [ClientesController::class, 'marcarActividadLeida'])
         ->name('clientes.actividad.leida');
+    Route::livewire('mensajes', 'pages::messages.index')->name('messages.index');
+    Route::livewire('mensajes/{conversation}', 'pages::messages.index')->name('messages.show');
     Route::livewire('clientes/pedidos', 'pages::clientes.pedidos')->name('clientes.pedidos');
     Route::livewire('clientes/compras', 'pages::clientes.compras')->name('clientes.compras');
 

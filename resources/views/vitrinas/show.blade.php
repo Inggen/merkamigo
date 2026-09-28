@@ -26,6 +26,15 @@
 
     $businessAttributes = $business->activeAttributes();
     $galleryPhotos = $products->flatMap(fn ($product) => $product->media)->take(6)->values();
+    $galleryItems = $galleryPhotos->map(function ($photo) use ($products, $business) {
+        $product = $products->firstWhere('id', $photo->product_id);
+
+        return [
+            'url' => $photo->url(),
+            'alt' => $photo->alt_text ?? __('Foto de :name', ['name' => $business->name]),
+            'productUrl' => route('vitrinas.product', [$business, $product]),
+        ];
+    })->values();
     $recommendations = $business->publishedRecommendations();
     $recommendationCount = $recommendations->count();
     // Pedido del usuario: las 5 estrellas de "Opiniones de clientes" eran
@@ -34,7 +43,6 @@
     // vez de contar como si tuvieran 0 estrellas.
     $ratedRecommendations = $recommendations->whereNotNull('rating');
     $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
-    $featuredProducts = $products->take(6);
     $socialLinks = collect(array_filter($business->social_links ?? []));
     $acceptedPaymentMethods = $business->paymentMethods;
     $hasSidebarContent = filled($business->whatsapp_number)
@@ -75,7 +83,7 @@
 >
     <div
         x-data="{
-            tab: 'inicio',
+            tab: @js($initialTab),
             // Bug real reportado por el usuario en la página de producto
             // (ver `product.blade.php`): en Safari/iOS, apps como Instagram
             // interceptan las URLs manuales de compartir y abren su feed
@@ -83,7 +91,36 @@
             // (`navigator.share`) delega en el propio sistema operativo —
             // mismo criterio acá para compartir la vitrina completa.
             shareSupported: typeof navigator !== 'undefined' && !! navigator.share,
+            gallery: @js($galleryItems),
+            galleryOpen: false,
+            galleryIndex: 0,
+            galleryTouchStart: null,
+            openGallery(index = 0) {
+                this.galleryIndex = index;
+                this.galleryOpen = true;
+                document.body.classList.add('overflow-hidden');
+                this.$nextTick(() => this.$refs.galleryClose?.focus());
+            },
+            closeGallery() {
+                this.galleryOpen = false;
+                document.body.classList.remove('overflow-hidden');
+            },
+            previousGalleryImage() {
+                this.galleryIndex = (this.galleryIndex - 1 + this.gallery.length) % this.gallery.length;
+            },
+            nextGalleryImage() {
+                this.galleryIndex = (this.galleryIndex + 1) % this.gallery.length;
+            },
+            finishGallerySwipe(event) {
+                if (this.galleryTouchStart === null) return;
+                const distance = event.changedTouches[0].clientX - this.galleryTouchStart;
+                if (Math.abs(distance) > 50) distance > 0 ? this.previousGalleryImage() : this.nextGalleryImage();
+                this.galleryTouchStart = null;
+            },
         }"
+        x-on:keydown.escape.window="if (galleryOpen) closeGallery()"
+        x-on:keydown.arrow-left.window="if (galleryOpen) previousGalleryImage()"
+        x-on:keydown.arrow-right.window="if (galleryOpen) nextGalleryImage()"
         class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
     >
         <nav class="mb-5 flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
@@ -119,8 +156,8 @@
                         </div>
 
                         <div class="min-w-0 space-y-4">
-                            <div class="flex min-w-0 flex-wrap items-center gap-3">
-                                <h1 class="min-w-0 break-words text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-4xl">{{ $business->name }}</h1>
+                            <div class="flex min-w-0 flex-wrap justify-between items-center gap-3">
+                                <h1 class="min-w-0 break-words text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-3xl">{{ $business->name }}</h1>
 
                                 @if ($business->hasVerifiedBadge())
                                     <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-200 dark:ring-brand-500/30">
@@ -155,10 +192,9 @@
                 <div class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 px-5 pt-5 dark:border-zinc-800 sm:px-6">
                         <div class="flex flex-wrap gap-6 text-sm font-semibold">
-                            <button type="button" x-on:click="tab = 'inicio'" :class="tab === 'inicio' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Inicio') }}</button>
+                            <button type="button" x-on:click="tab = 'informacion'" :class="tab === 'informacion' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Información') }}</button>
                             <button type="button" x-on:click="tab = 'productos'" :class="tab === 'productos' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Productos') }}</button>
                             <button type="button" x-on:click="tab = 'opiniones'" :class="tab === 'opiniones' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Opiniones') }}</button>
-                            <button type="button" x-on:click="tab = 'informacion'" :class="tab === 'informacion' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Información') }}</button>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2 pb-4">
@@ -168,106 +204,6 @@
                     </div>
 
                     <div class="p-5 sm:p-6">
-                        <div x-show="tab === 'inicio'" class="space-y-6">
-                            @if ($business->storefront?->description)
-                                <div>
-                                    <h2 class="text-2xl font-semibold text-zinc-950 dark:text-white">{{ __('Sobre este negocio') }}</h2>
-                                    <p class="mt-3 whitespace-pre-line text-base leading-8 text-zinc-600 dark:text-zinc-300">{{ $business->storefront->description }}</p>
-                                </div>
-                            @endif
-
-                            @if ($businessAttributes->isNotEmpty())
-                                @php
-                                    // Nombres de clase de Tailwind completos y literales a propósito
-                                    // (no interpolados): el compilador solo genera clases que
-                                    // encuentra escritas tal cual en el código — `bg-{{ $color }}-100`
-                                    // no generaría nada.
-                                    $attributeColorClasses = [
-                                        'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300',
-                                        'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300',
-                                        'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300',
-                                        'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300',
-                                        'bg-teal-100 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300',
-                                        'bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-300',
-                                    ];
-                                @endphp
-
-                                <div class="grid grid-cols-3 gap-3 lg:flex lg:gap-4">
-                                    @foreach ($businessAttributes as $attribute)
-                                        @php($colorClasses = $attributeColorClasses[$loop->index % count($attributeColorClasses)])
-
-                                        <div class="flex min-w-0 flex-col items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-4 text-center shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 lg:flex-1">
-                                            @if ($attribute->icon && array_key_exists($attribute->icon, \App\Filament\Resources\BusinessAttributes\Schemas\BusinessAttributeForm::ICON_OPTIONS))
-                                                <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-full {{ $colorClasses }}">
-                                                    <x-dynamic-component :component="'flux::icon.'.$attribute->icon" class="size-6" variant="outline" />
-                                                </span>
-                                            @endif
-
-                                            <div class="min-w-0">
-                                                <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-100">{{ $attribute->name }}</p>
-                                                @if ($attribute->description)
-                                                    <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{{ $attribute->description }}</p>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-
-                            @if ($galleryPhotos->isNotEmpty())
-                                <div>
-                                    <h2 class="mb-4 text-2xl font-semibold text-zinc-950 dark:text-white">{{ __('Galería') }}</h2>
-                                    <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                                        @foreach ($galleryPhotos as $photo)
-                                            <div class="aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                                                <img src="{{ $photo->url() }}" class="h-full w-full object-cover" alt="{{ $photo->alt_text ?? __('Foto de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-
-                            @if ($featuredProducts->isNotEmpty())
-                                <div>
-                                    <div class="mb-4 flex items-center justify-between gap-4">
-                                        <h2 class="text-2xl font-semibold text-zinc-950 dark:text-white">{{ __('Productos destacados') }}</h2>
-                                        <div class="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                x-on:click="$refs.featuredProducts.scrollBy({ left: -$refs.featuredProducts.clientWidth * 0.8, behavior: 'smooth' })"
-                                                class="inline-flex size-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-zinc-700 dark:text-zinc-300"
-                                                aria-label="{{ __('Productos anteriores') }}"
-                                            >
-                                                <flux:icon.chevron-left class="size-4" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                x-on:click="$refs.featuredProducts.scrollBy({ left: $refs.featuredProducts.clientWidth * 0.8, behavior: 'smooth' })"
-                                                class="inline-flex size-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-zinc-700 dark:text-zinc-300"
-                                                aria-label="{{ __('Productos siguientes') }}"
-                                            >
-                                                <flux:icon.chevron-right class="size-4" />
-                                            </button>
-                                            <button type="button" x-on:click="tab = 'productos'" class="ml-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">
-                                                {{ __('Ver todos') }}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        x-ref="featuredProducts"
-                                        class="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                                    >
-                                        @foreach ($featuredProducts as $product)
-                                            <div class="w-[85%] shrink-0 snap-start sm:w-[48%] xl:w-[32%]">
-                                                @include('vitrinas.partials.product-card', ['business' => $business, 'product' => $product])
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-
                         <div x-show="tab === 'productos'" x-cloak>
                             @if ($products->isEmpty())
                                 <x-states.empty title="{{ __('Todavía no hay productos publicados') }}" />
@@ -333,16 +269,123 @@
                         </div>
 
                         <div x-show="tab === 'informacion'" x-cloak class="grid gap-5 lg:grid-cols-2">
-                            @if ($business->hoursNote())
+                            {{-- Pedido del usuario: se quitó el tab "Inicio";
+                                 "Información" pasa a ser el primer tab y
+                                 absorbe lo que vivía ahí — "Sobre este
+                                 negocio"/atributos (ya movidos antes) y ahora
+                                 también la Galería, justo debajo de la
+                                 primera tarjeta. --}}
+                            @if ($business->storefront?->description)
+                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800 lg:col-span-2">
+                                    <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Sobre este negocio') }}</h3>
+                                    <p class="mt-2 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->storefront->description }}</p>
+                                </div>
+                            @endif
+
+                            @if ($galleryPhotos->isNotEmpty())
+                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800 lg:col-span-2">
+                                    <div class="mb-3 flex items-center justify-between gap-3">
+                                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Galería') }}</h3>
+                                        <button
+                                            type="button"
+                                            x-on:click="openGallery(0)"
+                                            class="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-1.5 text-sm font-semibold text-zinc-700 transition hover:border-brand-300 hover:text-brand-600 dark:border-zinc-700 dark:text-zinc-200"
+                                        >
+                                            <flux:icon.arrows-pointing-out class="size-4" />
+                                            {{ __('Ver galería') }}
+                                        </button>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                                        @foreach ($galleryPhotos as $photo)
+                                            <button
+                                                type="button"
+                                                x-on:click="openGallery({{ $loop->index }})"
+                                                class="group aspect-square overflow-hidden rounded-lg bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:bg-zinc-800"
+                                                aria-label="{{ __('Abrir imagen :numero', ['numero' => $loop->iteration]) }}"
+                                            >
+                                                <img src="{{ $photo->url() }}" class="h-full w-full object-cover" alt="{{ $photo->alt_text ?? __('Foto de :name', ['name' => $business->name]) }}" loading="lazy" decoding="async">
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($businessAttributes->isNotEmpty())
+                                @php
+                                    // Nombres de clase de Tailwind completos y literales a propósito
+                                    // (no interpolados): el compilador solo genera clases que
+                                    // encuentra escritas tal cual en el código — `bg-{{ $color }}-100`
+                                    // no generaría nada.
+                                    $attributeColorClasses = [
+                                        'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300',
+                                        'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300',
+                                        'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300',
+                                        'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300',
+                                        'bg-teal-100 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300',
+                                        'bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-300',
+                                    ];
+                                @endphp
+
+                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800 lg:col-span-2">
+                                    <h3 class="mb-3 font-semibold text-zinc-950 dark:text-white">{{ __('Atributos') }}</h3>
+                                    <div class="grid grid-cols-3 gap-3 lg:flex lg:gap-4">
+                                        @foreach ($businessAttributes as $attribute)
+                                            @php($colorClasses = $attributeColorClasses[$loop->index % count($attributeColorClasses)])
+
+                                            <div class="flex min-w-0 flex-col items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-4 text-center shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 lg:flex-1">
+                                                @if ($attribute->icon && array_key_exists($attribute->icon, \App\Filament\Resources\BusinessAttributes\Schemas\BusinessAttributeForm::ICON_OPTIONS))
+                                                    <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-full {{ $colorClasses }}">
+                                                        <x-dynamic-component :component="'flux::icon.'.$attribute->icon" class="size-6" variant="outline" />
+                                                    </span>
+                                                @endif
+
+                                                <div class="min-w-0">
+                                                    <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-100">{{ $attribute->name }}</p>
+                                                    @if ($attribute->description)
+                                                        <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{{ $attribute->description }}</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Pedido del usuario: "Información de pago" pasa
+                                 a la tarjeta donde antes decía "Horario", y la
+                                 nota de horario ahora va encima de "Horario
+                                 por día" en vez de en su propia tarjeta
+                                 aparte. --}}
+                            @if ($acceptedPaymentMethods->isNotEmpty() || $business->payment_info)
                                 <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-                                    <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Horario') }}</h3>
-                                    <p class="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->hoursNote() }}</p>
+                                    <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Información de pago') }}</h3>
+
+                                    @if ($acceptedPaymentMethods->isNotEmpty())
+                                        <div class="mt-3 grid grid-cols-3 gap-3">
+                                            @foreach ($acceptedPaymentMethods as $method)
+                                                <div class="flex items-center justify-center rounded-xl border-zinc-200 p-2 dark:border-zinc-700" title="{{ $method->name }}">
+                                                    @if ($method->logoUrl())
+                                                        <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="w-auto rounded-xl object-contain">
+                                                    @else
+                                                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $method->name }}</span>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    @if ($business->payment_info)
+                                        <p class="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
+                                    @endif
                                 </div>
                             @endif
 
                             @if ($business->hasStructuredSchedule())
                                 <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
                                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Horario por día') }}</h3>
+                                    @if ($business->hoursNote())
+                                        <p class="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->hoursNote() }}</p>
+                                    @endif
                                     <div class="mt-3 space-y-2 text-sm">
                                         @foreach ($business->scheduleForDisplay() as $day => $state)
                                             <div class="flex items-center justify-between gap-4 border-b border-zinc-100 pb-2 last:border-b-0 last:pb-0 dark:border-zinc-800">
@@ -351,6 +394,11 @@
                                             </div>
                                         @endforeach
                                     </div>
+                                </div>
+                            @elseif ($business->hoursNote())
+                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
+                                    <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Horario') }}</h3>
+                                    <p class="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->hoursNote() }}</p>
                                 </div>
                             @endif
 
@@ -377,30 +425,6 @@
                                 </div>
                             @endif
 
-                            @if ($acceptedPaymentMethods->isNotEmpty() || $business->payment_info)
-                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800 lg:col-span-2">
-                                    <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Información de pago') }}</h3>
-
-                                    @if ($acceptedPaymentMethods->isNotEmpty())
-                                        <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
-                                            @foreach ($acceptedPaymentMethods as $method)
-                                                <div class="flex items-center justify-center rounded-xl border-zinc-200 p-2 dark:border-zinc-700" title="{{ $method->name }}">
-                                                    @if ($method->logoUrl())
-                                                        <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="w-auto rounded-xl object-contain">
-                                                    @else
-                                                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $method->name }}</span>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @endif
-
-                                    @if ($business->payment_info)
-                                        <p class="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->payment_info }}</p>
-                                    @endif
-                                </div>
-                            @endif
-
                             @if ($business->hasVerifiedBadge())
                                 <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100 lg:col-span-2">
                                     <h3 class="font-semibold">{{ $business->verifiedBadgeLabel() }}</h3>
@@ -419,7 +443,19 @@
             </section>
 
             <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
-                
+
+
+                <a href="{{ route('vitrinas.contact.internal', $business) }}" class="block rounded-xl bg-brand-600 p-5 text-white shadow-sm transition hover:bg-brand-700">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex size-11 items-center justify-center rounded-2xl bg-white/15">
+                            <flux:icon.chat-bubble-left-right class="size-6" />
+                        </span>
+                        <div>
+                            <div class="text-lg font-semibold">{{ __('Contactar') }}</div>
+                            <div class="text-sm text-white/80">{{ __('Habla directamente con este negocio') }}</div>
+                        </div>
+                    </div>
+                </a>
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte esta vitrina') }}</h3>
@@ -483,40 +519,6 @@
                             @endforeach
                         </div>
                     </div>
-                @endif
-
-                @if ($business->hoursNote() || $business->hasStructuredSchedule())
-                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Horario de atención') }}</h3>
-
-                        @if ($business->hoursNote())
-                            <p class="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->hoursNote() }}</p>
-                        @endif
-
-                        @if ($business->hasStructuredSchedule())
-                            <div class="mt-4 space-y-2 text-sm">
-                                @foreach ($business->scheduleForDisplay() as $day => $state)
-                                    <div class="flex items-center justify-between gap-4 border-b border-zinc-100 pb-2 last:border-b-0 last:pb-0 dark:border-zinc-800">
-                                        <span class="text-zinc-500 dark:text-zinc-400">{{ $day }}</span>
-                                        <span class="font-medium text-zinc-800 dark:text-zinc-200">{{ $state }}</span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                @endif
-
-                @if ($business->whatsapp_number)
-                    <a href="{{ route('vitrinas.whatsapp', $business) }}" target="_blank" class="block rounded-xl  bg-brand-600 p-5 text-white shadow-sm transition hover:bg-brand-700">
-                        <div class="flex items-center gap-3">
-                            <span class="inline-flex size-11 items-center justify-center rounded-2xl bg-white/15">
-                                <flux:icon.chat-bubble-left-right class="size-6" />
-                            </span>
-                            <div>
-                                <div class="text-lg font-semibold">{{ __('Escríbenos por WhatsApp') }}</div>
-                            </div>
-                        </div>
-                    </a>
                 @endif
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -613,6 +615,96 @@
                 </div>
             </div>
         </div>
+
+        @if ($galleryPhotos->isNotEmpty())
+            <template x-teleport="body">
+                <div
+                    x-cloak
+                    x-show="galleryOpen"
+                    x-transition.opacity
+                    x-on:click.self="closeGallery()"
+                    class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/90 p-3 sm:p-6"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="{{ __('Galería de imágenes') }}"
+                >
+                    <div class="relative flex h-full w-full max-w-6xl flex-col">
+                        <div class="mb-3 flex items-center justify-between gap-4 text-white">
+                            <span class="text-sm font-medium">
+                                <span x-text="galleryIndex + 1"></span> / {{ $galleryPhotos->count() }}
+                            </span>
+                            <button
+                                x-ref="galleryClose"
+                                type="button"
+                                x-on:click="closeGallery()"
+                                class="inline-flex size-11 items-center justify-center rounded-full bg-white/95 text-zinc-900 transition hover:bg-white"
+                                aria-label="{{ __('Cerrar galería') }}"
+                            >
+                                <flux:icon.x-mark class="size-5" />
+                            </button>
+                        </div>
+
+                        <div
+                            class="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl bg-black/30"
+                            x-on:touchstart.passive="galleryTouchStart = $event.touches[0].clientX"
+                            x-on:touchend.passive="finishGallerySwipe($event)"
+                        >
+                            <img
+                                x-bind:src="gallery[galleryIndex]?.url"
+                                x-bind:alt="gallery[galleryIndex]?.alt"
+                                class="max-h-full max-w-full object-contain"
+                            >
+
+                            @if ($galleryPhotos->count() > 1)
+                                <button
+                                    type="button"
+                                    x-on:click="previousGalleryImage()"
+                                    class="absolute left-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow-lg transition hover:bg-white sm:left-5 sm:size-12"
+                                    aria-label="{{ __('Imagen anterior') }}"
+                                >
+                                    <flux:icon.chevron-left class="size-6" />
+                                </button>
+                                <button
+                                    type="button"
+                                    x-on:click="nextGalleryImage()"
+                                    class="absolute right-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow-lg transition hover:bg-white sm:right-5 sm:size-12"
+                                    aria-label="{{ __('Siguiente imagen') }}"
+                                >
+                                    <flux:icon.chevron-right class="size-6" />
+                                </button>
+                            @endif
+                        </div>
+
+                        <div class="mt-3 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                            <a
+                                x-bind:href="gallery[galleryIndex]?.productUrl"
+                                x-on:click="closeGallery()"
+                                class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-700 sm:w-auto"
+                            >
+                                <flux:icon.shopping-bag class="size-4" />
+                                {{ __('Ver producto') }}
+                            </a>
+
+                            @if ($galleryPhotos->count() > 1)
+                                <div class="flex max-w-full justify-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                    @foreach ($galleryPhotos as $photo)
+                                        <button
+                                            type="button"
+                                            x-on:click="galleryIndex = {{ $loop->index }}"
+                                            x-bind:class="galleryIndex === {{ $loop->index }} ? 'border-white opacity-100' : 'border-white/20 opacity-60 hover:opacity-100'"
+                                            class="size-14 shrink-0 overflow-hidden rounded-lg border-2 transition sm:size-16"
+                                            aria-label="{{ __('Ir a imagen :numero', ['numero' => $loop->iteration]) }}"
+                                        >
+                                            <img src="{{ $photo->url() }}" class="h-full w-full object-cover" alt="" loading="lazy" decoding="async">
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </template>
+        @endif
     </div>
 
     <x-storefront-chat-widget :business="$business" :with-sound="false" />

@@ -8,6 +8,8 @@ use App\Domain\Discovery\Models\Favorite;
 use App\Domain\Discovery\Models\RecentlyViewedBusiness;
 use App\Domain\Identity\Models\UserDevice;
 use App\Domain\Marketplace\Models\Order;
+use App\Domain\Messaging\Models\BusinessConversation;
+use App\Domain\Messaging\Models\BusinessMessage;
 use App\Domain\Needs\Models\Need;
 use App\Domain\Platform\Actions\StartUserImpersonation;
 use App\Domain\Social\Models\Follow;
@@ -26,12 +28,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -153,6 +157,19 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
         return $role;
     }
 
+    public function syncPlatformRole(?string $role): void
+    {
+        $role = in_array($role, ['moderator', 'admin', 'superadmin'], true) ? $role : null;
+        $previousTeamId = getPermissionsTeamId();
+
+        setPermissionsTeamId(self::PLATFORM_TEAM_ID);
+        $this->unsetRelation('roles');
+        $this->syncRoles($role ? [Role::findOrCreate($role, 'web')] : []);
+
+        setPermissionsTeamId($previousTeamId);
+        $this->unsetRelation('roles');
+    }
+
     public function hasVerifiedPhone(): bool
     {
         return ! is_null($this->phone_verified_at);
@@ -173,6 +190,38 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
         return $this->belongsToMany(Business::class, 'business_memberships')
             ->withPivot(['status'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<BusinessConversation, $this>
+     */
+    public function customerConversations(): HasMany
+    {
+        return $this->hasMany(BusinessConversation::class, 'customer_user_id');
+    }
+
+    /**
+     * @return HasMany<BusinessMessage, $this>
+     */
+    public function sentBusinessMessages(): HasMany
+    {
+        return $this->hasMany(BusinessMessage::class, 'sender_user_id');
+    }
+
+    public function unreadBusinessMessagesCount(): int
+    {
+        if (! Schema::hasTable('business_messages') || ! Schema::hasTable('business_conversations')) {
+            return 0;
+        }
+
+        return BusinessMessage::query()
+            ->whereNull('read_at')
+            ->where('sender_user_id', '!=', $this->id)
+            ->whereIn(
+                'business_conversation_id',
+                BusinessConversation::query()->accessibleTo($this)->select('id'),
+            )
+            ->count();
     }
 
     /**

@@ -38,6 +38,9 @@ class VitrinaController extends Controller
         return view('vitrinas.show', [
             'business' => $business,
             'products' => $business->products()->where('status', 'publicado')->with('media')->get(),
+            'initialTab' => in_array($request->query('tab'), ['informacion', 'productos', 'opiniones'], true)
+                ? $request->query('tab')
+                : 'informacion',
         ]);
     }
 

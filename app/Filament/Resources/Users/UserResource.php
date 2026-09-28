@@ -55,7 +55,7 @@ class UserResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return auth()->user()?->hasAnyPlatformRole(['admin', 'superadmin']) ?? false;
     }
 
     public static function canEdit(Model $record): bool

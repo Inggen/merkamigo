@@ -76,9 +76,9 @@
                                 @endif
 
                                 @if ($story->business->whatsapp_number)
-                                    <a href="{{ route('vitrinas.whatsapp', $story->business) }}" target="_blank" class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
+                                    <a href="{{ route('vitrinas.contact', $story->business) }}" class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
                                         <flux:icon.chat-bubble-left-right class="size-3.5" variant="outline" />
-                                        {{ __('WhatsApp') }}
+                                        {{ __('Contactar') }}
                                     </a>
                                 @endif
                             </div>

@@ -7,6 +7,7 @@ use App\Domain\Identity\Concerns\ProfileValidationRules;
 use App\Models\User;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 /**
@@ -38,8 +39,8 @@ class RegisterUser implements CreatesNewUsers
 
         return User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'] ?? null,
-            'phone' => $validated['phone'] ?? null,
+            'email' => filled($validated['email'] ?? null) ? Str::lower(trim($validated['email'])) : null,
+            'phone' => filled($validated['phone'] ?? null) ? trim($validated['phone']) : null,
             'password' => $validated['password'],
             'experience' => in_array($intendedExperience, ['cliente', 'emprendedor'], true) ? $intendedExperience : null,
             // 0.6 del TODO: registrar aceptación y versión de los documentos

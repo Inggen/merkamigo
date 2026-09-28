@@ -24,10 +24,8 @@
     $ratedRecommendations = $recommendations->whereNotNull('rating');
     $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
     $acceptedPaymentMethods = $business->paymentMethods;
-    // Pedido del usuario: si el negocio tiene pago en línea disponible para
-    // este producto, el CTA es el pago — no WhatsApp. WhatsApp solo vuelve
-    // como respaldo cuando el pago en línea no aplica (sin Wompi, agotado,
-    // o price_type sin precio fijo que cobrar).
+    // Si el negocio tiene pago en línea disponible, el CTA es el pago. En
+    // los demás casos el contacto pasa por el canal configurado del negocio.
     $canPayOnline = ! $product->isSubscription()
         && $business->hasWompiConnected()
         && ! $product->isSoldOut()
@@ -321,14 +319,13 @@
                             @include('vitrinas.partials.subscribe-form', ['business' => $business, 'product' => $product])
                         @endunless
 
-                        @if ($business->whatsapp_number && ! $canPayOnline)
+                        @if (! $canPayOnline)
                             <a
-                                href="{{ route('vitrinas.whatsapp.product', [$business, $product]) }}"
-                                target="_blank"
+                                href="{{ route('vitrinas.contact', ['business' => $business, 'context_type' => 'product', 'context_id' => $product->id]) }}"
                                 class="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-600 px-5 py-4 text-lg font-semibold text-white transition hover:bg-brand-700"
                             >
                                 <flux:icon.chat-bubble-left-right class="size-6" />
-                                {{ $product->isSoldOut() ? __('Consultar disponibilidad') : __('Pedir por WhatsApp') }}
+                                {{ $product->isSoldOut() ? __('Consultar disponibilidad') : __('Contactar') }}
                             </a>
                         @endif
                     </div>
@@ -408,7 +405,7 @@
                     <div class="space-y-4">
                         <div class="flex items-center justify-between gap-4">
                             <h2 class="text-2xl font-semibold text-zinc-950 dark:text-white">{{ __('Productos relacionados') }}</h2>
-                            <a href="{{ route('vitrinas.show', $business) }}" class="text-sm font-semibold text-brand-600 transition hover:text-brand-700" wire:navigate>
+                            <a href="{{ route('vitrinas.show', ['business' => $business, 'tab' => 'productos']) }}" class="text-sm font-semibold text-brand-600 transition hover:text-brand-700" wire:navigate>
                                 {{ __('Ver más productos') }}
                             </a>
                         </div>

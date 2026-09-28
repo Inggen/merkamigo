@@ -15,7 +15,7 @@ class PhoneRegistrationTest extends TestCase
 
     public function test_a_user_can_register_with_only_a_phone_number(): void
     {
-        $response = $this->post(route('register.store'), [
+        $response = $this->post(route('front.register.store'), [
             'name' => 'Ana Emprendedora',
             'phone' => '+573001234567',
             'password' => 'password',
@@ -34,7 +34,7 @@ class PhoneRegistrationTest extends TestCase
 
     public function test_registration_fails_without_email_or_phone(): void
     {
-        $response = $this->post(route('register.store'), [
+        $response = $this->post(route('front.register.store'), [
             'name' => 'Sin Contacto',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -51,7 +51,7 @@ class PhoneRegistrationTest extends TestCase
             'phone' => '+573007654321',
         ]);
 
-        $response = $this->post(route('login.store'), [
+        $response = $this->post(route('front.login.store'), [
             'email' => '+573007654321',
             'password' => 'password',
         ]);

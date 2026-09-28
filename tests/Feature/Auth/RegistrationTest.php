@@ -22,12 +22,15 @@ class RegistrationTest extends TestCase
     {
         $response = $this->get(route('register'));
 
-        $response->assertOk();
+        $response->assertOk()
+            ->assertSee('Correo electrónico (opcional si agregas un teléfono)')
+            ->assertSee('Teléfono (opcional si agregas un correo)')
+            ->assertSee('Ingresa al menos un correo o un teléfono');
     }
 
     public function test_new_users_can_register(): void
     {
-        $response = $this->post(route('register.store'), [
+        $response = $this->post(route('front.register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
             'password' => 'password',
@@ -39,6 +42,11 @@ class RegistrationTest extends TestCase
             ->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertAuthenticated();
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'phone' => null,
+        ]);
     }
 
     /**
@@ -46,7 +54,7 @@ class RegistrationTest extends TestCase
      */
     public function test_registration_records_terms_acceptance_with_version(): void
     {
-        $this->post(route('register.store'), [
+        $this->post(route('front.register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
             'password' => 'password',
@@ -62,7 +70,7 @@ class RegistrationTest extends TestCase
 
     public function test_registration_fails_without_accepting_terms(): void
     {
-        $response = $this->post(route('register.store'), [
+        $response = $this->post(route('front.register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
             'password' => 'password',

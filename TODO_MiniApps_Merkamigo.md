@@ -311,9 +311,9 @@ Usar modales, bottom sheets o vistas ligeras para:
 
 ## 6.1 Abstraer el botón “Contactar”
 
-- [ ] No codificar WhatsApp directamente en la interfaz.
-- [ ] Crear acción genérica `Contactar`.
-- [ ] Resolver canal según `contact_channel`.
+- [x] No codificar WhatsApp directamente en la interfaz.
+- [x] Crear acción genérica `Contactar`.
+- [x] Resolver canal según `contact_channel`.
 
 Lógica sugerida:
 
@@ -335,16 +335,23 @@ switch ($business->contact_channel) {
 
 ## 6.2 Preparación para mensajería interna
 
-- [ ] Integrar con módulo de chat interno si ya está disponible.
-- [ ] Crear conversación usuario ↔ negocio.
-- [ ] Notificar al negocio.
-- [ ] Conservar contexto:
+- [x] Integrar con módulo de chat interno si ya está disponible.
+- [x] Crear conversación usuario ↔ negocio.
+- [x] Notificar al negocio.
+- [x] Conservar contexto:
   - negocio
   - producto
   - servicio
   - publicación
   - promoción
-- [ ] Si el usuario no inició sesión, permitir iniciar contacto con flujo mínimo o fallback.
+- [x] Si el usuario no inició sesión, permitir iniciar contacto con flujo mínimo o fallback.
+
+**Evidencia (24-09-2026):** `ContactBusinessController` resuelve el CTA
+genérico según el canal configurado; las conversaciones y mensajes viven en
+`business_conversations`/`business_messages`; la bandeja Livewire está en
+`pages::messages.index`; `BusinessMessageReceived` envía notificación interna
+y push; `InternalMessagingTest` cubre autenticación, autorización, lectura,
+respuesta, canales y contexto.
 
 ---
 
@@ -753,7 +760,7 @@ Ejecutar en este orden:
 9. [ ] Adaptar promociones.
 10. [ ] Adaptar horarios/ubicación.
 11. [ ] Crear abstracción de contacto.
-12. [ ] Integrar mensajería interna/fallback.
+12. [x] Integrar mensajería interna/fallback.
 13. [ ] Simplificar panel de negocio.
 14. [ ] Simplificar onboarding.
 15. [ ] Conectar feed/búsqueda/mapa con MiniApp.

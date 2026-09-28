@@ -48,6 +48,12 @@
             <div class="min-w-0 flex-1">
                 @if ($isEntrepreneur)
                     <header class="entrepreneur-topbar sticky top-0 z-10 hidden h-14 items-center justify-end gap-3 border-b border-zinc-200 bg-white/95 px-6 backdrop-blur lg:flex dark:border-zinc-700 dark:bg-zinc-900/95">
+                        <a href="{{ route('messages.index') }}" wire:navigate class="relative inline-flex size-9 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="{{ __('Mensajes') }}">
+                            <flux:icon.chat-bubble-left-right class="size-5" variant="outline" />
+                            @if (auth()->user()->unreadBusinessMessagesCount() > 0)
+                                <span class="absolute right-1 top-1 size-2 rounded-full bg-brand-500 ring-2 ring-white dark:ring-zinc-900"></span>
+                            @endif
+                        </a>
                         <a href="{{ route('clientes.actividad') }}" wire:navigate class="relative inline-flex size-9 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="{{ __('Actividad') }}">
                             <flux:icon.bell class="size-5" variant="outline" />
                             @if (($topbarUnread = auth()->user()->unreadNotifications()->count()) > 0)

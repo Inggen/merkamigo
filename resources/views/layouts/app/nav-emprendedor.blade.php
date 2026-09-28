@@ -36,6 +36,7 @@
 
 <flux:sidebar.group :heading="__('General')" class="entrepreneur-nav-group grid">
     <flux:sidebar.item icon="home" :href="route('emprendedores.home')" :current="request()->routeIs('emprendedores.home')" wire:navigate>{{ __('Inicio') }}</flux:sidebar.item>
+    <flux:sidebar.item icon="chat-bubble-left-right" :href="route('messages.index')" :current="request()->routeIs('messages.*')" :badge="($unreadMessages = auth()->user()->unreadBusinessMessagesCount()) > 0 ? $unreadMessages : null" wire:navigate>{{ __('Mensajes') }}</flux:sidebar.item>
     <flux:sidebar.item icon="bell" :href="route('clientes.actividad')" :current="request()->routeIs('clientes.actividad')" :badge="$unread > 0 ? $unread : null" wire:navigate>{{ __('Actividad') }}</flux:sidebar.item>
     @if ($primaryBusiness)
         <flux:sidebar.item icon="hand-raised" :href="route('emprendedores.negocios.oportunidades', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.oportunidades')" wire:navigate>{{ __('Oportunidades') }}</flux:sidebar.item>

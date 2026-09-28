@@ -1,5 +1,5 @@
 @php
-    $unread = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
+    $unreadMessages = auth()->check() ? auth()->user()->unreadBusinessMessagesCount() : 0;
     $guestLoginUrl = route('login');
     $guestFavoritesMessage = __('Necesitas ingresar o crear una cuenta para guardar favoritos.');
     $guestNeedsMessage = __('Necesitas ingresar o crear una cuenta para publicar en Pídelo.');
@@ -13,10 +13,10 @@
         </a>
 
         @auth
-            <a href="{{ route('clientes.actividad') }}" wire:navigate class="relative flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('clientes.actividad') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
-                <flux:icon.bell class="size-5" variant="outline" />
-                {{ __('Actividad') }}
-                @if ($unread > 0)
+            <a href="{{ route('messages.index') }}" wire:navigate class="relative flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('messages.*') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
+                <flux:icon.chat-bubble-left-right class="size-5" variant="outline" />
+                {{ __('Mensajes') }}
+                @if ($unreadMessages > 0)
                     <span class="absolute top-1 right-1/3 flex size-2 rounded-full bg-brand-500"></span>
                 @endif
             </a>

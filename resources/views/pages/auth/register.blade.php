@@ -39,6 +39,10 @@
                 placeholder="+57 300 000 0000"
             />
 
+            <flux:text class="-mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                {{ __('Ingresa al menos un correo o un teléfono para acceder a tu cuenta.') }}
+            </flux:text>
+
             <!-- Password -->
             <flux:input
                 name="password"

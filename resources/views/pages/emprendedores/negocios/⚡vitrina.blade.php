@@ -44,6 +44,8 @@ new #[Title('Editar mi vitrina')] class extends Component
 
     public ?string $whatsapp_number = '';
 
+    public string $contact_channel = 'merkamigo';
+
     public ?int $municipality_id = null;
 
     /** @var array<int, int> */
@@ -131,6 +133,7 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->businessId = $business->id;
         $this->name = $business->name;
         $this->whatsapp_number = $business->whatsapp_number;
+        $this->contact_channel = $business->contact_channel ?? 'merkamigo';
         $this->municipality_id = $business->municipality_id;
         $this->additional_municipality_ids = $business->municipalities->pluck('id')->all();
         $this->category_id = $business->category_id;
@@ -172,6 +175,7 @@ new #[Title('Editar mi vitrina')] class extends Component
         return [
             'name' => ['required', 'string', 'max:255'],
             'whatsapp_number' => ['nullable', 'string', 'max:20'],
+            'contact_channel' => ['required', Rule::in(['merkamigo', 'whatsapp', 'phone', 'external_link'])],
             'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'zone' => ['nullable', 'string', 'max:255'],
@@ -180,6 +184,8 @@ new #[Title('Editar mi vitrina')] class extends Component
             'google_business_store_code' => ['nullable', 'string', 'max:64'],
             'headline' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'social_links' => ['array'],
+            'social_links.website' => ['nullable', 'url:http,https', 'max:2048'],
             'payment_info' => ['nullable', 'string'],
             'logo_alt_text' => ['nullable', 'string', 'max:255'],
             'cover_alt_text' => ['nullable', 'string', 'max:255'],
@@ -593,7 +599,7 @@ new #[Title('Editar mi vitrina')] class extends Component
                 'informacion' => ['label' => __('Información'), 'icon' => 'information-circle'],
                 'horarios' => ['label' => __('Horarios'), 'icon' => 'clock'],
                 'ubicacion' => ['label' => __('Ubicación'), 'icon' => 'map-pin'],
-                'whatsapp' => ['label' => __('WhatsApp'), 'icon' => 'chat-bubble-left-right'],
+                'whatsapp' => ['label' => __('Contacto'), 'icon' => 'chat-bubble-left-right'],
                 'estado' => ['label' => __('Estado de publicación'), 'icon' => 'rocket-launch'],
             ] as $key => $tab)
                 <button
@@ -850,9 +856,25 @@ new #[Title('Editar mi vitrina')] class extends Component
             @endpush
 
             <div x-show="section === 'whatsapp'" x-cloak class="space-y-4">
-                <flux:heading size="lg">{{ __('WhatsApp y redes') }}</flux:heading>
+                <flux:heading size="lg">{{ __('Contacto y redes') }}</flux:heading>
 
-                <flux:input wire:model.live.debounce.900ms="whatsapp_number" :label="__('WhatsApp')" type="tel" placeholder="+57 300 000 0000" />
+                <flux:select wire:model.live="contact_channel" :label="__('Canal principal de contacto')">
+                    <flux:select.option value="merkamigo">{{ __('Mensajes de Merkamigo') }}</flux:select.option>
+                    <flux:select.option value="whatsapp">{{ __('WhatsApp') }}</flux:select.option>
+                    <flux:select.option value="phone">{{ __('Llamada telefónica') }}</flux:select.option>
+                    <flux:select.option value="external_link">{{ __('Enlace externo') }}</flux:select.option>
+                </flux:select>
+
+                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ __('Este canal se usará cuando un cliente pulse Contactar en tu vitrina o en un producto.') }}
+                </flux:text>
+
+                @if (in_array($contact_channel, ['whatsapp', 'phone'], true))
+                    <flux:input wire:model.live.debounce.900ms="whatsapp_number" :label="$contact_channel === 'phone' ? __('Teléfono') : __('WhatsApp')" type="tel" placeholder="+57 300 000 0000" />
+                @endif
+                @if ($contact_channel === 'external_link')
+                    <flux:input wire:model.live.debounce.900ms="social_links.website" :label="__('Enlace de contacto')" type="url" placeholder="https://..." />
+                @endif
                 <flux:input wire:model.live.debounce.900ms="social_links.instagram" label="Instagram" placeholder="https://instagram.com/..." />
                 <flux:input wire:model.live.debounce.900ms="social_links.facebook" label="Facebook" placeholder="https://facebook.com/..." />
                 <flux:input wire:model.live.debounce.900ms="social_links.tiktok" label="TikTok" placeholder="https://tiktok.com/@..." />

@@ -23,7 +23,7 @@ class UpdateStorefront
     private const BUSINESS_FIELDS = [
         'name', 'zone', 'address', 'latitude', 'longitude', 'has_physical_location',
         'google_business_store_code', 'municipality_id', 'category_id',
-        'whatsapp_number', 'hours', 'social_links', 'payment_info', 'attributes', 'logo_alt_text',
+        'whatsapp_number', 'contact_channel', 'hours', 'social_links', 'payment_info', 'attributes', 'logo_alt_text',
     ];
 
     private const STOREFRONT_FIELDS = ['headline', 'description', 'cover_alt_text', 'stand_color'];
@@ -48,8 +48,10 @@ class UpdateStorefront
             'municipality_id' => ['sometimes', 'nullable', 'integer', 'exists:municipalities,id'],
             'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             'whatsapp_number' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'contact_channel' => ['sometimes', 'string', 'in:merkamigo,whatsapp,phone,external_link'],
             'hours' => ['sometimes', 'nullable', 'array'],
             'social_links' => ['sometimes', 'nullable', 'array'],
+            'social_links.website' => ['nullable', 'url:http,https', 'max:2048'],
             'payment_info' => ['sometimes', 'nullable', 'string'],
             'attributes' => ['sometimes', 'nullable', 'array'],
             'payment_method_ids' => ['sometimes', 'nullable', 'array'],

@@ -1,5 +1,5 @@
 @php
-    $unreadNotifications = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
+    $unreadMessages = auth()->check() ? auth()->user()->unreadBusinessMessagesCount() : 0;
     $firstName = auth()->check() ? \Illuminate\Support\Str::before(trim(auth()->user()->name), ' ') : null;
     $isPlazaView = request()->routeIs(
         'explorar',
@@ -44,15 +44,15 @@
                 <flux:button
                     size="sm"
                     variant="ghost"
-                    icon="bell"
-                    :href="route('clientes.actividad')"
+                    icon="chat-bubble-left-right"
+                    :href="route('messages.index')"
                     wire:navigate
                     class="relative"
                 >
                     <span class="hidden md:inline">{{ __('Mensajes') }}</span>
-                    @if ($unreadNotifications > 0)
+                    @if ($unreadMessages > 0)
                         <span class="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-semibold leading-5 text-white">
-                            {{ $unreadNotifications > 99 ? '99+' : $unreadNotifications }}
+                            {{ $unreadMessages > 99 ? '99+' : $unreadMessages }}
                         </span>
                     @endif
                 </flux:button>

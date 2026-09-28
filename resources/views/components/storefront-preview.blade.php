@@ -44,7 +44,7 @@
 
         @if ($business->whatsapp_number)
             <flux:button variant="primary" icon="chat-bubble-left-right" disabled>
-                {{ __('Contactar por WhatsApp') }}
+                {{ __('Contactar') }}
             </flux:button>
         @endif
 
