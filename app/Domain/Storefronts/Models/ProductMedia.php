@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductMedia extends Model
 {
-    protected $fillable = ['product_id', 'path', 'position', 'alt_text'];
+    protected $fillable = ['product_id', 'path', 'type', 'position', 'alt_text'];
 
     /**
      * @return BelongsTo<Product, $this>
@@ -21,5 +21,10 @@ class ProductMedia extends Model
     public function url(): string
     {
         return Storage::disk('public')->url($this->path);
+    }
+
+    public function isVideo(): bool
+    {
+        return $this->type === 'video';
     }
 }

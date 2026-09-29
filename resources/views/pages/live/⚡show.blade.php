@@ -417,7 +417,7 @@ new #[Layout('layouts::cliente')] class extends Component
 
                 <div class="absolute right-3 top-20 z-40 space-y-2 lg:hidden">
                     @foreach ($this->presentedProducts->take(3) as $railProduct)
-                        @php $railPhoto = $railProduct->media->first(); @endphp
+                        @php $railPhoto = $railProduct->primaryImage(); @endphp
                         <button type="button" wire:click="openProduct({{ $railProduct->id }})" class="block w-[4.5rem] overflow-hidden rounded-xl bg-white text-zinc-950 shadow-xl" aria-label="{{ __('Ver :product', ['product' => $railProduct->name]) }}">
                             <span class="block aspect-square bg-zinc-100">@if ($railPhoto)<img src="{{ $railPhoto->url() }}" alt="{{ $railProduct->name }}" class="size-full object-cover">@else<flux:icon.photo class="m-5 size-7 text-zinc-400" />@endif</span>
                             <span class="block truncate bg-black/75 px-1 py-1 text-center text-[10px] font-semibold text-white">{{ __('Ver artículo') }}</span>
@@ -451,7 +451,7 @@ new #[Layout('layouts::cliente')] class extends Component
                     @if ($this->live->pinnedProduct)
                         @php
                             $product = $this->live->pinnedProduct;
-                            $photo = $product->media->first();
+                            $photo = $product->primaryImage();
                             $salePrice = $product->hasActivePromo() ? $product->promo_price : $product->price;
                         @endphp
                         <div class="pointer-events-auto hidden rounded-2xl bg-white p-3 text-zinc-950 shadow-2xl lg:block">
@@ -499,7 +499,7 @@ new #[Layout('layouts::cliente')] class extends Component
                     <div class="border-b border-zinc-200 px-5 pb-3 pt-8 text-center"><h2 class="text-xl font-medium">{{ __('Productos presentados') }}</h2><p class="mt-1 text-xs text-zinc-500">{{ trans_choice(':count disponible|:count disponibles', $this->presentedProducts->count(), ['count' => $this->presentedProducts->count()]) }}</p></div>
                     <div class="flex-1 divide-y divide-zinc-200 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                         @forelse ($this->presentedProducts as $sheetProduct)
-                            @php $sheetPhoto = $sheetProduct->media->first(); $sheetPrice = $sheetProduct->hasActivePromo() ? $sheetProduct->promo_price : $sheetProduct->price; @endphp
+                            @php $sheetPhoto = $sheetProduct->primaryImage(); $sheetPrice = $sheetProduct->hasActivePromo() ? $sheetProduct->promo_price : $sheetProduct->price; @endphp
                             <div class="flex items-center gap-4 py-4">
                                 <button type="button" wire:click="openProduct({{ $sheetProduct->id }})" x-on:click="mobilePanel = null" class="size-20 shrink-0 overflow-hidden rounded-xl bg-zinc-100">@if ($sheetPhoto)<img src="{{ $sheetPhoto->url() }}" alt="{{ $sheetProduct->name }}" class="size-full object-cover">@else<flux:icon.photo class="m-6 size-8 text-zinc-400" />@endif</button>
                                 <div class="min-w-0 flex-1"><p class="font-semibold">{{ $sheetProduct->name }}</p>@if ($sheetPrice)<div class="mt-2 flex items-baseline gap-2"><span class="font-bold">${{ number_format((float) $sheetPrice, 0, ',', '.') }}</span>@if ($sheetProduct->hasActivePromo())<span class="text-xs text-zinc-400 line-through">${{ number_format((float) $sheetProduct->price, 0, ',', '.') }}</span>@endif</div>@endif<button type="button" wire:click="openProduct({{ $sheetProduct->id }})" x-on:click="mobilePanel = null" class="mt-3 rounded-full bg-zinc-950 px-5 py-2 text-xs font-semibold text-white">{{ __('Ver artículo') }}</button></div>
@@ -553,7 +553,7 @@ new #[Layout('layouts::cliente')] class extends Component
                 <div class="flex items-center justify-between"><div><p class="text-sm font-semibold">{{ __('Productos presentados') }}</p><p class="text-xs text-zinc-500">{{ trans_choice(':count disponible|:count disponibles', $this->presentedProducts->count(), ['count' => $this->presentedProducts->count()]) }}</p></div><flux:modal.trigger name="live-cart"><flux:button variant="primary" size="sm" icon="shopping-cart">{{ collect($cart)->sum('quantity') ?: __('Carrito') }}</flux:button></flux:modal.trigger></div>
                 <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
                     @forelse ($this->presentedProducts as $liveProduct)
-                        @php $productPhoto = $liveProduct->media->first(); @endphp
+                        @php $productPhoto = $liveProduct->primaryImage(); @endphp
                         <button type="button" wire:click="openProduct({{ $liveProduct->id }})" class="w-24 shrink-0 text-left"><span class="block aspect-square overflow-hidden rounded-xl bg-zinc-800">@if ($productPhoto)<img src="{{ $productPhoto->url() }}" alt="{{ $liveProduct->name }}" class="size-full object-cover">@endif</span><span class="mt-1 block truncate text-xs font-medium">{{ $liveProduct->name }}</span></button>
                     @empty
                         <p class="text-xs text-zinc-500">{{ __('El anfitrión aún no ha presentado productos.') }}</p>
@@ -569,7 +569,7 @@ new #[Layout('layouts::cliente')] class extends Component
             <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($this->live->productEvents->where('action', 'featured')->unique('product_id') as $event)
                     <button type="button" wire:click="openProduct({{ $event->product_id }})" class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-left hover:bg-white/10">
-                        @if ($event->product->media->first())<img src="{{ $event->product->media->first()->url() }}" class="size-14 rounded-xl object-cover" alt="{{ $event->product->name }}">@endif
+                        @if ($event->product->primaryImage())<img src="{{ $event->product->primaryImage()->url() }}" class="size-14 rounded-xl object-cover" alt="{{ $event->product->name }}">@endif
                         <span><span class="block text-sm font-semibold">{{ $event->product->name }}</span><span class="text-xs text-zinc-400">{{ gmdate('i:s', $event->elapsed_seconds) }} · {{ __('Ver momento') }}</span></span>
                     </button>
                 @endforeach
@@ -581,7 +581,7 @@ new #[Layout('layouts::cliente')] class extends Component
         @if ($this->selectedProduct)
             @php
                 $selected = $this->selectedProduct;
-                $selectedPhoto = $selected->media->first();
+                $selectedPhoto = $selected->primaryImage();
                 $selectedVariant = $selectedVariantId ? $selected->variants->firstWhere('id', $selectedVariantId) : null;
                 $selectedPrice = $selectedVariant?->price ?? ($selected->hasActivePromo() ? $selected->promo_price : $selected->price);
             @endphp
@@ -609,7 +609,7 @@ new #[Layout('layouts::cliente')] class extends Component
             <div><flux:heading size="lg">{{ __('Tu carrito del Live') }}</flux:heading><flux:subheading>{{ __('El video seguirá reproduciéndose mientras completas tu compra.') }}</flux:subheading></div>
             <div class="max-h-[50vh] space-y-3 overflow-y-auto">
                 @forelse ($this->cartItems as $item)
-                    @php $itemPhoto = $item['product']->media->first(); @endphp
+                    @php $itemPhoto = $item['product']->primaryImage(); @endphp
                     <div class="flex items-center gap-3 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">@if ($itemPhoto)<img src="{{ $itemPhoto->url() }}" class="size-14 rounded-xl object-cover" alt="{{ $item['product']->name }}">@endif<div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold">{{ $item['product']->name }}</p>@if ($item['variant'])<p class="text-xs text-zinc-500">{{ $item['variant']->label }}</p>@endif<p class="text-sm font-bold text-brand-600">${{ number_format($item['total'], 0, ',', '.') }}</p></div><div class="flex items-center gap-1"><button type="button" wire:click="changeCartQuantity('{{ $item['key'] }}', -1)" class="flex size-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">−</button><span class="w-6 text-center text-sm">{{ $item['quantity'] }}</span><button type="button" wire:click="changeCartQuantity('{{ $item['key'] }}', 1)" class="flex size-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">+</button><button type="button" wire:click="removeFromCart('{{ $item['key'] }}')" class="ms-1 text-zinc-400 hover:text-red-600" aria-label="{{ __('Eliminar') }}"><flux:icon.trash class="size-5" /></button></div></div>
                 @empty
                     <div class="rounded-2xl border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">{{ __('Tu carrito está vacío.') }}</div>
@@ -722,7 +722,7 @@ new #[Layout('layouts::cliente')] class extends Component
                         <flux:heading size="lg" class="mb-4">{{ __('Productos de esta transmisión') }}</flux:heading>
                         <div class="grid gap-3 sm:grid-cols-2">
                             @foreach ($this->live->products as $product)
-                                @php $photo = $product->media->first(); @endphp
+                                @php $photo = $product->primaryImage(); @endphp
                                 <a href="{{ route('vitrinas.product', [$this->live->business, $product]) }}" wire:navigate class="flex items-center gap-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
                                     <div class="size-14 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                                         @if ($photo)
@@ -744,7 +744,7 @@ new #[Layout('layouts::cliente')] class extends Component
 
             <aside class="space-y-5">
                 @if ($this->live->pinnedProduct)
-                    @php $product = $this->live->pinnedProduct; $photo = $product->media->first(); @endphp
+                    @php $product = $this->live->pinnedProduct; $photo = $product->primaryImage(); @endphp
                     <section class="rounded-2xl border-2 border-brand-200 bg-white p-4 shadow-sm dark:border-brand-900 dark:bg-zinc-900">
                         <flux:badge color="red" class="mb-3">{{ $this->live->isLive() ? __('Producto fijado') : __('Disponible en el replay') }}</flux:badge>
                         @if ($photo)

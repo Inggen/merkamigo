@@ -1,5 +1,5 @@
 @php
-    $photo = $product->media->first();
+    $photo = $product->primaryImage();
     $showBusinessName = $showBusinessName ?? false;
 @endphp
 

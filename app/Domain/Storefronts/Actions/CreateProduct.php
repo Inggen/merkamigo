@@ -9,6 +9,7 @@ use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Storefronts\Events\ProductCreated;
 use App\Domain\Storefronts\Models\Product;
 use App\Models\User;
+use App\Support\Media\MediaUploader;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -22,11 +23,15 @@ class CreateProduct
      * @param  array<string, mixed>  $data
      * @param  array<int, UploadedFile>  $photos
      */
-    public function handle(Business $business, array $data, array $photos, User $actor): Product
+    public function handle(Business $business, array $data, array $photos, User $actor, ?UploadedFile $video = null): Product
     {
         $validated = Validator::make($data, $this->rules())->validate();
 
         $this->validatePhotoCount(0, count($photos));
+
+        if ($video) {
+            app(MediaUploader::class)->validate($video, 'product_video');
+        }
 
         $usage = app(CheckUsageLimit::class)->handle($business, 'max_products');
 
@@ -37,7 +42,7 @@ class CreateProduct
         $variants = $validated['variants'] ?? null;
         unset($validated['variants']);
 
-        return DB::transaction(function () use ($business, $validated, $variants, $photos, $actor) {
+        return DB::transaction(function () use ($business, $validated, $variants, $photos, $actor, $video) {
             $product = $business->products()->create([
                 ...$validated,
                 'slug' => $this->uniqueSlug($business, $validated['name']),
@@ -48,7 +53,7 @@ class CreateProduct
                 $this->syncVariants($product, $variants);
             }
 
-            $this->storePhotos($product, $photos);
+            $this->storeMedia($product, $photos, $video);
 
             app(RecordAuditLog::class)->handle($actor, 'product.created', $product);
 

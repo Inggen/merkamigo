@@ -7,6 +7,11 @@
     $pageUrl = route('vitrinas.show', $business);
     $storeSchemaId = $pageUrl.'#store';
     $pageImage = $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
+    $productSchemas = $products
+        ->map(fn ($product) => \App\Support\Seo\SchemaBuilder::commerceEntity($product, $business))
+        ->filter()
+        ->values()
+        ->all();
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb(array_values(array_filter([
             ['name' => __('Inicio'), 'url' => route('home')],
@@ -18,14 +23,15 @@
             $products->take(12)->map(fn ($product) => [
                 'name' => $product->name,
                 'url' => route('vitrinas.product', [$business, $product]),
-                'image' => $product->media->first()?->url(),
+                'image' => $product->primaryImage()?->url(),
             ])->all(),
             __('Productos de :business', ['business' => $business->name]),
         ),
+        ...$productSchemas,
     ];
 
     $businessAttributes = $business->activeAttributes();
-    $galleryPhotos = $products->flatMap(fn ($product) => $product->media)->take(6)->values();
+    $galleryPhotos = $products->flatMap(fn ($product) => $product->media->reject(fn ($media) => $media->isVideo()))->take(6)->values();
     $galleryItems = $galleryPhotos->map(function ($photo) use ($products, $business) {
         $product = $products->firstWhere('id', $photo->product_id);
 
@@ -45,6 +51,7 @@
     $averageRating = $ratedRecommendations->isNotEmpty() ? round($ratedRecommendations->avg('rating'), 1) : null;
     $socialLinks = collect(array_filter($business->social_links ?? []));
     $acceptedPaymentMethods = $business->paymentMethods;
+    $hasStorefrontContent = $highlightedStories->isNotEmpty() || $storefrontPosts->isNotEmpty() || $storefrontReels->isNotEmpty();
     $hasSidebarContent = filled($business->whatsapp_number)
         || filled($business->payment_info)
         || $acceptedPaymentMethods->isNotEmpty()
@@ -194,6 +201,9 @@
                         <div class="flex flex-wrap gap-6 text-sm font-semibold">
                             <button type="button" x-on:click="tab = 'informacion'" :class="tab === 'informacion' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Información') }}</button>
                             <button type="button" x-on:click="tab = 'productos'" :class="tab === 'productos' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Productos') }}</button>
+                            @if ($hasStorefrontContent)
+                                <button type="button" x-on:click="tab = 'contenido'" :class="tab === 'contenido' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Contenido') }}</button>
+                            @endif
                             <button type="button" x-on:click="tab = 'opiniones'" :class="tab === 'opiniones' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Opiniones') }}</button>
                         </div>
 
@@ -268,19 +278,14 @@
                             @endif
                         </div>
 
+                        @if ($hasStorefrontContent)
+                            <div x-show="tab === 'contenido'" x-cloak>
+                                @include('vitrinas.partials.social-content')
+                            </div>
+                        @endif
+
                         <div x-show="tab === 'informacion'" x-cloak class="grid gap-5 lg:grid-cols-2">
-                            {{-- Pedido del usuario: se quitó el tab "Inicio";
-                                 "Información" pasa a ser el primer tab y
-                                 absorbe lo que vivía ahí — "Sobre este
-                                 negocio"/atributos (ya movidos antes) y ahora
-                                 también la Galería, justo debajo de la
-                                 primera tarjeta. --}}
-                            @if ($business->storefront?->description)
-                                <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800 lg:col-span-2">
-                                    <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Sobre este negocio') }}</h3>
-                                    <p class="mt-2 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->storefront->description }}</p>
-                                </div>
-                            @endif
+
 
                             @if ($galleryPhotos->isNotEmpty())
                                 <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800 lg:col-span-2">
@@ -406,6 +411,22 @@
                                 <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
                                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Dirección') }}</h3>
                                     <p class="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $business->address }}</p>
+                                </div>
+                            @endif
+
+                            @if ($business->has_physical_location && $business->storefront?->google_maps_embed_url)
+                                <div class="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 lg:col-span-2">
+                                    <div class="p-5 pb-3">
+                                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Cómo llegar') }}</h3>
+                                    </div>
+                                    <iframe
+                                        src="{{ $business->storefront->google_maps_embed_url }}"
+                                        class="aspect-[16/7] min-h-72 w-full border-0"
+                                        loading="lazy"
+                                        referrerpolicy="no-referrer-when-downgrade"
+                                        allowfullscreen
+                                        title="{{ __('Mapa de :business', ['business' => $business->name]) }}"
+                                    ></iframe>
                                 </div>
                             @endif
 

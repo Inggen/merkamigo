@@ -80,6 +80,15 @@ class Product extends Model
         return $this->hasMany(ProductMedia::class)->orderBy('position');
     }
 
+    public function primaryImage(): ?ProductMedia
+    {
+        if ($this->relationLoaded('media')) {
+            return $this->media->first(fn (ProductMedia $media) => ! $media->isVideo());
+        }
+
+        return $this->media()->where('type', 'image')->first();
+    }
+
     /**
      * @return HasMany<ProductVariant, $this>
      */

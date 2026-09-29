@@ -351,6 +351,16 @@ class Business extends Model
     }
 
     /**
+     * Historias elegidas por el negocio para permanecer en su vitrina.
+     *
+     * @return HasMany<Story, $this>
+     */
+    public function highlightedStories(): HasMany
+    {
+        return $this->stories()->where('is_highlighted', true)->latest();
+    }
+
+    /**
      * Transmisiones comerciales del negocio (Sprint 8 de TODO_social.md).
      *
      * @return HasMany<LiveStream, $this>

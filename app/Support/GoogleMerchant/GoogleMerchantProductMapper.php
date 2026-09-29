@@ -41,7 +41,7 @@ class GoogleMerchantProductMapper
     {
         /** @var Business|null $business */
         $business = $product->business;
-        $image = $product->media->first()?->url();
+        $image = $product->primaryImage()?->url();
         $price = $product->hasActivePromo() ? $product->promo_price : $product->price;
 
         if (! $business || ! $image || ! filled($price) || $product->price_type === 'consultar') {

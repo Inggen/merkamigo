@@ -26,7 +26,10 @@ class UpdateStorefront
         'whatsapp_number', 'contact_channel', 'hours', 'social_links', 'payment_info', 'attributes', 'logo_alt_text',
     ];
 
-    private const STOREFRONT_FIELDS = ['headline', 'description', 'cover_alt_text', 'stand_color'];
+    private const STOREFRONT_FIELDS = [
+        'headline', 'description', 'cover_alt_text', 'stand_color',
+        'show_posts', 'show_reels', 'google_maps_embed_url',
+    ];
 
     /**
      * @param  array<string, mixed>  $data
@@ -58,6 +61,19 @@ class UpdateStorefront
             'payment_method_ids.*' => ['integer', 'exists:payment_methods,id'],
             'headline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
+            'show_posts' => ['sometimes', 'boolean'],
+            'show_reels' => ['sometimes', 'boolean'],
+            'google_maps_embed_url' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:5000',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (filled($value) && Storefront::normalizeGoogleMapsEmbedUrl((string) $value) === null) {
+                        $fail(__('Usa el código iframe o enlace de inserción generado por Google Maps.'));
+                    }
+                },
+            ],
             'logo' => ['sometimes', 'nullable'],
             'remove_logo' => ['sometimes', 'boolean'],
             'logo_alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -92,6 +108,9 @@ class UpdateStorefront
             }
 
             $storefront = $business->storefront;
+            if (array_key_exists('google_maps_embed_url', $validated)) {
+                $validated['google_maps_embed_url'] = Storefront::normalizeGoogleMapsEmbedUrl($validated['google_maps_embed_url']);
+            }
             $storefront->fill(Arr::only($validated, self::STOREFRONT_FIELDS));
 
             if ($validated['remove_cover'] ?? false) {

@@ -29,12 +29,14 @@ class Story extends Model
         'caption',
         'expires_at',
         'views_count',
+        'is_highlighted',
     ];
 
     protected function casts(): array
     {
         return [
             'expires_at' => 'datetime',
+            'is_highlighted' => 'boolean',
         ];
     }
 

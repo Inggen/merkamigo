@@ -15,6 +15,7 @@ use App\Domain\Storefronts\Actions\UnpublishStorefront;
 use App\Domain\Storefronts\Actions\UpdateStorefront;
 use App\Domain\Storefronts\Exceptions\BusinessSuspendedException;
 use App\Domain\Storefronts\Exceptions\IncompleteStorefrontException;
+use App\Domain\Storefronts\Models\Storefront;
 use App\Support\Ai\AiImagePrompt;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -69,6 +70,8 @@ new #[Title('Editar mi vitrina')] class extends Component
 
     public ?string $google_business_store_code = '';
 
+    public ?string $google_maps_embed_url = '';
+
     public ?string $headline = '';
 
     public ?string $description = '';
@@ -99,6 +102,10 @@ new #[Title('Editar mi vitrina')] class extends Component
     public string $coverImageStyle = AiImagePrompt::ULTRAREALISTA;
 
     public ?string $stand_color = null;
+
+    public bool $show_posts = true;
+
+    public bool $show_reels = true;
 
     /** @var array<int, string> */
     public array $missing = [];
@@ -143,11 +150,14 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->longitude = $business->longitude;
         $this->has_physical_location = $business->has_physical_location;
         $this->google_business_store_code = $business->google_business_store_code;
+        $this->google_maps_embed_url = $business->storefront?->google_maps_embed_url;
         $this->headline = $business->storefront?->headline;
         $this->description = $business->storefront?->description;
         $this->logo_alt_text = $business->logo_alt_text;
         $this->cover_alt_text = $business->storefront?->cover_alt_text;
         $this->stand_color = $business->storefront?->stand_color;
+        $this->show_posts = $business->storefront?->show_posts ?? true;
+        $this->show_reels = $business->storefront?->show_reels ?? true;
         $this->hours_text = $business->hoursNote() ?? '';
         $this->payment_info = $business->payment_info;
         $this->social_links = array_merge($this->social_links, $business->social_links ?? []);
@@ -182,6 +192,16 @@ new #[Title('Editar mi vitrina')] class extends Component
             'address' => ['nullable', 'string', 'max:255'],
             'has_physical_location' => ['boolean'],
             'google_business_store_code' => ['nullable', 'string', 'max:64'],
+            'google_maps_embed_url' => [
+                'nullable',
+                'string',
+                'max:5000',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (filled($value) && Storefront::normalizeGoogleMapsEmbedUrl((string) $value) === null) {
+                        $fail(__('Usa el código iframe o enlace de inserción generado por Google Maps.'));
+                    }
+                },
+            ],
             'headline' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'social_links' => ['array'],
@@ -190,6 +210,8 @@ new #[Title('Editar mi vitrina')] class extends Component
             'logo_alt_text' => ['nullable', 'string', 'max:255'],
             'cover_alt_text' => ['nullable', 'string', 'max:255'],
             'stand_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'show_posts' => ['boolean'],
+            'show_reels' => ['boolean'],
         ];
     }
 
@@ -522,6 +544,28 @@ new #[Title('Editar mi vitrina')] class extends Component
         return PaymentMethod::where('is_active', true)->orderBy('position')->get();
     }
 
+    #[Computed]
+    public function stories()
+    {
+        return $this->business->stories()->with('product')->latest()->take(30)->get();
+    }
+
+    public function toggleStoryHighlight(int $storyId): void
+    {
+        $this->authorize('update', $this->business);
+
+        $story = $this->business->stories()->findOrFail($storyId);
+        $story->update(['is_highlighted' => ! $story->is_highlighted]);
+
+        unset($this->stories);
+        Flux::toast(
+            variant: 'success',
+            text: $story->is_highlighted
+                ? __('Historia agregada a destacados.')
+                : __('Historia retirada de destacados.'),
+        );
+    }
+
     private function validateAdditionalMunicipalities(): void
     {
         $this->validate([
@@ -597,6 +641,7 @@ new #[Title('Editar mi vitrina')] class extends Component
             @foreach ([
                 'portada' => ['label' => __('Portada'), 'icon' => 'photo'],
                 'informacion' => ['label' => __('Información'), 'icon' => 'information-circle'],
+                'contenido' => ['label' => __('Contenido'), 'icon' => 'rectangle-stack'],
                 'horarios' => ['label' => __('Horarios'), 'icon' => 'clock'],
                 'ubicacion' => ['label' => __('Ubicación'), 'icon' => 'map-pin'],
                 'whatsapp' => ['label' => __('Contacto'), 'icon' => 'chat-bubble-left-right'],
@@ -742,6 +787,78 @@ new #[Title('Editar mi vitrina')] class extends Component
                 @endif
             </div>
 
+            <div x-show="section === 'contenido'" x-cloak class="space-y-6">
+                <div>
+                    <flux:heading size="lg">{{ __('Contenido de la vitrina') }}</flux:heading>
+                    <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ __('Decide qué contenido social aparece en la pestaña Contenido de tu vitrina.') }}
+                    </flux:text>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <label class="flex items-start gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                        <input type="checkbox" wire:model.live="show_posts" class="mt-1 rounded border-zinc-300 text-brand-600 focus:ring-brand-500">
+                        <span>
+                            <span class="block font-medium text-zinc-900 dark:text-white">{{ __('Mostrar publicaciones') }}</span>
+                            <span class="mt-1 block text-sm text-zinc-500 dark:text-zinc-400">{{ __('Muestra las publicaciones creadas por este negocio.') }}</span>
+                        </span>
+                    </label>
+
+                    <label class="flex items-start gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                        <input type="checkbox" wire:model.live="show_reels" class="mt-1 rounded border-zinc-300 text-brand-600 focus:ring-brand-500">
+                        <span>
+                            <span class="block font-medium text-zinc-900 dark:text-white">{{ __('Mostrar reels') }}</span>
+                            <span class="mt-1 block text-sm text-zinc-500 dark:text-zinc-400">{{ __('Muestra los videos verticales publicados por este negocio.') }}</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <flux:text class="font-medium">{{ __('Historias destacadas') }}</flux:text>
+                            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                {{ __('Las historias seleccionadas permanecen en la vitrina aunque termine su periodo de 24 horas.') }}
+                            </flux:text>
+                        </div>
+                        <flux:button type="button" size="sm" variant="ghost" icon="plus" :href="route('emprendedores.negocios.estados', $this->business)" wire:navigate>
+                            {{ __('Agregar más historias') }}
+                        </flux:button>
+                    </div>
+
+                    @if ($this->stories->isEmpty())
+                        <div class="mt-4 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                            {{ __('Todavía no has creado historias. Crea una y vuelve aquí para destacarla.') }}
+                        </div>
+                    @else
+                        <div class="mt-4 flex gap-3 overflow-x-auto pb-2">
+                            @foreach ($this->stories as $story)
+                                <article class="w-36 shrink-0 overflow-hidden rounded-xl border {{ $story->is_highlighted ? 'border-brand-500 ring-2 ring-brand-100 dark:ring-brand-950' : 'border-zinc-200 dark:border-zinc-700' }}">
+                                    <div class="aspect-[4/5] bg-zinc-100 dark:bg-zinc-800">
+                                        <img src="{{ $story->imageUrl() }}" class="size-full object-cover" alt="{{ $story->caption ?: __('Historia del negocio') }}">
+                                    </div>
+                                    <div class="space-y-2 p-2">
+                                        <p class="line-clamp-2 min-h-10 text-xs text-zinc-600 dark:text-zinc-300">{{ $story->caption ?: __('Sin texto') }}</p>
+                                        <button type="button" wire:click="toggleStoryHighlight({{ $story->id }})" class="w-full rounded-lg px-2 py-1.5 text-xs font-semibold {{ $story->is_highlighted ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300' : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' }}">
+                                            {{ $story->is_highlighted ? __('Quitar destacado') : __('Destacar') }}
+                                        </button>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <flux:button type="button" size="sm" variant="ghost" icon="rectangle-stack" :href="route('emprendedores.negocios.publicaciones', $this->business)" wire:navigate>
+                        {{ __('Administrar publicaciones') }}
+                    </flux:button>
+                    <flux:button type="button" size="sm" variant="ghost" icon="film" :href="route('emprendedores.negocios.reels', $this->business)" wire:navigate>
+                        {{ __('Administrar reels') }}
+                    </flux:button>
+                </div>
+            </div>
+
             <div x-show="section === 'horarios'" x-cloak class="space-y-4">
                 <flux:heading size="lg">{{ __('Horarios') }}</flux:heading>
                 <flux:textarea wire:model.live.debounce.900ms="hours_text" rows="2" placeholder="{{ __('Ej: Lun-Sáb 8:00am - 6:00pm') }}" />
@@ -788,6 +905,16 @@ new #[Title('Editar mi vitrina')] class extends Component
                         />
                         <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
                             {{ __('Solo si ya vinculaste tu propio Perfil de Empresa de Google (no el de Merkamigo) a Merchant Center. Déjalo vacío si todavía no lo tienes — no afecta la publicación de tus productos en Google Shopping.') }}
+                        </flux:text>
+
+                        <flux:textarea
+                            wire:model.live.debounce.900ms="google_maps_embed_url"
+                            :label="__('Mapa de Google Maps (opcional)')"
+                            rows="3"
+                            placeholder='<iframe src="https://www.google.com/maps/embed?pb=..."></iframe>'
+                        />
+                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                            {{ __('En Google Maps abre Compartir → Insertar un mapa y pega aquí el iframe completo o solamente su enlace. Solo se guarda la URL segura de Google.') }}
                         </flux:text>
                     @endif
                 </div>

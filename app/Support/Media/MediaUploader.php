@@ -41,14 +41,7 @@ class MediaUploader
         $rules = config("media.{$context}");
         $disk = $rules['disk'] ?? 'public';
 
-        Validator::make(['file' => $file], [
-            'file' => [
-                'required',
-                'file',
-                'mimes:'.implode(',', $rules['mimes']),
-                'max:'.$rules['max_kb'],
-            ],
-        ])->validate();
+        $this->validate($file, $context);
 
         if (isset($rules['max_width'])) {
             return $this->storeImage(
@@ -68,6 +61,20 @@ class MediaUploader
         }
 
         return $path;
+    }
+
+    public function validate(UploadedFile $file, string $context): void
+    {
+        $rules = config("media.{$context}");
+
+        Validator::make(['file' => $file], [
+            'file' => [
+                'required',
+                'file',
+                'mimes:'.implode(',', $rules['mimes']),
+                'max:'.$rules['max_kb'],
+            ],
+        ])->validate();
     }
 
     public function delete(?string $path, string $disk = 'public'): void

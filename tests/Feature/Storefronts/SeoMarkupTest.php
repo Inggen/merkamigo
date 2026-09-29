@@ -48,13 +48,32 @@ class SeoMarkupTest extends TestCase
 
     public function test_the_public_storefront_renders_structured_data_for_the_business_and_breadcrumbs(): void
     {
-        [$business] = $this->publishedBusinessWithProduct('producto');
+        [$business, $product] = $this->publishedBusinessWithProduct('producto');
 
         $this->get(route('vitrinas.show', $business))
             ->assertOk()
             ->assertSee('"@type":"Store"', false)
             ->assertSee('"@type":"BreadcrumbList"', false)
+            ->assertSee('"@id":"'.route('vitrinas.product', [$business, $product]).'#product"', false)
+            ->assertSee('"priceCurrency":"COP"', false)
             ->assertSee(route('vitrinas.show', $business), false);
+    }
+
+    public function test_products_without_a_real_price_do_not_publish_invalid_product_schema(): void
+    {
+        [$business, $product] = $this->publishedBusinessWithProduct('producto');
+        $product->update(['price_type' => 'consultar', 'price' => null]);
+
+        $this->get(route('vitrinas.show', $business))
+            ->assertOk()
+            ->assertDontSee('"@type":"Product"', false)
+            ->assertSee('index,follow');
+
+        $this->get(route('vitrinas.product', [$business, $product]))
+            ->assertOk()
+            ->assertDontSee('"@type":"Product"', false)
+            ->assertSee('"@type":"Thing"', false)
+            ->assertSee('index,follow');
     }
 
     /**
@@ -133,6 +152,35 @@ class SeoMarkupTest extends TestCase
         $this->get(route('vitrinas.product', [$serviceBusiness, $service]))
             ->assertOk()
             ->assertSee('"@type":"Service"', false);
+    }
+
+    public function test_the_product_video_is_the_first_gallery_item_without_replacing_the_seo_image(): void
+    {
+        [$business, $product] = $this->publishedBusinessWithProduct('producto');
+        $product->media()->where('type', 'image')->update(['position' => 1]);
+        $product->media()->create([
+            'path' => 'products/'.$product->id.'/presentacion.mp4',
+            'type' => 'video',
+            'position' => 0,
+        ]);
+
+        $response = $this->get(route('vitrinas.product', [$business, $product]));
+
+        $response
+            ->assertOk()
+            ->assertSee('merkamigoVideoPlayer', false)
+            ->assertSee('<meta property="og:image" content="'.asset('storage/products/'.$product->id.'/image.jpg').'">', false);
+
+        $this->assertMatchesRegularExpression(
+            '/merkamigoVideoPlayer\(\{[^}]*presentacion\.mp4/',
+            $response->getContent(),
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/gallery:\s*[^\n]*presentacion\.mp4[^\n]*image\.jpg/',
+            $response->getContent(),
+        );
+        $this->assertMatchesRegularExpression('/activeType:\s*[^\n]*video/', $response->getContent());
     }
 
     public function test_the_faq_page_renders_faq_schema_and_search_page_is_noindex(): void

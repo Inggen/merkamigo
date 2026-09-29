@@ -3,9 +3,12 @@
 namespace Tests\Feature\Messaging;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Messaging\Actions\DeleteBusinessConversation;
 use App\Domain\Messaging\Actions\SendBusinessMessage;
+use App\Domain\Messaging\Actions\StartBusinessConversation;
 use App\Domain\Messaging\Models\BusinessConversation;
 use App\Domain\Messaging\Notifications\BusinessMessageReceived;
+use App\Domain\Moderation\Models\Report;
 use App\Domain\Social\Models\ContentPromotion;
 use App\Domain\Social\Models\Post;
 use App\Domain\Storefronts\Actions\CreateProduct;
@@ -13,9 +16,12 @@ use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Storefronts\Actions\PublishStorefront;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class InternalMessagingTest extends TestCase
@@ -254,6 +260,124 @@ class InternalMessagingTest extends TestCase
 
         $this->assertNotContains('WhatsApp', $missing);
         $this->assertSame('merkamigo', $business->contact_channel);
+    }
+
+    public function test_message_can_be_sent_with_only_an_attachment(): void
+    {
+        Storage::fake('public');
+        Notification::fake();
+
+        [$owner, $business] = $this->publishedBusiness();
+        $customer = User::factory()->create();
+        $conversation = BusinessConversation::create([
+            'business_id' => $business->id,
+            'customer_user_id' => $customer->id,
+            'context_key' => 'business',
+        ]);
+
+        $message = app(SendBusinessMessage::class)->handle(
+            $conversation,
+            $customer,
+            null,
+            UploadedFile::fake()->image('foto.jpg'),
+        );
+
+        $this->assertSame('', $message->body);
+        $this->assertNotNull($message->attachment_path);
+        $this->assertNotNull($message->attachmentUrl());
+        Storage::disk('public')->assertExists($message->attachment_path);
+    }
+
+    public function test_sending_without_body_or_attachment_is_rejected(): void
+    {
+        [$owner, $business] = $this->publishedBusiness();
+        $customer = User::factory()->create();
+        $conversation = BusinessConversation::create([
+            'business_id' => $business->id,
+            'customer_user_id' => $customer->id,
+            'context_key' => 'business',
+        ]);
+
+        $this->expectException(HttpException::class);
+
+        app(SendBusinessMessage::class)->handle($conversation, $customer, null, null);
+    }
+
+    public function test_deleting_a_conversation_soft_deletes_it_and_hides_it_from_both_parties(): void
+    {
+        [$owner, $business] = $this->publishedBusiness();
+        $customer = User::factory()->create();
+        $conversation = BusinessConversation::create([
+            'business_id' => $business->id,
+            'customer_user_id' => $customer->id,
+            'context_key' => 'business',
+        ]);
+
+        app(DeleteBusinessConversation::class)->handle($conversation, $customer);
+
+        $this->assertSoftDeleted($conversation);
+        $this->assertFalse(BusinessConversation::query()->accessibleTo($owner)->whereKey($conversation->id)->exists());
+        $this->assertFalse(BusinessConversation::query()->accessibleTo($customer)->whereKey($conversation->id)->exists());
+    }
+
+    public function test_a_new_message_restores_a_soft_deleted_conversation(): void
+    {
+        [$owner, $business] = $this->publishedBusiness();
+        $customer = User::factory()->create();
+        $product = app(CreateProduct::class)->handle($business, [
+            'name' => 'Producto restaurable',
+            'type' => 'producto',
+            'price_type' => 'consultar',
+        ], [], $owner);
+        $product->update(['status' => 'publicado']);
+
+        $context = [
+            'key' => 'product:'.$product->id,
+            'type' => 'product',
+            'id' => $product->id,
+            'label' => $product->name,
+            'url' => route('vitrinas.product', [$business, $product]),
+        ];
+
+        $conversation = app(StartBusinessConversation::class)->handle($business, $customer, $context);
+        app(SendBusinessMessage::class)->handle($conversation, $customer, 'Primer mensaje.');
+        app(DeleteBusinessConversation::class)->handle($conversation, $customer);
+        $this->assertSoftDeleted($conversation);
+
+        $restored = app(StartBusinessConversation::class)->handle($business, $customer, $context);
+
+        $this->assertSame($conversation->id, $restored->id);
+        $this->assertNull($restored->fresh()->deleted_at);
+        $this->assertDatabaseHas('business_messages', [
+            'business_conversation_id' => $conversation->id,
+            'body' => 'Primer mensaje.',
+        ]);
+    }
+
+    public function test_reporting_a_conversation_creates_a_pending_report(): void
+    {
+        [$owner, $business] = $this->publishedBusiness();
+        $customer = User::factory()->create();
+        $conversation = BusinessConversation::create([
+            'business_id' => $business->id,
+            'customer_user_id' => $customer->id,
+            'context_key' => 'business',
+        ]);
+
+        $this->actingAs($customer);
+
+        Livewire::test('pages::messages.index', ['conversation' => $conversation])
+            ->set('reportReason', 'spam')
+            ->set('reportDetails', 'Me está enviando enlaces sospechosos.')
+            ->call('submitReport')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('reports', [
+            'reportable_type' => (new BusinessConversation)->getMorphClass(),
+            'reportable_id' => $conversation->id,
+            'reason' => 'spam',
+            'status' => Report::PENDIENTE,
+        ]);
     }
 
     public function test_unread_counter_is_safe_before_messaging_migration_runs(): void

@@ -38,6 +38,12 @@ return [
         'quality' => 90,
     ],
 
+    'product_video' => [
+        'mimes' => ['mp4', 'webm', 'mov'],
+        'max_kb' => 51200,
+        'max_files' => 1,
+    ],
+
     'post_photo' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
@@ -123,6 +129,15 @@ return [
         'max_kb' => 307200,
         'max_files' => 1,
         'disk' => 'private',
+    ],
+
+    'message_attachment' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+        'max_width' => 1600,
+        'target_extension' => 'webp',
+        'quality' => 85,
     ],
 
     'need_photo' => [

@@ -53,7 +53,7 @@ class GoogleMerchantProductValidator
             $errors[] = 'Descripción insuficiente.';
         }
 
-        if (blank($product->media->first()?->url())) {
+        if (blank($product->primaryImage()?->url())) {
             $errors[] = 'Falta imagen principal.';
         }
 

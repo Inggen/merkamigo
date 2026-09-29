@@ -3,6 +3,7 @@
 namespace App\Domain\Moderation\Models;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Messaging\Models\BusinessConversation;
 use App\Domain\Social\Models\Post;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Trust\Models\Recommendation;
@@ -60,6 +61,7 @@ class Report extends Model
             $this->reportable instanceof Product => 'Producto: '.$this->reportable->name,
             $this->reportable instanceof Recommendation => 'Recomendación: '.str($this->reportable->body)->limit(60),
             $this->reportable instanceof Post => 'Publicación: '.str($this->reportable->body ?: $this->reportable->type)->limit(60),
+            $this->reportable instanceof BusinessConversation => 'Conversación: '.$this->reportable->business?->name.' ↔ '.$this->reportable->customer?->name,
             default => __('(eliminado)'),
         };
     }

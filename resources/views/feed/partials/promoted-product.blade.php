@@ -1,6 +1,6 @@
 @php
     $business = $product->business;
-    $photo = $product->media->first();
+    $photo = $product->primaryImage();
 @endphp
 
 <section class="mb-4 rounded-2xl border border-brand-200 bg-white p-4 shadow-sm dark:border-brand-900 dark:bg-zinc-900">

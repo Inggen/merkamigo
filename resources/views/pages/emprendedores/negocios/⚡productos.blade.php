@@ -95,7 +95,9 @@ new #[Title('Productos y servicios')] class extends Component
     /** @var array<int, mixed> */
     public array $photos = [];
 
-    /** @var array<int, array{id: int, url: string}> */
+    public $video = null;
+
+    /** @var array<int, array{id: int, url: string, type: string}> */
     public array $existingMedia = [];
 
     /** @var array<int, int> */
@@ -166,7 +168,7 @@ new #[Title('Productos y servicios')] class extends Component
     {
         $this->authorize('update', $this->business);
 
-        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'removeMediaIds', 'photoAlts', 'gtin', 'mpn', 'brand', 'digitalFile', 'existingFile', 'subscription_trial_days', 'subscription_benefits']);
+        $this->reset(['editingId', 'name', 'description', 'price', 'unit', 'photos', 'video', 'has_promo', 'promo_price', 'promo_label', 'promo_starts_at', 'promo_ends_at', 'variants', 'existingMedia', 'removeMediaIds', 'photoAlts', 'gtin', 'mpn', 'brand', 'digitalFile', 'existingFile', 'subscription_trial_days', 'subscription_benefits']);
         $this->type = 'producto';
         $this->price_type = 'exacto';
         $this->is_available = true;
@@ -212,7 +214,12 @@ new #[Title('Productos y servicios')] class extends Component
         $this->unit = $product->unit;
         $this->is_available = $product->is_available;
         $this->photos = [];
-        $this->existingMedia = $product->media->map(fn ($media) => ['id' => $media->id, 'url' => $media->url()])->all();
+        $this->video = null;
+        $this->existingMedia = $product->media->map(fn ($media) => [
+            'id' => $media->id,
+            'url' => $media->url(),
+            'type' => $media->type,
+        ])->all();
         $this->removeMediaIds = [];
         $this->photoAlts = $product->media->pluck('alt_text', 'id')->all();
 
@@ -328,7 +335,11 @@ new #[Title('Productos y servicios')] class extends Component
             return;
         }
 
-        $this->existingMedia = $product->media->map(fn ($media) => ['id' => $media->id, 'url' => $media->url()])->all();
+        $this->existingMedia = $product->media->map(fn ($media) => [
+            'id' => $media->id,
+            'url' => $media->url(),
+            'type' => $media->type,
+        ])->all();
         $this->photoAlts = $product->media->pluck('alt_text', 'id')->all();
 
         Flux::toast(variant: 'success', text: __('Foto generada y agregada al producto.'));
@@ -383,13 +394,13 @@ new #[Title('Productos y servicios')] class extends Component
             if ($this->editingId) {
                 $product = $this->business->products()->findOrFail($this->editingId);
                 $this->authorize('update', $product->business);
-                $product = app(UpdateProduct::class)->handle($product, $data, $this->photos, $this->removeMediaIds, Auth::user());
+                $product = app(UpdateProduct::class)->handle($product, $data, $this->photos, $this->removeMediaIds, Auth::user(), $this->video);
 
                 if ($product->business_id !== $targetBusiness->id) {
                     $product = app(MoveProductToBusiness::class)->handle($product->fresh(), $targetBusiness, Auth::user());
                 }
             } else {
-                $product = app(CreateProduct::class)->handle($targetBusiness, $data, $this->photos, Auth::user());
+                $product = app(CreateProduct::class)->handle($targetBusiness, $data, $this->photos, Auth::user(), $this->video);
             }
 
             if (! empty($this->photoAlts)) {
@@ -402,17 +413,23 @@ new #[Title('Productos y servicios')] class extends Component
             }
 
             if (! empty($this->existingMedia)) {
-                $orderedIds = array_column($this->existingMedia, 'id');
+                $orderedIds = collect($this->existingMedia)
+                    ->where('type', 'image')
+                    ->pluck('id')
+                    ->all();
+                $nextPosition = $product->media()->where('type', 'video')->exists() ? 1 : 0;
 
                 foreach ($orderedIds as $index => $mediaId) {
-                    ProductMedia::whereKey($mediaId)->update(['position' => $index]);
+                    ProductMedia::whereKey($mediaId)->update(['position' => $nextPosition + $index]);
                 }
 
-                $nextPosition = count($orderedIds);
-                $product->media()->whereNotIn('id', $orderedIds)->orderBy('position')->get()
+                $nextPosition += count($orderedIds);
+                $product->media()->where('type', 'image')->whereNotIn('id', $orderedIds)->orderBy('position')->get()
                     ->each(function (ProductMedia $media) use (&$nextPosition) {
                         $media->update(['position' => $nextPosition++]);
                     });
+
+                $product->media()->where('type', 'video')->update(['position' => 0]);
             }
 
             if ($this->sale_type === 'suscripcion') {
@@ -486,6 +503,11 @@ new #[Title('Productos y servicios')] class extends Component
             return;
         }
 
+        if (($this->existingMedia[$draggedIndex]['type'] ?? 'image') !== 'image'
+            || ($this->existingMedia[$targetIndex]['type'] ?? 'image') !== 'image') {
+            return;
+        }
+
         $item = $this->existingMedia[$draggedIndex];
         array_splice($this->existingMedia, $draggedIndex, 1);
         array_splice($this->existingMedia, $targetIndex, 0, [$item]);
@@ -495,6 +517,12 @@ new #[Title('Productos y servicios')] class extends Component
     {
         unset($this->photos[$index]);
         $this->photos = array_values($this->photos);
+    }
+
+    public function removePendingVideo(): void
+    {
+        $this->video = null;
+        $this->resetValidation('video');
     }
 
     public function duplicate(int $productId): void
@@ -609,8 +637,10 @@ new #[Title('Productos y servicios')] class extends Component
             @foreach ($this->products as $product)
                 <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                     <div class="relative aspect-square bg-zinc-100 dark:bg-zinc-800">
-                        @if ($product->media->isNotEmpty())
-                            <img src="{{ $product->media->first()->url() }}" class="h-full w-full object-cover" alt="{{ $product->media->first()->alt_text ?? $product->name }}">
+                        @if ($product->primaryImage())
+                            <img src="{{ $product->primaryImage()->url() }}" class="h-full w-full object-cover" alt="{{ $product->primaryImage()->alt_text ?? $product->name }}">
+                        @elseif ($product->media->firstWhere('type', 'video'))
+                            <video src="{{ $product->media->firstWhere('type', 'video')->url() }}" class="h-full w-full object-cover" muted playsinline preload="metadata"></video>
                         @else
                             <div class="flex h-full w-full items-center justify-center">
                                 <flux:icon.photo class="size-8 text-zinc-300 dark:text-zinc-600" variant="outline" />
@@ -850,38 +880,65 @@ new #[Title('Productos y servicios')] class extends Component
 
                 @if (! empty($existingMedia))
                     <div class="mb-3 space-y-2" x-data="{ draggedId: null, overId: null }">
-                        @if (count($existingMedia) > 1)
-                            <flux:text class="text-xs text-zinc-500">{{ __('Arrastra una foto para cambiar el orden. La primera es la que se ve primero en tu vitrina.') }}</flux:text>
+                        @if (collect($existingMedia)->where('type', 'image')->count() > 1)
+                            <flux:text class="text-xs text-zinc-500">{{ __('Arrastra las fotos para cambiar su orden. El video siempre aparece primero en la galería.') }}</flux:text>
                         @endif
 
                         @foreach ($existingMedia as $item)
                             <div
                                 wire:key="existing-media-{{ $item['id'] }}"
-                                draggable="true"
+                                draggable="{{ ($item['type'] ?? 'image') === 'image' ? 'true' : 'false' }}"
                                 x-on:dragstart="draggedId = {{ $item['id'] }}"
                                 x-on:dragend="draggedId = null; overId = null"
                                 x-on:dragenter.prevent="overId = {{ $item['id'] }}"
                                 x-on:dragover.prevent
                                 x-on:drop.prevent="$wire.reorderExistingMedia(draggedId, {{ $item['id'] }}); draggedId = null; overId = null"
-                                class="flex cursor-move items-center gap-2 rounded-xl p-1 transition"
+                                class="flex items-center gap-2 rounded-xl p-1 transition {{ ($item['type'] ?? 'image') === 'image' ? 'cursor-move' : '' }}"
                                 x-bind:class="overId === {{ $item['id'] }} && draggedId !== {{ $item['id'] }} ? 'bg-brand-50 dark:bg-brand-500/10' : ''"
                                 x-bind:style="draggedId === {{ $item['id'] }} ? 'opacity: 0.4' : ''"
                             >
-                                <flux:icon.arrows-up-down class="size-4 shrink-0 text-zinc-400" variant="outline" />
-                                <img src="{{ $item['url'] }}" class="size-12 shrink-0 rounded-lg object-cover" alt="{{ $photoAlts[$item['id']] ?? '' }}">
-                                <flux:input wire:model="photoAlts.{{ $item['id'] }}" class="flex-1" placeholder="{{ __('Texto alternativo de esta foto (opcional)') }}" />
+                                @if (($item['type'] ?? 'image') === 'video')
+                                    <flux:icon.video-camera class="size-4 shrink-0 text-brand-600" variant="outline" />
+                                    <video src="{{ $item['url'] }}" class="size-12 shrink-0 rounded-lg bg-black object-cover" muted playsinline preload="metadata"></video>
+                                    <flux:text class="flex-1 text-sm font-medium">{{ __('Video · se muestra primero') }}</flux:text>
+                                @else
+                                    <flux:icon.arrows-up-down class="size-4 shrink-0 text-zinc-400" variant="outline" />
+                                    <img src="{{ $item['url'] }}" class="size-12 shrink-0 rounded-lg object-cover" alt="{{ $photoAlts[$item['id']] ?? '' }}">
+                                    <flux:input wire:model="photoAlts.{{ $item['id'] }}" class="flex-1" placeholder="{{ __('Texto alternativo de esta foto (opcional)') }}" />
+                                @endif
                                 <flux:button
                                     type="button"
                                     size="sm"
                                     variant="ghost"
                                     icon="trash"
                                     wire:click="removeExistingMedia({{ $item['id'] }})"
-                                    aria-label="{{ __('Eliminar esta imagen') }}"
+                                    aria-label="{{ ($item['type'] ?? 'image') === 'video' ? __('Eliminar este video') : __('Eliminar esta imagen') }}"
                                 />
                             </div>
                         @endforeach
                     </div>
                 @endif
+
+                <div class="mb-4 space-y-2">
+                    <flux:label>{{ __('Video del producto o servicio (opcional)') }}</flux:label>
+
+                    @if ($video)
+                        <div class="relative overflow-hidden rounded-2xl bg-black">
+                            <video src="{{ $video->temporaryUrl() }}" class="aspect-video w-full object-contain" controls playsinline preload="metadata"></video>
+                            <flux:button type="button" size="sm" variant="filled" icon="trash" class="absolute right-2 top-2" wire:click="removePendingVideo" aria-label="{{ __('Quitar video') }}" />
+                        </div>
+                    @else
+                        <label class="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-zinc-300 px-4 py-6 text-sm text-zinc-600 transition hover:border-brand-400 hover:text-brand-600 dark:border-zinc-700 dark:text-zinc-300">
+                            <flux:icon.video-camera class="size-5" variant="outline" />
+                            <span>{{ __('Cargar un video MP4, WEBM o MOV') }}</span>
+                            <input type="file" wire:model="video" accept="video/mp4,video/webm,video/quicktime" class="sr-only">
+                        </label>
+                    @endif
+
+                    <flux:text class="text-xs text-zinc-500">{{ __('Máximo 50 MB. Al cargar uno nuevo se reemplaza el anterior y siempre se muestra primero en la galería.') }}</flux:text>
+                    @error('video') <flux:text class="text-sm text-red-600">{{ $message }}</flux:text> @enderror
+                    <div wire:loading wire:target="video"><flux:text class="text-sm text-zinc-500">{{ __('Cargando video...') }}</flux:text></div>
+                </div>
 
                 <x-forms.image-upload-field
                     wire:model="photos"

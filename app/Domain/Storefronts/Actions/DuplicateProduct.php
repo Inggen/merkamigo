@@ -55,7 +55,9 @@ class DuplicateProduct
 
                 $duplicate->media()->create([
                     'path' => $newPath,
+                    'type' => $media->type,
                     'position' => $media->position,
+                    'alt_text' => $media->alt_text,
                 ]);
             }
 

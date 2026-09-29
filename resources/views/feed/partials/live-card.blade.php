@@ -23,7 +23,7 @@
             @endif
 
             @if ($live->pinnedProduct)
-                @php $product = $live->pinnedProduct; $photo = $product->media->first(); @endphp
+                @php $product = $live->pinnedProduct; $photo = $product->primaryImage(); @endphp
                 <div class="mt-auto flex items-center gap-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
                     <div class="size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                         @if ($photo)

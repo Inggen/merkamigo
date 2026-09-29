@@ -6,7 +6,8 @@
         : __(':product en :business, disponible en Merkamigo.', ['product' => $product->name, 'business' => $business->name]);
     $productUrl = route('vitrinas.product', [$business, $product]);
     $productSchemaId = $productUrl.'#product';
-    $pageImage = $product->media->first()?->url() ?? $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
+    $pageImage = $product->primaryImage()?->url() ?? $business->storefront?->coverUrl() ?? $business->logoUrl() ?? asset('images/backgrounds/fondo-redes-merkamigo.png');
+    $productSchema = \App\Support\Seo\SchemaBuilder::commerceEntity($product, $business);
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb([
             ['name' => __('Inicio'), 'url' => route('home')],
@@ -14,7 +15,7 @@
             ['name' => $product->name],
         ]),
         \App\Support\Seo\SchemaBuilder::localBusiness($business, collect([$product])),
-        \App\Support\Seo\SchemaBuilder::commerceEntity($product, $business),
+        $productSchema,
     ];
 
     $recommendations = $business->publishedRecommendations();
@@ -37,10 +38,13 @@
     // el total se muestra aparte, junto al selector.
     $hasNumericUnitPrice = in_array($product->price_type, ['exacto', 'desde'], true) && filled($product->price);
     $unitPrice = $product->hasActivePromo() ? (float) $product->promo_price : (float) $product->price;
-    $gallery = $product->media;
+    $gallery = $product->media->sortByDesc(fn ($media) => $media->isVideo())->values();
+    // Un producto tiene a lo sumo un video (StoresProductMedia lo garantiza).
+    $productVideo = $gallery->first(fn ($media) => $media->isVideo());
     $galleryItems = $gallery->map(fn ($media) => [
         'url' => $media->url(),
         'alt' => $media->alt_text ?? $product->name,
+        'type' => $media->type,
     ])->values();
     $productShareLabel = parse_url($productUrl, PHP_URL_HOST) . parse_url($productUrl, PHP_URL_PATH);
 @endphp
@@ -53,7 +57,9 @@
     :show-chat-widget="false"
     page-schema-type="ItemPage"
     :page-schema-data="[
-        'mainEntity' => ['@id' => $productSchemaId],
+        'mainEntity' => $productSchema
+            ? ['@id' => $productSchemaId]
+            : ['@type' => 'Thing', 'name' => $product->name, 'url' => $productUrl],
         'isPartOf' => ['@id' => route('vitrinas.show', $business).'#store'],
     ]"
     :schema-graph="$schemaGraph"
@@ -83,14 +89,17 @@
             // se mantiene como respaldo cuando no está disponible.
             shareSupported: typeof navigator !== 'undefined' && !! navigator.share,
             gallery: @js($galleryItems),
-            activeImage: @js($gallery->first()?->url() ?? $pageImage),
+            activeMedia: @js($gallery->first()?->url() ?? $pageImage),
             activeAlt: @js($gallery->first()?->alt_text ?? $product->name),
+            activeType: @js($gallery->first()?->type ?? 'image'),
             lightboxOpen: false,
             lightboxIndex: 0,
             setActive(index) {
                 if (! this.gallery[index]) return;
-                this.activeImage = this.gallery[index].url;
+                this.$refs.lightboxVideo?.pause();
+                this.activeMedia = this.gallery[index].url;
                 this.activeAlt = this.gallery[index].alt;
+                this.activeType = this.gallery[index].type;
             },
             openLightbox(index = 0) {
                 this.setActive(index);
@@ -99,6 +108,7 @@
                 document.body.classList.add('overflow-hidden');
             },
             closeLightbox() {
+                this.$refs.lightboxVideo?.pause();
                 this.lightboxOpen = false;
                 document.body.classList.remove('overflow-hidden');
             },
@@ -152,18 +162,24 @@
                         <div class="group relative overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
                             <div class="aspect-[4/3]">
                                 @if ($gallery->isNotEmpty())
-                                    <button
-                                        type="button"
-                                        x-on:click="openLightbox(gallery.findIndex((item) => item.url === activeImage) >= 0 ? gallery.findIndex((item) => item.url === activeImage) : 0)"
-                                        class="relative block h-full w-full text-left"
-                                        aria-label="{{ __('Abrir galería de imágenes') }}"
-                                    >
-                                        <img x-bind:src="activeImage" src="{{ $gallery->first()->url() }}" x-bind:alt="activeAlt" alt="{{ $gallery->first()->alt_text ?? $product->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" loading="eager" decoding="async">
-                                        <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-950/0 transition duration-300 group-hover:bg-zinc-950/20">
-                                            <span class="inline-flex translate-y-2 items-center justify-center rounded-full bg-white/95 p-3 text-zinc-900 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                                                <flux:icon.magnifying-glass-plus class="size-6" variant="outline" />
-                                            </span>
-                                        </div>
+                                    @if ($productVideo)
+                                        <x-media.video-player
+                                            :src="$productVideo->url()"
+                                            fit="cover"
+                                            aspect="auto"
+                                            :brand="false"
+                                            autoplay
+                                            loop
+                                            class="h-full w-full"
+                                            x-show="activeType === 'video'"
+                                        />
+                                    @endif
+                                    <button type="button" x-show="activeType === 'image'" x-on:click="openLightbox(gallery.findIndex((item) => item.url === activeMedia) >= 0 ? gallery.findIndex((item) => item.url === activeMedia) : 0)" class="relative block h-full w-full text-left" aria-label="{{ __('Abrir galería') }}">
+                                        <img x-bind:src="activeType === 'image' ? activeMedia : null" src="{{ $product->primaryImage()?->url() ?? $pageImage }}" x-bind:alt="activeAlt" alt="{{ $product->primaryImage()?->alt_text ?? $product->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" loading="eager" decoding="async">
+                                    </button>
+                                    <button type="button" x-on:click="openLightbox(gallery.findIndex((item) => item.url === activeMedia) >= 0 ? gallery.findIndex((item) => item.url === activeMedia) : 0)" class="absolute left-1/2 top-3 z-10 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-sm font-semibold text-zinc-900 shadow-lg transition hover:bg-white" aria-label="{{ __('Abrir galería') }}">
+                                        <flux:icon.arrows-pointing-out class="size-4" variant="outline" />
+                                        {{ __('Ampliar') }}
                                     </button>
                                 @endif
                             </div>
@@ -192,10 +208,15 @@
                                         type="button"
                                         x-on:click="setActive({{ $loop->index }})"
                                         class="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 transition hover:border-brand-300 dark:border-zinc-800 dark:bg-zinc-800"
-                                        aria-label="{{ __('Ver imagen :numero', ['numero' => $loop->iteration]) }}"
+                                        aria-label="{{ __('Ver elemento :numero', ['numero' => $loop->iteration]) }}"
                                     >
                                         <div class="aspect-square">
-                                            <img src="{{ $media->url() }}" class="h-full w-full object-cover" alt="{{ $media->alt_text ?? $product->name }}" loading="lazy" decoding="async">
+                                            @if ($media->isVideo())
+                                                <video src="{{ $media->url() }}" class="h-full w-full bg-black object-cover" muted playsinline preload="metadata"></video>
+                                                <span class="absolute inset-0 flex items-center justify-center"><span class="rounded-full bg-white/90 p-2 text-zinc-900"><flux:icon.play class="size-4" /></span></span>
+                                            @else
+                                                <img src="{{ $media->url() }}" class="h-full w-full object-cover" alt="{{ $media->alt_text ?? $product->name }}" loading="lazy" decoding="async">
+                                            @endif
                                         </div>
                                         <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-950/0 transition duration-300 group-hover:bg-zinc-950/20">
                                             <span class="inline-flex items-center justify-center rounded-full bg-white/95 p-2 text-zinc-900 opacity-0 shadow-md transition duration-300 group-hover:opacity-100">
@@ -564,7 +585,7 @@
                 class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/88 px-4 py-6"
                 role="dialog"
                 aria-modal="true"
-                aria-label="{{ __('Galería de imágenes') }}"
+                aria-label="{{ __('Galería del producto') }}"
             >
                 <button type="button" x-on:click="closeLightbox()" class="absolute inset-0 cursor-zoom-out" aria-label="{{ __('Cerrar galería') }}"></button>
 
@@ -584,7 +605,7 @@
                                 type="button"
                                 x-on:click="showPrevious()"
                                 class="absolute left-4 top-1/2 z-20 inline-flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-900 transition hover:bg-white"
-                                aria-label="{{ __('Imagen anterior') }}"
+                                aria-label="{{ __('Elemento anterior') }}"
                             >
                                 <flux:icon.chevron-left class="size-6" />
                             </button>
@@ -593,14 +614,15 @@
                                 type="button"
                                 x-on:click="showNext()"
                                 class="absolute right-4 top-1/2 z-20 inline-flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-900 transition hover:bg-white"
-                                aria-label="{{ __('Siguiente imagen') }}"
+                                aria-label="{{ __('Siguiente elemento') }}"
                             >
                                 <flux:icon.chevron-right class="size-6" />
                             </button>
                         @endif
 
                         <div class="flex min-h-[60vh] items-center justify-center bg-zinc-950/40 p-4 sm:p-8">
-                            <img x-bind:src="activeImage" x-bind:alt="activeAlt" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain">
+                            <video x-ref="lightboxVideo" x-show="activeType === 'video'" x-bind:src="activeType === 'video' ? activeMedia : null" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain" controls playsinline preload="metadata"></video>
+                            <img x-show="activeType === 'image'" x-bind:src="activeType === 'image' ? activeMedia : null" x-bind:alt="activeAlt" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain">
                         </div>
 
                         @if ($gallery->count() > 1)
@@ -616,9 +638,16 @@
                                             x-on:click="lightboxIndex = {{ $loop->index }}; setActive({{ $loop->index }})"
                                             class="overflow-hidden rounded-xl border border-white/15 transition"
                                             x-bind:class="lightboxIndex === {{ $loop->index }} ? 'border-white shadow-lg' : 'border-white/15 opacity-70 hover:opacity-100'"
-                                            aria-label="{{ __('Ir a imagen :numero', ['numero' => $loop->iteration]) }}"
+                                            aria-label="{{ __('Ir al elemento :numero', ['numero' => $loop->iteration]) }}"
                                         >
-                                            <img src="{{ $media->url() }}" class="size-16 object-cover" alt="{{ $media->alt_text ?? $product->name }}" loading="lazy" decoding="async">
+                                            @if ($media->isVideo())
+                                                <span class="relative block size-16 bg-black">
+                                                    <video src="{{ $media->url() }}" class="size-full object-cover" muted playsinline preload="metadata"></video>
+                                                    <span class="absolute inset-0 flex items-center justify-center text-white"><flux:icon.play class="size-5" /></span>
+                                                </span>
+                                            @else
+                                                <img src="{{ $media->url() }}" class="size-16 object-cover" alt="{{ $media->alt_text ?? $product->name }}" loading="lazy" decoding="async">
+                                            @endif
                                         </button>
                                     @endforeach
                                 </div>

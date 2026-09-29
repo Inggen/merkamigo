@@ -151,6 +151,23 @@ class SchemaBuilder
             ->map(fn (Recommendation $recommendation) => self::review($recommendation, $business))
             ->all();
         $ratedRecommendations = $publishedRecommendations->whereNotNull('rating');
+        $catalogOffers = $products
+            ->take(20)
+            ->map(function (Product $product) use ($business) {
+                $offer = self::offer($product, $business);
+
+                if ($offer === null) {
+                    return null;
+                }
+
+                return self::clean(array_merge($offer, [
+                    'itemOffered' => [
+                        '@id' => route('vitrinas.product', [$business, $product]).'#product',
+                    ],
+                ]));
+            })
+            ->filter()
+            ->values();
 
         return self::clean([
             '@type' => 'Store',
@@ -183,19 +200,10 @@ class SchemaBuilder
                 'bestRating' => Recommendation::MAX_RATING,
                 'worstRating' => Recommendation::MIN_RATING,
             ],
-            'hasOfferCatalog' => $products->isEmpty() ? null : [
+            'hasOfferCatalog' => $catalogOffers->isEmpty() ? null : [
                 '@type' => 'OfferCatalog',
                 'name' => __('Catálogo de :business', ['business' => $business->name]),
-                'itemListElement' => $products->take(20)->map(function (Product $product) use ($business) {
-                    return [
-                        '@type' => 'Offer',
-                        'itemOffered' => [
-                            '@type' => $product->type === 'servicio' ? 'Service' : 'Product',
-                            'name' => $product->name,
-                            'url' => route('vitrinas.product', [$business, $product]),
-                        ],
-                    ];
-                })->all(),
+                'itemListElement' => $catalogOffers->all(),
             ],
         ]);
     }
@@ -221,9 +229,22 @@ class SchemaBuilder
         return $names->map(fn (string $name) => ['@type' => 'City', 'name' => $name])->all();
     }
 
-    public static function commerceEntity(Product $product, Business $business): array
+    public static function commerceEntity(Product $product, Business $business): ?array
     {
-        $images = $product->media->map(fn ($media) => $media->url())->values()->all();
+        $images = $product->media
+            ->reject(fn ($media) => $media->isVideo())
+            ->map(fn ($media) => $media->url())
+            ->values()
+            ->all();
+        $offer = self::offer($product, $business);
+
+        // Google exige que cada Product tenga `offers`, `review` o
+        // `aggregateRating`. Merkamigo todavía no almacena opiniones por
+        // producto, por lo que un artículo sin precio real no debe anunciarse
+        // como Product en JSON-LD. La página permanece indexable como ItemPage.
+        if ($product->type === 'producto' && $offer === null) {
+            return null;
+        }
 
         $schema = [
             '@type' => $product->type === 'servicio' ? 'Service' : 'Product',
@@ -247,7 +268,7 @@ class SchemaBuilder
                 '@id' => route('vitrinas.show', $business).'#store',
             ],
             'areaServed' => self::areaServed($business),
-            'offers' => self::offer($product, $business),
+            'offers' => $offer,
         ];
 
         if ($product->type === 'producto') {
@@ -329,7 +350,7 @@ class SchemaBuilder
         // Google (Search Console lo reporta como "Falta el campo 'price'").
         // Cuando el precio es "a consultar" es mejor omitir `offers` por
         // completo que publicar un Offer incompleto.
-        if (! filled($price) || $product->price_type === 'consultar') {
+        if (! filled($price) || (float) $price <= 0 || $product->price_type === 'consultar') {
             return null;
         }
 

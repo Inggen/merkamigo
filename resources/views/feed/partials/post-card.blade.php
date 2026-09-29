@@ -52,7 +52,7 @@
             aria-label="{{ __('Productos de la publicación') }}"
         >
             @foreach ($post->products as $product)
-                @php $photo = $product->media->first(); @endphp
+                @php $photo = $product->primaryImage(); @endphp
                 <div class="flex w-72 shrink-0 snap-start items-center gap-2 rounded-xl border border-zinc-200 p-2 dark:border-zinc-700">
                     <a href="{{ route('vitrinas.product', [$business, $product]) }}" wire:navigate class="flex min-w-0 flex-1 items-center gap-2.5">
                         <div class="size-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">

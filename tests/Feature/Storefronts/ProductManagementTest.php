@@ -226,6 +226,42 @@ class ProductManagementTest extends TestCase
         $this->assertSame([$third, $first, $second], $orderedIds);
     }
 
+    public function test_owner_can_upload_and_replace_a_product_video_that_stays_first_in_the_gallery(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
+
+        $this->actingAs($owner);
+
+        $component = Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->call('openCreate')
+            ->set('name', 'Servicio con video')
+            ->set('type', 'servicio')
+            ->set('photos', [UploadedFile::fake()->image('portada.jpg')])
+            ->set('video', UploadedFile::fake()->create('presentacion.mp4', 1024, 'video/mp4'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $product = $business->products()->where('name', 'Servicio con video')->firstOrFail();
+        $this->assertSame(['video', 'image'], $product->media()->pluck('type')->all());
+
+        $oldVideo = $product->media()->where('type', 'video')->firstOrFail();
+        Storage::disk('public')->assertExists($oldVideo->path);
+
+        $component->call('openEdit', $product->id)
+            ->set('video', UploadedFile::fake()->create('nuevo.mp4', 1024, 'video/mp4'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $product->refresh();
+        $this->assertSame(1, $product->media()->where('type', 'video')->count());
+        $this->assertSame('video', $product->media()->firstOrFail()->type);
+        Storage::disk('public')->assertMissing($oldVideo->path);
+        Storage::disk('public')->assertExists($product->media()->where('type', 'video')->firstOrFail()->path);
+    }
+
     public function test_owner_can_create_edit_and_archive_a_product(): void
     {
         Storage::fake('public');

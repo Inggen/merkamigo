@@ -46,7 +46,7 @@ class BusinessMessageReceived extends Notification implements ShouldQueue
             'sender_name' => $this->message->sender->name,
             'message' => __('Nuevo mensaje de :name: :body', [
                 'name' => $this->message->sender->name,
-                'body' => str($this->message->body)->limit(80),
+                'body' => filled($this->message->body) ? str($this->message->body)->limit(80) : __('(foto adjunta)'),
             ]),
             'url' => route('messages.show', $this->conversation),
             'action_label' => __('Responder'),

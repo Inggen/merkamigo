@@ -258,7 +258,7 @@ new #[Layout('layouts::app')] #[Title('Estudio Live')] class extends Component
             'name' => $product->name,
             'price' => $price ? '$'.number_format((float) $price, 0, ',', '.') : '',
             'availability' => $product->isSoldOut() ? __('Agotado') : __('Disponible'),
-            'image' => $product->media->first()?->url(),
+            'image' => $product->primaryImage()?->url(),
         ];
     }
 
@@ -297,7 +297,7 @@ new #[Layout('layouts::app')] #[Title('Estudio Live')] class extends Component
                 ? '$'.number_format((float) $initialProductPrice, 0, ',', '.')
                 : '',
             'availability' => $this->live->pinnedProduct->isSoldOut() ? __('Agotado') : __('Disponible'),
-            'image' => $this->live->pinnedProduct->media->first()?->url(),
+            'image' => $this->live->pinnedProduct->primaryImage()?->url(),
         ]
         : null;
     $initialPollOverlay = $this->live->activePoll
@@ -433,7 +433,7 @@ new #[Layout('layouts::app')] #[Title('Estudio Live')] class extends Component
                 @if ($this->live->pinnedProduct)
                     @php
                         $pinned = $this->live->pinnedProduct;
-                        $pinnedPhoto = $pinned->media->first();
+                        $pinnedPhoto = $pinned->primaryImage();
                         $pinnedPrice = $pinned->hasActivePromo() ? $pinned->promo_price : $pinned->price;
                     @endphp
                     <div class="mb-3 rounded-2xl bg-white p-3 text-zinc-950 shadow-2xl">
@@ -466,7 +466,7 @@ new #[Layout('layouts::app')] #[Title('Estudio Live')] class extends Component
                 @if ($this->live->pinnedProduct)<flux:button type="button" variant="ghost" icon="eye-slash" class="w-full" wire:click="hideProduct">{{ __('Ocultar producto actual') }}</flux:button>@endif
                 <div class="space-y-3">
                     @foreach ($this->live->products as $product)
-                        @php $photo = $product->media->first(); @endphp
+                        @php $photo = $product->primaryImage(); @endphp
                         <div class="flex items-center gap-3 rounded-xl border p-3 {{ $this->live->pinned_product_id === $product->id ? 'border-brand-500 bg-brand-50 dark:bg-brand-950' : 'border-zinc-200 dark:border-zinc-700' }}">
                             <div class="size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">@if ($photo)<img src="{{ $photo->url() }}" alt="{{ $product->name }}" class="size-full object-cover">@endif</div>
                             <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold">{{ $product->name }}</p>@if ($product->price)<p class="text-xs text-zinc-500">${{ number_format((float) $product->price, 0, ',', '.') }}</p>@endif</div>

@@ -35,10 +35,32 @@ class VitrinaController extends Controller
             app(RegisterRecentlyViewedBusiness::class)->handle($request->user(), $business);
         }
 
+        $storefrontPosts = $business->storefront?->show_posts
+            ? $business->posts()
+                ->where('status', 'publicado')
+                ->where('type', '!=', 'video')
+                ->with(['business.municipality', 'media', 'products.media', 'activePromotion'])
+                ->latest('published_at')
+                ->take(6)
+                ->get()
+            : collect();
+        $storefrontReels = $business->storefront?->show_reels
+            ? $business->posts()
+                ->where('status', 'publicado')
+                ->where('type', 'video')
+                ->with(['business.municipality', 'media', 'products.media', 'activePromotion'])
+                ->latest('published_at')
+                ->take(6)
+                ->get()
+            : collect();
+
         return view('vitrinas.show', [
             'business' => $business,
             'products' => $business->products()->where('status', 'publicado')->with('media')->get(),
-            'initialTab' => in_array($request->query('tab'), ['informacion', 'productos', 'opiniones'], true)
+            'storefrontPosts' => $storefrontPosts,
+            'storefrontReels' => $storefrontReels,
+            'highlightedStories' => $business->highlightedStories()->with('product')->take(12)->get(),
+            'initialTab' => in_array($request->query('tab'), ['informacion', 'productos', 'contenido', 'opiniones'], true)
                 ? $request->query('tab')
                 : 'informacion',
         ]);
