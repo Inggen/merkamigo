@@ -61,9 +61,17 @@ class Plan extends Model
     /**
      * Límite configurado para una clave dada (ej. `max_products`), o null
      * si el plan no define un tope para esa clave (sin límite).
+     *
+     * Normaliza a `int` explícitamente porque `limits` se edita desde un
+     * campo `KeyValue` de Filament, que siempre guarda strings — sin este
+     * cast, un valor como `"10"` rompe la declaración de retorno `?int`
+     * bajo `strict_types` (el código generado por Livewire Blaze para las
+     * páginas SFC sí lo declara, aunque este archivo no lo haga).
      */
     public function limit(string $key): ?int
     {
-        return $this->limits[$key] ?? null;
+        $value = $this->limits[$key] ?? null;
+
+        return filled($value) ? (int) $value : null;
     }
 }

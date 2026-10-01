@@ -7,19 +7,22 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Needs\Models\Offer;
 use App\Domain\Trust\Models\OrderConfirmation;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Exportación de datos propios (4.5 del TODO): un CSV con los eventos,
  * propuestas y pedidos de este negocio — solo lo que le pertenece, nunca
  * datos de otros negocios ni de compradores fuera de lo que ya podía ver
- * en su propio panel.
+ * en su propio panel. Exclusiva del plan Negocios (`isOnTopPlan()`), junto
+ * con el periodo de 90 días de Métricas.
  */
 class MetricsExportController extends Controller
 {
     public function export(Business $business): StreamedResponse
     {
         $this->authorize('view', $business);
+        abort_unless($business->isOnTopPlan() || (Auth::user()?->canBypassPlanGates() ?? false), 403);
 
         $filename = 'merkamigo-'.$business->slug.'-'.now()->format('Y-m-d').'.csv';
 

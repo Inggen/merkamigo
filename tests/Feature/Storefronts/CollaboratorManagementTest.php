@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\BusinessMembership;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
@@ -20,6 +22,14 @@ class CollaboratorManagementTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Equipo'])->business;
+
+        // El plan Básico por defecto solo trae 1 miembro (el dueño ya lo
+        // ocupa); se necesita un plan de pago para tener cupo real.
+        $plan = Plan::create([
+            'slug' => 'emprendedor', 'name' => 'Emprendedor', 'price_cents' => 4990000,
+            'billing_period' => Plan::MENSUAL, 'limits' => ['max_members' => 3], 'is_active' => true, 'position' => 1,
+        ]);
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
 
         $collaborator = User::factory()->create(['email' => 'ayuda@example.com']);
 

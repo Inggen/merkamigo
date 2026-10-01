@@ -1,6 +1,5 @@
 <?php
 
-use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Actions\ParseBusinessHoursText;
 use App\Domain\Businesses\Actions\SyncBusinessMunicipalities;
 use App\Domain\Businesses\Models\Business;
@@ -322,7 +321,7 @@ new #[Title('Editar mi vitrina')] class extends Component
      */
     public function canUseAiForVitrina(): bool
     {
-        return $this->business->activePlan()->slug === Plan::EMPRENDEDOR
+        return $this->business->isOnTopPlan()
             || (Auth::user()?->canBypassPlanGates() ?? false);
     }
 

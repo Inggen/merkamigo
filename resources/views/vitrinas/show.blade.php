@@ -449,6 +449,9 @@
                             @if ($business->hasVerifiedBadge())
                                 <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100 lg:col-span-2">
                                     <h3 class="font-semibold">{{ $business->verifiedBadgeLabel() }}</h3>
+                                    @if (($confirmedOrdersCount = $business->confirmedOrdersCount()) > 0)
+                                        <p class="mt-1 text-sm font-medium">{{ trans_choice(':count pedido confirmado|:count pedidos confirmados', $confirmedOrdersCount, ['count' => $confirmedOrdersCount]) }}</p>
+                                    @endif
                                     <p class="mt-2 text-sm leading-7">{{ __('Esta insignia confirma una revisión básica de identidad o documentos del negocio. No implica garantía de calidad, pago ni entrega por parte de Merkamigo.') }}</p>
                                 </div>
                             @endif

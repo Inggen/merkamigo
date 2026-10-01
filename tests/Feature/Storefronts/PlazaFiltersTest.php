@@ -56,7 +56,7 @@ class PlazaFiltersTest extends TestCase
 
         $regular = $this->publishedBusiness($municipality, $category);
 
-        $response = $this->get(route('plaza.show', $municipality));
+        $response = $this->get(route('buscar', $municipality->slug));
 
         $response->assertOk()->assertSeeInOrder([
             __('Destacados'),
@@ -74,7 +74,7 @@ class PlazaFiltersTest extends TestCase
         $centro = $this->publishedBusiness($municipality, $category, ['zone' => 'Centro']);
         $norte = $this->publishedBusiness($municipality, $category, ['zone' => 'Norte']);
 
-        $response = $this->get(route('plaza.show', $municipality).'?zona=Centro');
+        $response = $this->get(route('buscar', $municipality->slug).'?zona=Centro');
 
         $response->assertOk()
             ->assertSee($centro->name)
@@ -89,14 +89,14 @@ class PlazaFiltersTest extends TestCase
         $business = $this->publishedBusiness($municipality, $category);
         $product = $business->products()->firstOrFail();
 
-        $this->get(route('plaza.show', $municipality))
+        $this->get(route('buscar', $municipality->slug))
             ->assertOk()
             ->assertSee(__('Productos'))
             ->assertSee($product->name);
 
         $product->update(['is_available' => false]);
 
-        $this->get(route('plaza.show', $municipality).'?disponibles=1')
+        $this->get(route('buscar', $municipality->slug).'?disponibles=1')
             ->assertOk()
             ->assertDontSee($product->name);
     }
@@ -106,11 +106,11 @@ class PlazaFiltersTest extends TestCase
         $withCover = Municipality::create(['name' => 'Cajicá', 'slug' => 'cajica', 'department' => 'Cundinamarca', 'is_active' => true, 'cover_path' => 'municipalities/cajica.jpg']);
         $withoutCover = Municipality::create(['name' => 'Zipaquirá', 'slug' => 'zipaquira', 'department' => 'Cundinamarca', 'is_active' => true]);
 
-        $this->get(route('plaza.show', $withCover))
+        $this->get(route('buscar', $withCover->slug))
             ->assertOk()
             ->assertSee((string) Js::from($withCover->coverUrl()), false);
 
-        $this->get(route('plaza.show', $withoutCover))
+        $this->get(route('buscar', $withoutCover->slug))
             ->assertOk()
             ->assertSee((string) Js::from(asset('images/backgrounds/fondo-buscador-principal.webp')), false);
     }
@@ -126,7 +126,7 @@ class PlazaFiltersTest extends TestCase
         $near = $this->publishedBusiness($municipality, $category, ['latitude' => 4.9186, 'longitude' => -74.0279]);
         $withoutCoordinates = $this->publishedBusiness($municipality, $category);
 
-        $response = $this->get(route('plaza.show', $municipality).'?lat=4.9186&lng=-74.0279');
+        $response = $this->get(route('buscar', $municipality->slug).'?lat=4.9186&lng=-74.0279');
 
         $response->assertOk()->assertSeeInOrder([
             __('Cerca de ti'),
@@ -143,7 +143,7 @@ class PlazaFiltersTest extends TestCase
 
         $this->publishedBusiness($municipality, $category);
 
-        $this->get(route('plaza.show', $municipality).'?lat=200&lng=-74.0279')
+        $this->get(route('buscar', $municipality->slug).'?lat=200&lng=-74.0279')
             ->assertOk()
             ->assertDontSee(__('Cerca de ti'));
     }
@@ -170,7 +170,7 @@ class PlazaFiltersTest extends TestCase
         $product = $business->products()->firstOrFail();
 
         $need = app(SaveNeedDraft::class)->handle(User::factory()->create(), null, [
-            'title' => 'Necesito jardinero', 'description' => 'Podar el jardín.', 'municipality_id' => $municipality->id,
+            'title' => 'Necesito jardinero', 'description' => 'Podar el jardín.', 'municipality_id' => $municipality->id, 'category_id' => $category->id,
         ]);
         app(PublishNeed::class)->handle($need, $need->user);
 

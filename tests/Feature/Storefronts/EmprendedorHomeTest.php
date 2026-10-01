@@ -24,7 +24,11 @@ class EmprendedorHomeTest extends TestCase
     public function test_a_draft_business_shows_what_is_missing_to_sell(): void
     {
         $owner = User::factory()->create();
-        app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio a medias']);
+        // `contact_channel` explícito: desde la mensajería interna (24 sep
+        // 2026) un negocio nuevo usa por defecto el canal 'merkamigo' y no
+        // necesita WhatsApp para vender — solo falta si el negocio eligió
+        // WhatsApp/teléfono como su canal de contacto.
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio a medias', 'contact_channel' => 'whatsapp']);
 
         $this->actingAs($owner)
             ->get(route('emprendedores.home'))

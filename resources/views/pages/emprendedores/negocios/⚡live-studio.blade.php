@@ -46,6 +46,7 @@ new #[Layout('layouts::app')] #[Title('Estudio Live')] class extends Component
         setPermissionsTeamId($business->id);
         Auth::user()->unsetRelation('roles');
         $this->authorize('update', $business);
+        abort_unless($business->isOnTopPlan() || (Auth::user()?->canBypassPlanGates() ?? false), 403);
         abort_unless($liveStream->business_id === $business->id, 404);
         abort_if($liveStream->status === LiveStream::FINALIZADO, 404);
 

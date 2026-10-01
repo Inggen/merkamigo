@@ -55,8 +55,29 @@ class OrderConfirmationsApiTest extends TestCase
         Sanctum::actingAs($customer);
         $this->postJson(route('api.v1.order-confirmations.recomendacion', $order), [
             'body' => 'Excelente atención, todo a tiempo.',
+            'rating' => 5,
             'tags' => ['Cumplió a tiempo'],
-        ])->assertCreated()->assertJsonPath('data.body', 'Excelente atención, todo a tiempo.');
+        ])->assertCreated()
+            ->assertJsonPath('data.body', 'Excelente atención, todo a tiempo.')
+            ->assertJsonPath('data.rating', 5);
+    }
+
+    public function test_recommending_without_a_valid_rating_is_rejected(): void
+    {
+        $customer = User::factory()->create();
+        [$owner, , $order] = $this->directOrder($customer);
+
+        Sanctum::actingAs($customer);
+        $this->postJson(route('api.v1.order-confirmations.confirmar', $order))->assertOk();
+
+        Sanctum::actingAs($owner);
+        $this->postJson(route('api.v1.order-confirmations.completar', $order))->assertOk();
+
+        Sanctum::actingAs($customer);
+        $this->postJson(route('api.v1.order-confirmations.recomendacion', $order), [
+            'body' => 'Excelente atención, todo a tiempo.',
+            'tags' => ['Cumplió a tiempo'],
+        ])->assertStatus(422);
     }
 
     public function test_a_stranger_cannot_act_on_someone_elses_order(): void

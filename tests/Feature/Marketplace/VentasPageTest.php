@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Marketplace;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Marketplace\Actions\ApplyApprovedOrder;
 use App\Domain\Marketplace\Actions\ConnectBusinessWompi;
 use App\Domain\Marketplace\Actions\CreateOrderCheckout;
@@ -23,6 +25,14 @@ class VentasPageTest extends TestCase
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Ventas'])->business;
         $business->update(['wompi_payment_source_id' => '123', 'auto_renew_enabled' => true]);
+
+        // Ver "Ventas" requiere un plan de pago desde el reparto del
+        // 2026-09-30 (antes abierto a cualquiera).
+        $plan = Plan::create([
+            'slug' => 'emprendedor', 'name' => 'Emprendedor', 'price_cents' => 4990000,
+            'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 1,
+        ]);
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
 
         $product = $business->products()->create([
             'name' => 'Producto', 'slug' => 'producto-ventas', 'type' => 'producto',

@@ -38,6 +38,26 @@ class ProductManagementTest extends TestCase
         ]);
     }
 
+    /**
+     * El asistente IA (mejorar descripción, generar foto) es exclusivo del
+     * plan Negocios desde el reparto del 2026-09-30 — Emprendedor ya no lo
+     * incluye.
+     */
+    private function negociosPlan(): Plan
+    {
+        return Plan::create([
+            'slug' => 'negocios',
+            'name' => 'Negocios',
+            'description' => 'Todas las herramientas de Merkamigo.',
+            'price_cents' => 9900000,
+            'billing_period' => Plan::MENSUAL,
+            'limits' => ['max_products' => 50, 'max_members' => 5, 'max_featured_days' => 15, 'max_storefronts' => 5],
+            'trial_days' => 14,
+            'is_active' => true,
+            'position' => 2,
+        ]);
+    }
+
     private function assignPlatformRole(User $user, string $role): void
     {
         $previousTeamId = getPermissionsTeamId();
@@ -59,7 +79,7 @@ class ProductManagementTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
-        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $owner);
+        app(SubscribeToPlan::class)->handle($business, $this->negociosPlan(), $owner);
 
         $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
         {
@@ -106,7 +126,7 @@ class ProductManagementTest extends TestCase
 
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
-        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $owner);
+        app(SubscribeToPlan::class)->handle($business, $this->negociosPlan(), $owner);
 
         $this->actingAs($owner);
 
@@ -141,7 +161,7 @@ class ProductManagementTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Test'])->business;
-        app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $owner);
+        app(SubscribeToPlan::class)->handle($business, $this->negociosPlan(), $owner);
 
         $this->app->bind(GeneratesImages::class, fn () => new class($this->fakePng()) implements GeneratesImages
         {

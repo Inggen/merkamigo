@@ -58,6 +58,7 @@ new #[Title('En vivo')] class extends Component
         setPermissionsTeamId($business->id);
         Auth::user()->unsetRelation('roles');
         $this->authorize('update', $business);
+        abort_unless($business->isOnTopPlan() || (Auth::user()?->canBypassPlanGates() ?? false), 403);
         $this->businessId = $business->id;
     }
 

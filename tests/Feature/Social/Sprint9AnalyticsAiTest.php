@@ -4,6 +4,8 @@ namespace Tests\Feature\Social;
 
 use App\Domain\Analytics\Actions\CalculateSocialContentPerformance;
 use App\Domain\Analytics\Models\AnalyticsEvent;
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Social\Actions\CreatePost;
 use App\Domain\Social\Actions\GenerateSocialSalesCopy;
 use App\Domain\Social\Models\LiveStream;
@@ -72,6 +74,12 @@ class Sprint9AnalyticsAiTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Periodos'])->business;
+        // 90 días es exclusivo del plan Negocios desde el 2026-09-30.
+        $plan = Plan::create([
+            'slug' => 'negocios', 'name' => 'Negocios', 'price_cents' => 9900000,
+            'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 2,
+        ]);
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
         $this->actingAs($owner);
 
         Livewire::test('pages::emprendedores.negocios.metricas', ['business' => $business->id])

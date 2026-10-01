@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\WhatsApp\Models\WhatsAppContent;
@@ -11,16 +14,28 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * 1.7 del TODO: Copiloto de WhatsApp inicial.
+ * 1.7 del TODO: Copiloto de WhatsApp inicial. Requiere un plan de pago
+ * (Emprendedor o Negocios) desde el reparto del 2026-09-30 — antes
+ * abierto a cualquiera.
  */
 class WhatsAppCopilotTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function subscribeToPaidPlan(Business $business, User $owner): void
+    {
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'emprendedor'],
+            ['name' => 'Emprendedor', 'price_cents' => 4990000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 1],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
+    }
+
     public function test_owner_can_generate_a_product_promotion_with_a_valid_link_and_no_invented_price(): void
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Panadería Copiloto'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
         $product = app(CreateProduct::class)->handle($business, [
             'name' => 'Pan francés', 'type' => 'producto', 'price_type' => 'exacto', 'price' => 2500,
         ], [], $owner);
@@ -43,6 +58,7 @@ class WhatsAppCopilotTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Sin Producto'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 
@@ -57,6 +73,7 @@ class WhatsAppCopilotTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Historial'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 
@@ -77,6 +94,7 @@ class WhatsAppCopilotTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Tope'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 
@@ -108,6 +126,7 @@ class WhatsAppCopilotTest extends TestCase
         // en la carga inicial (ver commit del fix del 403).
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Contexto'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 

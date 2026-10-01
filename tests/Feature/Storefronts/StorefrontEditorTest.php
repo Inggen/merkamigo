@@ -44,6 +44,31 @@ class StorefrontEditorTest extends TestCase
         app(SubscribeToPlan::class)->handle($business, $this->emprendedorPlan(), $actor);
     }
 
+    /**
+     * El asistente IA (mejorar descripción, generar foto/portada, chatbot)
+     * es exclusivo del plan Negocios desde el reparto del 2026-09-30 —
+     * Emprendedor ya no lo incluye.
+     */
+    private function negociosPlan(): Plan
+    {
+        return Plan::create([
+            'slug' => 'negocios',
+            'name' => 'Negocios',
+            'description' => 'Todas las herramientas de Merkamigo.',
+            'price_cents' => 9900000,
+            'billing_period' => Plan::MENSUAL,
+            'limits' => ['max_products' => 50, 'max_members' => 5, 'max_featured_days' => 15, 'max_storefronts' => 5],
+            'trial_days' => 14,
+            'is_active' => true,
+            'position' => 2,
+        ]);
+    }
+
+    private function subscribeToNegociosPlan(Business $business, User $actor): void
+    {
+        app(SubscribeToPlan::class)->handle($business, $this->negociosPlan(), $actor);
+    }
+
     private function assignPlatformRole(User $user, string $role): void
     {
         $previousTeamId = getPermissionsTeamId();
@@ -314,7 +339,7 @@ class StorefrontEditorTest extends TestCase
         $business = app(CreateStorefront::class)->handle($owner, [
             'name' => 'Negocio Descripción IA', 'whatsapp_number' => '+573001112233',
         ])->business;
-        $this->subscribeToEmprendedorPlan($business, $owner);
+        $this->subscribeToNegociosPlan($business, $owner);
 
         $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
         {
@@ -343,7 +368,7 @@ class StorefrontEditorTest extends TestCase
         $business = app(CreateStorefront::class)->handle($owner, [
             'name' => 'Negocio Descripción Sin IA', 'whatsapp_number' => '+573001112233',
         ])->business;
-        $this->subscribeToEmprendedorPlan($business, $owner);
+        $this->subscribeToNegociosPlan($business, $owner);
 
         $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
         {
@@ -381,6 +406,31 @@ class StorefrontEditorTest extends TestCase
 
         Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
             ->assertSet('description', null)
+            ->call('improveDescription')
+            ->assertSet('description', null);
+
+        $this->assertNull($business->fresh()->storefront->description);
+    }
+
+    public function test_improve_description_is_still_blocked_with_only_the_emprendedor_plan(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Solo Emprendedor', 'whatsapp_number' => '+573001112233',
+        ])->business;
+        $this->subscribeToEmprendedorPlan($business, $owner);
+
+        $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
+        {
+            public function generate(string $prompt, array $context = []): ?string
+            {
+                return 'Esto nunca debería guardarse.';
+            }
+        });
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
             ->call('improveDescription')
             ->assertSet('description', null);
 

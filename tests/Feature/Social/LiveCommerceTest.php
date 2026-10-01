@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Social;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
@@ -740,6 +742,18 @@ class LiveCommerceTest extends TestCase
             'category_id' => $category->id,
         ])->business;
         $business->update(['status' => 'publicado']);
+
+        // En vivo es exclusivo del plan Negocios desde el reparto del
+        // 2026-09-30 — todo este archivo prueba esa función, así que el
+        // fixture compartido ya queda suscrito.
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'negocios'],
+            [
+                'name' => 'Negocios', 'price_cents' => 9900000, 'billing_period' => Plan::MENSUAL,
+                'is_active' => true, 'position' => 2,
+            ],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
 
         foreach (range(1, 2) as $productNumber) {
             $business->products()->create([

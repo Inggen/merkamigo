@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
 use App\Support\Ai\Contracts\GeneratesAssistedText;
@@ -17,6 +19,12 @@ class WhatsAppCopilotAiTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio IA'])->business;
+        // El Copiloto requiere un plan de pago desde el 2026-09-30.
+        $plan = Plan::create([
+            'slug' => 'emprendedor', 'name' => 'Emprendedor', 'price_cents' => 4990000,
+            'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 1,
+        ]);
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
 
         $this->app->bind(GeneratesAssistedText::class, fn () => new class implements GeneratesAssistedText
         {

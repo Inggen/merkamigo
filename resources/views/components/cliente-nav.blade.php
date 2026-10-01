@@ -74,6 +74,7 @@
                     </button>
                     <flux:menu>
                         <flux:menu.item :href="route('profile.edit')" icon="user-circle" wire:navigate>{{ __('Mi cuenta') }}</flux:menu.item>
+                        <flux:menu.item :href="route('clientes.actividad')" icon="bell" wire:navigate>{{ __('Actividad') }}</flux:menu.item>
                         <flux:menu.item :href="route('clientes.favoritos')" icon="heart" wire:navigate>{{ __('Favoritos') }}</flux:menu.item>
                         <flux:menu.separator />
                         <x-experience-switch-menu />

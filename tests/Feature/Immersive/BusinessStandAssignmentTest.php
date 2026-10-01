@@ -69,8 +69,13 @@ class BusinessStandAssignmentTest extends TestCase
 
     private function makeTemplate(): ImmersiveObjectTemplate
     {
+        // `builder_key: 'stand'` (no 'standTable'/'standBooth', que son
+        // variantes con su propio slot dedicado) es el valor que
+        // `AssignBusinessToStand::resolveTemplate()` busca como plantilla
+        // genérica por defecto — coincide con las plantillas reales y
+        // publicadas sembradas en producción.
         return ImmersiveObjectTemplate::create([
-            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'standTable',
+            'name' => 'Stand estándar', 'slug' => 'stand-estandar-'.uniqid(), 'category' => 'stand', 'builder_key' => 'stand',
             'max_width' => 3.2, 'max_depth' => 2.4, 'max_height' => 2.9, 'status' => 'publicada',
         ]);
     }

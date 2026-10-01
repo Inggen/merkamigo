@@ -65,7 +65,7 @@ class SwitchExperienceTest extends TestCase
         $this->assertNotNull($cookie);
 
         $this->withUnencryptedCookie('experience', $cookie->getValue())
-            ->post(route('register.store'), [
+            ->post(route('front.register.store'), [
                 'name' => 'Nueva Emprendedora',
                 'email' => 'nueva@example.com',
                 'password' => 'password',

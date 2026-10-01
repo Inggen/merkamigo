@@ -64,7 +64,15 @@
             />
         </div>
 
-        <h2 id="nuevos-en-la-plaza" class="mb-6 scroll-mt-24 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white">{{ __('Nuevos en la plaza') }}</h2>
+        <h2 id="nuevos-en-la-plaza" class="mb-6 scroll-mt-24 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+            @if ($selectedCategory)
+                {{ __('Negocios en :categoria', ['categoria' => $selectedCategory->name]) }}
+            @elseif ($near)
+                {{ __('Cerca de ti') }}
+            @else
+                {{ __('Nuevos en la plaza') }}
+            @endif
+        </h2>
 
         @if ($businesses->isEmpty())
             <x-states.empty title="{{ __('No encontramos resultados') }}" description="{{ __('Intenta con otro nombre, categoría o municipio.') }}" />

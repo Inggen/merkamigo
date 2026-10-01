@@ -155,7 +155,15 @@ class CatalogResults extends Component
             ->whereHas('business', fn (Builder $businesses) => $businesses
                 ->where('status', 'publicado')
                 ->when($this->municipalityId, fn (Builder $businesses) => $businesses->servesMunicipality($this->municipalityId))
-                ->when($this->categoryId, fn (Builder $businesses) => $businesses->where('category_id', $this->categoryId)))
+                ->when($this->categoryId, fn (Builder $businesses) => $businesses->where('category_id', $this->categoryId))
+                ->when($this->zone && $this->municipalityId, fn (Builder $businesses) => $businesses
+                    ->where(fn (Builder $businesses) => $businesses
+                        ->where(fn (Builder $businesses) => $businesses
+                            ->where('municipality_id', $this->municipalityId)
+                            ->where('zone', $this->zone))
+                        ->orWhereHas('municipalities', fn (Builder $municipalities) => $municipalities
+                            ->where('municipalities.id', $this->municipalityId)
+                            ->where('business_municipalities.zone', $this->zone)))))
             ->with(['business', 'media']);
 
         if ($this->latitude === null || $this->longitude === null) {

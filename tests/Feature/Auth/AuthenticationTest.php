@@ -22,7 +22,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->post(route('login.store'), [
+        $response = $this->post(route('front.login.store'), [
             'email' => $user->email,
             'password' => 'password',
         ]);
@@ -38,7 +38,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->post(route('login.store'), [
+        $response = $this->post(route('front.login.store'), [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
@@ -59,7 +59,7 @@ class AuthenticationTest extends TestCase
 
         $user = User::factory()->withTwoFactor()->create();
 
-        $response = $this->post(route('login.store'), [
+        $response = $this->post(route('front.login.store'), [
             'email' => $user->email,
             'password' => 'password',
         ]);

@@ -5,6 +5,9 @@ namespace Tests\Feature\Analytics;
 use App\Domain\Analytics\Actions\CalculateConversionFunnel;
 use App\Domain\Analytics\Actions\CalculateProductPerformance;
 use App\Domain\Analytics\Models\AnalyticsEvent;
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\Trust\Models\OrderConfirmation;
@@ -20,6 +23,19 @@ use Tests\TestCase;
 class GrowthAnalyticsTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * El periodo de 90 días y exportar CSV son exclusivos del plan
+     * Negocios desde el reparto del 2026-09-30.
+     */
+    private function subscribeToNegociosPlan(Business $business, User $owner): void
+    {
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'negocios'],
+            ['name' => 'Negocios', 'price_cents' => 9900000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 2],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
+    }
 
     public function test_the_conversion_funnel_counts_visits_clicks_and_completed_orders_in_the_last_seven_days(): void
     {
@@ -108,6 +124,7 @@ class GrowthAnalyticsTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Panel'])->business;
+        $this->subscribeToNegociosPlan($business, $owner);
         $product = app(CreateProduct::class)->handle($business, [
             'name' => 'Producto Visible', 'type' => 'producto', 'price_type' => 'consultar',
         ], [], $owner);
@@ -131,6 +148,7 @@ class GrowthAnalyticsTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Exporta'])->business;
+        $this->subscribeToNegociosPlan($business, $owner);
 
         AnalyticsEvent::create(['business_id' => $business->id, 'type' => AnalyticsEvent::VITRINA_VIEW, 'visitor_hash' => 'a']);
 

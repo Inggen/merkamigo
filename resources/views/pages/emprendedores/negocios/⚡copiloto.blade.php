@@ -65,6 +65,7 @@ new #[Title('Copiloto de WhatsApp')] class extends Component {
         Auth::user()->unsetRelation('roles');
 
         $this->authorize('update', $business);
+        abort_unless($business->isOnPaidPlan() || (Auth::user()?->canBypassPlanGates() ?? false), 403);
 
         $this->businessId = $business->id;
         $this->faqDisponibilidad = $business->faqAnswer('disponibilidad');

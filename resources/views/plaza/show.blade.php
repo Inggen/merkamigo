@@ -259,6 +259,7 @@
                     type="products"
                     :municipality-id="$municipio->id"
                     :category-id="$category?->id"
+                    :zone="$zone"
                     :only-available="$onlyAvailable"
                     :min-price="$minPrice"
                     :max-price="$maxPrice"

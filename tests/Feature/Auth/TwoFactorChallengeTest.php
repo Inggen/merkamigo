@@ -34,7 +34,7 @@ class TwoFactorChallengeTest extends TestCase
 
         $user = User::factory()->withTwoFactor()->create();
 
-        $this->post(route('login.store'), [
+        $this->post(route('front.login.store'), [
             'email' => $user->email,
             'password' => 'password',
         ])->assertRedirect(route('two-factor.login'));

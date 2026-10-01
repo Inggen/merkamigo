@@ -1,7 +1,6 @@
 <?php
 
 use App\Domain\Billing\Exceptions\PlanLimitException;
-use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\DuplicateProduct;
@@ -250,7 +249,7 @@ new #[Title('Productos y servicios')] class extends Component
      */
     public function canUseAiForProducts(): bool
     {
-        return $this->business->activePlan()->slug === Plan::EMPRENDEDOR
+        return $this->business->isOnTopPlan()
             || (Auth::user()?->canBypassPlanGates() ?? false);
     }
 

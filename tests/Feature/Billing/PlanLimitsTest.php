@@ -48,7 +48,7 @@ class PlanLimitsTest extends TestCase
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Al Límite'])->business;
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             app(CreateProduct::class)->handle($business, [
                 'name' => "Producto {$i}", 'type' => 'producto', 'price_type' => 'consultar',
             ], [], $owner);
@@ -95,7 +95,7 @@ class PlanLimitsTest extends TestCase
 
         Livewire::test('pages::emprendedores.negocios.plan', ['business' => $business->id])
             ->call('switchToFreePlan', $freePlan->id)
-            ->assertSee('Gratis');
+            ->assertSee('Básico');
 
         $this->assertSame('gratis', $business->fresh()->activePlan()->slug);
     }
@@ -114,18 +114,61 @@ class PlanLimitsTest extends TestCase
 
         Livewire::test('pages::emprendedores.negocios.plan', ['business' => $business->id])
             ->assertSee('Plan actual')
-            ->assertSee('$19.900 COP')
+            ->assertSee('$49.900 COP')
             ->assertSee('Activo')
-            ->assertSee('Productos y servicios ilimitados')
+            ->assertSee('Hasta 20 productos y servicios')
             ->assertSee('Uso de tu plan')
-            ->assertSee('de 5')
-            ->assertSee('4 cupos disponibles')
+            ->assertSee('de 3')
+            ->assertSee('2 cupos disponibles')
             ->assertSee('Gestionar equipo')
             ->assertSee('Comparar planes')
             ->assertSee('Plan básico')
             ->assertSee('Tu plan actual')
-            ->assertSee('Cambiar a Gratis')
+            ->assertSee('Cambiar a Básico')
             ->assertSee('Contáctanos');
+    }
+
+    /**
+     * Bug real reportado por el usuario (2026-10-01): el límite de
+     * colaboradores ya se respetaba en el servidor
+     * (`InviteCollaborator`/`CheckUsageLimit`), pero el botón seguía
+     * diciendo "Gestionar equipo" y llevaba al formulario de invitar,
+     * aunque la invitación fuera a fallar. Sin cupo, debe mostrar
+     * "Mejorar plan" en su lugar.
+     */
+    public function test_the_team_card_shows_an_upgrade_button_instead_of_manage_team_when_there_is_no_seat_left(): void
+    {
+        $owner = User::factory()->create();
+        // El plan Básico por defecto trae max_members = 1, y el dueño ya
+        // cuenta como miembro — queda en 0 cupos sin invitar a nadie.
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Al Tope'])->business;
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.plan', ['business' => $business->id])
+            ->assertSee('0 cupos disponibles')
+            ->assertSee('Mejorar plan')
+            ->assertDontSee('Gestionar equipo');
+    }
+
+    public function test_the_products_card_links_to_the_products_page_and_shows_an_upgrade_button_when_full(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Productos Al Tope'])->business;
+
+        // El plan Básico por defecto trae max_products = 5.
+        for ($i = 0; $i < 5; $i++) {
+            app(CreateProduct::class)->handle($business->fresh(), [
+                'name' => "Producto {$i}", 'type' => 'producto', 'price_type' => 'consultar',
+            ], [], $owner);
+        }
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.plan', ['business' => $business->id])
+            ->assertSeeHtml('href="'.route('emprendedores.negocios.productos', $business).'"')
+            ->assertSee('0 cupos disponibles')
+            ->assertSee('Mejorar plan');
     }
 
     public function test_creating_more_storefronts_than_the_free_plan_allows_is_rejected(): void

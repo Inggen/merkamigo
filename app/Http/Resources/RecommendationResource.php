@@ -19,6 +19,7 @@ class RecommendationResource extends JsonResource
         return [
             'id' => $this->id,
             'body' => $this->body,
+            'rating' => $this->rating,
             'tags' => $this->tags,
             'status' => $this->status,
             'business_response' => $this->business_response,

@@ -52,7 +52,15 @@ class PlanForm
                 KeyValue::make('limits')
                     ->label('Límites (clave: max_products, max_members, max_featured_days, max_storefronts — vacío = sin límite)')
                     ->keyLabel('Clave')
-                    ->valueLabel('Valor'),
+                    ->valueLabel('Valor')
+                    // KeyValue siempre entrega strings; se normaliza a int (o
+                    // null si queda vacío) porque `Plan::limit()` declara
+                    // retorno `?int` y un string ahí revienta con TypeError
+                    // (bug real encontrado en producción, ver
+                    // Merkamigo_estrategia_de_ventas.md).
+                    ->dehydrateStateUsing(fn (?array $state): array => collect($state ?? [])
+                        ->map(fn ($value) => filled($value) ? (int) $value : null)
+                        ->all()),
                 TagsInput::make('features')
                     ->label('Características del plan')
                     ->helperText('Lo que ve el emprendedor al comparar planes, ej: "Vitrina destacada 7 días". Escribe una y presiona Enter para agregar la siguiente.')

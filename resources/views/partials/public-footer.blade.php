@@ -53,6 +53,10 @@
                             <flux:icon.question-mark-circle class="size-6 text-zinc-400" />
                             <span>{{ __('Cómo funciona') }}</span>
                         </a>
+                        <a href="{{ route('planes-y-precios') }}" wire:navigate class="flex items-center gap-4 transition hover:text-brand-600">
+                            <flux:icon.banknotes class="size-6 text-zinc-400" />
+                            <span>{{ __('Planes y precios') }}</span>
+                        </a>
                     </nav>
                 </div>
 

@@ -435,6 +435,29 @@ class Business extends Model
         return Plan::where('slug', 'gratis')->firstOrFail();
     }
 
+    /**
+     * Cualquier plan de pago (Emprendedor, Negocios) — usado para perks que
+     * un plan superior nunca debe perder frente a uno inferior (Copiloto de
+     * WhatsApp, cobros en línea, ventas, stand pro). Preferir esto sobre
+     * comparar `activePlan()->slug === 'emprendedor'` a mano: esa
+     * comparación literal deja fuera a cualquier plan de pago nuevo.
+     */
+    public function isOnPaidPlan(): bool
+    {
+        return ! $this->activePlan()->isFree();
+    }
+
+    /**
+     * Solo el plan más alto (hoy Negocios) — a diferencia de
+     * `isOnPaidPlan()`, esto es explícitamente exclusivo del plan tope:
+     * asistente IA (vitrina, descripciones, fotos, chatbot) y métricas
+     * avanzadas (90 días + exportar CSV) ya no vienen con Emprendedor.
+     */
+    public function isOnTopPlan(): bool
+    {
+        return $this->activePlan()->slug === 'negocios';
+    }
+
     public function isPublished(): bool
     {
         return $this->status === 'publicado';
@@ -491,13 +514,14 @@ class Business extends Model
     }
 
     /**
-     * El chatbot con IA de la vitrina requiere el plan Emprendedor o el
-     * add-on correspondiente comprado en "Impulsa tu negocio" (ver
+     * El chatbot con IA de la vitrina requiere el plan Negocios (el único
+     * que lo incluye, Emprendedor ya no) o el add-on correspondiente
+     * comprado en "Impulsa tu negocio" (ver
      * `BusinessEntitlement::AI_CHATBOT`).
      */
     public function canUseAiChatbot(): bool
     {
-        return $this->activePlan()->slug === Plan::EMPRENDEDOR || $this->hasEntitlement(BusinessEntitlement::AI_CHATBOT);
+        return $this->isOnTopPlan() || $this->hasEntitlement(BusinessEntitlement::AI_CHATBOT);
     }
 
     public function currentVerification(): ?BusinessVerification

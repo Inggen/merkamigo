@@ -359,29 +359,42 @@ new #[Title('Tu plan')] class extends Component {
                 $membersPercent = $members['limit'] ? min(100, (int) round(($members['used'] / max($members['limit'], 1)) * 100)) : 0;
             @endphp
 
-            <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-700">
-                <span class="flex size-11 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950">
-                    <flux:icon.cube variant="outline" class="size-6 text-brand-600 dark:text-brand-400" />
-                </span>
+            <div class="flex flex-col justify-between gap-4 rounded-2xl border border-zinc-200 p-5 sm:flex-row sm:items-center dark:border-zinc-700">
+                <a href="{{ route('emprendedores.negocios.productos', $this->business) }}" wire:navigate class="block min-w-0 grow">
+                    <span class="flex size-11 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950">
+                        <flux:icon.cube variant="outline" class="size-6 text-brand-600 dark:text-brand-400" />
+                    </span>
 
-                <flux:text class="mt-3 text-zinc-600 dark:text-zinc-400">{{ __('Productos y servicios') }}</flux:text>
+                    <flux:text class="mt-3 text-zinc-600 dark:text-zinc-400">{{ __('Productos y servicios') }}</flux:text>
 
-                <div class="mt-1 text-2xl font-bold text-zinc-950 dark:text-white">
-                    {{ $products['used'] }}
-                    @if ($products['limit'] !== null)
-                        <span class="text-base font-medium text-zinc-500 dark:text-zinc-400">{{ __('de :limit', ['limit' => $products['limit']]) }}</span>
-                    @endif
-                </div>
-
-                @if ($products['limit'] === null)
-                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Sin límite') }}</flux:text>
-                @else
-                    <div class="mt-2 h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700">
-                        <div class="h-2 rounded-full bg-brand-600" style="width: {{ $productsPercent }}%"></div>
+                    <div class="mt-1 text-2xl font-bold text-zinc-950 dark:text-white">
+                        {{ $products['used'] }}
+                        @if ($products['limit'] !== null)
+                            <span class="text-base font-medium text-zinc-500 dark:text-zinc-400">{{ __('de :limit', ['limit' => $products['limit']]) }}</span>
+                        @endif
                     </div>
-                    <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ trans_choice(':count cupo disponible|:count cupos disponibles', $productsAvailable, ['count' => $productsAvailable]) }}
-                    </flux:text>
+
+                    @if ($products['limit'] === null)
+                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Sin límite') }}</flux:text>
+                    @else
+                        <div class="mt-2 h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700">
+                            <div class="h-2 rounded-full bg-brand-600" style="width: {{ $productsPercent }}%"></div>
+                        </div>
+                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            {{ trans_choice(':count cupo disponible|:count cupos disponibles', $productsAvailable, ['count' => $productsAvailable]) }}
+                        </flux:text>
+                    @endif
+                </a>
+
+                @if ($productsAvailable === 0)
+                    <flux:button
+                        size="sm"
+                        class="shrink-0"
+                        variant="primary"
+                        href="#comparar-planes"
+                    >
+                        {{ __('Mejorar plan') }}
+                    </flux:button>
                 @endif
             </div>
 
@@ -412,19 +425,30 @@ new #[Title('Tu plan')] class extends Component {
                     @endif
                 </div>
 
-                <flux:button
-                    size="sm"
-                    class="shrink-0 !border-brand-300 !text-brand-700 hover:!bg-brand-50 dark:!border-brand-800 dark:!text-brand-300 dark:hover:!bg-brand-950"
-                    variant="outline"
-                    :href="route('emprendedores.negocios.colaboradores', $this->business)"
-                >
-                    {{ __('Gestionar equipo') }}
-                </flux:button>
+                @if ($membersAvailable === 0)
+                    <flux:button
+                        size="sm"
+                        class="shrink-0"
+                        variant="primary"
+                        href="#comparar-planes"
+                    >
+                        {{ __('Mejorar plan') }}
+                    </flux:button>
+                @else
+                    <flux:button
+                        size="sm"
+                        class="shrink-0 !border-brand-300 !text-brand-700 hover:!bg-brand-50 dark:!border-brand-800 dark:!text-brand-300 dark:hover:!bg-brand-950"
+                        variant="outline"
+                        :href="route('emprendedores.negocios.colaboradores', $this->business)"
+                    >
+                        {{ __('Gestionar equipo') }}
+                    </flux:button>
+                @endif
             </div>
         </div>
     </div>
 
-    <div>
+    <div id="comparar-planes" class="scroll-mt-20">
         <flux:heading size="lg">{{ __('Comparar planes') }}</flux:heading>
         <flux:subheading class="mb-3">{{ __('Puedes cambiar de plan cuando lo necesites.') }}</flux:subheading>
 

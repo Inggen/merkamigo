@@ -107,7 +107,14 @@ new #[Title('Métricas')] class extends Component
 
     public function updatedPeriod(): void
     {
-        $this->validateOnly('period', ['period' => ['required', 'integer', 'in:7,30,90']]);
+        // 90 días es exclusivo del plan Negocios (`Business::isOnTopPlan()`)
+        // — sin este tope, cualquiera podía escribir `period=90` aunque el
+        // selector solo le mostrara 7/30.
+        $allowedPeriods = $this->business->isOnTopPlan() || (Auth::user()?->canBypassPlanGates() ?? false)
+            ? 'in:7,30,90'
+            : 'in:7,30';
+
+        $this->validateOnly('period', ['period' => ['required', 'integer', $allowedPeriods]]);
         unset($this->metrics, $this->conversionFunnel, $this->productPerformance, $this->socialPerformance);
     }
 
@@ -156,7 +163,9 @@ new #[Title('Métricas')] class extends Component
         <flux:select wire:model.live="period" :label="__('Periodo')" class="w-44">
             <flux:select.option value="7">{{ __('Últimos 7 días') }}</flux:select.option>
             <flux:select.option value="30">{{ __('Últimos 30 días') }}</flux:select.option>
-            <flux:select.option value="90">{{ __('Últimos 90 días') }}</flux:select.option>
+            @if ($this->business->isOnTopPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+                <flux:select.option value="90">{{ __('Últimos 90 días') }}</flux:select.option>
+            @endif
         </flux:select>
     </div>
 
@@ -355,9 +364,11 @@ new #[Title('Métricas')] class extends Component
         </div>
     @endif
 
-    <div class="text-center">
-        <flux:button variant="ghost" size="sm" icon="arrow-down-tray" :href="route('emprendedores.negocios.metricas.exportar', $this->business)">
-            {{ __('Exportar mis datos (CSV)') }}
-        </flux:button>
-    </div>
+    @if ($this->business->isOnTopPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+        <div class="text-center">
+            <flux:button variant="ghost" size="sm" icon="arrow-down-tray" :href="route('emprendedores.negocios.metricas.exportar', $this->business)">
+                {{ __('Exportar mis datos (CSV)') }}
+            </flux:button>
+        </div>
+    @endif
 </section>

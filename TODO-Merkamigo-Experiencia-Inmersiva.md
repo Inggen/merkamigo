@@ -369,7 +369,7 @@ Reglas propuestas:
 
 - [x] **Ajustes de UI/UX de la escena pública, pedidos por el usuario (2026-08-12)**  
   - **Píldora "With ♥ by inggen.com" se estiraba al ancho completo en móvil:** el `@media (max-width: 768px)` forzaba `left/right: 14px`. Corregido con `width: max-content` + `max-width` como tope, mismo tamaño de contenido en cualquier pantalla.  
-  - **Botón táctil sin función asignada:** el botón "●" (`vpe-btn-action`) solo disparaba un evento (`voxelplaza:action`) que nadie escuchaba en todo el código. Reasignado a "Correr" (⚡) — mantenerlo presionado activa `this.movement.sprint`, igual que Shift/Mayús en escritorio.  
+  - **Botón táctil sin función asignada:** el botón "●" (`vpe-btn-action`) solo disparaba un evento (`voxelplaza:action`) que nadie escuchaba en todo el código. Reasignado a "Correr" — mantenerlo presionado activa `this.movement.sprint`, igual que Shift/Mayús en escritorio.  
   - **Ruta pública renombrada:** `/labs/plaza/{municipio}` → `/exp/plaza/{municipio}` (solo cambió el segmento de URI en `routes/web.php`; el nombre interno de ruta `labs.generic-plaza` no cambió, así que `route()`/`Municipality::immersiveLabUrl()` se actualizaron solos sin tocar otros archivos).  
   **Estado:** Hecho los tres, verificados con Playwright (escritorio y viewport móvil real).
 

@@ -77,6 +77,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Feature-specific Redirects
+    |--------------------------------------------------------------------------
+    |
+    | `'views' => false` below means Fortify's own response classes cannot
+    | fall back to `route('login')` for their default redirect target (that
+    | fallback is gated behind `config('fortify.views', true)`), so an
+    | unauthenticated flow like password reset falls all the way through to
+    | `home` above instead — landing a signed-out visitor on `/dashboard`,
+    | which then immediately bounces them to the login page anyway. Setting
+    | it explicitly here skips that extra bounce.
+    |
+    */
+
+    'redirects' => [
+        'password-reset' => '/ingresar',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Fortify Routes Prefix / Subdomain
     |--------------------------------------------------------------------------
     |

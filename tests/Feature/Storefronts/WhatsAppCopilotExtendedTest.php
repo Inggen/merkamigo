@@ -3,6 +3,9 @@
 namespace Tests\Feature\Storefronts;
 
 use App\Domain\Analytics\Models\AnalyticsEvent;
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Domain\WhatsApp\Models\WhatsAppContent;
@@ -14,10 +17,20 @@ use Tests\TestCase;
 /**
  * 4.4 del TODO: Copiloto de WhatsApp ampliado — variantes de longitud,
  * fecha sugerida para un borrador y respuestas frecuentes editables.
+ * Requiere un plan de pago desde el reparto del 2026-09-30.
  */
 class WhatsAppCopilotExtendedTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function subscribeToPaidPlan(Business $business, User $owner): void
+    {
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'emprendedor'],
+            ['name' => 'Emprendedor', 'price_cents' => 4990000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 1],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
+    }
 
     public function test_the_short_variant_is_shorter_than_the_long_variant_for_the_same_content(): void
     {
@@ -26,6 +39,7 @@ class WhatsAppCopilotExtendedTest extends TestCase
             'name' => 'Negocio Longitud',
             'description' => 'Somos un negocio familiar con más de diez años de experiencia en el municipio.',
         ])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 
@@ -52,6 +66,7 @@ class WhatsAppCopilotExtendedTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Fecha'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 
@@ -71,6 +86,7 @@ class WhatsAppCopilotExtendedTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio FAQ'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 
@@ -99,6 +115,7 @@ class WhatsAppCopilotExtendedTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Sin FAQ'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
         app(CreateProduct::class)->handle($business, [
             'name' => 'Arepa', 'type' => 'producto', 'price_type' => 'consultar',
         ], [], $owner)->update(['status' => 'publicado', 'is_available' => true]);
@@ -118,6 +135,7 @@ class WhatsAppCopilotExtendedTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Sugerencias'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $neverViewed = app(CreateProduct::class)->handle($business, [
             'name' => 'Nunca visto', 'type' => 'producto', 'price_type' => 'consultar',

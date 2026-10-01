@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Marketplace;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Marketplace\Actions\ConnectBusinessWompi;
 use App\Domain\Storefronts\Actions\CreateStorefront;
@@ -42,6 +44,19 @@ class BusinessWompiConnectionTest extends TestCase
             'level' => 'basica',
             'expires_at' => now()->addYear(),
         ]);
+    }
+
+    /**
+     * Abrir el panel de "Cobros en línea" requiere un plan de pago desde
+     * el reparto del 2026-09-30 (antes abierto a cualquiera).
+     */
+    private function subscribeToPaidPlan(Business $business, User $owner): void
+    {
+        $plan = Plan::create([
+            'slug' => 'emprendedor', 'name' => 'Emprendedor', 'price_cents' => 4990000,
+            'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 1,
+        ]);
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
     }
 
     public function test_a_business_can_connect_its_own_wompi_account(): void
@@ -94,6 +109,7 @@ class BusinessWompiConnectionTest extends TestCase
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Panel'])->business;
         $this->verify($business);
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 
@@ -113,6 +129,7 @@ class BusinessWompiConnectionTest extends TestCase
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Sin Verificar Panel'])->business;
+        $this->subscribeToPaidPlan($business, $owner);
 
         $this->actingAs($owner);
 

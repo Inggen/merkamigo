@@ -65,7 +65,7 @@
                 // Aditivo: los consumidores actuales (páginas de labs, sin
                 // Livewire) no escuchan este evento y lo ignoran sin efecto.
                 // Settings > Avatar sí lo escucha para espejar la elección
-                // en la cuenta (ver ⚡avatar.blade.php).
+                // en la cuenta (ver settings/avatar.blade.php).
                 window.dispatchEvent(new CustomEvent('vpe-avatar-changed', {
                     detail: { avatar: button.dataset.avatarOption },
                 }));

@@ -54,7 +54,9 @@
             <flux:sidebar.item icon="rectangle-stack" :href="route('emprendedores.negocios.publicaciones', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.publicaciones')" wire:navigate>{{ __('Publicaciones') }}</flux:sidebar.item>
             <flux:sidebar.item icon="bolt" :href="route('emprendedores.negocios.estados', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.estados')" wire:navigate>{{ __('Estados') }}</flux:sidebar.item>
             <flux:sidebar.item icon="film" :href="route('emprendedores.negocios.reels', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.reels')" wire:navigate>{{ __('Reels') }}</flux:sidebar.item>
-            <flux:sidebar.item icon="video-camera" :href="route('emprendedores.negocios.lives', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.lives')" wire:navigate>{{ __('En vivo') }}</flux:sidebar.item>
+            @if ($primaryBusiness->isOnTopPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+                <flux:sidebar.item icon="video-camera" :href="route('emprendedores.negocios.lives', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.lives')" wire:navigate>{{ __('En vivo') }}</flux:sidebar.item>
+            @endif
         </flux:sidebar.group>
     @else
         <flux:sidebar.item icon="building-storefront" :href="route('emprendedores.crear-vitrina')" :current="request()->routeIs('emprendedores.crear-vitrina')" wire:navigate>{{ __('Crear mi vitrina') }}</flux:sidebar.item>
@@ -62,15 +64,19 @@
 </flux:sidebar.group>
 
 @if ($primaryBusiness)
-    <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
-    <flux:sidebar.group :heading="__('Ventas')" class="entrepreneur-nav-group grid">
-        <flux:sidebar.item icon="shopping-bag" :href="route('emprendedores.negocios.ventas', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.ventas')" wire:navigate>{{ __('Ventas') }}</flux:sidebar.item>
-        <flux:sidebar.item icon="credit-card" :href="route('emprendedores.negocios.cobros-en-linea', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.cobros-en-linea')" wire:navigate>{{ __('Cobros en línea') }}</flux:sidebar.item>
-    </flux:sidebar.group>
+    @if ($primaryBusiness->isOnPaidPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+        <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
+        <flux:sidebar.group :heading="__('Ventas')" class="entrepreneur-nav-group grid">
+            <flux:sidebar.item icon="shopping-bag" :href="route('emprendedores.negocios.ventas', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.ventas')" wire:navigate>{{ __('Ventas') }}</flux:sidebar.item>
+            <flux:sidebar.item icon="credit-card" :href="route('emprendedores.negocios.cobros-en-linea', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.cobros-en-linea')" wire:navigate>{{ __('Cobros en línea') }}</flux:sidebar.item>
+        </flux:sidebar.group>
+    @endif
 
     <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
     <flux:sidebar.group :heading="__('Impulso')" class="entrepreneur-nav-group grid">
-        <flux:sidebar.item icon="megaphone" :href="route('emprendedores.negocios.copiloto', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.copiloto')" wire:navigate>{{ __('Promocionar') }}</flux:sidebar.item>
+        @if ($primaryBusiness->isOnPaidPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+            <flux:sidebar.item icon="megaphone" :href="route('emprendedores.negocios.copiloto', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.copiloto')" wire:navigate>{{ __('Promocionar') }}</flux:sidebar.item>
+        @endif
         <flux:sidebar.item icon="rocket-launch" :href="route('emprendedores.negocios.impulsar', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.impulsar')" wire:navigate>{{ __('Impulsa tu negocio') }}</flux:sidebar.item>
         <flux:sidebar.item icon="shield-check" :href="route('emprendedores.negocios.verificacion', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.verificacion')" wire:navigate>{{ __('Pasaporte de confianza') }}</flux:sidebar.item>
     </flux:sidebar.group>

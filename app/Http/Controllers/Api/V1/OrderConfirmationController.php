@@ -83,6 +83,7 @@ class OrderConfirmationController extends Controller
                 $orderConfirmation,
                 $request->user(),
                 (string) $request->input('body'),
+                (int) $request->input('rating'),
                 (array) $request->input('tags', []),
             );
         } catch (InvalidArgumentException $e) {

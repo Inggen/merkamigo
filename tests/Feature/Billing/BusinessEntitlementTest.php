@@ -15,8 +15,10 @@ use Tests\TestCase;
 
 /**
  * El chatbot con IA de la vitrina (y cualquier add-on futuro del mismo
- * tipo) se desbloquea por plan Emprendedor o por `BusinessEntitlement`
- * comprado en "Impulsa tu negocio" — nunca por defecto en el plan Gratis.
+ * tipo) se desbloquea por el plan Negocios (`Business::isOnTopPlan()`,
+ * exclusivo del plan más alto — Emprendedor ya no lo incluye desde el
+ * reparto del 2026-09-30) o por `BusinessEntitlement` comprado en "Impulsa
+ * tu negocio" — nunca por defecto en el plan Básico.
  */
 class BusinessEntitlementTest extends TestCase
 {
@@ -30,7 +32,7 @@ class BusinessEntitlementTest extends TestCase
         $this->assertFalse($business->canUseAiChatbot());
     }
 
-    public function test_an_active_emprendedor_subscription_unlocks_the_ai_chatbot(): void
+    public function test_an_active_emprendedor_subscription_does_not_unlock_the_ai_chatbot(): void
     {
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Emprendedor'])->business;
@@ -38,9 +40,36 @@ class BusinessEntitlementTest extends TestCase
         $plan = Plan::create([
             'slug' => Plan::EMPRENDEDOR,
             'name' => 'Emprendedor',
+            'price_cents' => 4990000,
             'billing_period' => Plan::MENSUAL,
             'is_active' => true,
             'position' => 1,
+        ]);
+        Subscription::create([
+            'business_id' => $business->id,
+            'plan_id' => $plan->id,
+            'status' => Subscription::ACTIVA,
+        ]);
+
+        $this->assertFalse($business->fresh()->canUseAiChatbot());
+    }
+
+    public function test_an_active_negocios_subscription_unlocks_the_ai_chatbot(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Negocios'])->business;
+
+        $plan = Plan::create([
+            'slug' => 'negocios',
+            'name' => 'Negocios',
+            // `canUseAiChatbot()` decide por `Business::isOnTopPlan()`
+            // (precio + slug 'negocios'), no por `activePlan()->slug` a
+            // mano en el sitio de uso — sin precio aquí, `Plan::isFree()`
+            // lo trataría igual como plan gratuito.
+            'price_cents' => 9900000,
+            'billing_period' => Plan::MENSUAL,
+            'is_active' => true,
+            'position' => 2,
         ]);
         Subscription::create([
             'business_id' => $business->id,

@@ -17,6 +17,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Marketplace\BusinessWompiWebhookController;
 use App\Http\Controllers\Marketplace\OrderCheckoutController;
 use App\Http\Controllers\NeedsController;
+use App\Http\Controllers\PlanesController;
 use App\Http\Controllers\PlazaController;
 use App\Http\Controllers\ProductDownloadController;
 use App\Http\Controllers\PromotionController;
@@ -114,6 +115,7 @@ Route::view('terminos', 'legal.terminos')->name('terminos');
 Route::view('privacidad', 'legal.privacidad')->name('privacidad');
 Route::view('reglas-comunidad', 'legal.reglas-comunidad')->name('reglas-comunidad');
 Route::view('como-funciona', 'public.como-funciona')->name('como-funciona');
+Route::get('planes-y-precios', [PlanesController::class, 'index'])->name('planes-y-precios');
 Route::view('soporte', 'public.soporte')->name('soporte');
 Route::get('soporte/solicitud', [SupportTicketController::class, 'create'])->name('soporte.solicitud.crear');
 Route::post('soporte/solicitud', [SupportTicketController::class, 'store'])
@@ -156,7 +158,11 @@ Route::middleware('guest')->group(function () {
     Route::post('recuperar-clave', [PasswordResetLinkController::class, 'store'])->name('front.password.email');
     Route::get('restablecer-clave/{token}', fn () => view('pages::auth.reset-password'))->name('password.reset');
     Route::post('restablecer-clave', [NewPasswordController::class, 'store'])->name('front.password.update');
-    Route::get('verificacion-en-dos-pasos', fn () => view('pages::auth.two-factor-challenge'))->name('two-factor.login');
+    // Usa el controlador real de Fortify (no una closure) para heredar el
+    // guard de `TwoFactorLoginRequest::hasChallengedUser()`: sin él, cualquiera
+    // podía visitar esta URL directamente sin haber pasado por el paso 1 del
+    // login y ver un formulario que nunca podría completarse con éxito.
+    Route::get('verificacion-en-dos-pasos', [TwoFactorAuthenticatedSessionController::class, 'create'])->name('two-factor.login');
     Route::post('verificacion-en-dos-pasos', [TwoFactorAuthenticatedSessionController::class, 'store'])->name('front.two-factor.login.store');
 
     Route::redirect('login', 'ingresar', 301)->name('login.legacy');
