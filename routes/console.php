@@ -49,3 +49,29 @@ Schedule::command('google-merchant:sync')
     ->hourly()
     ->withoutOverlapping()
     ->when(fn () => config('services.google_merchant.enabled'));
+
+// TODO_Merkapuntos.md, F1.6: libera puntos/stock/presupuesto de los canjes
+// reservados que vencieron sin entrega. Cada 5 minutos porque la validez
+// por defecto del código es de 15 (`config('loyalty.redemption_token_ttl_minutes')`).
+Schedule::command('loyalty:expire-redemptions')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->when(fn () => config('loyalty.enabled'));
+
+// TODO_desarrollo_sistema_eventos_Merkamigo.md, Fase 3/4: libera la
+// retención de las reservas de eventos que vencieron sin pago, mismo
+// criterio de frecuencia que Merkapuntos (el "hold" por defecto es de
+// minutos, no de horas).
+Schedule::command('events:expire-reservations')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
+
+// TODO_desarrollo_sistema_eventos_Merkamigo.md, Fase 5: un evento
+// publicado deja de aparecer como "próximo" cuando su fecha ya pasó.
+Schedule::command('events:finalize-public-events')->hourly();
+
+// Reservas de CUPO a eventos públicos (pedido del usuario, 2026-10-08) —
+// mismo criterio de frecuencia que `events:expire-reservations`.
+Schedule::command('events:expire-attendances')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();

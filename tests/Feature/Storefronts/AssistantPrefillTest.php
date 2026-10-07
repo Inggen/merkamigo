@@ -31,16 +31,28 @@ class AssistantPrefillTest extends TestCase
     use RefreshDatabase;
 
     /**
+     * Busca el snapshot DEL COMPONENTE PEDIDO específicamente, por nombre
+     * — tomar "el primero que aparezca" se rompió en cuanto el header del
+     * Cliente ganó su propio componente Livewire (`notification-bell`,
+     * 2026-10-06), que ahora también imprime un `wire:snapshot` antes del
+     * formulario real en el HTML.
+     *
      * @return array<string, mixed>
      */
-    private function livewireData(TestResponse $response): array
+    private function livewireData(TestResponse $response, string $component): array
     {
         $html = $response->getContent();
-        preg_match('/wire:snapshot="([^"]+)"/', $html, $matches);
+        preg_match_all('/wire:snapshot="([^"]+)"/', $html, $matches);
 
-        $decoded = json_decode(html_entity_decode($matches[1]), true);
+        foreach ($matches[1] as $raw) {
+            $decoded = json_decode(html_entity_decode($raw), true);
 
-        return $decoded['data'] ?? [];
+            if (($decoded['memo']['name'] ?? null) === $component) {
+                return $decoded['data'] ?? [];
+            }
+        }
+
+        return [];
     }
 
     public function test_pidelo_nueva_prefills_from_query_params_when_there_is_no_draft(): void
@@ -54,7 +66,7 @@ class AssistantPrefillTest extends TestCase
             'categoria' => $category->slug,
         ]))->assertOk();
 
-        $data = $this->livewireData($response);
+        $data = $this->livewireData($response, 'pages::pidelo.nueva');
 
         $this->assertSame('Necesito un plomero urgente', $data['title']);
         $this->assertSame('Se dañó una tubería en la cocina.', $data['description']);
@@ -74,7 +86,7 @@ class AssistantPrefillTest extends TestCase
         $response = $this->actingAs($user)->get(route('pidelo.nueva', ['titulo' => 'Título que no debería aplicar']))
             ->assertOk();
 
-        $this->assertSame('Mi borrador original', $this->livewireData($response)['title']);
+        $this->assertSame('Mi borrador original', $this->livewireData($response, 'pages::pidelo.nueva')['title']);
     }
 
     public function test_crear_vitrina_prefills_step_one_from_query_params_when_there_is_no_draft(): void
@@ -91,7 +103,7 @@ class AssistantPrefillTest extends TestCase
             'municipio' => $municipality->slug,
         ]))->assertOk();
 
-        $data = $this->livewireData($response);
+        $data = $this->livewireData($response, 'pages::emprendedores.crear-vitrina');
 
         $this->assertSame('Panadería Doña Rosa', $data['name']);
         $this->assertSame('3001234567', $data['whatsapp_number']);
@@ -108,6 +120,6 @@ class AssistantPrefillTest extends TestCase
         $response = $this->actingAs($user)->get(route('emprendedores.crear-vitrina', ['nombre' => 'Nombre que no debería aplicar']))
             ->assertOk();
 
-        $this->assertSame('Mi Negocio En Curso', $this->livewireData($response)['name']);
+        $this->assertSame('Mi Negocio En Curso', $this->livewireData($response, 'pages::emprendedores.crear-vitrina')['name']);
     }
 }

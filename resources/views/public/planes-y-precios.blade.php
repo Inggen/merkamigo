@@ -191,12 +191,12 @@
                     {{ __('Pago único, disponible para cualquier negocio con vitrina en Merkamigo, sin importar el plan.') }}
                 </flux:subheading>
 
-                <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="mt-8 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     @if ($destacados->isNotEmpty())
-                        <div class="rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
+                        <div class="flex min-h-72 w-[86%] shrink-0 snap-start flex-col rounded-2xl border border-zinc-200 p-6 sm:w-[48%] lg:w-[calc((100%-3.75rem)/4)] dark:border-zinc-700">
                             <flux:heading size="base">{{ __('Destacar tu vitrina') }}</flux:heading>
                             <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $destacados->first()->description }}</flux:text>
-                            <ul class="mt-4 space-y-2 text-sm">
+                            <ul class="mt-auto space-y-2 pt-5 text-sm">
                                 @foreach ($destacados as $destacado)
                                     <li class="flex items-center justify-between gap-3 text-zinc-700 dark:text-zinc-200">
                                         <span>{{ trans_choice(':count día|:count días', $destacado->payload['days'] ?? 0, ['count' => $destacado->payload['days'] ?? 0]) }}</span>
@@ -208,27 +208,29 @@
                     @endif
 
                     @if ($asistenteIa)
-                        <div class="rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
+                        <div class="flex min-h-72 w-[86%] shrink-0 snap-start flex-col rounded-2xl border border-zinc-200 p-6 sm:w-[48%] lg:w-[calc((100%-3.75rem)/4)] dark:border-zinc-700">
                             <flux:heading size="base">{{ $asistenteIa->name }}</flux:heading>
                             <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $asistenteIa->description }}</flux:text>
-                            <div class="mt-4 text-xl font-semibold text-carbon dark:text-white">{{ $money($asistenteIa->price_cents) }}</div>
-                            <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Ya incluido en el plan Negocios.') }}</flux:text>
+                            <div class="mt-auto pt-5">
+                                <div class="text-xl font-semibold text-carbon dark:text-white">{{ $money($asistenteIa->price_cents) }}</div>
+                                <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Ya incluido en el plan Negocios.') }}</flux:text>
+                            </div>
                         </div>
                     @endif
 
                     @if ($vitrinaAsistida)
-                        <div class="rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700">
+                        <div class="flex min-h-72 w-[86%] shrink-0 snap-start flex-col rounded-2xl border border-zinc-200 p-6 sm:w-[48%] lg:w-[calc((100%-3.75rem)/4)] dark:border-zinc-700">
                             <flux:heading size="base">{{ $vitrinaAsistida->name }}</flux:heading>
                             <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $vitrinaAsistida->description }}</flux:text>
-                            <div class="mt-4 text-xl font-semibold text-carbon dark:text-white">{{ $money($vitrinaAsistida->price_cents) }}</div>
+                            <div class="mt-auto pt-5 text-xl font-semibold text-carbon dark:text-white">{{ $money($vitrinaAsistida->price_cents) }}</div>
                         </div>
                     @endif
 
                     @if ($kitArrancaBonito)
-                        <div class="rounded-2xl border-2 border-brand-300 bg-brand-50/40 p-6 dark:border-brand-800 dark:bg-brand-500/5">
+                        <div class="flex min-h-72 w-[86%] shrink-0 snap-start flex-col rounded-2xl border-2 border-brand-300 bg-brand-50/40 p-6 sm:w-[48%] lg:w-[calc((100%-3.75rem)/4)] dark:border-brand-800 dark:bg-brand-500/5">
                             <flux:heading size="base">{{ $kitArrancaBonito->name }}</flux:heading>
                             <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $kitArrancaBonito->description }}</flux:text>
-                            <div class="mt-4 text-xl font-semibold text-carbon dark:text-white">{{ $money($kitArrancaBonito->price_cents) }}</div>
+                            <div class="mt-auto pt-5 text-xl font-semibold text-carbon dark:text-white">{{ $money($kitArrancaBonito->price_cents) }}</div>
                         </div>
                     @endif
                 </div>

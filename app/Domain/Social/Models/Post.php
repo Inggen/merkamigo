@@ -4,6 +4,7 @@ namespace App\Domain\Social\Models;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Concerns\Favoritable;
+use App\Domain\Events\Models\PublicEvent;
 use App\Domain\Social\Concerns\Promotable;
 use App\Domain\Storefronts\Models\Product;
 use App\Models\User;
@@ -26,6 +27,7 @@ class Post extends Model
     protected $fillable = [
         'business_id',
         'user_id',
+        'public_event_id',
         'type',
         'body',
         'status',
@@ -53,6 +55,17 @@ class Post extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Evento público del que viene este post (TODO_desarrollo_sistema_eventos_Merkamigo.md,
+     * Fase 5: "Publicar en el feed") — null en cualquier post normal.
+     *
+     * @return BelongsTo<PublicEvent, $this>
+     */
+    public function publicEvent(): BelongsTo
+    {
+        return $this->belongsTo(PublicEvent::class);
     }
 
     /**

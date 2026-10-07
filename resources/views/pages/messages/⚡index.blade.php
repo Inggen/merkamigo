@@ -13,7 +13,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-new #[Layout('layouts::cliente', ['showChatWidget' => false])] #[Title('Mensajes')] class extends Component
+new #[Layout('layouts::cliente', ['showChatWidget' => false, 'showSidebar' => true])] #[Title('Mensajes')] class extends Component
 {
     use WithFileUploads;
 

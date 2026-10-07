@@ -45,6 +45,8 @@
             </div>
         </div>
         <flux:menu.separator />
+        <x-appearance-switcher />
+        <flux:menu.separator />
         <x-experience-switch-menu />
         <flux:menu.separator />
         <flux:menu.radio.group>

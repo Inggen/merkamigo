@@ -129,10 +129,13 @@ class TrustPhaseThreeTest extends TestCase
         $this->get(route('vitrinas.show', $business))
             ->assertOk()
             ->assertSee('Vitrina verificada')
+            ->assertSee('data-verified-awning', false)
+            ->assertSee('data-verified-notice', false)
+            ->assertSee('La identidad y documentos de este negocio fueron revisados por Merkamigo.')
             ->assertSee('1 pedido confirmado')
             ->assertSee('Llegó puntual y el producto estaba fresco.')
             ->assertSee('Gracias por confiar en nosotros.')
-            ->assertSee('Esta insignia confirma una revisión básica de identidad o documentos del negocio. No implica garantía de calidad, pago ni entrega por parte de Merkamigo.');
+            ->assertDontSee('Esta insignia confirma una revisión básica de identidad o documentos del negocio.');
     }
 
     public function test_the_public_storefront_hides_the_badge_when_verification_is_revoked(): void
@@ -158,7 +161,9 @@ class TrustPhaseThreeTest extends TestCase
 
         $this->get(route('vitrinas.show', $business))
             ->assertOk()
-            ->assertDontSee('Vitrina verificada');
+            ->assertDontSee('Vitrina verificada')
+            ->assertDontSee('data-verified-awning', false)
+            ->assertDontSee('data-verified-notice', false);
     }
 
     public function test_an_order_cannot_be_completed_unilaterally_and_leaves_audit_trail_when_both_sides_confirm(): void

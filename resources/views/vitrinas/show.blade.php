@@ -144,6 +144,10 @@
             <section class="space-y-6">
                 <article class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="relative aspect-[16/10] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800 sm:aspect-[16/6]">
+                        @if ($business->hasVerifiedBadge())
+                            <x-storefront.verified-awning />
+                        @endif
+
                         @if ($business->storefront?->coverUrl())
                             <img src="{{ $business->storefront->coverUrl() }}" class="h-full w-full object-cover" alt="{{ $business->storefront->cover_alt_text ?? __('Portada de :name', ['name' => $business->name]) }}" loading="eager" decoding="async">
                         @elseif ($business->logoUrl())
@@ -165,13 +169,15 @@
                         <div class="min-w-0 space-y-4">
                             <div class="flex min-w-0 flex-wrap justify-between items-center gap-3">
                                 <h1 class="min-w-0 break-words text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-3xl">{{ $business->name }}</h1>
-
-                                @if ($business->hasVerifiedBadge())
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-200 dark:ring-brand-500/30">
-                                        <flux:icon.check-badge class="size-4" />
-                                        {{ __('Vitrina verificada') }}
-                                    </span>
-                                @endif
+                                <div class="flex items-center gap-2">
+                                    <x-owner-edit-link :business="$business" :href="route('emprendedores.negocios.vitrina', $business)" :label="__('Editar vitrina')" />
+                                    @if ($business->hasVerifiedBadge())
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-200 dark:ring-brand-500/30">
+                                            <flux:icon.check-badge class="size-4" />
+                                            {{ __('Vitrina verificada') }}
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
 
                             <div class="flex flex-wrap items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
@@ -204,6 +210,18 @@
                             @if ($hasStorefrontContent)
                                 <button type="button" x-on:click="tab = 'contenido'" :class="tab === 'contenido' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Contenido') }}</button>
                             @endif
+                            @if ($loyaltyRewards->isNotEmpty())
+                                <button type="button" x-on:click="tab = 'recompensas'" :class="tab === 'recompensas' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="inline-flex items-center gap-1.5 border-b-2 pb-4 transition">
+                                    <flux:icon.sparkles class="size-4" variant="solid" />
+                                    {{ __('Recompensas') }}
+                                </button>
+                            @endif
+                            @if ($publicEvents->isNotEmpty())
+                                <button type="button" x-on:click="tab = 'eventos'" :class="tab === 'eventos' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="inline-flex items-center gap-1.5 border-b-2 pb-4 transition">
+                                    <flux:icon.calendar-days class="size-4" variant="solid" />
+                                    {{ __('Eventos') }}
+                                </button>
+                            @endif
                             <button type="button" x-on:click="tab = 'opiniones'" :class="tab === 'opiniones' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Opiniones') }}</button>
                         </div>
 
@@ -225,6 +243,79 @@
                                 </div>
                             @endif
                         </div>
+
+                        @if ($loyaltyRewards->isNotEmpty())
+                            <div x-show="tab === 'recompensas'" x-cloak>
+                                @if ($loyaltyPolicy)
+                                    <div class="mb-5 rounded-2xl border border-brand-100 bg-brand-50 p-4 dark:border-transparent dark:bg-brand-500/10">
+                                        <p class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
+                                            <flux:icon.sparkles class="size-4 text-brand-600" variant="solid" />
+                                            {{ __('¿Cómo acumular Merkapuntos aquí?') }}
+                                        </p>
+                                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+                                            {{ __(':points Merkapunto(s) por cada $:unit de compra verificada. Tus compras en :business, registradas en la plataforma, te permiten acumular automáticamente.', [
+                                                'points' => $loyaltyPolicy->rule['points_per_unit'],
+                                                'unit' => number_format($loyaltyPolicy->rule['unit_cents'] / 100, 0, ',', '.'),
+                                                'business' => $business->name,
+                                            ]) }}
+                                        </p>
+                                    </div>
+                                @endif
+
+                                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                    @foreach ($loyaltyRewards as $reward)
+                                        @include('premia.partials.reward-card', ['reward' => $reward->setRelation('business', $business)])
+                                    @endforeach
+                                </div>
+
+                                <flux:button :href="route('premia.index', ['q' => $business->name])" variant="ghost" class="mt-5 w-full" wire:navigate>
+                                    {{ __('Ver todas las recompensas de Merkamigo Premia') }} →
+                                </flux:button>
+                            </div>
+                        @endif
+
+                        @if ($publicEvents->isNotEmpty())
+                            <div x-show="tab === 'eventos'" x-cloak>
+                                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                    @foreach ($publicEvents as $event)
+                                        <a href="{{ route('eventos.show', $event) }}" wire:navigate class="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+                                            <div class="relative aspect-[16/10] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                                @if ($event->coverUrl())
+                                                    <img src="{{ $event->coverUrl() }}" alt="{{ $event->title }}" class="size-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" decoding="async">
+                                                @else
+                                                    <div class="flex size-full items-center justify-center bg-gradient-to-br from-brand-50 to-amber-50 dark:from-brand-950 dark:to-zinc-900">
+                                                        <flux:icon.calendar-days class="size-10 text-brand-300 dark:text-brand-800" variant="outline" />
+                                                    </div>
+                                                @endif
+
+                                                <span class="absolute left-3 top-3 flex min-w-12 flex-col items-center rounded-xl bg-brand-600 px-2.5 py-2 text-white shadow-lg">
+                                                    <span class="text-[10px] font-bold uppercase leading-none">{{ $event->starts_at->translatedFormat('D') }}</span>
+                                                    <span class="mt-1 text-xl font-black leading-none">{{ $event->starts_at->format('d') }}</span>
+                                                    <span class="mt-0.5 text-[10px] font-bold uppercase leading-none">{{ $event->starts_at->translatedFormat('M') }}</span>
+                                                </span>
+                                            </div>
+
+                                            <div class="p-4">
+                                                @if ($event->categoryLabel())
+                                                    <flux:badge size="sm" color="zinc" class="mb-1.5">{{ $event->categoryLabel() }}</flux:badge>
+                                                @endif
+                                                <h3 class="line-clamp-2 text-base font-bold leading-6 text-zinc-950 transition group-hover:text-brand-700 dark:text-white dark:group-hover:text-brand-300">{{ $event->title }}</h3>
+                                                <p class="mt-3 flex items-start gap-1.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                                                    <flux:icon.clock class="mt-0.5 size-3.5 shrink-0" variant="outline" />
+                                                    {{ $event->starts_at->translatedFormat('l j \\d\\e F, Y · g:i a') }}
+                                                </p>
+                                                @if ($event->location_text || $event->municipality)
+                                                    <p class="mt-1 flex items-start gap-1.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                                                        <flux:icon.map-pin class="mt-0.5 size-3.5 shrink-0" variant="outline" />
+                                                        {{ $event->location_text ?: $event->municipality?->name }}
+                                                    </p>
+                                                @endif
+                                            </div>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
 
                         <div x-show="tab === 'opiniones'" x-cloak>
                             <livewire:submit-opinion-form :business="$business" :key="'submit-opinion-'.$business->id" />
@@ -446,16 +537,6 @@
                                 </div>
                             @endif
 
-                            @if ($business->hasVerifiedBadge())
-                                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100 lg:col-span-2">
-                                    <h3 class="font-semibold">{{ $business->verifiedBadgeLabel() }}</h3>
-                                    @if (($confirmedOrdersCount = $business->confirmedOrdersCount()) > 0)
-                                        <p class="mt-1 text-sm font-medium">{{ trans_choice(':count pedido confirmado|:count pedidos confirmados', $confirmedOrdersCount, ['count' => $confirmedOrdersCount]) }}</p>
-                                    @endif
-                                    <p class="mt-2 text-sm leading-7">{{ __('Esta insignia confirma una revisión básica de identidad o documentos del negocio. No implica garantía de calidad, pago ni entrega por parte de Merkamigo.') }}</p>
-                                </div>
-                            @endif
-
                             <div class="lg:col-span-2">
                                 <a href="{{ route('reportes.crear.negocio', $business) }}" class="text-sm text-zinc-400 transition hover:text-zinc-600" wire:navigate>
                                     {{ __('Reportar este negocio') }}
@@ -480,6 +561,54 @@
                         </div>
                     </div>
                 </a>
+
+                {{--
+                    CTA "Reserva tu evento" (TODO_desarrollo_sistema_eventos_Merkamigo.md,
+                    Fase 3): solo si el negocio activó eventos Y reservas
+                    privadas — nunca se muestra una capacidad que no está
+                    realmente disponible.
+                --}}
+                @if ($business->eventSetting?->enabled && $business->eventSetting->private_reservations_enabled)
+                    <a href="{{ route('vitrinas.eventos.reservar', $business) }}" wire:navigate class="block rounded-xl border border-brand-200 bg-white p-5 shadow-sm transition hover:border-brand-400 dark:border-brand-500/30 dark:bg-zinc-900">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex size-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
+                                <flux:icon.calendar-days class="size-6" />
+                            </span>
+                            <div>
+                                <div class="text-lg font-semibold text-zinc-950 dark:text-white">{{ __('Reserva tu evento') }}</div>
+                                <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Cotiza y paga tu espacio en línea') }}</div>
+                            </div>
+                        </div>
+                    </a>
+                @endif
+
+                {{--
+                    "Próximos eventos" (Fase 5: "Calendario/lista de
+                    próximos eventos en la vitrina, con detalle accesible
+                    y enlace compartible. No mostrar reservas privadas.")
+                    — solo lo publicado y futuro, nunca reservas.
+                --}}
+                @php($upcomingPublicEvents = $business->publicEvents()->where('status', \App\Domain\Events\Models\PublicEvent::PUBLICADO)->where('starts_at', '>=', now())->orderBy('starts_at')->limit(3)->get())
+                @if ($upcomingPublicEvents->isNotEmpty())
+                    <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                        <h3 class="mb-3 font-semibold text-zinc-950 dark:text-white">{{ __('Próximos eventos') }}</h3>
+                        <div class="space-y-3">
+                            @foreach ($upcomingPublicEvents as $upcoming)
+                                <a href="{{ route('eventos.show', $upcoming) }}" wire:navigate class="flex items-center gap-3 rounded-lg transition hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                                    <span class="flex size-10 shrink-0 flex-col items-center justify-center rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                                        <span class="text-[9px] font-semibold uppercase leading-none">{{ $upcoming->starts_at->translatedFormat('M') }}</span>
+                                        <span class="text-sm font-bold leading-none">{{ $upcoming->starts_at->format('d') }}</span>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $upcoming->title }}</p>
+                                        <p class="text-xs text-zinc-500">{{ $upcoming->starts_at->translatedFormat('g:i a') }}</p>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                        <flux:link :href="route('eventos', ['municipio' => $business->municipality?->slug])" class="mt-3 inline-block text-xs" wire:navigate>{{ __('Ver más eventos cerca →') }}</flux:link>
+                    </div>
+                @endif
 
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Comparte esta vitrina') }}</h3>
@@ -612,33 +741,39 @@
             </div>
         </div>
 
-        <div class="mt-4 rounded-2xl border border-red-400 bg-violet-50 p-5 dark:border-red-500 dark:bg-violet-500/10">
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div class="flex items-start gap-3">
-                    <div class="rounded-2xl bg-white p-3 text-violet-600 shadow-sm dark:bg-zinc-900 dark:text-violet-300">
-                        <flux:icon.shield-check class="size-6" />
+        @if ($business->hasVerifiedBadge())
+            <div class="mt-4">
+                <x-storefront.verified-notice :business="$business" />
+            </div>
+        @else
+            <div class="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div class="flex items-start gap-3">
+                        <div class="rounded-2xl bg-white p-3 text-zinc-500 shadow-sm dark:bg-zinc-800 dark:text-zinc-300">
+                            <flux:icon.building-storefront class="size-6" />
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Negocio visible en Merkamigo') }}</h3>
+                            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{{ __('Esta vitrina pertenece a un negocio publicado dentro de la plaza de Merkamigo.') }}</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-semibold text-zinc-950 dark:text-white">{{ __('Negocio visible en Merkamigo') }}</h3>
-                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{{ $business->hasVerifiedBadge() ? __('Esta vitrina muestra un negocio con validación activa en Merkamigo.') : __('Esta vitrina pertenece a un negocio publicado dentro de la plaza de Merkamigo.') }}</p>
-                    </div>
-                </div>
 
-                <div class="shrink-0">
-                    @auth
-                        <a href="{{ route('emprendedores.home') }}" class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100 dark:bg-zinc-900 dark:text-violet-200 dark:hover:bg-zinc-800" wire:navigate>
-                            <flux:icon.cog-6-tooth class="size-4" />
-                            {{ __('Gestionar desde mi cuenta') }}
-                        </a>
-                    @else
-                        <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100 dark:bg-zinc-900 dark:text-violet-200 dark:hover:bg-zinc-800" wire:navigate>
-                            <flux:icon.cog-6-tooth class="size-4" />
-                            {{ __('¿Eres el dueño? Inicia sesión') }}
-                        </a>
-                    @endauth
+                    <div class="shrink-0">
+                        @auth
+                            <a href="{{ route('emprendedores.home') }}" class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700" wire:navigate>
+                                <flux:icon.cog-6-tooth class="size-4" />
+                                {{ __('Gestionar desde mi cuenta') }}
+                            </a>
+                        @else
+                            <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700" wire:navigate>
+                                <flux:icon.cog-6-tooth class="size-4" />
+                                {{ __('¿Eres el dueño? Inicia sesión') }}
+                            </a>
+                        @endauth
+                    </div>
                 </div>
             </div>
-        </div>
+        @endif
 
         @if ($galleryPhotos->isNotEmpty())
             <template x-teleport="body">

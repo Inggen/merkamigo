@@ -205,14 +205,17 @@ class PostsTest extends TestCase
         app(CreatePost::class)->handle($business, ['type' => 'texto', 'body' => 'Post en Cajicá'], [], $owner);
 
         $response = $this->withCookie('municipio', $business->municipality->slug)
-            ->get(route('feed'));
+            ->get(route('home'));
 
-        $response->assertOk()->assertSee('Post en Cajicá');
+        $response->assertOk()
+            ->assertSee('Post en Cajicá')
+            ->assertSee('data-post-badges', false);
     }
 
     /**
      * Decisión del usuario (sesión 15 sep 2026): el feed social es ahora
-     * Inicio — `/feed` se conserva como alias, ver `routes/web.php`.
+     * Inicio. Pedido del usuario (2026-10-06): `/feed` dejó de ser una
+     * ruta propia — ahora es solo un redirect a `/`, ver `routes/web.php`.
      */
     public function test_the_home_page_shows_the_feed(): void
     {
@@ -237,10 +240,12 @@ class PostsTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Post en Inicio')
-            ->assertSee(__('Mi rol en Merkamigo'))
-            ->assertSee(__('Comprador'))
-            ->assertSee(__('Cerca de mí'))
-            ->assertSee(__('Historias'))
+            // El selector de experiencia ya no lleva el encabezado "Mi rol en
+            // Merkamigo" (solo un `aria-label`) y la opción se llama
+            // "Cliente", no "Comprador" — ver
+            // `components/experience-switch-menu.blade.php`.
+            ->assertSee(__('Cliente'))
+            ->assertDontSee(__('Historias'))
             ->assertSee(__('Activar notificaciones'))
             ->assertSee(__('Publicaciones para ti'))
             ->assertSee(__('Más recientes'))
@@ -258,7 +263,7 @@ class PostsTest extends TestCase
         $visitor = User::factory()->create();
         app(ToggleFollowBusiness::class)->handle($visitor, $followedBusiness);
 
-        $response = $this->actingAs($visitor)->get(route('feed', ['tab' => 'siguiendo']));
+        $response = $this->actingAs($visitor)->get(route('home', ['tab' => 'siguiendo']));
 
         $response->assertOk()
             ->assertSee('Del negocio seguido')

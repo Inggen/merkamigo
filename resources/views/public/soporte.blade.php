@@ -41,4 +41,28 @@
             </flux:link>
         </div>
     </div>
+
+    {{--
+        Pedido del usuario: señalar el chatbot IA (esquina inferior
+        derecha, `x-storefront-chat-widget` en `layouts/public.blade.php`)
+        para que quede claro que ahí también se puede preguntar lo que
+        sea — sobre todo útil en esta página, donde el WhatsApp de
+        soporte puede no estar configurado todavía. `fixed` (no dentro
+        del contenido centrado) para que la flecha quede anclada al
+        mismo punto de la pantalla que el widget, sin importar el
+        scroll. Se desvanece sola para no estorbar después de notarse.
+    --}}
+    <div
+        x-data="{ show: true }"
+        x-init="setTimeout(() => show = false, 10000)"
+        x-show="show"
+        x-transition
+        x-cloak
+        class="pointer-events-none fixed bottom-36 right-6 z-30 hidden flex-col items-end gap-1 sm:flex md:bottom-40 md:right-14"
+    >
+        <div class="max-w-[12rem] rounded-2xl rounded-br-sm bg-white px-3 py-2 text-right text-sm font-medium leading-5 text-zinc-700 shadow-lg dark:bg-zinc-800 dark:text-zinc-200">
+            {{ __('¿Tienes dudas? Pregúntale lo que quieras a nuestro asistente') }}
+        </div>
+        <flux:icon.arrow-down-right class="size-10 animate-bounce text-red-600" variant="solid" />
+    </div>
 </x-layouts::public>

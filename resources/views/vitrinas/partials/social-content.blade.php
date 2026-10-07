@@ -65,7 +65,14 @@
             <div class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 @foreach ($storefrontReels as $reel)
                     @php($video = $reel->media->first())
-                    <article class="w-[min(82vw,24rem)] shrink-0 snap-start overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                    <article class="relative w-[min(82vw,24rem)] shrink-0 snap-start overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                        <x-owner-edit-link
+                            :business="$business"
+                            :href="route('emprendedores.negocios.reels', $business).'#reel-'.$reel->id"
+                            :label="__('Gestionar reel')"
+                            compact
+                            class="absolute right-3 top-3 z-20 bg-white/90 shadow-sm dark:bg-zinc-900/90"
+                        />
                         @if ($video)
                             <x-media.video-player :src="$video->url()" aspect="feed" fit="contain" loop />
                         @endif

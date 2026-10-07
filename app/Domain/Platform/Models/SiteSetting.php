@@ -25,7 +25,28 @@ class SiteSetting extends Model
         'meta_pixel_id',
         'create_vitrina_video_path',
         'pidelo_video_path',
+        'social_facebook_url',
+        'social_instagram_url',
+        'social_tiktok_url',
+        'social_whatsapp_url',
     ];
+
+    /**
+     * Perfiles sociales reales con valor (sin los vacíos), para
+     * `SchemaBuilder::organization()->sameAs` y el pie de página — nunca
+     * se inventan, solo se usan si se cargaron desde Filament.
+     *
+     * @return array<int, string>
+     */
+    public function socialProfileUrls(): array
+    {
+        return array_values(array_filter([
+            $this->social_facebook_url,
+            $this->social_instagram_url,
+            $this->social_tiktok_url,
+            $this->social_whatsapp_url,
+        ]));
+    }
 
     public static function current(): self
     {

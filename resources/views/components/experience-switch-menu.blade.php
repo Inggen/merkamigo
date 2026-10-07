@@ -1,42 +1,34 @@
-{{--
-    Selector de experiencia (0.2.1 del TODO): cambia entre Cliente y
-    Emprendedor sin cerrar sesión ni duplicar cuenta. Compartido entre el
-    menú de escritorio y el de móvil para no duplicar la lógica.
---}}
-{{--
-    Los dos `<form>` viven fuera de la lista y se asocian a sus botones
-    por `form="id"` (soportado en todos los navegadores modernos) — así
-    los `<flux:menu.item>` quedan como hijos directos de `<flux:menu>`,
-    igual que "Mi cuenta"/"Favoritos". Envolver cada uno en su propio
-    `<form>` (como se hacía antes) rompía esa relación de hijo directo y
-    el submenú se veía como dos tarjetas sueltas en vez de una sola lista
-    continua.
---}}
-<form id="experience-switch-cliente" method="POST" action="{{ route('experience.update') }}" class="hidden">
-    @csrf
-    <input type="hidden" name="experience" value="cliente">
-</form>
-<form id="experience-switch-emprendedor" method="POST" action="{{ route('experience.update') }}" class="hidden">
-    @csrf
-    <input type="hidden" name="experience" value="emprendedor">
-</form>
+{{-- Selector compartido para cambiar de experiencia sin cerrar sesión. --}}
+<div
+    class="px-2 py-1.5"
+    role="group"
+    aria-label="{{ __('Experiencia de Merkamigo') }}"
+>
+    <div class="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
+        @foreach ([
+            ['value' => 'cliente', 'icon' => 'user', 'label' => __('Cliente')],
+            ['value' => 'emprendedor', 'icon' => 'building-storefront', 'label' => __('Emprendedor')],
+        ] as $option)
+            @php($isActive = auth()->user()->experience === $option['value'])
 
-<flux:menu.submenu heading="{{ __('Cambiar de experiencia') }}" icon="arrows-right-left">
-    <flux:menu.item as="button" type="submit" form="experience-switch-cliente" class="w-full cursor-pointer">
-        <span class="me-1 inline-flex w-4 shrink-0 items-center justify-center text-zinc-400 dark:text-white/60">
-            @if (auth()->user()->experience === 'cliente')
-                <flux:icon.check variant="mini" class="size-4" />
-            @endif
-        </span>
-        <span>{{ __('Cliente') }}</span>
-    </flux:menu.item>
+            <form method="POST" action="{{ route('experience.update') }}" class="min-w-0">
+                @csrf
+                <input type="hidden" name="experience" value="{{ $option['value'] }}">
 
-    <flux:menu.item as="button" type="submit" form="experience-switch-emprendedor" class="w-full cursor-pointer">
-        <span class="me-1 inline-flex w-4 shrink-0 items-center justify-center text-zinc-400 dark:text-white/60">
-            @if (auth()->user()->experience === 'emprendedor')
-                <flux:icon.check variant="mini" class="size-4" />
-            @endif
-        </span>
-        <span>{{ __('Emprendedor') }}</span>
-    </flux:menu.item>
-</flux:menu.submenu>
+                <button
+                    type="submit"
+                    @class([
+                        'flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition',
+                        'bg-white text-brand-600 shadow-sm dark:bg-zinc-700 dark:text-brand-300' => $isActive,
+                        'text-zinc-500 hover:bg-white/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-700/70 dark:hover:text-white' => ! $isActive,
+                    ])
+                    aria-pressed="{{ $isActive ? 'true' : 'false' }}"
+                    title="{{ __('Cambiar a :experience', ['experience' => $option['label']]) }}"
+                >
+                    <x-dynamic-component :component="'flux::icon.'.$option['icon']" class="size-4 shrink-0" variant="outline" />
+                    <span class="truncate">{{ $option['label'] }}</span>
+                </button>
+            </form>
+        @endforeach
+    </div>
+</div>

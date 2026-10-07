@@ -29,8 +29,20 @@ class ClientesHomeTest extends TestCase
         $header = Blade::render('<x-cliente-nav />');
 
         $this->assertStringContainsString(route('explorar'), $header);
+        // `route('home')` es "/" — una simple substring del resto de URLs
+        // del mismo dominio no probaría nada, por eso se verifica el
+        // atributo href completo y entrecomillado.
+        $this->assertStringContainsString('href="'.route('home').'"', $header);
+        $this->assertStringContainsString(route('eventos'), $header);
+        $this->assertStringContainsString(route('merkapuntos'), $header);
         $this->assertStringContainsString(route('clientes.actividad'), $header);
-        $this->assertStringContainsString(__('Mensajes'), $header);
+        // Pedido del usuario (2026-10-06): el botón separado de "Mensajes"
+        // desaparece — los mensajes nuevos llegan como notificación dentro
+        // del desplegable de la campana, que sigue dejando la bandeja
+        // general alcanzable desde su pie.
+        $this->assertStringContainsString(route('messages.index'), $header);
+        $this->assertStringContainsString('aria-label="'.__('Notificaciones').'"', $header);
+        $this->assertStringNotContainsString('aria-label="'.__('Mensajes').'"', $header);
         $this->assertStringContainsString(route('clientes.favoritos'), $header);
         $this->assertSame(1, substr_count($header, route('clientes.favoritos')));
         $this->assertStringContainsString(__('Hola,'), $header);
@@ -49,8 +61,8 @@ class ClientesHomeTest extends TestCase
     {
         $this->get(route('explorar'))
             ->assertOk()
-            ->assertSee(route('feed'), false)
-            ->assertSee(__('Publicaciones'))
+            ->assertSee('href="'.route('home').'"', false)
+            ->assertSee(__('Comunidad'))
             ->assertSee('Descubre lo mejor de tu municipio.<br>', false)
             ->assertDontSee('Descubre lo mejor de tu municipio. Compra local', false);
     }
@@ -102,7 +114,7 @@ class ClientesHomeTest extends TestCase
         $user = User::factory()->create(['experience' => 'cliente']);
 
         $this->actingAs($user)
-            ->get(route('clientes.home'))
+            ->get(route('explorar'))
             ->assertOk()
             ->assertSee('Cajicá')
             ->assertSee(__('Miles de negocios, productos y servicios cerca de ti.'));
@@ -132,12 +144,12 @@ class ClientesHomeTest extends TestCase
         $setResponse = $this->actingAs($user)
             ->post(route('clientes.municipio'), ['municipality_id' => $municipality->id]);
 
-        $setResponse->assertRedirect(route('clientes.home'));
+        $setResponse->assertRedirect(route('explorar'));
         $setResponse->assertPlainCookie('municipio', 'cajica');
 
         $this->actingAs($user)
             ->withUnencryptedCookie('municipio', 'cajica')
-            ->get(route('clientes.home'))
+            ->get(route('explorar'))
             ->assertOk()
             ->assertSee('Mostrando Cajicá')
             ->assertSee('Panadería de Cajicá')

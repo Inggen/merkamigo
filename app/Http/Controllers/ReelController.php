@@ -23,7 +23,7 @@ class ReelController extends Controller
             ->where('type', 'video')
             ->where('status', 'publicado')
             ->whereHas('media')
-            ->with(['business.storefront', 'business.municipality', 'media', 'products'])
+            ->with(['business.organization', 'business.storefront', 'business.municipality', 'media', 'products'])
             ->withCount(['reactions', 'visibleComments as comments_count'])
             ->latest('published_at')
             ->paginate(10)

@@ -48,8 +48,18 @@
         @apply text-slate-400;
     }
 
-    .fi-sidebar-group-btn:hover {
+    .fi-sidebar-group-btn:hover,
+    .fi-sidebar-group-btn:focus-visible {
         @apply text-white;
+    }
+
+    /* El botón que de verdad pinta el fondo claro al expandir/colapsar
+       un grupo ("Plataforma") es este trigger interno, no el `.fi-
+       sidebar-group-btn` de arriba — mismo gap de `:focus-visible` que
+       en los ítems. */
+    .fi-sidebar-group-dropdown-trigger-btn:hover,
+    .fi-sidebar-group-dropdown-trigger-btn:focus-visible {
+        @apply bg-white/5;
     }
 
     /* `.fi-sidebar-item-label` es un <span> hijo con SU PROPIO color fijado
@@ -62,14 +72,49 @@
         @apply text-slate-300;
     }
 
-    .fi-sidebar-item-btn:hover,
-    .fi-sidebar-item-btn:hover .fi-sidebar-item-label {
+    /* El panel completo del admin corre en modo claro (`.dark` no está
+       presente en <html>), así que las variantes `dark:hover:`/
+       `dark:focus-visible:` que trae Filament por defecto NUNCA aplican
+       acá — el sidebar está oscuro solo por este CSS a medida, que
+       tiene que cubrir ÉL SOLO cada estado interactivo (hover Y
+       focus-visible, que el teclado/un clic activan por separado) o se
+       cae al claro de fábrica (`bg-gray-100`), casi ilegible con el
+       texto gris claro de arriba — justo el bug reportado en
+       "Google Merchant" quedando en blanco.
+
+       El selector de Filament que pinta ese fondo claro es
+       `.fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn`
+       (especificidad 0,4,0) — hay que igualarlo exactamente (no basta
+       con `.fi-sidebar-item-btn:hover` solo, 0,2,0: pierde el empate de
+       especificidad contra la regla de Filament aunque esta venga
+       después en el archivo). */
+    .fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover,
+    .fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:focus-visible,
+    .fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover .fi-sidebar-item-label,
+    .fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:focus-visible .fi-sidebar-item-label {
         @apply bg-white/5 text-white;
     }
 
+    /* Pedido del usuario: el ítem activo usaba el MISMO fondo que el
+       hover (`bg-white/5`) — al pasar el mouse por otro ítem, no había
+       forma de distinguir cuál era el realmente seleccionado. Ahora el
+       activo lleva el acento rojo de la marca (fondo + borde lateral),
+       claramente distinto del hover gris neutro de cualquier otro ítem,
+       y se mantiene reconocible aunque también esté en hover/focus. */
     .fi-sidebar-item.fi-active > .fi-sidebar-item-btn,
     .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label {
-        @apply bg-white/5 text-white;
+        @apply bg-red-500/15 text-white;
+    }
+
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+        @apply border-s-2 border-red-500;
+    }
+
+    .fi-sidebar-item.fi-active.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover,
+    .fi-sidebar-item.fi-active.fi-sidebar-item-has-url > .fi-sidebar-item-btn:focus-visible,
+    .fi-sidebar-item.fi-active.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover .fi-sidebar-item-label,
+    .fi-sidebar-item.fi-active.fi-sidebar-item-has-url > .fi-sidebar-item-btn:focus-visible .fi-sidebar-item-label {
+        @apply bg-red-500/20 text-white;
     }
 
     .fi-sidebar-item-grouped-border-part,

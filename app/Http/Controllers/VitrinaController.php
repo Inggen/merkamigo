@@ -8,6 +8,9 @@ use App\Domain\Analytics\Actions\RegisterWhatsAppClick;
 use App\Domain\Analytics\Models\AnalyticsEvent;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Actions\RegisterRecentlyViewedBusiness;
+use App\Domain\Events\Models\PublicEvent;
+use App\Domain\Loyalty\Models\LoyaltyPolicy;
+use App\Domain\Loyalty\Models\LoyaltyReward;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Contracts\View\View;
@@ -27,7 +30,7 @@ class VitrinaController extends Controller
     {
         abort_unless($business->isPublished(), 404);
 
-        $business->load(['storefront', 'municipality', 'municipalities', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
+        $business->load(['organization', 'storefront', 'municipality', 'municipalities', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
 
         app(RegisterStoreView::class)->handle($business, null, $request);
 
@@ -39,7 +42,7 @@ class VitrinaController extends Controller
             ? $business->posts()
                 ->where('status', 'publicado')
                 ->where('type', '!=', 'video')
-                ->with(['business.municipality', 'media', 'products.media', 'activePromotion'])
+                ->with(['business.organization', 'business.municipality', 'media', 'products.media', 'activePromotion'])
                 ->latest('published_at')
                 ->take(6)
                 ->get()
@@ -48,11 +51,31 @@ class VitrinaController extends Controller
             ? $business->posts()
                 ->where('status', 'publicado')
                 ->where('type', 'video')
-                ->with(['business.municipality', 'media', 'products.media', 'activePromotion'])
+                ->with(['business.organization', 'business.municipality', 'media', 'products.media', 'activePromotion'])
                 ->latest('published_at')
                 ->take(6)
                 ->get()
             : collect();
+
+        // TODO_Merkapuntos.md, F2.1: pestaña "Recompensas" en la vitrina
+        // pública, solo si el negocio tiene Merkamigo Premia activo y al
+        // menos un premio publicado — nunca una pestaña vacía.
+        $loyaltyRewards = $business->loyaltyEnrollment?->isActive()
+            ? $business->loyaltyRewards()->where('status', LoyaltyReward::PUBLICADO)->with('product.media')->get()
+            : collect();
+        $loyaltyPolicy = $loyaltyRewards->isNotEmpty()
+            ? $business->loyaltyPolicies()->where('status', LoyaltyPolicy::ACTIVA)->first()
+            : null;
+
+        // Pestaña "Eventos" (pedido del usuario, 2026-10-06): mismo
+        // criterio de "nunca una pestaña vacía" que Recompensas/Contenido
+        // — solo próximos eventos publicados, igual que la agenda pública
+        // general (`PublicEventsController::index`).
+        $publicEvents = $business->publicEvents()
+            ->where('status', PublicEvent::PUBLICADO)
+            ->where('starts_at', '>=', now()->startOfDay())
+            ->orderBy('starts_at')
+            ->get();
 
         return view('vitrinas.show', [
             'business' => $business,
@@ -60,7 +83,10 @@ class VitrinaController extends Controller
             'storefrontPosts' => $storefrontPosts,
             'storefrontReels' => $storefrontReels,
             'highlightedStories' => $business->highlightedStories()->with('product')->take(12)->get(),
-            'initialTab' => in_array($request->query('tab'), ['informacion', 'productos', 'contenido', 'opiniones'], true)
+            'loyaltyRewards' => $loyaltyRewards,
+            'loyaltyPolicy' => $loyaltyPolicy,
+            'publicEvents' => $publicEvents,
+            'initialTab' => in_array($request->query('tab'), ['informacion', 'productos', 'contenido', 'opiniones', 'recompensas', 'eventos'], true)
                 ? $request->query('tab')
                 : 'informacion',
         ]);
@@ -70,7 +96,7 @@ class VitrinaController extends Controller
     {
         abort_unless($business->isPublished(), 404);
 
-        $business->load(['storefront', 'municipality', 'municipalities', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
+        $business->load(['organization', 'storefront', 'municipality', 'municipalities', 'category', 'verifications', 'orderConfirmations', 'recommendations.authorUser']);
 
         $product = $business->products()
             ->where('slug', $product)

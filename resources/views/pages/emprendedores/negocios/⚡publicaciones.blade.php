@@ -160,7 +160,7 @@ new #[Title('Publicaciones')] class extends Component
         </div>
         <div class="space-y-3">
             @forelse ($this->posts as $post)
-                <article class="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-3 sm:flex-row sm:items-center dark:border-zinc-700 dark:bg-zinc-900">
+                <article id="publicacion-{{ $post->id }}" class="scroll-mt-24 flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-3 sm:flex-row sm:items-center dark:border-zinc-700 dark:bg-zinc-900">
                     <button type="button" x-on:click="previewPost = {{ $post->id }}" class="group relative h-28 w-full shrink-0 overflow-hidden rounded-xl bg-zinc-100 sm:w-44 dark:bg-zinc-800" aria-label="{{ __('Previsualizar publicación') }}">
                         @if ($post->media->first())
                             <img src="{{ $post->media->first()->url() }}" class="size-full object-cover transition duration-300 group-hover:scale-105" alt="{{ __('Vista previa de la publicación') }}">

@@ -8,7 +8,21 @@ use App\Domain\Billing\Models\Subscription;
 use App\Domain\Discovery\Concerns\Favoritable;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Events\Models\EventAttendance;
+use App\Domain\Events\Models\EventBlockedDate;
+use App\Domain\Events\Models\EventBusinessEquipment;
+use App\Domain\Events\Models\EventDish;
+use App\Domain\Events\Models\EventReservation;
+use App\Domain\Events\Models\EventSetting;
+use App\Domain\Events\Models\EventSpace;
+use App\Domain\Events\Models\PublicEvent;
 use App\Domain\Immersive\Models\StandAssignment;
+use App\Domain\Loyalty\Models\LoyaltyAccount;
+use App\Domain\Loyalty\Models\LoyaltyEnrollment;
+use App\Domain\Loyalty\Models\LoyaltyPolicy;
+use App\Domain\Loyalty\Models\LoyaltyPurchase;
+use App\Domain\Loyalty\Models\LoyaltyReceiptClaim;
+use App\Domain\Loyalty\Models\LoyaltyReward;
 use App\Domain\Marketplace\Models\BusinessWompiCredential;
 use App\Domain\Marketplace\Models\Order;
 use App\Domain\Messaging\Models\BusinessConversation;
@@ -156,6 +170,19 @@ class Business extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Comprueba la propiedad real sin depender del team de permisos activo.
+     * Esto permite reutilizar la regla en las páginas públicas.
+     */
+    public function isOwnedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return (int) $this->organization?->owner_user_id === (int) $user->id;
     }
 
     /**
@@ -737,5 +764,130 @@ class Business extends Model
     public function conversations(): HasMany
     {
         return $this->hasMany(BusinessConversation::class);
+    }
+
+    /**
+     * Adhesión a Merkamigo Premia (TODO_Merkapuntos.md, F3.1) — `hasOne`
+     * porque la migración la restringe a una por negocio.
+     *
+     * @return HasOne<LoyaltyEnrollment, $this>
+     */
+    public function loyaltyEnrollment(): HasOne
+    {
+        return $this->hasOne(LoyaltyEnrollment::class);
+    }
+
+    /**
+     * @return HasMany<LoyaltyPolicy, $this>
+     */
+    public function loyaltyPolicies(): HasMany
+    {
+        return $this->hasMany(LoyaltyPolicy::class);
+    }
+
+    /**
+     * @return HasMany<LoyaltyReward, $this>
+     */
+    public function loyaltyRewards(): HasMany
+    {
+        return $this->hasMany(LoyaltyReward::class);
+    }
+
+    /**
+     * @return HasMany<LoyaltyAccount, $this>
+     */
+    public function loyaltyAccounts(): HasMany
+    {
+        return $this->hasMany(LoyaltyAccount::class);
+    }
+
+    /**
+     * TODO_Correccion_Logica_Merkapuntos.md: el asistente de recompensa
+     * calcula el ticket promedio AUTOMÁTICAMENTE desde este historial
+     * (ver `MerkapuntosRewardCalculator`) — el comerciante no debería
+     * tener que escribirlo a mano.
+     *
+     * @return HasMany<LoyaltyPurchase, $this>
+     */
+    public function loyaltyPurchases(): HasMany
+    {
+        return $this->hasMany(LoyaltyPurchase::class);
+    }
+
+    /**
+     * @return HasMany<LoyaltyReceiptClaim, $this>
+     */
+    public function loyaltyReceiptClaims(): HasMany
+    {
+        return $this->hasMany(LoyaltyReceiptClaim::class);
+    }
+
+    /**
+     * Configuración de eventos (TODO_desarrollo_sistema_eventos_Merkamigo.md,
+     * Fase 1) — `hasOne` porque la migración la restringe a una por negocio.
+     *
+     * @return HasOne<EventSetting, $this>
+     */
+    public function eventSetting(): HasOne
+    {
+        return $this->hasOne(EventSetting::class);
+    }
+
+    /**
+     * @return HasMany<EventSpace, $this>
+     */
+    public function eventSpaces(): HasMany
+    {
+        return $this->hasMany(EventSpace::class);
+    }
+
+    /**
+     * @return HasMany<EventBlockedDate, $this>
+     */
+    public function eventBlockedDates(): HasMany
+    {
+        return $this->hasMany(EventBlockedDate::class);
+    }
+
+    /**
+     * @return HasMany<EventDish, $this>
+     */
+    public function eventDishes(): HasMany
+    {
+        return $this->hasMany(EventDish::class);
+    }
+
+    /**
+     * @return HasMany<EventBusinessEquipment, $this>
+     */
+    public function eventEquipment(): HasMany
+    {
+        return $this->hasMany(EventBusinessEquipment::class);
+    }
+
+    /**
+     * @return HasMany<PublicEvent, $this>
+     */
+    public function publicEvents(): HasMany
+    {
+        return $this->hasMany(PublicEvent::class);
+    }
+
+    /**
+     * @return HasMany<EventReservation, $this>
+     */
+    public function eventReservations(): HasMany
+    {
+        return $this->hasMany(EventReservation::class);
+    }
+
+    /**
+     * Reservas de cupo/asistencia a los eventos públicos de este negocio.
+     *
+     * @return HasMany<EventAttendance, $this>
+     */
+    public function eventAttendances(): HasMany
+    {
+        return $this->hasMany(EventAttendance::class);
     }
 }

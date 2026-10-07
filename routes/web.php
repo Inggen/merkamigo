@@ -10,17 +10,26 @@ use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\ContactBusinessController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmprendedoresController;
+use App\Http\Controllers\Events\EventAttendanceCheckoutController;
+use App\Http\Controllers\Events\EventAttendanceTicketController;
+use App\Http\Controllers\Events\EventReservationCheckoutController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\GoogleMerchantFeedController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\LiveStreamsController;
+use App\Http\Controllers\LlmsTxtController;
+use App\Http\Controllers\LoyaltyReceiptClaimDocumentController;
 use App\Http\Controllers\Marketplace\BusinessWompiWebhookController;
 use App\Http\Controllers\Marketplace\OrderCheckoutController;
+use App\Http\Controllers\MerkapuntosQrController;
 use App\Http\Controllers\NeedsController;
 use App\Http\Controllers\PlanesController;
 use App\Http\Controllers\PlazaController;
+use App\Http\Controllers\PremiaController;
 use App\Http\Controllers\ProductDownloadController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\PublicEventsController;
 use App\Http\Controllers\ReelController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SitemapController;
@@ -99,7 +108,6 @@ Route::middleware(AddAgentDiscoveryHeaders::class)->group(function () {
     // tradicional a Explorar").
     Route::get('/', [FeedController::class, 'index'])->name('home');
     Route::get('explorar', [ClientesController::class, 'home'])->name('explorar');
-    Route::get('clientes', [ClientesController::class, 'home'])->name('clientes.home');
     Route::get('.well-known/api-catalog', [AgentDiscoveryController::class, 'catalog'])->name('well-known.api-catalog');
     Route::get('docs/api', [AgentDiscoveryController::class, 'openApi'])->name('docs.api');
     Route::get('docs/api/reference', [AgentDiscoveryController::class, 'documentation'])->name('docs.api.reference');
@@ -125,6 +133,7 @@ Route::view('preguntas-frecuentes', 'public.preguntas-frecuentes', ['faqs' => co
     ->name('preguntas-frecuentes');
 Route::get('exp/plaza/{municipio:slug}', [PlazaController::class, 'genericPlaza'])->name('labs.generic-plaza');
 Route::get('sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('llms.txt', [LlmsTxtController::class, 'index'])->name('llms-txt');
 
 // Wompi (4.2 del TODO): retorno del checkout y webhook, ambos públicos —
 // el webhook se verifica por firma propia, no por sesión.
@@ -141,6 +150,42 @@ Route::get('pedidos/{order}/retorno', [OrderCheckoutController::class, 'return']
 Route::post('webhooks/wompi/negocios/{business}', [BusinessWompiWebhookController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('webhooks.wompi.negocio');
+
+// Reservas de eventos (TODO_desarrollo_sistema_eventos_Merkamigo.md,
+// Fase 4/7): mismo criterio que Marketplace arriba — el pago va directo a
+// la cuenta Wompi del negocio y comparte su mismo webhook
+// (`webhooks.wompi.negocio`, ver `BusinessWompiWebhookController`).
+// Públicas: una reserva de evento puede hacerla un invitado sin cuenta —
+// por eso, a diferencia del checkout de Marketplace (siempre detrás de
+// `auth`), estas sí llevan `throttle` explícito (Fase 7: "limitar
+// intentos abusivos").
+Route::get('eventos/reservas/{eventReservation}/pagar', [EventReservationCheckoutController::class, 'create'])
+    ->middleware('throttle:30,1')
+    ->name('eventos.reservas.checkout');
+Route::get('eventos/reservas/pagos/{eventPaymentAttempt}/retorno', [EventReservationCheckoutController::class, 'return'])
+    ->middleware('throttle:30,1')
+    ->name('eventos.reservas.retorno');
+
+// Reserva de CUPO/asistencia a un evento público (pedido del usuario,
+// 2026-10-08) — distinta de las de arriba (esas reservan el ESPACIO del
+// negocio). El pago, cuando el evento es de pago, sigue el mismo patrón
+// Wompi y comparte el mismo webhook por negocio.
+Route::get('eventos/entradas/{eventAttendance}/pagar', [EventAttendanceCheckoutController::class, 'create'])
+    ->middleware('throttle:30,1')
+    ->name('eventos.entradas.checkout');
+Route::get('eventos/entradas/pagos/{eventAttendancePaymentAttempt}/retorno', [EventAttendanceCheckoutController::class, 'return'])
+    ->middleware('throttle:30,1')
+    ->name('eventos.entradas.retorno');
+
+// "Mi entrada": solo alcanzable con el enlace firmado del correo de
+// confirmación (Fase 7: "proteger datos personales") — nunca adivinable
+// por id.
+Route::get('eventos/entradas/{eventAttendance}', [EventAttendanceTicketController::class, 'show'])
+    ->middleware('signed')
+    ->name('eventos.entradas.show');
+Route::get('eventos/entradas/{eventAttendance}/qr', [EventAttendanceTicketController::class, 'qr'])
+    ->middleware('signed')
+    ->name('eventos.entradas.qr');
 
 Route::get('emprendedores/bienvenida', [EmprendedoresController::class, 'bienvenida'])
     ->name('emprendedores.bienvenida');
@@ -195,14 +240,46 @@ Route::get('plaza/{municipio?}/{categoria?}', [PlazaController::class, 'buscar']
 
 // Feed social (2.1/2.2 del TODO social, Sprint 2) — sin registro
 // obligatorio para ver, igual que el resto de descubrimiento público.
-// `/feed` se conserva como alias de Inicio para no romper enlaces
-// existentes, ahora que el feed es la página de Inicio (ver arriba).
-Route::get('feed', [FeedController::class, 'index'])->name('feed');
+// Pedido del usuario (2026-10-06): `/feed` y `/` eran dos rutas para la
+// misma acción (`FeedController::index`) — se consolidaron en una sola
+// (`home`, arriba). Este redirect es solo para no romper enlaces o
+// marcadores viejos a `/feed`.
+Route::redirect('feed', '/');
+
+// Mismo caso: `/clientes` y `/explorar` eran dos rutas para la misma
+// acción (`ClientesController::home`) — se consolidaron en `explorar`
+// (arriba), que ya era la más usada en todo el proyecto.
+Route::redirect('clientes', '/explorar');
 
 // Reels (Fase 4 del TODO social, Sprint 4): reutiliza la infraestructura
 // de `posts` (reacciones, comentarios, seguir) con `type = video` — sin
 // duplicar un dominio social paralelo para esto.
 Route::get('reels', [ReelController::class, 'index'])->name('reels');
+
+// Listado de transmisiones en vivo (antes "Eventos" en el sidebar,
+// navegación simplificada del Cliente 2026-10-03). Reubicado el
+// 2026-10-05: "Eventos" pasa a ser la agenda pública nueva de
+// TODO_desarrollo_sistema_eventos_Merkamigo.md (ver más abajo) —
+// decisión confirmada por el usuario. "Merkapuntos" (2026-10-04,
+// TODO_Merkapuntos.md Fase 2) vive más abajo, dentro del grupo
+// `auth`+`verified` — es la sección personal de puntos del cliente, no
+// tiene sentido sin sesión.
+Route::get('en-vivo', [LiveStreamsController::class, 'index'])->name('live.index');
+
+// Agenda pública de eventos (TODO_desarrollo_sistema_eventos_Merkamigo.md,
+// Fase 5) — nueva sección "Eventos" del sidebar del Cliente, pública y sin
+// registro igual que el resto del descubrimiento. El flujo privado de
+// reservas/cotización/pago (Fases 1-4) vive dentro del panel del negocio y
+// todavía no está implementado; esta vista solo lista/muestra eventos ya
+// publicados.
+Route::get('eventos', [PublicEventsController::class, 'index'])->name('eventos');
+Route::get('eventos/{publicEvent:slug}', [PublicEventsController::class, 'show'])->name('eventos.show');
+
+// Catálogo público de Merkapuntos (TODO_Merkapuntos.md, F2.2): navegable
+// sin registro, igual que el resto del descubrimiento de Merkamigo.
+// Canjear (`redeem`) sí exige sesión, más abajo en el grupo `auth`.
+Route::get('premia', [PremiaController::class, 'index'])->name('premia.index');
+Route::get('premia/{reward}', [PremiaController::class, 'show'])->name('premia.show');
 
 // Live Commerce (Sprint 8): la reproducción es pública; la gestión vive
 // dentro del panel del negocio y sigue protegida por `business.team`.
@@ -234,6 +311,11 @@ Route::post('m/{business:slug}/productos/{product:slug}/compartir', [VitrinaCont
     ->middleware('throttle:60,1')
     ->name('vitrinas.compartir.product');
 
+// Cotizador y reserva privada de eventos (TODO_desarrollo_sistema_eventos_Merkamigo.md,
+// Fase 3) — público, sin registro obligatorio ("puedes explorar y
+// reservar sin registrarte"), igual que el resto del descubrimiento.
+Route::livewire('m/{business:slug}/eventos/reservar', 'pages::eventos.reservar')->name('vitrinas.eventos.reservar');
+
 Route::get('m/{business:slug}/reportar', [ReportController::class, 'createBusiness'])->name('reportes.crear.negocio');
 Route::post('m/{business:slug}/reportar', [ReportController::class, 'storeBusiness'])
     ->middleware('throttle:10,1')
@@ -263,6 +345,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('clientes.actividad.leida');
     Route::livewire('mensajes', 'pages::messages.index')->name('messages.index');
     Route::livewire('mensajes/{conversation}', 'pages::messages.index')->name('messages.show');
+
+    // Merkapuntos del Cliente (TODO_Merkapuntos.md, F2.4/F2.5): sección
+    // única de saldo/canje/QR. Los QR se sirven como imagen, nunca se
+    // embebe el token crudo en el HTML (ver `MerkapuntosQrController`).
+    Route::livewire('merkapuntos', 'pages::merkapuntos.index')->name('merkapuntos');
+    Route::get('merkapuntos/qr', [MerkapuntosQrController::class, 'identity'])->name('merkapuntos.qr');
+    Route::get('merkapuntos/canjes/{redemption}/qr', [MerkapuntosQrController::class, 'redemption'])->name('merkapuntos.qr.redemption');
+
+    // F2.3 (registro contextual) vía el mecanismo estándar de Laravel: un
+    // invitado que pulsa "Canjear" en /premia cae aquí, el middleware
+    // `auth` lo manda al login conservando esta URL como `intended`, y al
+    // volver autenticado la reserva se ejecuta recién ahí — nunca antes.
+    Route::get('premia/{reward}/canjear', [PremiaController::class, 'redeem'])->name('premia.redeem');
     Route::livewire('clientes/pedidos', 'pages::clientes.pedidos')->name('clientes.pedidos');
     Route::livewire('clientes/compras', 'pages::clientes.compras')->name('clientes.compras');
 
@@ -333,6 +428,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('compartir', [EmprendedoresController::class, 'compartir'])->name('compartir');
         Route::livewire('cobros-en-linea', 'pages::emprendedores.negocios.cobros-en-linea')->name('cobros-en-linea');
         Route::livewire('ventas', 'pages::emprendedores.negocios.ventas')->name('ventas');
+
+        // Merkamigo Premia (TODO_Merkapuntos.md, Fase 3): adhesión,
+        // premios, escáner único y resultados del negocio, todo en un
+        // panel — "sin nuevo sistema de menús profundo" (F3.6).
+        Route::livewire('merkapuntos', 'pages::emprendedores.negocios.merkapuntos')->name('merkapuntos');
+        Route::get('merkapuntos/solicitudes/{claim}/recibo', [LoyaltyReceiptClaimDocumentController::class, 'show'])->name('merkapuntos.solicitudes.recibo');
+
+        // Panel de Eventos (TODO_desarrollo_sistema_eventos_Merkamigo.md,
+        // Fase 2): agenda, reservas y configuración del negocio.
+        Route::livewire('eventos', 'pages::emprendedores.negocios.eventos')->name('eventos');
     });
 });
 

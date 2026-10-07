@@ -129,7 +129,7 @@ class EmprendedorHomeTest extends TestCase
         $this->actingAs($owner)
             ->get(route('emprendedores.home'))
             ->assertOk()
-            ->assertDontSee(__('+ Crear otra vitrina'))
+            ->assertDontSee(__('Crear una vitrina'))
             ->assertSee(__('Ya alcanzaste el máximo de 1 vitrinas para tu plan actual.'));
     }
 
@@ -156,14 +156,15 @@ class EmprendedorHomeTest extends TestCase
         $this->actingAs($owner)
             ->get(route('emprendedores.home'))
             ->assertOk()
-            ->assertSee(__('+ Crear otra vitrina'));
+            ->assertSee(__('Crear una vitrina'))
+            ->assertSee('href="'.route('emprendedores.crear-vitrina').'"', false);
 
         app(CreateStorefront::class)->handle($owner, ['name' => 'Tercera Vitrina']);
 
         $this->actingAs($owner)
             ->get(route('emprendedores.home'))
             ->assertOk()
-            ->assertDontSee(__('+ Crear otra vitrina'))
+            ->assertDontSee(__('Crear una vitrina'))
             ->assertSee(__('Ya alcanzaste el máximo de 3 vitrinas para tu plan actual.'));
     }
 }

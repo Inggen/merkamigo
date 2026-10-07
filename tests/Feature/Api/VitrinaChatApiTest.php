@@ -97,7 +97,7 @@ class VitrinaChatApiTest extends TestCase
         $this->postJson(route('api.v1.plaza.negocios.chat', $business->slug), [])
             ->assertStatus(422)
             ->assertJsonPath('error.code', 'validation_failed')
-            ->assertJsonPath('error.details.question.0', 'The question field is required.');
+            ->assertJsonPath('error.details.question.0', 'El campo pregunta es obligatorio.');
     }
 
     public function test_chat_is_not_found_for_an_unpublished_business(): void

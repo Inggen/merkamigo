@@ -49,6 +49,34 @@ class AnalyticsEvent extends Model
 
     public const PROMOTION_CONVERSION = 'promotion_conversion';
 
+    // TODO_Merkapuntos.md, F5.4: "impresión de premio, detalle, ...
+    // compra confirmada, canje reservado/entregado, cancelado/expirado,
+    // recompra" — mismos eventos anónimos/agregados que el resto de la
+    // plataforma, vía `RegisterAnalyticsEvent` (deduplicados, sin IP ni
+    // user-agent en crudo).
+    public const LOYALTY_REWARD_IMPRESSION = 'loyalty_reward_impression';
+
+    public const LOYALTY_REWARD_DETAIL_VIEW = 'loyalty_reward_detail_view';
+
+    public const LOYALTY_PURCHASE_CONFIRMED = 'loyalty_purchase_confirmed';
+
+    public const LOYALTY_REDEMPTION_RESERVED = 'loyalty_redemption_reserved';
+
+    public const LOYALTY_REDEMPTION_DELIVERED = 'loyalty_redemption_delivered';
+
+    public const LOYALTY_REDEMPTION_RELEASED = 'loyalty_redemption_released';
+
+    public const LOYALTY_REPURCHASE = 'loyalty_repurchase';
+
+    // TODO_desarrollo_sistema_eventos_Merkamigo.md, Fase 6: "Medir
+    // impresiones, aperturas, clics y reservas atribuibles por vitrina y
+    // plan" — mismo patrón que los de Merkapuntos arriba.
+    public const EVENT_IMPRESSION = 'event_impression';
+
+    public const EVENT_DETAIL_VIEW = 'event_detail_view';
+
+    public const EVENT_RESERVATION_STARTED = 'event_reservation_started';
+
     protected $fillable = ['business_id', 'type', 'subject_type', 'subject_id', 'visitor_hash'];
 
     /**

@@ -32,7 +32,7 @@ class SwitchExperienceTest extends TestCase
         $this->actingAs($user);
 
         $this->post(route('experience.update'), ['experience' => 'cliente'])
-            ->assertRedirect(route('clientes.home'));
+            ->assertRedirect(route('explorar'));
 
         $this->assertSame('cliente', $user->fresh()->experience);
     }
@@ -42,7 +42,7 @@ class SwitchExperienceTest extends TestCase
         $user = User::factory()->create(['experience' => 'cliente']);
         $this->actingAs($user);
 
-        $this->get(route('dashboard'))->assertRedirect(route('clientes.home'));
+        $this->get(route('dashboard'))->assertRedirect(route('explorar'));
     }
 
     public function test_dashboard_shows_the_picker_when_no_experience_is_set(): void

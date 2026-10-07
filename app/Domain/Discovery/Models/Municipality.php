@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Municipality extends Model
 {
-    protected $fillable = ['name', 'slug', 'department', 'cover_path', 'hero_video_path', 'cover_alt_text', 'latitude', 'longitude', 'is_active'];
+    protected $fillable = ['name', 'slug', 'department', 'description', 'cover_path', 'hero_video_path', 'cover_alt_text', 'latitude', 'longitude', 'is_active'];
 
     /**
      * Invalida el caché de `GET /api/v1/municipios` (5.1/5.3 del TODO) al

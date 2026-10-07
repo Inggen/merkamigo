@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Municipalities\Schemas;
 
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -113,6 +114,12 @@ class MunicipalityForm
                 TextInput::make('slug')
                     ->label('Slug')
                     ->required(),
+                Textarea::make('description')
+                    ->label('Descripción del municipio')
+                    ->helperText('1-2 frases reales sobre el municipio (no sobre Merkamigo). Se muestra en la Plaza pública y ayuda a que buscadores e IA entiendan de qué trata la página.')
+                    ->rows(3)
+                    ->maxLength(500)
+                    ->columnSpanFull(),
                 FileUpload::make('cover_path')
                     ->label('Portada')
                     ->image()

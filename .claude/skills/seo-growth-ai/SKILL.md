@@ -3,7 +3,7 @@ name: seo-growth-ai
 description: >
   Skill especializada en SEO orientado a adquisición de leads. Analiza, prioriza y ejecuta
   optimizaciones SEO on-page, off-page, contenido orgánico, CRO SEO, backlinks, SEO-Paid
-  cross-channel, atribución y visibilidad en motores de respuesta con IA, AI Overviews,
+  cross-channel, atribución y visibilidad en motores de respuesta con IA, AI Overviews, revisión de cntexto gráfico en la carpea publica de mockups y LLMs. La skill no solo busca aumentar tráfico, sino que prioriza intención de búsqueda, oportunidad comercial, conversión y resultados medibles. Se enfoca en buscadores tradicionales y en
   buscadores generativos y LLMs.
 version: 1.0
 language: es

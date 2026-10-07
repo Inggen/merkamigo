@@ -142,6 +142,11 @@
             </nav>
 
             <div class="flex flex-wrap items-center gap-5 text-sm text-zinc-700 dark:text-zinc-300">
+                <x-owner-edit-link
+                    :business="$business"
+                    :href="route('emprendedores.negocios.productos', $business).'#producto-'.$product->id"
+                    :label="__('Editar producto')"
+                />
                 <flux:button
                     type="button"
                     x-on:click="navigator.clipboard.writeText(window.location.href); fetch('{{ route('vitrinas.compartir.product', [$business, $product]) }}', { method: 'POST' }); $flux.toast('{{ __('Enlace copiado') }}')"

@@ -77,6 +77,33 @@ return [
         'quality' => 86,
     ],
 
+    'event_cover' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+        'max_width' => 1920,
+        'target_extension' => 'webp',
+        'quality' => 86,
+    ],
+
+    'event_space' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+        'max_width' => 1400,
+        'target_extension' => 'webp',
+        'quality' => 86,
+    ],
+
+    'loyalty_reward' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+        'max_width' => 1400,
+        'target_extension' => 'webp',
+        'quality' => 88,
+    ],
+
     'municipality_cover' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,

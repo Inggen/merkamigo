@@ -12,13 +12,26 @@
                         {{ __('Descubre lo local, conecta con tu comunidad.') }}
                     </p>
 
+                    @php $siteSettings = \App\Domain\Platform\Models\SiteSetting::current(); @endphp
                     <div class="flex items-center gap-4">
-                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Facebook') }}">
-                            <svg viewBox="0 0 24 24" class="size-6 fill-current" aria-hidden="true"><path d="M13.5 21v-7h2.3l.4-3h-2.7V9.1c0-.9.3-1.6 1.6-1.6H16V4.8c-.5-.1-1.3-.2-2.2-.2-2.2 0-3.8 1.3-3.8 4V11H7.8v3H10V21h3.5Z"/></svg>
-                        </a>
-                        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Instagram') }}">
-                            <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/></svg>
-                        </a>
+                        {{-- Solo se muestran los íconos con un perfil real cargado desde
+                             Filament (Configuración del sitio) — nunca un enlace genérico
+                             a facebook.com/instagram.com que no sea de Merkamigo. --}}
+                        @if ($siteSettings->social_facebook_url)
+                            <a href="{{ $siteSettings->social_facebook_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Facebook') }}">
+                                <svg viewBox="0 0 24 24" class="size-6 fill-current" aria-hidden="true"><path d="M13.5 21v-7h2.3l.4-3h-2.7V9.1c0-.9.3-1.6 1.6-1.6H16V4.8c-.5-.1-1.3-.2-2.2-.2-2.2 0-3.8 1.3-3.8 4V11H7.8v3H10V21h3.5Z"/></svg>
+                            </a>
+                        @endif
+                        @if ($siteSettings->social_instagram_url)
+                            <a href="{{ $siteSettings->social_instagram_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Instagram') }}">
+                                <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/></svg>
+                            </a>
+                        @endif
+                        @if ($siteSettings->social_tiktok_url)
+                            <a href="{{ $siteSettings->social_tiktok_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('TikTok') }}">
+                                <svg viewBox="0 0 24 24" class="size-6 fill-current" aria-hidden="true"><path d="M16.5 3c.3 1.8 1.5 3.2 3.3 3.6v2.6c-1.2 0-2.3-.4-3.3-1v6.6c0 3-2.4 5.4-5.4 5.4S5.7 17.8 5.7 14.8c0-2.9 2.3-5.3 5.2-5.4v2.7c-1.4.1-2.5 1.3-2.5 2.7 0 1.5 1.2 2.7 2.7 2.7s2.7-1.2 2.7-2.7V3h2.7Z"/></svg>
+                            </a>
+                        @endif
                         <a href="{{ route('municipios') }}" wire:navigate class="inline-flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition hover:bg-brand-50 hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300" aria-label="{{ __('Municipios') }}">
                             <flux:icon.map-pin class="size-6" />
                         </a>
@@ -49,10 +62,6 @@
                             <flux:icon.squares-2x2 class="size-6 text-zinc-400" />
                             <span>{{ __('Categorías') }}</span>
                         </a>
-                        <a href="{{ route('como-funciona') }}" wire:navigate class="flex items-center gap-4 transition hover:text-brand-600">
-                            <flux:icon.question-mark-circle class="size-6 text-zinc-400" />
-                            <span>{{ __('Cómo funciona') }}</span>
-                        </a>
                         <a href="{{ route('planes-y-precios') }}" wire:navigate class="flex items-center gap-4 transition hover:text-brand-600">
                             <flux:icon.banknotes class="size-6 text-zinc-400" />
                             <span>{{ __('Planes y precios') }}</span>
@@ -67,6 +76,10 @@
                     </div>
 
                     <nav class="space-y-5 text-sm text-zinc-600 dark:text-zinc-300">
+                        <a href="{{ route('como-funciona') }}" wire:navigate class="flex items-center gap-4 transition hover:text-brand-600">
+                            <flux:icon.question-mark-circle class="size-6 text-zinc-400" />
+                            <span>{{ __('Cómo funciona') }}</span>
+                        </a>
                         <a href="{{ route('preguntas-frecuentes') }}" wire:navigate class="flex items-center gap-4 transition hover:text-brand-600">
                             <svg viewBox="0 0 24 24" class="size-6 text-zinc-400" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 18.5c-2.8 0-5-2.2-5-5v-3c0-2.8 2.2-5 5-5h10c2.8 0 5 2.2 5 5v3c0 2.8-2.2 5-5 5H9l-4 3v-3H7Z"/></svg>
                             <span>{{ __('Preguntas frecuentes') }}</span>

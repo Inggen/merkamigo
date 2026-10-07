@@ -3,6 +3,7 @@
 namespace App\Support\Seo;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Platform\Models\SiteSetting;
 use App\Domain\Storefronts\Models\Product;
 use App\Domain\Trust\Models\Recommendation;
 use App\Support\GoogleMerchant\GoogleMerchantProductMapper;
@@ -22,7 +23,7 @@ class SchemaBuilder
             'description' => __('Plataforma para descubrir negocios, productos y servicios locales en Colombia.'),
             'url' => route('home'),
             'logo' => asset('icons/icon-512.png'),
-            'sameAs' => [],
+            'sameAs' => SiteSetting::current()->socialProfileUrls(),
         ]);
     }
 

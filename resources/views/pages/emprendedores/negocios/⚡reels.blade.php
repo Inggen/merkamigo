@@ -150,7 +150,7 @@ new #[Title('Reels')] class extends Component
         <div class="mb-4 flex items-center gap-2.5"><h2 class="text-lg font-semibold">{{ __('Tus reels') }}</h2><span class="inline-flex size-7 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">{{ $this->reels->count() }}</span></div>
         <div class="space-y-3">
             @forelse ($this->reels as $reel)
-                <article class="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-3 sm:flex-row sm:items-center dark:border-zinc-700 dark:bg-zinc-900">
+                <article id="reel-{{ $reel->id }}" class="scroll-mt-24 flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-3 sm:flex-row sm:items-center dark:border-zinc-700 dark:bg-zinc-900">
                     <button type="button" x-on:click="previewReel = {{ $reel->id }}" class="group relative h-32 w-full shrink-0 overflow-hidden rounded-xl bg-black sm:w-44" aria-label="{{ __('Previsualizar reel') }}">
                         @if ($reel->media->first())<video src="{{ $reel->media->first()->url() }}" class="size-full object-cover" muted preload="metadata"></video>@endif
                         <span class="absolute inset-0 flex items-center justify-center"><span class="flex size-11 items-center justify-center rounded-full bg-white/90 text-brand-600 shadow"><flux:icon.play class="ms-0.5 size-5" /></span></span>

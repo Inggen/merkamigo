@@ -100,14 +100,14 @@ class ClientesController extends Controller
         if (blank($data['municipality_id'] ?? null)) {
             Cookie::queue(Cookie::forget('municipio'));
 
-            return redirect()->route('clientes.home');
+            return redirect()->route('explorar');
         }
 
         $municipality = Municipality::where('id', $data['municipality_id'])->firstOrFail();
 
         $setPreferredMunicipality->handle($municipality);
 
-        return redirect()->back(fallback: route('clientes.home'));
+        return redirect()->back(fallback: route('explorar'));
     }
 
     public function marcarActividadLeida(Request $request, string $notification): RedirectResponse

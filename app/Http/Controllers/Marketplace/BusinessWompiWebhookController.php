@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Marketplace;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Events\Actions\ApplyApprovedEventAttendancePayment;
+use App\Domain\Events\Actions\ApplyApprovedEventPayment;
+use App\Domain\Events\Models\EventAttendancePaymentAttempt;
+use App\Domain\Events\Models\EventPaymentAttempt;
 use App\Domain\Marketplace\Actions\ApplyApprovedOrder;
 use App\Domain\Marketplace\Models\Order;
 use App\Http\Controllers\Controller;
@@ -44,13 +48,51 @@ class BusinessWompiWebhookController extends Controller
             return response()->json(['message' => 'Evento ignorado.']);
         }
 
-        $order = Order::where('reference', $transaction['reference'] ?? '__none__')
+        $reference = $transaction['reference'] ?? '__none__';
+
+        $order = Order::where('reference', $reference)
             ->where('business_id', $business->id)
             ->first();
 
         if ($order) {
             app(ApplyApprovedOrder::class)->handle(
                 $order,
+                $transaction['status'] ?? 'ERROR',
+                $transaction['id'] ?? null,
+                $transaction,
+            );
+
+            return response()->json(['message' => 'Procesado.']);
+        }
+
+        // Mismo webhook por negocio sirve a todo lo que se pague con su
+        // Wompi propio — Marketplace (arriba) y reservas de eventos
+        // (TODO_desarrollo_sistema_eventos_Merkamigo.md, Fase 4) comparten
+        // una sola URL registrada en el panel de Wompi del negocio.
+        $attempt = EventPaymentAttempt::where('reference', $reference)
+            ->whereHas('reservation', fn ($q) => $q->where('business_id', $business->id))
+            ->first();
+
+        if ($attempt) {
+            app(ApplyApprovedEventPayment::class)->handle(
+                $attempt,
+                $transaction['status'] ?? 'ERROR',
+                $transaction['id'] ?? null,
+                $transaction,
+            );
+
+            return response()->json(['message' => 'Procesado.']);
+        }
+
+        // Reservas de CUPO/asistencia a eventos públicos (pedido del
+        // usuario, 2026-10-08) — mismo webhook compartido.
+        $attendanceAttempt = EventAttendancePaymentAttempt::where('reference', $reference)
+            ->whereHas('attendance', fn ($q) => $q->where('business_id', $business->id))
+            ->first();
+
+        if ($attendanceAttempt) {
+            app(ApplyApprovedEventAttendancePayment::class)->handle(
+                $attendanceAttempt,
                 $transaction['status'] ?? 'ERROR',
                 $transaction['id'] ?? null,
                 $transaction,

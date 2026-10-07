@@ -1,41 +1,28 @@
+{{--
+    Menú simplificado del Cliente (2026-10-03, a pedido del usuario): mismos
+    accesos que `feed/partials/sidebar.blade.php`, consistentes en todas
+    las vistas del Cliente. Mensajes/Favoritos/Mis compras/Actividad siguen
+    disponibles desde el menú de cuenta de `cliente-nav.blade.php`
+    (encabezado), no desaparecieron — solo salieron de este sidebar.
+
+    Pedido del usuario (2026-10-06): `/feed` y `/` eran la misma pantalla
+    — ya no hace falta un "Comunidad" aparte aquí, "Inicio" ya es esa
+    misma pantalla.
+--}}
 <flux:sidebar.group :heading="__('Cliente')" class="grid">
-    <flux:sidebar.item icon="home" :href="route('home')" :current="request()->routeIs('home', 'feed')" wire:navigate>
+    <flux:sidebar.item icon="home" :href="route('home')" :current="request()->routeIs('home')" wire:navigate>
         {{ __('Inicio') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item icon="film" :href="route('reels')" :current="request()->routeIs('reels')" wire:navigate>
-        {{ __('Reels') }}
+    <flux:sidebar.item icon="building-storefront" :href="route('explorar')" :current="request()->routeIs('explorar')" wire:navigate>
+        {{ __('Vitrinas') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item icon="magnifying-glass" :href="route('explorar')" :current="request()->routeIs('explorar')" wire:navigate>
-        {{ __('Explorar') }}
+    <flux:sidebar.item icon="calendar-days" :href="route('eventos')" :current="request()->routeIs('eventos', 'eventos.show')" wire:navigate>
+        {{ __('Eventos') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item
-        icon="chat-bubble-left-right"
-        :href="route('messages.index')"
-        :current="request()->routeIs('messages.*')"
-        :badge="($unreadMessages = auth()->user()->unreadBusinessMessagesCount()) > 0 ? $unreadMessages : null"
-        wire:navigate
-    >
-        {{ __('Mensajes') }}
-    </flux:sidebar.item>
-
-    <flux:sidebar.item
-        icon="bell"
-        :href="route('clientes.actividad')"
-        :current="request()->routeIs('clientes.actividad')"
-        :badge="($unread = auth()->user()->unreadNotifications()->count()) > 0 ? $unread : null"
-        wire:navigate
-    >
-        {{ __('Actividad') }}
-    </flux:sidebar.item>
-
-    <flux:sidebar.item icon="heart" :href="route('clientes.favoritos')" :current="request()->routeIs('clientes.favoritos')" wire:navigate>
-        {{ __('Favoritos') }}
-    </flux:sidebar.item>
-
-    <flux:sidebar.item icon="shopping-bag" :href="route('clientes.compras')" :current="request()->routeIs('clientes.compras')" wire:navigate>
-        {{ __('Mis compras') }}
+    <flux:sidebar.item icon="sparkles" :href="route('merkapuntos')" :current="request()->routeIs('merkapuntos')" wire:navigate>
+        {{ __('Merkapuntos') }}
     </flux:sidebar.item>
 </flux:sidebar.group>

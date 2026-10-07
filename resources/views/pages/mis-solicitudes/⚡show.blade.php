@@ -21,7 +21,7 @@ use Livewire\Component;
  * `⚡nueva.blade.php` — el layout por defecto de una página Livewire es el
  * shell con sidebar del Emprendedor, y esta es una página del Cliente.
  */
-new #[Layout('layouts::cliente')] #[Title('Mi solicitud')] class extends Component {
+new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Mi solicitud')] class extends Component {
     public int $needId;
 
     public ?int $selectedOfferId = null;

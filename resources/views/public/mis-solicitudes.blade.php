@@ -1,4 +1,4 @@
-<x-layouts::cliente :title="__('Mis solicitudes')">
+<x-layouts::cliente :title="__('Mis solicitudes')" :show-sidebar="true">
     @php
         $activeTab = request('tab', 'todas');
 

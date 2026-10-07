@@ -16,7 +16,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request): View|RedirectResponse
     {
         return match ($request->user()->experience) {
-            'cliente' => redirect()->route('clientes.home'),
+            'cliente' => redirect()->route('explorar'),
             'emprendedor' => redirect()->route('emprendedores.home'),
             default => view('dashboard'),
         };

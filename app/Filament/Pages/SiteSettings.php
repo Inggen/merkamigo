@@ -124,6 +124,30 @@ class SiteSettings extends Page
                         'regex' => 'El Meta Pixel ID debe contener solo números.',
                     ]),
 
+                TextInput::make('social_facebook_url')
+                    ->label('Facebook')
+                    ->helperText('URL del perfil real de Merkamigo. Se usa en el pie de página y como dato de identidad de marca para buscadores e IA.')
+                    ->url()
+                    ->placeholder('https://www.facebook.com/merkamigo'),
+
+                TextInput::make('social_instagram_url')
+                    ->label('Instagram')
+                    ->helperText('URL del perfil real de Merkamigo.')
+                    ->url()
+                    ->placeholder('https://www.instagram.com/merkamigo'),
+
+                TextInput::make('social_tiktok_url')
+                    ->label('TikTok')
+                    ->helperText('Opcional.')
+                    ->url()
+                    ->placeholder('https://www.tiktok.com/@merkamigo'),
+
+                TextInput::make('social_whatsapp_url')
+                    ->label('WhatsApp Business')
+                    ->helperText('Opcional, solo si existe un canal de WhatsApp propio de Merkamigo (no el de cada negocio).')
+                    ->url()
+                    ->placeholder('https://wa.me/57...'),
+
                 FileUpload::make('create_vitrina_video_path')
                     ->label('Video de la tarjeta "Crea tu vitrina"')
                     ->helperText('Video de fondo de la tarjeta de Inicio que invita a crear la vitrina. Sin video, se muestra la imagen por defecto.')

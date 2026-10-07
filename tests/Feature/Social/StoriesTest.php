@@ -100,6 +100,28 @@ class StoriesTest extends TestCase
             ->assertSee($business->name);
     }
 
+    public function test_the_feed_only_shows_the_stories_card_when_there_are_active_stories(): void
+    {
+        Storage::fake('public');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee(__('Historias'));
+
+        $business = $this->publishedBusiness();
+        app(CreateStory::class)->handle(
+            $business,
+            ['type' => 'imagen'],
+            UploadedFile::fake()->image('estado-activo.jpg'),
+            $business->organization->owner,
+        );
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee(__('Historias'))
+            ->assertSee($business->name);
+    }
+
     public function test_owner_can_create_and_delete_a_story_from_the_panel(): void
     {
         Storage::fake('public');

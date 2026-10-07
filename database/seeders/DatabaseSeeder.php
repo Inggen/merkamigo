@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             PaymentMethodSeeder::class,
             PlanSeeder::class,
             BillingProductSeeder::class,
+            EventEquipmentTypeSeeder::class,
         ]);
 
         if (app()->isLocal()) {

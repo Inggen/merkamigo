@@ -4,5 +4,32 @@ Allow: /.well-known/
 Allow: /docs/api
 Allow: /docs/api/reference
 Allow: /feeds/google-merchant.xml
+Allow: /llms.txt
+
+# Crawlers de motores de respuesta con IA — bienvenidos explícitamente,
+# aunque el wildcard de arriba ya los permite.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
 
 Sitemap: https://merkamigo.com/sitemap.xml

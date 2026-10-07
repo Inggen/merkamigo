@@ -19,13 +19,13 @@ class ExperienceController extends Controller
         if (! $request->user()) {
             return redirect()->to(
                 $data['experience'] === 'cliente'
-                    ? route('clientes.home')
+                    ? route('explorar')
                     : route('emprendedores.bienvenida'),
             );
         }
 
         return redirect()->to(
-            $data['experience'] === 'cliente' ? route('clientes.home') : route('emprendedores.home'),
+            $data['experience'] === 'cliente' ? route('explorar') : route('emprendedores.home'),
         );
     }
 }

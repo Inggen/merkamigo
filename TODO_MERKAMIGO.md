@@ -3,7 +3,7 @@
 > **Versión:** 1.0  
 > **Fecha:** 27 de julio de 2026  
 > **Estado:** Backlog maestro propuesto  
-> **Propósito:** convertir Merkamigo en una plataforma local, cercana y fácil de usar que permita a emprendedores tener una vitrina digital, ser encontrados por compradores cercanos y concretar oportunidades por WhatsApp.
+> **Propósito:** convertir Merkamigo en una plataforma local, cercana y fácil de usar que permita a emprendedores tener una vitrina digital, ser encontrados por compradores cercanos y concretar oportunidades por mensajería interna y/o por WhatsApp. la premisa de contenido es que se aline siempre el ancho del contenido del Header, Footer y contenidos internos de la plataforma (max-w-7xl)
 
 ---
 

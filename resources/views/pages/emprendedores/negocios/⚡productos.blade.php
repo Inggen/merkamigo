@@ -634,7 +634,7 @@ new #[Title('Productos y servicios')] class extends Component
     @else
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($this->products as $product)
-                <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <div id="producto-{{ $product->id }}" class="scroll-mt-24 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                     <div class="relative aspect-square bg-zinc-100 dark:bg-zinc-800">
                         @if ($product->primaryImage())
                             <img src="{{ $product->primaryImage()->url() }}" class="h-full w-full object-cover" alt="{{ $product->primaryImage()->alt_text ?? $product->name }}">

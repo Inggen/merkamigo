@@ -17,19 +17,21 @@
             title="{{ $favorited ? __('Quitar de favoritos') : __('Guardar en favoritos') }}"
             class="flex size-8 items-center justify-center rounded-full bg-white/90 text-zinc-500 shadow-sm backdrop-blur transition hover:text-brand-600 dark:bg-zinc-900/90 dark:text-zinc-300"
         >
-            <flux:icon.heart class="size-4" :variant="$favorited ? 'solid' : 'outline'" :class="$favorited ? 'text-brand-600' : ''" />
+            <flux:icon.bookmark class="size-4" :variant="$favorited ? 'solid' : 'outline'" :class="$favorited ? 'text-brand-600' : ''" />
         </button>
     @else
+        {{-- Pedido del usuario: solo el ícono, sin el texto "Guardar" —
+            `aria-label`/`title` quedan como único nombre accesible. --}}
         <flux:button
             type="button"
             wire:click="toggle"
             wire:loading.attr="disabled"
             variant="ghost"
-            icon="heart"
+            icon="bookmark"
             :icon:variant="$favorited ? 'solid' : 'outline'"
             :class="$favorited ? 'text-brand-600' : ''"
-        >
-            {{ $favorited ? __('Guardado') : __('Guardar') }}
-        </flux:button>
+            :aria-label="$favorited ? __('Quitar de favoritos') : __('Guardar en favoritos')"
+            :title="$favorited ? __('Quitar de favoritos') : __('Guardar en favoritos')"
+        />
     @endif
 </div>

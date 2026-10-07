@@ -4,7 +4,7 @@
         : __('Plaza de :municipio', ['municipio' => $municipio->name]);
     $pageDescription = $category
         ? __('Explora negocios, productos y servicios de :categoria en :municipio.', ['categoria' => $category->name, 'municipio' => $municipio->name])
-        : __('Explora negocios, productos y servicios locales en :municipio.', ['municipio' => $municipio->name]);
+        : ($municipio->description ?: __('Explora negocios, productos y servicios locales en :municipio.', ['municipio' => $municipio->name]));
     $canonical = $category
         ? route('buscar', ['municipio' => $municipio->slug, 'categoria' => $category->slug])
         : route('buscar', ['municipio' => $municipio->slug]);
@@ -53,6 +53,12 @@
                 :url-for="fn ($cat) => route('buscar', ['municipio' => $municipio->slug, 'categoria' => $cat->slug])"
             />
         </div>
+
+        @if (! $category && $municipio->description)
+            <p class="mb-6 max-w-3xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
+                {{ $municipio->description }}
+            </p>
+        @endif
 
         <form method="GET" action="{{ $category ? route('buscar', ['municipio' => $municipio->slug, 'categoria' => $category->slug]) : route('buscar', ['municipio' => $municipio->slug]) }}" class="mb-6 flex flex-wrap items-center gap-2">
             @if ($onlyAvailable)

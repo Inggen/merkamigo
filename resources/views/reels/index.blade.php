@@ -56,7 +56,15 @@
                                     </div>
                                 </a>
 
-                                <livewire:follow-button :business="$business" compact :key="'follow-reel-'.$business->id.'-'.$reel->id" />
+                                <div class="flex items-center gap-1">
+                                    <x-owner-edit-link
+                                        :business="$business"
+                                        :href="route('emprendedores.negocios.reels', $business).'#reel-'.$reel->id"
+                                        :label="__('Gestionar reel')"
+                                        compact
+                                    />
+                                    <livewire:follow-button :business="$business" compact :key="'follow-reel-'.$business->id.'-'.$reel->id" />
+                                </div>
                             </div>
 
                             @if ($reel->body)

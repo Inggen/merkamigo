@@ -27,7 +27,7 @@ use Livewire\WithFileUploads;
  * sidebar del Emprendedor, ver `config('livewire.component_layout')`) —
  * esta es una página del Cliente y necesita el encabezado propio.
  */
-new #[Layout('layouts::cliente')] #[Title('Pídelo en Merkamigo')] class extends Component
+new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en Merkamigo')] class extends Component
 {
     use WithFileUploads;
 

@@ -7,6 +7,8 @@ use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Favorite;
 use App\Domain\Discovery\Models\RecentlyViewedBusiness;
 use App\Domain\Identity\Models\UserDevice;
+use App\Domain\Loyalty\Models\LoyaltyAccount;
+use App\Domain\Loyalty\Models\LoyaltyIdentityToken;
 use App\Domain\Marketplace\Models\Order;
 use App\Domain\Messaging\Models\BusinessConversation;
 use App\Domain\Messaging\Models\BusinessMessage;
@@ -25,6 +27,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -333,6 +336,26 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
     public function devices(): HasMany
     {
         return $this->hasMany(UserDevice::class);
+    }
+
+    /**
+     * Cuentas de Merkapuntos del cliente, una por negocio adherido
+     * (TODO_Merkapuntos.md, reglas de producto: los puntos pertenecen al
+     * ámbito del negocio emisor, no a un saldo universal).
+     *
+     * @return HasMany<LoyaltyAccount, $this>
+     */
+    public function loyaltyAccounts(): HasMany
+    {
+        return $this->hasMany(LoyaltyAccount::class);
+    }
+
+    /**
+     * @return HasOne<LoyaltyIdentityToken, $this>
+     */
+    public function loyaltyIdentityToken(): HasOne
+    {
+        return $this->hasOne(LoyaltyIdentityToken::class);
     }
 
     /**

@@ -6,12 +6,16 @@ use App\Domain\Analytics\Actions\RegisterAnalyticsEvent;
 use App\Domain\Analytics\Models\AnalyticsEvent;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Loyalty\Models\LoyaltyReward;
 use App\Domain\Social\Models\ContentPromotion;
 use App\Domain\Social\Models\LiveStream;
 use App\Domain\Social\Models\Post;
+use App\Domain\Social\Models\Story;
 use App\Domain\Storefronts\Models\Product;
 use App\Support\Geo\Distance;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -33,7 +37,7 @@ class FeedController extends Controller
         $postsQuery = Post::query()
             ->where('status', 'publicado')
             ->with([
-                'business.storefront', 'business.municipality', 'user', 'media', 'products.media',
+                'business.organization', 'business.storefront', 'business.municipality', 'user', 'media', 'products.media', 'publicEvent.municipality',
                 'activePromotion' => fn ($query) => $query->whereIn('id', $eligiblePromotionIds),
             ])
             ->withExists(['activePromotion as is_promoted' => fn ($query) => $query->whereIn('id', $eligiblePromotionIds)])
@@ -130,7 +134,44 @@ class FeedController extends Controller
             'reels' => $reels,
             'activeLive' => $activeLive,
             'promotedProduct' => $promotedProduct,
+            'featuredRewards' => $this->featuredRewards($municipality),
+            'hasActiveStories' => $this->hasActiveStories($municipality),
         ]);
+    }
+
+    private function hasActiveStories(?Municipality $municipality): bool
+    {
+        return Story::query()
+            ->where('expires_at', '>', now())
+            ->when($municipality, fn ($query) => $query->whereHas(
+                'business',
+                fn ($businessQuery) => $businessQuery->servesMunicipality($municipality->id),
+            ))
+            ->exists();
+    }
+
+    /**
+     * TODO_Merkapuntos.md, F2.1: premios reales activos en Inicio, sin
+     * inventar contenido — si ningún negocio del municipio está adherido
+     * todavía, la vista simplemente no muestra el banner (comprobado en
+     * el Blade con `isNotEmpty()`).
+     *
+     * @return Collection<int, LoyaltyReward>
+     */
+    private function featuredRewards(?Municipality $municipality): Collection
+    {
+        return LoyaltyReward::query()
+            ->where('status', LoyaltyReward::PUBLICADO)
+            ->whereHas('business', function (Builder $query) use ($municipality) {
+                /** @var Builder<Business> $query */
+                $query->where('status', 'publicado')
+                    ->whereHas('loyaltyEnrollment', fn ($q) => $q->where('status', 'activa'))
+                    ->when($municipality, fn ($q) => $q->servesMunicipality($municipality->id));
+            })
+            ->with(['business.municipality', 'product.media'])
+            ->latest()
+            ->limit(6)
+            ->get();
     }
 
     private function preferredMunicipality(Request $request): ?Municipality
