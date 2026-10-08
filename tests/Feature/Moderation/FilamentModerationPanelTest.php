@@ -7,7 +7,9 @@ use App\Domain\Moderation\Models\Report;
 use App\Domain\Moderation\Models\SupportTicket;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
+use App\Domain\Trust\Models\BusinessVerification;
 use App\Filament\Resources\Businesses\Pages\ListBusinesses;
+use App\Filament\Resources\BusinessVerifications\Pages\ListBusinessVerifications;
 use App\Filament\Resources\Reports\Pages\ListReports;
 use App\Filament\Resources\SupportTickets\Pages\ListSupportTickets;
 use App\Models\User;
@@ -113,5 +115,36 @@ class FilamentModerationPanelTest extends TestCase
         $ticket->refresh();
         $this->assertSame(SupportTicket::RESUELTO, $ticket->status);
         $this->assertSame($moderator->id, $ticket->resolved_by);
+    }
+
+    public function test_an_admin_can_review_a_business_verification_with_a_filament_date_string(): void
+    {
+        $business = $this->publishedBusiness();
+        $verification = BusinessVerification::create([
+            'business_id' => $business->id,
+            'status' => BusinessVerification::EN_REVISION,
+            'level' => 'basica',
+        ]);
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(ListBusinessVerifications::class)
+            ->assertSuccessful()
+            ->callTableAction('review', $verification, data: [
+                'level' => 'avanzada',
+                'status' => BusinessVerification::VERIFICADA,
+                'expires_at' => '2026-12-31 15:30:00',
+                'review_note' => 'Documentación validada.',
+            ])
+            ->assertHasNoTableActionErrors();
+
+        $verification->refresh();
+
+        $this->assertSame(BusinessVerification::VERIFICADA, $verification->status);
+        $this->assertSame('avanzada', $verification->level);
+        $this->assertSame('2026-12-31 15:30:00', $verification->expires_at?->format('Y-m-d H:i:s'));
+        $this->assertSame($admin->id, $verification->reviewed_by);
     }
 }

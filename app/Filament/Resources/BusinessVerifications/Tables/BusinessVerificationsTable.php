@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class BusinessVerificationsTable
@@ -74,7 +75,7 @@ class BusinessVerificationsTable
                             Auth::user(),
                             $data['status'],
                             $data['review_note'] ?? null,
-                            $data['expires_at'] ?? null,
+                            Carbon::make($data['expires_at'] ?? null),
                             $data['level'],
                         );
 
