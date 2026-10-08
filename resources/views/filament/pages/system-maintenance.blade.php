@@ -3,14 +3,14 @@
         <div class="space-y-6">
             <x-filament::section>
                 <x-slot name="heading">{{ __('Migraciones de base de datos') }}</x-slot>
-                <x-slot name="description">{{ __('Revisa los archivos pendientes y ejecútalos en el orden definido por Laravel.') }}</x-slot>
+                <x-slot name="description">{{ __('Selecciona únicamente los archivos que quieres ejecutar. La lista muestra primero los más recientes.') }}</x-slot>
 
                 <div class="space-y-4">
                     @if ($migrationStatusError)
                         <div class="rounded-xl border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-300">
                             {{ $migrationStatusError }}
                         </div>
-                    @elseif ($pendingMigrations === [])
+                    @elseif ($pendingMigrations === [] && $discardedMigrations === [])
                         <div class="flex items-center gap-3 rounded-xl border border-success-200 bg-success-50 p-4 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-300">
                             <x-filament::icon icon="heroicon-o-check-circle" class="size-6 shrink-0" />
                             <div>
@@ -18,15 +18,72 @@
                                 <p class="text-sm opacity-80">{{ __('No hay migraciones pendientes.') }}</p>
                             </div>
                         </div>
-                    @else
+                    @elseif ($pendingMigrations !== [])
                         <div class="rounded-xl border border-warning-200 bg-warning-50 p-4 dark:border-warning-500/30 dark:bg-warning-500/10">
-                            <div class="flex items-center gap-3 text-warning-700 dark:text-warning-300">
-                                <x-filament::icon icon="heroicon-o-circle-stack" class="size-6 shrink-0" />
-                                <p class="font-semibold">{{ trans_choice(':count migración pendiente|:count migraciones pendientes', count($pendingMigrations), ['count' => count($pendingMigrations)]) }}</p>
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 text-warning-700 dark:text-warning-300">
+                                    <x-filament::icon icon="heroicon-o-circle-stack" class="size-6 shrink-0" />
+                                    <div>
+                                        <p class="font-semibold">{{ trans_choice(':count migración pendiente|:count migraciones pendientes', count($pendingMigrations), ['count' => count($pendingMigrations)]) }}</p>
+                                        <p class="text-xs opacity-80">{{ __('Más recientes primero') }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <button type="button" wire:click="selectAllMigrations" class="font-semibold text-primary-700 hover:underline dark:text-primary-300">
+                                        {{ __('Seleccionar todas') }}
+                                    </button>
+                                    <span class="text-zinc-400">·</span>
+                                    <button type="button" wire:click="clearMigrationSelection" class="font-semibold text-zinc-600 hover:underline dark:text-zinc-300">
+                                        {{ __('Limpiar selección') }}
+                                    </button>
+                                </div>
                             </div>
-                            <ul class="mt-4 max-h-72 space-y-2 overflow-y-auto font-mono text-xs text-zinc-700 dark:text-zinc-300">
+                            <ul class="mt-4 max-h-80 space-y-2 overflow-y-auto text-xs text-zinc-700 dark:text-zinc-300">
                                 @foreach ($pendingMigrations as $migration)
-                                    <li class="rounded-lg bg-white/70 px-3 py-2 dark:bg-black/20">{{ $migration }}</li>
+                                    <li wire:key="pending-migration-{{ $migration }}" class="flex items-center gap-3 rounded-lg bg-white/70 px-3 py-2.5 dark:bg-black/20">
+                                        <input
+                                            type="checkbox"
+                                            wire:model.live="selectedMigrations"
+                                            value="{{ $migration }}"
+                                            aria-label="{{ __('Seleccionar :migration', ['migration' => $migration]) }}"
+                                            class="size-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-600 dark:border-white/20 dark:bg-white/5"
+                                        >
+                                        <code class="min-w-0 flex-1 break-all">{{ $migration }}</code>
+                                        <x-filament::icon-button
+                                            wire:click="discardMigration('{{ $migration }}')"
+                                            wire:confirm="{{ __('Esta migración dejará de aparecer como ejecutable en esta herramienta. No se marcará como ejecutada en Laravel. ¿Descartarla?') }}"
+                                            icon="heroicon-o-eye-slash"
+                                            color="gray"
+                                            size="sm"
+                                            :label="__('Descartar :migration', ['migration' => $migration])"
+                                        />
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    @if ($discardedMigrations !== [])
+                        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
+                            <div class="flex items-start gap-3">
+                                <x-filament::icon icon="heroicon-o-eye-slash" class="mt-0.5 size-5 shrink-0 text-zinc-500" />
+                                <div>
+                                    <p class="font-semibold text-zinc-900 dark:text-white">
+                                        {{ trans_choice(':count migración descartada|:count migraciones descartadas', count($discardedMigrations), ['count' => count($discardedMigrations)]) }}
+                                    </p>
+                                    <p class="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                                        {{ __('Solo se omiten desde esta herramienta. Un php artisan migrate ejecutado por otro medio todavía puede aplicarlas.') }}
+                                    </p>
+                                </div>
+                            </div>
+                            <ul class="mt-4 max-h-52 space-y-2 overflow-y-auto text-xs">
+                                @foreach ($discardedMigrations as $migration)
+                                    <li wire:key="discarded-migration-{{ $migration }}" class="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 dark:border-white/10 dark:bg-black/20">
+                                        <code class="min-w-0 flex-1 break-all text-zinc-600 dark:text-zinc-300">{{ $migration }}</code>
+                                        <x-filament::button wire:click="restoreMigration('{{ $migration }}')" size="xs" variant="outlined" color="gray">
+                                            {{ __('Restaurar') }}
+                                        </x-filament::button>
+                                    </li>
                                 @endforeach
                             </ul>
                         </div>
@@ -34,14 +91,14 @@
 
                     <div class="flex flex-wrap gap-3">
                         <x-filament::button
-                            wire:click="runMigrations"
-                            wire:confirm="{{ __('Se ejecutarán todas las migraciones pendientes con --force. Antes de continuar debes tener una copia de seguridad reciente. ¿Continuar?') }}"
+                            wire:click="runSelectedMigrations"
+                            wire:confirm="{{ __('Se ejecutarán únicamente las migraciones seleccionadas, desde la más antigua hasta la más reciente. Antes de continuar debes tener una copia de seguridad reciente. ¿Continuar?') }}"
                             wire:loading.attr="disabled"
-                            wire:target="runMigrations"
+                            wire:target="runSelectedMigrations"
                             icon="heroicon-o-play"
-                            :disabled="$pendingMigrations === [] || filled($migrationStatusError)"
+                            :disabled="$selectedMigrations === [] || filled($migrationStatusError)"
                         >
-                            {{ __('Ejecutar migraciones') }}
+                            {{ __('Ejecutar seleccionadas (:count)', ['count' => count($selectedMigrations)]) }}
                         </x-filament::button>
                         <x-filament::button wire:click="refreshMigrationStatus" wire:loading.attr="disabled" variant="outlined" icon="heroicon-o-arrow-path">
                             {{ __('Actualizar estado') }}
