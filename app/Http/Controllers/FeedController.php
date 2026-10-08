@@ -36,8 +36,9 @@ class FeedController extends Controller
 
         $postsQuery = Post::query()
             ->where('status', 'publicado')
+            ->whereHas('business', fn (Builder $query) => $query->where('status', 'publicado'))
             ->with([
-                'business.organization', 'business.storefront', 'business.municipality', 'user', 'media', 'products.media', 'publicEvent.municipality',
+                'business.organization', 'business.storefront', 'business.municipality', 'user', 'media', 'products.media', 'publicEvent.municipality', 'loyaltyReward.product.media',
                 'activePromotion' => fn ($query) => $query->whereIn('id', $eligiblePromotionIds),
             ])
             ->withExists(['activePromotion as is_promoted' => fn ($query) => $query->whereIn('id', $eligiblePromotionIds)])
@@ -82,6 +83,7 @@ class FeedController extends Controller
         $reels = Post::query()
             ->where('status', 'publicado')
             ->where('type', 'video')
+            ->whereHas('business', fn (Builder $query) => $query->where('status', 'publicado'))
             ->with(['business', 'media'])
             ->latest('published_at')
             ->limit(3)

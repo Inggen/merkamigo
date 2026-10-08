@@ -1,9 +1,8 @@
 {{--
     Menú simplificado del Cliente (2026-10-03, a pedido del usuario): mismos
     accesos que `feed/partials/sidebar.blade.php`, consistentes en todas
-    las vistas del Cliente. Mensajes/Favoritos/Mis compras/Actividad siguen
-    disponibles desde el menú de cuenta de `cliente-nav.blade.php`
-    (encabezado), no desaparecieron — solo salieron de este sidebar.
+    las vistas del Cliente. Los accesos secundarios permanecen disponibles
+    desde sus secciones correspondientes.
 
     Pedido del usuario (2026-10-06): `/feed` y `/` eran la misma pantalla
     — ya no hace falta un "Comunidad" aparte aquí, "Inicio" ya es esa

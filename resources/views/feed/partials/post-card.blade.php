@@ -4,11 +4,15 @@
         ? route('emprendedores.negocios.reels', $business).'#reel-'.$post->id
         : route('emprendedores.negocios.publicaciones', $business).'#publicacion-'.$post->id;
     $ownerManagerLabel = $post->type === 'video' ? __('Gestionar reel') : __('Gestionar publicación');
-    [$contentLabel, $contentIcon] = match ($post->type) {
-        'video' => [__('Reel'), 'play-circle'],
-        'imagen' => [__('Publicación'), 'photo'],
+    [$contentLabel, $contentIcon] = match (true) {
+        $post->loyaltyReward !== null => [__('Recompensa'), 'gift'],
+        $post->type === 'video' => [__('Reel'), 'play-circle'],
+        $post->type === 'imagen' => [__('Publicación'), 'photo'],
         default => [__('Publicación'), 'newspaper'],
     };
+    $shareUrl = $post->loyaltyReward
+        ? route('premia.show', $post->loyaltyReward)
+        : route('vitrinas.show', $business);
 @endphp
 
 @if ($post->publicEvent)
@@ -78,6 +82,28 @@
         </div>
     @endif
 
+    @if ($post->loyaltyReward)
+        @php
+            $reward = $post->loyaltyReward;
+            $rewardImage = $reward->imageUrl() ?: $reward->product?->primaryImage()?->url();
+        @endphp
+        <a href="{{ route('premia.show', $reward) }}" wire:navigate class="group mt-3 flex items-center gap-4 overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-brand-50 p-3 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:border-amber-500/20 dark:from-amber-500/10 dark:via-zinc-900 dark:to-brand-500/10">
+            <div class="size-20 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm dark:bg-zinc-800">
+                @if ($rewardImage)
+                    <img src="{{ $rewardImage }}" class="size-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $reward->title }}" loading="lazy">
+                @else
+                    <span class="flex size-full items-center justify-center text-amber-500"><flux:icon.gift class="size-8" /></span>
+                @endif
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold uppercase tracking-wide text-brand-600 dark:text-brand-300">{{ __('Recompensa Merkapuntos') }}</p>
+                <p class="truncate text-base font-bold text-zinc-950 dark:text-white">{{ $reward->title }}</p>
+                <p class="mt-1 inline-flex items-center gap-1 text-sm font-bold text-amber-700 dark:text-amber-300"><flux:icon.sparkles class="size-4" />{{ number_format($reward->points_cost, 0, ',', '.') }} {{ __('puntos') }}</p>
+            </div>
+            <span class="hidden shrink-0 items-center gap-1 text-sm font-bold text-brand-600 sm:inline-flex dark:text-brand-300">{{ __('Ver recompensa') }}<flux:icon.chevron-right class="size-4" /></span>
+        </a>
+    @endif
+
     @if ($post->products->isNotEmpty())
         <div
             class="mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -128,7 +154,7 @@
         <button
             type="button"
             x-data
-            x-on:click="navigator.share ? navigator.share({ title: {{ Js::from($business->name) }}, url: {{ Js::from(route('vitrinas.show', $business)) }} }) : $flux.toast({ text: {{ Js::from(__('Copia el enlace desde tu navegador para compartir.')) }} })"
+            x-on:click="navigator.share ? navigator.share({ title: {{ Js::from($business->name) }}, url: {{ Js::from($shareUrl) }} }) : $flux.toast({ text: {{ Js::from(__('Copia el enlace desde tu navegador para compartir.')) }} })"
             class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
         >
             <flux:icon.share class="size-4" variant="outline" />

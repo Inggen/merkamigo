@@ -35,7 +35,9 @@ class ClientesHomeTest extends TestCase
         $this->assertStringContainsString('href="'.route('home').'"', $header);
         $this->assertStringContainsString(route('eventos'), $header);
         $this->assertStringContainsString(route('merkapuntos'), $header);
-        $this->assertStringContainsString(route('clientes.actividad'), $header);
+        // La ruta permanece una sola vez en el pie de la campana de
+        // notificaciones, pero ya no se repite en el menú de usuario.
+        $this->assertSame(1, substr_count($header, route('clientes.actividad')));
         // Pedido del usuario (2026-10-06): el botón separado de "Mensajes"
         // desaparece — los mensajes nuevos llegan como notificación dentro
         // del desplegable de la campana, que sigue dejando la bandeja
@@ -43,8 +45,7 @@ class ClientesHomeTest extends TestCase
         $this->assertStringContainsString(route('messages.index'), $header);
         $this->assertStringContainsString('aria-label="'.__('Notificaciones').'"', $header);
         $this->assertStringNotContainsString('aria-label="'.__('Mensajes').'"', $header);
-        $this->assertStringContainsString(route('clientes.favoritos'), $header);
-        $this->assertSame(1, substr_count($header, route('clientes.favoritos')));
+        $this->assertStringNotContainsString(route('clientes.favoritos'), $header);
         $this->assertStringContainsString(__('Hola,'), $header);
         $this->assertStringContainsString('Valentina', $header);
         $this->assertStringNotContainsString(route('reels'), $header);

@@ -58,6 +58,10 @@
                 @include('feed.partials.promoted-product', ['promotion' => $promotedProduct, 'product' => $promotedProduct->promotable])
             @endif
 
+            @auth
+                <livewire:feed-post-composer />
+            @endauth
+
             <div class="mb-3 flex items-center justify-between gap-3 px-1">
                 <flux:heading size="lg" class="text-zinc-700 dark:text-zinc-200">{{ __('Publicaciones para ti') }}</flux:heading>
                 <flux:dropdown position="bottom" align="end">

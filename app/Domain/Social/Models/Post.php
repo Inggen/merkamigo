@@ -5,6 +5,7 @@ namespace App\Domain\Social\Models;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Concerns\Favoritable;
 use App\Domain\Events\Models\PublicEvent;
+use App\Domain\Loyalty\Models\LoyaltyReward;
 use App\Domain\Social\Concerns\Promotable;
 use App\Domain\Storefronts\Models\Product;
 use App\Models\User;
@@ -28,6 +29,7 @@ class Post extends Model
         'business_id',
         'user_id',
         'public_event_id',
+        'loyalty_reward_id',
         'type',
         'body',
         'status',
@@ -66,6 +68,12 @@ class Post extends Model
     public function publicEvent(): BelongsTo
     {
         return $this->belongsTo(PublicEvent::class);
+    }
+
+    /** @return BelongsTo<LoyaltyReward, $this> */
+    public function loyaltyReward(): BelongsTo
+    {
+        return $this->belongsTo(LoyaltyReward::class);
     }
 
     /**

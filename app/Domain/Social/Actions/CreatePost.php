@@ -3,6 +3,7 @@
 namespace App\Domain\Social\Actions;
 
 use App\Domain\Businesses\Models\Business;
+use App\Domain\Loyalty\Models\LoyaltyReward;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Social\Events\PostPublished;
 use App\Domain\Social\Models\Post;
@@ -36,9 +37,23 @@ class CreatePost
             'status' => ['sometimes', 'in:borrador,publicado'],
             'product_ids' => ['sometimes', 'array'],
             'product_ids.*' => ['integer', 'distinct'],
+            'loyalty_reward_id' => ['sometimes', 'nullable', 'integer'],
         ])->validate();
 
-        if (blank($validated['body'] ?? null) && $photos === []) {
+        $reward = isset($validated['loyalty_reward_id'])
+            ? $business->loyaltyRewards()
+                ->whereKey($validated['loyalty_reward_id'])
+                ->where('status', LoyaltyReward::PUBLICADO)
+                ->first()
+            : null;
+
+        if (isset($validated['loyalty_reward_id']) && ! $reward) {
+            throw ValidationException::withMessages([
+                'loyalty_reward_id' => 'La recompensa seleccionada no está disponible.',
+            ]);
+        }
+
+        if (blank($validated['body'] ?? null) && $photos === [] && ! $reward) {
             throw ValidationException::withMessages([
                 'body' => 'Escribe algo o agrega al menos una foto para publicar.',
             ]);
@@ -56,9 +71,10 @@ class CreatePost
 
         $status = $validated['status'] ?? 'publicado';
 
-        return DB::transaction(function () use ($business, $validated, $photos, $actor, $productIds, $status) {
+        return DB::transaction(function () use ($business, $validated, $photos, $actor, $productIds, $status, $reward) {
             $post = $business->posts()->create([
                 'user_id' => $actor->id,
+                'loyalty_reward_id' => $reward?->id,
                 'type' => $validated['type'],
                 'body' => $validated['body'] ?? null,
                 'status' => $status,
