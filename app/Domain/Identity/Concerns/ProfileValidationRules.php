@@ -11,9 +11,10 @@ trait ProfileValidationRules
     /**
      * Get the validation rules used to validate user profiles.
      *
-     * Merkamigo permite registrarse con correo, con teléfono, o ambos —
-     * pero exige al menos uno de los dos (0.5 del TODO: "registro por
-     * correo y/o teléfono").
+     * El registro exige correo y teléfono para habilitar comunicaciones
+     * por ambos canales. En perfiles existentes se conserva la regla
+     * anterior de exigir al menos uno, evitando bloquear cuentas legadas
+     * que todavía no tengan los dos datos.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
@@ -44,8 +45,8 @@ trait ProfileValidationRules
     protected function emailRules(?int $userId = null): array
     {
         return [
-            'nullable',
-            'required_without:phone',
+            $userId === null ? 'required' : 'nullable',
+            ...($userId === null ? [] : ['required_without:phone']),
             'string',
             'email',
             'max:255',
@@ -63,8 +64,8 @@ trait ProfileValidationRules
     protected function phoneRules(?int $userId = null): array
     {
         return [
-            'nullable',
-            'required_without:email',
+            $userId === null ? 'required' : 'nullable',
+            ...($userId === null ? [] : ['required_without:email']),
             'string',
             'regex:/^\+?[0-9]{7,15}$/',
             $userId === null

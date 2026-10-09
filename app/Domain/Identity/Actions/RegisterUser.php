@@ -4,6 +4,7 @@ namespace App\Domain\Identity\Actions;
 
 use App\Domain\Identity\Concerns\PasswordValidationRules;
 use App\Domain\Identity\Concerns\ProfileValidationRules;
+use App\Domain\Identity\Notifications\WelcomeToMerkamigo;
 use App\Models\User;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Validator;
@@ -37,7 +38,7 @@ class RegisterUser implements CreatesNewUsers
         // en esa experiencia en vez de quedar sin definir.
         $intendedExperience = Cookie::get('experience');
 
-        return User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => filled($validated['email'] ?? null) ? Str::lower(trim($validated['email'])) : null,
             'phone' => filled($validated['phone'] ?? null) ? trim($validated['phone']) : null,
@@ -48,5 +49,11 @@ class RegisterUser implements CreatesNewUsers
             'terms_accepted_at' => now(),
             'terms_version' => config('legal.terms_version'),
         ]);
+
+        if (filled($user->email)) {
+            $user->notify(new WelcomeToMerkamigo);
+        }
+
+        return $user;
     }
 }

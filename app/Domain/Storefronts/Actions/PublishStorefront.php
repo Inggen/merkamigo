@@ -7,6 +7,7 @@ use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Storefronts\Exceptions\BusinessSuspendedException;
 use App\Domain\Storefronts\Exceptions\IncompleteStorefrontException;
 use App\Domain\Storefronts\Models\Storefront;
+use App\Domain\Storefronts\Notifications\StorefrontPublished;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -32,7 +33,9 @@ class PublishStorefront
             throw new IncompleteStorefrontException($missing);
         }
 
-        return DB::transaction(function () use ($business, $storefront, $actor) {
+        $isFirstPublication = blank($storefront->published_at);
+
+        $publishedStorefront = DB::transaction(function () use ($business, $storefront, $actor) {
             $business->update(['status' => 'publicado']);
 
             $storefront->update([
@@ -44,6 +47,16 @@ class PublishStorefront
 
             return $storefront->setRelation('business', $business);
         });
+
+        if ($isFirstPublication) {
+            $owner = $business->organization?->owner;
+
+            if (filled($owner?->email)) {
+                $owner->notify(new StorefrontPublished($business));
+            }
+        }
+
+        return $publishedStorefront;
     }
 
     /**

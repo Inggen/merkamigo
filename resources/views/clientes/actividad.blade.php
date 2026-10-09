@@ -30,12 +30,15 @@
         @else
             <div class="space-y-3">
                 @foreach ($notifications as $notification)
-                    <div class="flex items-start justify-between gap-4 rounded-2xl border p-4 {{ $notification->read_at ? 'border-zinc-200 dark:border-zinc-700' : 'border-brand-200 bg-brand-50 dark:border-brand-900 dark:bg-brand-950' }}">
+                    <div data-notification-state="{{ $notification->read_at ? 'read' : 'unread' }}" class="flex items-start justify-between gap-4 rounded-2xl border p-4 {{ $notification->read_at ? 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' : 'border-brand-200 bg-brand-50 dark:border-brand-900 dark:bg-brand-950' }}">
                         <div>
                             <flux:text class="font-medium">{{ $notification->data['message'] ?? __('Novedad') }}</flux:text>
-                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
-                                {{ $notification->created_at->diffForHumans() }}
-                            </flux:text>
+                            <div class="mt-1 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                <span>{{ $notification->created_at->diffForHumans() }}</span>
+                                <span class="rounded-full px-2 py-0.5 text-xs font-semibold {{ $notification->read_at ? 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800' : 'bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200' }}">
+                                    {{ $notification->read_at ? __('Leída') : __('Nueva') }}
+                                </span>
+                            </div>
 
                             @if (! empty($notification->data['url']))
                                 <div class="mt-2">
@@ -44,12 +47,19 @@
                             @endif
                         </div>
 
-                        @unless ($notification->read_at)
-                            <form method="POST" action="{{ route('clientes.actividad.leida', $notification->id) }}">
+                        <div class="flex shrink-0 items-center gap-1">
+                            @unless ($notification->read_at)
+                                <form method="POST" action="{{ route('clientes.actividad.leida', $notification->id) }}">
+                                    @csrf
+                                    <flux:button size="sm" variant="ghost" type="submit">{{ __('Marcar como leída') }}</flux:button>
+                                </form>
+                            @endunless
+                            <form method="POST" action="{{ route('clientes.actividad.eliminar', $notification->id) }}">
                                 @csrf
-                                <flux:button size="sm" variant="ghost" type="submit">{{ __('Marcar como leída') }}</flux:button>
+                                @method('DELETE')
+                                <flux:button size="sm" variant="ghost" icon="trash" type="submit" aria-label="{{ __('Eliminar notificación') }}" title="{{ __('Eliminar notificación') }}" />
                             </form>
-                        @endunless
+                        </div>
                     </div>
                 @endforeach
             </div>

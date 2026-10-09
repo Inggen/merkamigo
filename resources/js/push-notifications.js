@@ -14,16 +14,16 @@ async function messagingClient() {
         const app = getApps().length ? getApp() : initializeApp(window.merkamigoPushConfig.firebase);
         const messaging = messagingSdk.getMessaging(app);
 
-        messagingSdk.onMessage(messaging, ({ notification, data }) => {
+        messagingSdk.onMessage(messaging, async ({ notification, data }) => {
             if (Notification.permission !== 'granted' || !notification) return;
 
-            const notice = new Notification(notification.title || 'Merkamigo', {
+            const serviceWorkerRegistration = await navigator.serviceWorker.ready;
+
+            await serviceWorkerRegistration.showNotification(notification.title || 'Merkamigo', {
                 body: notification.body,
                 icon: '/icons/icon-192.png',
                 data: { url: data?.url || '/' },
             });
-
-            notice.onclick = () => window.location.assign(notice.data.url);
         });
 
         return { messaging, getToken: messagingSdk.getToken };

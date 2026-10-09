@@ -57,11 +57,21 @@
             </div>
         @endif
 
-        <main class="{{ auth()->check() && auth()->user()->experience === 'cliente' ? 'pb-16 md:pb-0' : '' }}">
+        <main>
             {{ $slot }}
         </main>
 
         @include('partials.public-footer')
+
+        @auth
+            @if (auth()->user()->experience === 'cliente')
+                <div
+                    data-mobile-bottom-nav-reserve
+                    class="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden"
+                    aria-hidden="true"
+                ></div>
+            @endif
+        @endauth
 
         @auth
             @if (auth()->user()->experience === 'cliente')

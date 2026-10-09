@@ -343,6 +343,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('clientes/actividad', [ClientesController::class, 'actividad'])->name('clientes.actividad');
     Route::post('clientes/actividad/{notification}/leida', [ClientesController::class, 'marcarActividadLeida'])
         ->name('clientes.actividad.leida');
+    Route::delete('clientes/actividad/{notification}', [ClientesController::class, 'eliminarActividad'])
+        ->name('clientes.actividad.eliminar');
     Route::livewire('mensajes', 'pages::messages.index')->name('messages.index');
     Route::livewire('mensajes/{conversation}', 'pages::messages.index')->name('messages.show');
 

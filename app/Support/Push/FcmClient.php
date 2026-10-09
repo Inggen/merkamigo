@@ -34,7 +34,9 @@ class FcmClient
             throw new RuntimeException('Falta configurar FCM_PROJECT_ID.');
         }
 
-        $response = Http::withToken($this->token())
+        $response = Http::connectTimeout(2)
+            ->timeout(5)
+            ->withToken($this->token())
             ->post(rtrim((string) config('services.fcm.endpoint'), '/')."/v1/projects/{$projectId}/messages:send", [
                 'message' => [
                     'token' => $pushToken,
@@ -57,7 +59,9 @@ class FcmClient
                 ],
             ]);
 
-        return $response->successful();
+        $response->throw();
+
+        return true;
     }
 
     private function token(): string

@@ -133,6 +133,11 @@ new #[Layout('layouts::cliente', ['showChatWidget' => false, 'showSidebar' => tr
             ->where('sender_user_id', '!=', Auth::id())
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        Auth::user()->unreadNotifications()
+            ->where('data->type', 'business_message')
+            ->where('data->conversation_id', $conversation->id)
+            ->update(['read_at' => now()]);
     }
 }; ?>
 

@@ -1,72 +1,80 @@
 @php
-    $unreadMessages = auth()->check() ? auth()->user()->unreadBusinessMessagesCount() : 0;
-    $guestLoginUrl = route('login');
-    $guestFavoritesMessage = __('Necesitas ingresar o crear una cuenta para guardar favoritos.');
-    $guestNeedsMessage = __('Necesitas ingresar o crear una cuenta para publicar en Pídelo.');
+    $items = [
+        [
+            'label' => __('Vitrinas'),
+            'icon' => 'building-storefront',
+            'url' => route('explorar'),
+            'active' => request()->routeIs('explorar', 'buscar', 'municipios', 'municipios.*', 'categorias', 'categorias.*', 'vitrinas.*'),
+        ],
+        [
+            'label' => __('Comunidad'),
+            'icon' => 'user-group',
+            'url' => route('home'),
+            'active' => request()->routeIs('home', 'reels', 'reels.*'),
+        ],
+        [
+            'label' => __('Pídelo'),
+            'icon' => 'shopping-bag',
+            'url' => route('pidelo.nueva'),
+            'active' => request()->routeIs('pidelo.nueva', 'mis-solicitudes'),
+            'featured' => true,
+        ],
+        [
+            'label' => __('Eventos'),
+            'icon' => 'calendar-days',
+            'url' => route('eventos'),
+            'active' => request()->routeIs('eventos', 'eventos.*'),
+        ],
+        [
+            'label' => __('Merkapuntos'),
+            'icon' => 'sparkles',
+            'url' => auth()->check() ? route('merkapuntos') : route('premia.index'),
+            'active' => request()->routeIs('merkapuntos', 'premia.*'),
+        ],
+    ];
 @endphp
 
-<nav class="fixed inset-x-0 bottom-0 z-30 shadow-lg border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-zinc-700 dark:bg-zinc-800">
-    <div class="mx-auto flex max-w-7xl items-stretch justify-between px-2">
-        <a href="{{ route('explorar') }}" wire:navigate class="flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('explorar') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
-            <flux:icon.magnifying-glass class="size-5" variant="outline" />
-            {{ __('Explorar') }}
-        </a>
-
-        @auth
-            <a href="{{ route('messages.index') }}" wire:navigate class="relative flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('messages.*') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
-                <flux:icon.chat-bubble-left-right class="size-5" variant="outline" />
-                {{ __('Mensajes') }}
-                @if ($unreadMessages > 0)
-                    <span class="absolute top-1 right-1/3 flex size-2 rounded-full bg-brand-500"></span>
-                @endif
-            </a>
-
-            <a href="{{ route('pidelo.nueva') }}" wire:navigate class="flex flex-1 flex-col items-center gap-0.5 py-1.5">
-                <span class="flex size-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm">
-                    <flux:icon.shopping-bag class="size-5" variant="outline" />
-                </span>
-                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Pídelo') }}</span>
-            </a>
-
-            <a href="{{ route('clientes.favoritos') }}" wire:navigate class="flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('clientes.favoritos') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
-                <flux:icon.heart class="size-5" variant="outline" />
-                {{ __('Favoritos') }}
-            </a>
-
-            <a href="{{ route('dashboard') }}" wire:navigate class="flex flex-1 flex-col items-center gap-0.5 py-3 text-xs {{ request()->routeIs('dashboard') ? 'text-brand-600 dark:text-brand-400' : 'text-zinc-500 dark:text-zinc-400' }}">
-                <flux:icon.user class="size-5" variant="outline" />
-                {{ __('Perfil') }}
-            </a>
-        @else
-            <a
-                href="{{ route('pidelo.nueva') }}"
-                class="flex flex-1 flex-col items-center gap-0.5 py-1.5 text-xs text-zinc-500 dark:text-zinc-400"
-                x-data
-                x-on:click.prevent="$flux.toast({ text: '{{ e($guestNeedsMessage) }}' }); setTimeout(() => window.location.href = '{{ $guestLoginUrl }}', 900)"
-            >
-                <span class="flex size-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm">
-                    <flux:icon.shopping-bag class="size-5" variant="outline" />
-                </span>
-                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Pídelo') }}</span>
-            </a>
-
-            <a
-                href="{{ route('clientes.favoritos') }}"
-                class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-zinc-500 dark:text-zinc-400"
-                x-data
-                x-on:click.prevent="$flux.toast({ text: '{{ e($guestFavoritesMessage) }}' }); setTimeout(() => window.location.href = '{{ $guestLoginUrl }}', 900)"
-            >
-                <flux:icon.heart class="size-5" variant="outline" />
-                {{ __('Favoritos') }}
-            </a>
-
-            <a href="{{ route('login') }}" wire:navigate class="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-xs text-zinc-700 dark:text-zinc-200">
-                <span class="rounded-xl border border-brand-300 px-3 py-2 font-medium text-brand-700">{{ __('Ingresa') }}</span>
-            </a>
-
-            <a href="{{ route('emprendedores.bienvenida') }}" wire:navigate class="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-xs">
-                <span class="rounded-xl bg-brand-600 px-3 py-2 font-medium text-white shadow-sm">{{ __('Publica tu negocio') }}</span>
-            </a>
-        @endauth
+<nav
+    data-client-bottom-nav
+    aria-label="{{ __('Navegación principal móvil') }}"
+    class="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-18px_rgba(0,0,0,0.45)] backdrop-blur md:hidden dark:border-zinc-700 dark:bg-zinc-900/95"
+>
+    <div class="mx-auto grid max-w-lg grid-cols-5 px-2">
+        @foreach ($items as $item)
+            @if ($item['featured'] ?? false)
+                <a
+                    href="{{ $item['url'] }}"
+                    wire:navigate
+                    @if ($item['active']) aria-current="page" @endif
+                    class="relative -mt-4 flex min-w-0 flex-col items-center gap-1 px-1 pb-2 text-[0.68rem] font-semibold text-zinc-600 dark:text-zinc-300"
+                >
+                    <span @class([
+                        'flex size-12 items-center justify-center rounded-full border-4 border-white text-white shadow-lg transition dark:border-zinc-900',
+                        'bg-brand-700' => $item['active'],
+                        'bg-brand-600 hover:bg-brand-700' => ! $item['active'],
+                    ])>
+                        <flux:icon :name="$item['icon']" class="size-6" :variant="$item['active'] ? 'solid' : 'outline'" />
+                    </span>
+                    <span class="max-w-full truncate">{{ $item['label'] }}</span>
+                </a>
+            @else
+                <a
+                    href="{{ $item['url'] }}"
+                    wire:navigate
+                    @if ($item['active']) aria-current="page" @endif
+                    @class([
+                        'relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2.5 text-[0.68rem] font-medium transition',
+                        'text-brand-700 dark:text-brand-300' => $item['active'],
+                        'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => ! $item['active'],
+                    ])
+                >
+                    @if ($item['active'])
+                        <span class="absolute inset-x-3 top-0 h-0.5 rounded-full bg-brand-600"></span>
+                    @endif
+                    <flux:icon :name="$item['icon']" class="size-5" :variant="$item['active'] ? 'solid' : 'outline'" />
+                    <span class="max-w-full truncate">{{ $item['label'] }}</span>
+                </a>
+            @endif
+        @endforeach
     </div>
 </nav>

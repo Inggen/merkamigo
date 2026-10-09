@@ -43,7 +43,10 @@ class SendBusinessMessage
                 ->get()
             : collect([$conversation->customer])->where('id', '!=', $sender->id);
 
-        Notification::send($recipients, new BusinessMessageReceived($conversation, $message));
+        // La notificación de un mensaje debe existir apenas el mensaje se
+        // guarda. No depende del worker de colas: en producción puede estar
+        // reiniciándose y eso no debe ocultar el aviso ni retrasar el push.
+        Notification::sendNow($recipients, new BusinessMessageReceived($conversation, $message));
 
         return $message;
     }

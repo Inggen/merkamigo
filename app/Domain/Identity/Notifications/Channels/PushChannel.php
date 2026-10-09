@@ -31,9 +31,10 @@ class PushChannel
         foreach ($notifiable->devices as $device) {
             try {
                 $client->send($device->push_token, $payload);
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
                 // Un dispositivo con token vencido/inválido no debe impedir
                 // que los demás dispositivos del usuario reciban el push.
+                report($exception);
             }
         }
     }

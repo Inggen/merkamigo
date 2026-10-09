@@ -11,6 +11,7 @@ use App\Domain\Social\Actions\ManageLiveStream;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Tests\TestCase;
 
 /**
@@ -104,7 +105,36 @@ class SimplifiedClientNavigationTest extends TestCase
         $response->assertOk();
         $response->assertSee('Vitrinas');
         $response->assertSee('Comunidad');
+        $response->assertSee('data-mobile-bottom-nav-reserve', false);
         $response->assertDontSee('aria-label="Explorar Merkamigo"', false);
+    }
+
+    public function test_mobile_navigation_uses_the_four_primary_sections_and_the_central_pidelo_action(): void
+    {
+        $customer = User::factory()->create(['experience' => 'cliente']);
+
+        $this->actingAs($customer);
+        $html = Blade::render('<x-cliente-bottom-nav />');
+
+        $this->assertStringContainsString('data-client-bottom-nav', $html);
+        $this->assertStringContainsString('Vitrinas', $html);
+        $this->assertStringContainsString('Comunidad', $html);
+        $this->assertStringContainsString('Pídelo', $html);
+        $this->assertStringContainsString('Eventos', $html);
+        $this->assertStringContainsString('Merkapuntos', $html);
+        $this->assertStringNotContainsString('Mensajes', $html);
+        $this->assertStringNotContainsString('Favoritos', $html);
+        $this->assertStringNotContainsString('Perfil', $html);
+    }
+
+    public function test_mobile_chatbot_stays_above_the_client_navigation(): void
+    {
+        $customer = User::factory()->create(['experience' => 'cliente']);
+
+        $this->actingAs($customer);
+        $html = Blade::render('<x-storefront-chat-widget />');
+
+        $this->assertStringContainsString('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', $html);
     }
 
     public function test_the_left_sidebar_does_not_appear_on_public_pages(): void
