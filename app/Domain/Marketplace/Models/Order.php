@@ -16,6 +16,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Pedido de un producto. El pago va directo a la cuenta Wompi del
  * negocio (ver `BusinessWompiCredential`) — este registro es la
  * constancia de la venta, nunca mueve dinero por sí mismo.
+ *
+ * `$buyer` se anota explícitamente como nulable: desde PR3 de
+ * TODO_VENTAS_RENTABILIDAD.md, `buyer_user_id` es una FK nullable (un
+ * invitado no tiene cuenta) — sin esto, Larastan infiere la relación
+ * `BelongsTo` como "nunca null" solo a partir del tipo declarado de
+ * `buyer()`, sin mirar la nulabilidad real de la columna.
+ *
+ * @property User|null $buyer
  */
 class Order extends Model
 {
@@ -42,6 +50,9 @@ class Order extends Model
         'live_stream_id',
         'customer_subscription_id',
         'buyer_user_id',
+        'guest_name',
+        'guest_email',
+        'guest_phone',
         'quantity',
         'unit_price_cents',
         'amount_cents',
@@ -127,5 +138,16 @@ class Order extends Model
     public function isRefunded(): bool
     {
         return $this->status === self::REEMBOLSADO;
+    }
+
+    /**
+     * PR3 de TODO_VENTAS_RENTABILIDAD.md (P0.2): un pedido sin
+     * `buyer_user_id` es de un invitado que pagó sin crear cuenta —
+     * `guest_*` tiene sus datos de contacto en vez de una relación a
+     * `users`.
+     */
+    public function isGuestOrder(): bool
+    {
+        return $this->buyer_user_id === null;
     }
 }

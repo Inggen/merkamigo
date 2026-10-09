@@ -151,6 +151,32 @@ Route::post('webhooks/wompi/negocios/{business}', [BusinessWompiWebhookControlle
     ->middleware('throttle:60,1')
     ->name('webhooks.wompi.negocio');
 
+// Checkout de invitado (PR3 de TODO_VENTAS_RENTABILIDAD.md, P0.2):
+// solo productos digitales, detrás del flag
+// `services.marketplace.guest_checkout_enabled` — ver
+// `OrderCheckoutController::guestCheckoutAvailable()`. `create` (sin
+// sesión) y `createGuest` son públicas a propósito; el resto de este
+// flujo (retorno, confirmación, descarga) solo es alcanzable con el
+// enlace firmado que el invitado recibe por correo o al pagar — nunca
+// adivinable por id, mismo criterio que `eventos/entradas/*`.
+Route::get('productos/{product}/comprar', [OrderCheckoutController::class, 'create'])->name('marketplace.checkout.create');
+Route::post('productos/{product}/comprar-invitado', [OrderCheckoutController::class, 'createGuest'])
+    ->middleware('throttle:10,1')
+    ->name('marketplace.guest.checkout.create');
+// `signed:id` ignora el parámetro `id` al validar la firma — Wompi lo
+// agrega él mismo a `redirect-url` cuando vuelve del pago (igual que ya
+// hace con `marketplace.checkout.return`, sin firmar), así que no puede
+// formar parte del cálculo de la firma original.
+Route::get('pedidos/{order}/retorno-invitado', [OrderCheckoutController::class, 'guestReturn'])
+    ->middleware(['signed:id', 'throttle:30,1'])
+    ->name('marketplace.guest.checkout.return');
+Route::get('pedidos/{order}/confirmacion', [OrderCheckoutController::class, 'guestConfirmation'])
+    ->middleware('signed')
+    ->name('marketplace.guest.confirmation');
+Route::get('pedidos/{order}/descargar-invitado', [OrderCheckoutController::class, 'guestDownload'])
+    ->middleware(['signed', 'throttle:30,1'])
+    ->name('marketplace.guest.download');
+
 // Reservas de eventos (TODO_desarrollo_sistema_eventos_Merkamigo.md,
 // Fase 4/7): mismo criterio que Marketplace arriba — el pago va directo a
 // la cuenta Wompi del negocio y comparte su mismo webhook
@@ -365,7 +391,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Marketplace (checkout pagado con Wompi, distinto de "Mis pedidos" /
     // OrderConfirmation, que es una constancia sin pago en línea).
-    Route::get('productos/{product}/comprar', [OrderCheckoutController::class, 'create'])->name('marketplace.checkout.create');
+    // `marketplace.checkout.create` (GET productos/{product}/comprar) se
+    // movió fuera de este grupo `auth` — ver el bloque público de
+    // Marketplace más arriba: un invitado SÍ puede llegar aquí para un
+    // producto digital con el checkout de invitado activado (PR3 de
+    // TODO_VENTAS_RENTABILIDAD.md); si no aplica, el propio controlador
+    // degrada al login igual que antes.
     Route::post('en-vivo/{liveStream:slug}/comprar', [OrderCheckoutController::class, 'createForLive'])
         ->middleware('throttle:10,1')
         ->name('marketplace.live.checkout');

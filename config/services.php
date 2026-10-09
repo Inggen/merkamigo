@@ -93,6 +93,12 @@ return [
     */
     'marketplace' => [
         'commission_rate' => (float) env('MARKETPLACE_COMMISSION_RATE', 0.05),
+        // PR3 de TODO_VENTAS_RENTABILIDAD.md (P0.2): detrás de bandera y
+        // apagado por defecto — un invitado solo puede pagar un
+        // producto DIGITAL sin cuenta (ver `CreateOrderCheckout`); no
+        // existe modelo de inventario todavía, así que los productos
+        // físicos siguen exigiendo cuenta sin importar este flag.
+        'guest_checkout_enabled' => (bool) env('MARKETPLACE_GUEST_CHECKOUT_ENABLED', false),
     ],
 
     'live_streaming' => [

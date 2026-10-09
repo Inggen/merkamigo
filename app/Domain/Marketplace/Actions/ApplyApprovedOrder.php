@@ -4,10 +4,12 @@ namespace App\Domain\Marketplace\Actions;
 
 use App\Domain\Analytics\Models\AnalyticsEvent;
 use App\Domain\Marketplace\Models\Order;
+use App\Domain\Marketplace\Notifications\GuestOrderPaid;
 use App\Domain\Marketplace\Notifications\OrderPaid;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Subscriptions\Models\Entitlement;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Aplica el resultado real de un pedido según Wompi — mismo patrón que
@@ -83,6 +85,15 @@ class ApplyApprovedOrder
             ]);
             $order->business->members->each(fn ($member) => $member->notify(new OrderPaid($order)));
 
+            // PR3 de TODO_VENTAS_RENTABILIDAD.md: un invitado no tiene
+            // cuenta donde ver "Mis compras" — sin este correo no se
+            // enteraría de que su pago se aprobó ni cómo descargar su
+            // producto digital. Mismo patrón que
+            // `CreateEventAttendance::notifyConfirmed()`.
+            if ($order->isGuestOrder() && filled($order->guest_email)) {
+                Notification::route('mail', $order->guest_email)->notify(new GuestOrderPaid($order));
+            }
+
             if ($order->contentPromotion) {
                 AnalyticsEvent::firstOrCreate([
                     'business_id' => $order->business_id,
@@ -107,7 +118,13 @@ class ApplyApprovedOrder
             // — el acceso recurrente vía suscripción se maneja aparte en
             // `Subscriptions\Actions\ChargeSubscriptionPeriod`, que sí
             // sabe hasta cuándo dura el periodo pagado.
-            if ($order->customer_subscription_id === null) {
+            //
+            // `Entitlement.user_id` no acepta null — un invitado (PR3)
+            // no tiene cuenta a la que atarlo, así que no aplica: su
+            // acceso a la descarga es directo contra el pedido pagado
+            // vía enlace firmado (`OrderCheckoutController::guestDownload`),
+            // no contra un `Entitlement`.
+            if ($order->customer_subscription_id === null && ! $order->isGuestOrder()) {
                 $products = $order->items()->with('product')->get()->pluck('product')->filter();
 
                 if ($products->isEmpty()) {

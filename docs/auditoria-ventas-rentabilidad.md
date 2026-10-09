@@ -274,7 +274,24 @@ Ataca los hallazgos #1, #2, #3, #4 y #9 de la matriz (§7) y las decisiones #1 (
 
 ---
 
-## 10. Siguientes pasos
+## 10. PR3 — checkout de invitado (cerrado 2026-10-09)
 
-- **PR 3 (checkout de invitado + `buyer_user_id`):** decisión #6 de §8, más el hallazgo #11 (inventario) si se habilita invitado para productos físicos.
+Ataca el hallazgo #11 y la decisión #6 de §8, con el alcance confirmado por el usuario el 2026-10-09: **solo productos digitales** — sin modelo de inventario (hallazgo #11, no construido en este PR), no hay forma segura de evitar sobreventa en productos físicos sin cuenta, así que esos siguen exigiendo login sin cambios.
+
+- **Decisión #6 (`buyer_user_id`):** migración aditiva — pasa a nullable y de `cascadeOnDelete()` a `nullOnDelete()`. Borrar la cuenta de un comprador ya no borra su historial de ventas.
+- **Checkout de invitado, detrás de bandera** (`MARKETPLACE_GUEST_CHECKOUT_ENABLED`, apagada por defecto): un visitante sin sesión que intenta comprar un producto digital recibe un formulario mínimo (nombre/correo/teléfono) en vez del login; para cualquier otro caso (flag apagado o producto no digital), la degradación es exactamente la misma que hacía el middleware `auth` (`redirect()->guest(route('login'))`, conserva la URL de retorno). La regla de elegibilidad vive en `CreateOrderCheckout` (no solo en el controlador) para que ninguna vía de entrada futura pueda saltársela.
+- **Confirmación y descarga sin cuenta:** mismo patrón que `EventAttendance` (reservas de eventos sin cuenta, ya construido antes) — el invitado recibe por correo (`GuestOrderPaid`, on-demand) un enlace **firmado** a su confirmación; la descarga del producto digital también es una URL firmada contra el pedido pagado, sin crear ningún `Entitlement` (esa tabla exige `user_id`, que un invitado no tiene). El retorno de Wompi usa `signed:id` — ignora el parámetro `id` que el propio Wompi añade al volver, que de otro modo invalidaría cualquier firma.
+- **No construido en este PR** (fuera de alcance, no lo pidió el usuario): asociación opcional posterior de un pedido de invitado a una cuenta ya registrada. Si se vuelve a pedir el checkout de invitado para productos físicos, antes hay que auditar/construir inventario (hallazgo #11) — no asumir que ya existe.
+
+**Verificación:** `php artisan test --parallel` → 1216 pruebas pasaron (13 nuevas de `GuestCheckoutTest`). Hay 7 fallas en el run completo, todas confirmadas **ajenas a este PR** (reproducidas igual con `git stash` aplicando el estado limpio de HEAD, sin mis cambios): `MerkapuntosPageTest` y `CreateEventReservationTest` ya reportadas en PR1/PR2, más `BusinessChatConversationTest` (×2), `SwitchExperienceTest` y `WeeklyReportsAndAlertsTest` (×2) — estas tres últimas aparecen por primera vez porque el commit `3fff6ead` (de la tarea concurrente de notificaciones/registro, ya fusionada a esta rama) introdujo una notificación `StorefrontPublished` inesperada; no se investigó más a fondo porque no es código de este PR. `./vendor/bin/pint --test` y `./vendor/bin/phpstan analyse` limpios sobre todos los archivos de PR3 (las 3 fallas pre-existentes de PHPStan en este dominio, ya documentadas en PR2, siguen siendo las mismas).
+
+**Nota de concurrencia:** la tarea concurrente detectada en PR2 (notificaciones push, registro, mensajería) ya se fusionó a esta rama como el commit `3fff6ead`. Al cerrar PR3 hay una NUEVA tanda de cambios sin commitear de esa misma tarea (`SystemMaintenance`, envío de correo de prueba) — tampoco se tocaron ni se incluyeron aquí.
+
+---
+
+## 11. Siguientes pasos
+
 - **PR 4 (asistente IA mensual + recompra bloqueada + claridad comercial):** decisiones #1 (trial), #4 y #5 de §8. Requiere antes definir con Comercial/Legal el plazo y texto del aviso de migración (§8, punto 4) y actualizar `Merkamigo_estrategia_de_ventas.md` para que el equipo de ventas deje de presentarlo como pago único.
+- **PR 5 (dashboard de funnel/rentabilidad):** instrumentar eventos de embudo para el checkout normal de Marketplace (hoy solo existen para Live Commerce, §6) y construir la vista gerencial de GMV/MRR/comisión sobre los datos que PR2 ya deja visibles en `/admin`.
+- **PR 6 (piloto de 20-30 comercios):** operativo, no requiere código — guías, guiones y checklist de onboarding (ver sección "Plan de entrega" del TODO original).
+- **Investigar aparte, no bloqueante para ventas:** las 5 fallas de prueba que aparecieron con el commit `3fff6ead` (`BusinessChatConversationTest`, `SwitchExperienceTest`, `WeeklyReportsAndAlertsTest`) — notificación `StorefrontPublished` inesperada. Pertenecen a la tarea concurrente de notificaciones, no a ventas/rentabilidad.
