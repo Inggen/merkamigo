@@ -239,21 +239,27 @@ Fortalezas confirmadas (no requieren trabajo): credenciales Wompi por negocio ci
 
 ---
 
-## 8. Decisiones a escalar antes de codificar cambios comerciales
+## 8. Decisiones escaladas — resueltas el 2026-10-09
 
-Tal como pide el TODO, ninguna de estas se decidió en este documento:
+Las 6 decisiones de la versión anterior de esta sección ya se revisaron con el dueño del producto, apoyadas además en evidencia de [`Merkamigo_estrategia_de_ventas.md`](../Merkamigo_estrategia_de_ventas.md) (guion de venta real usado en campo, versión del 29 sep 2026). Quedan registradas aquí como decisión tomada, no como pregunta abierta:
 
-1. ¿`trial_days=14` real (sin cobrar hasta el día 15) o cobro inmediato con la promesa de prueba retirada de `/planes-y-precios`? Hoy el código ya implementa la segunda opción de facto (cobra siempre) mientras la página promete la primera.
-2. ¿Cómo se revierte la comisión de un pedido reembolsado/anulado después de haberse acumulado?
-3. ¿Se reintenta una comisión `fallida` automáticamente (con qué backoff) o requiere intervención manual visible en un panel?
-4. ¿El asistente IA pasa a vigencia mensual, a créditos de uso, o se mantiene de por vida pero con tope de mensajes? ¿Qué pasa con quienes ya lo compraron bajo la condición actual?
-5. ¿Se bloquea la recompra del add-on de IA cuando el negocio ya lo tiene por plan, o se permite y simplemente no se muestra la opción?
-6. Alcance de la migración de `buyer_user_id`: ¿se aprovecha para cambiar `cascadeOnDelete()` a `nullOnDelete()` y conservar el historial contable al borrar una cuenta, o se mantiene el comportamiento actual?
+1. **Trial de 14 días → se retira el texto de `/planes-y-precios`.** El guion de ventas real (reunión de 15-20 min, sección "Cierre y pago") nunca ofrece un período de prueba — va directo de la demo al pago. Se alinea el copy con lo que el checkout ya hace hoy (cobra de inmediato); no se toca el backend de `SubscribeToPlan`/`ApplyApprovedPayment`, que ya está bien.
+2. **Reversar comisión de un pedido reembolsado → restar del `CommissionCharge` abierto si aún no se cobró.** Cubre el caso más común (reembolso dentro de los 7 días de colchón antes del cobro semanal, §2.2). No se construye todavía un mecanismo de ajuste/crédito para comisiones ya cobradas — eso queda para si la frecuencia real de reembolsos tardíos lo justifica.
+3. **Comisión `fallida` → reintento automático con backoff** (ej. a los 2, 5 y 10 días) antes de escalarla a revisión manual en el panel de conciliación (§1.4, todavía por construir).
+4. **Asistente IA → pasa de pago único "de por vida" a suscripción mensual con cobro automático recurrente**, reutilizando el mismo patrón de tarjeta guardada que ya usa la renovación del plan (`wompi_payment_source_id`/`auto_renew_enabled`, §2.3) en vez de construir un mecanismo de cobro nuevo. Esto **cambia el guion de ventas vigente**, que hoy trata el asistente IA como "servicio puntual" de pago único igual que Vitrina asistida/Kit Arranca Bonito ([`Merkamigo_estrategia_de_ventas.md`](../Merkamigo_estrategia_de_ventas.md), filas de la tabla de oferta) — ese documento debe actualizarse junto con el código, o el equipo comercial seguirá vendiéndolo como pago único.
+   - **Migración de compradores existentes ("de por vida"):** se migran todos a mensual, con aviso previo (no se respeta la condición de por vida de forma indefinida). Pendiente de definir junto con Legal/Comercial antes de PR4: con cuánta anticipación se avisa, qué pasa si no actualizan su método de pago a tiempo (¿se suspende el acceso o hay un período de gracia?), y el texto exacto del aviso — el TODO pide explícitamente "respeto a condiciones aceptadas" al migrar compras existentes, así que el aviso y el plazo deben quedar documentados antes de ejecutar la migración, no solo en el código.
+5. **Recompra del add-on de IA cuando ya se tiene por plan → se bloquea/oculta.** Ya decidido por el propio guion de ventas, sin necesidad de preguntarlo: "Ya incluido en el plan Negocios — no cobrarlo aparte a quien ya lo tenga" ([`Merkamigo_estrategia_de_ventas.md:22,26`](../Merkamigo_estrategia_de_ventas.md)).
+6. **`buyer_user_id` → cambiar `cascadeOnDelete()` a `nullOnDelete()`** al tocar esa migración para el checkout de invitado (PR3), para no seguir perdiendo el historial contable de ventas cuando se borra una cuenta de cliente. Resuelto como mejor práctica obvia, sin necesidad de escalarlo — ver §3.
+
+### 8.1 Hallazgo adicional confirmado al revisar el guion de ventas
+
+`Merkamigo_estrategia_de_ventas.md` (sección "Revisión previa a la visita") registra un `TypeError` en `Plan.php:67` al abrir "Tu plan" (29 sep 2026). **Ya está corregido**: `Plan::limit()` castea explícitamente a `(int)` con un comentario que describe ese mismo bug ([`app/Domain/Billing/Models/Plan.php:71-76`](../app/Domain/Billing/Models/Plan.php#L71-L76)), y el commit que lo corrigió (`a2832fe2`) es del 1 de octubre — un día después del reporte. Si el error reaparece en producción, la causa ya no sería esta; habría que diagnosticarlo aparte.
 
 ---
 
-## 9. Siguientes pasos (no ejecutados en este PR)
+## 9. Siguientes pasos
 
-- Correr `php artisan test --parallel`, `./vendor/bin/pint --test`, `./vendor/bin/phpstan analyse` y `npm run build` sobre esta misma rama antes de fusionar, para confirmar que el estado descrito arriba sigue siendo el real al momento de cerrar el PR (regla 0 / P0.5).
-- PR 2 (seguridad/conciliación de cobros): atacar los hallazgos #1, #2, #3, #4 y #9 de la matriz — son los que tocan dinero o historial de ventas y no requieren ninguna decisión comercial previa.
-- PR 3+ (checkout de invitado, claridad comercial): requieren las decisiones de la sección 8 antes de escribir código, tal como exige el TODO.
+- Correr `php artisan test --parallel`, `./vendor/bin/pint --test`, `./vendor/bin/phpstan analyse` y `npm run build` sobre esta misma rama antes de fusionar cada PR siguiente, para confirmar que el estado descrito arriba sigue siendo el real al momento de cerrar el PR (regla 0 / P0.5). Ya se corrió la suite completa al cerrar PR1: 1183 pruebas pasaron; la única falla (`MerkapuntosPageTest`) es ajena a este PR — viene de cambios de diseño sin commitear en `rewards-banner.blade.php`/`premia/show.blade.php` de una tarea anterior, no de nada auditado aquí.
+- **PR 2 (seguridad/conciliación de cobros):** hallazgos #1, #2, #3, #4 y #9 de la matriz, más las decisiones ya tomadas #1 (quitar texto de trial), #2 (reversar comisión) y #3 (reintentar comisión fallida) de esta sección. Ninguno requiere ya ninguna decisión comercial pendiente.
+- **PR 3 (checkout de invitado + `buyer_user_id`):** decisión #6 de esta sección, más el hallazgo #11 (inventario) si se habilita invitado para productos físicos.
+- **PR 4 (asistente IA mensual + recompra bloqueada + claridad comercial):** decisiones #4 y #5 de esta sección. Requiere antes definir con Comercial/Legal el plazo y texto del aviso de migración (§8, punto 4) y actualizar `Merkamigo_estrategia_de_ventas.md` para que el equipo de ventas deje de presentarlo como pago único.
