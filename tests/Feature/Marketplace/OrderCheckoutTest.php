@@ -159,6 +159,89 @@ class OrderCheckoutTest extends TestCase
             && $request['amount_in_cents'] === $charge->commission_cents);
     }
 
+    /**
+     * Defensa del hallazgo #1 de la auditoría (condición de carrera
+     * webhook/retorno, docs/auditoria-ventas-rentabilidad.md §1.2): el
+     * lock de `ApplyApprovedOrder` ya evita que dos llamadas concurrentes
+     * lleguen hasta aquí, pero `AccrueCommission` también se protege por
+     * su cuenta — no vuelve a sumar un pedido que ya tiene
+     * `commission_charge_id`.
+     */
+    public function test_accruing_commission_twice_for_the_same_order_does_not_double_count(): void
+    {
+        [$business, $product] = $this->businessWithProduct();
+        $buyer = User::factory()->create();
+        $order = app(CreateOrderCheckout::class)->handle($product, 1, $buyer);
+
+        $firstCharge = app(AccrueCommission::class)->handle($order);
+        $secondCharge = app(AccrueCommission::class)->handle($order->fresh());
+
+        $this->assertSame($firstCharge->id, $secondCharge->id);
+        $this->assertSame(1, $secondCharge->fresh()->orders_count);
+        $this->assertSame($order->amount_cents, $secondCharge->fresh()->gross_amount_cents);
+    }
+
+    /**
+     * Hallazgo #3 de la auditoría (§1.3): un `VOIDED` que llega DESPUÉS
+     * de que el pedido ya estaba pagado es un reembolso real, no un
+     * rechazo — debe distinguirse de `RECHAZADO` y revertir la comisión
+     * ya acumulada mientras el cargo siga `abierta` (decisión del
+     * usuario 2026-10-09).
+     */
+    public function test_a_void_after_payment_marks_the_order_refunded_and_reverses_the_open_commission(): void
+    {
+        [$business, $product] = $this->businessWithProduct();
+        $buyer = User::factory()->create();
+        $order = app(CreateOrderCheckout::class)->handle($product, 1, $buyer);
+
+        app(ApplyApprovedOrder::class)->handle($order, 'APPROVED', 'txn-1', []);
+        $charge = CommissionCharge::first();
+        $this->assertSame(1, $charge->orders_count);
+
+        $order = app(ApplyApprovedOrder::class)->handle($order->fresh(), 'VOIDED', 'txn-1', []);
+
+        $this->assertSame(Order::REEMBOLSADO, $order->status);
+        $this->assertNull($order->commission_charge_id);
+        $this->assertSame(0, $charge->fresh()->orders_count);
+        $this->assertSame(0, $charge->fresh()->gross_amount_cents);
+        $this->assertSame(0, $charge->fresh()->commission_cents);
+    }
+
+    public function test_a_void_before_any_payment_is_a_plain_decline_not_a_refund(): void
+    {
+        [$business, $product] = $this->businessWithProduct();
+        $buyer = User::factory()->create();
+        $order = app(CreateOrderCheckout::class)->handle($product, 1, $buyer);
+
+        $order = app(ApplyApprovedOrder::class)->handle($order, 'VOIDED', 'txn-1', []);
+
+        $this->assertSame(Order::RECHAZADO, $order->status);
+        $this->assertNull($order->commission_charge_id);
+    }
+
+    /**
+     * Decisión del usuario: solo se revierte automáticamente si el cargo
+     * sigue `abierta`. Si ya se está cobrando (o ya se cobró), el
+     * reembolso no lo toca — queda para revisión manual.
+     */
+    public function test_a_refund_does_not_touch_a_commission_charge_that_is_no_longer_open(): void
+    {
+        [$business, $product] = $this->businessWithProduct();
+        $business->update(['wompi_payment_source_id' => '999', 'auto_renew_enabled' => true]);
+        $buyer = User::factory()->create();
+        $order = app(CreateOrderCheckout::class)->handle($product, 1, $buyer);
+        app(ApplyApprovedOrder::class)->handle($order, 'APPROVED', 'txn-1', []);
+
+        $charge = CommissionCharge::first();
+        $charge->update(['status' => CommissionCharge::PENDIENTE_COBRO]);
+
+        $order = app(ApplyApprovedOrder::class)->handle($order->fresh(), 'VOIDED', 'txn-1', []);
+
+        $this->assertSame(Order::REEMBOLSADO, $order->status);
+        $this->assertNotNull($order->commission_charge_id);
+        $this->assertSame(1, $charge->fresh()->orders_count);
+    }
+
     public function test_accruing_zero_commission_charges_still_groups_orders_correctly(): void
     {
         config()->set('services.marketplace.commission_rate', 0.0);

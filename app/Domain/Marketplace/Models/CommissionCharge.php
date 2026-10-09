@@ -31,6 +31,8 @@ class CommissionCharge extends Model
         'gross_amount_cents',
         'commission_cents',
         'status',
+        'retry_count',
+        'next_retry_at',
         'payment_id',
     ];
 
@@ -39,7 +41,13 @@ class CommissionCharge extends Model
         return [
             'period_start' => 'date',
             'period_end' => 'date',
+            'next_retry_at' => 'datetime',
         ];
+    }
+
+    public function needsManualAttention(): bool
+    {
+        return $this->status === self::FALLIDA && $this->next_retry_at === null;
     }
 
     /**

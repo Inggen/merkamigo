@@ -4,6 +4,7 @@ namespace App\Domain\Marketplace\Actions;
 
 use App\Domain\Marketplace\Models\CommissionCharge;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Cobra en lote las comisiones abiertas (pendiente #3 de
@@ -16,6 +17,12 @@ use Illuminate\Support\Facades\Log;
  * Solo cobra comisiones con al menos `$minAgeDays` desde que se abrieron
  * (por defecto 7) — evita cobrar una comisión que se acaba de abrir si
  * el comando se corre a mano más seguido de lo programado.
+ *
+ * PR2 de TODO_VENTAS_RENTABILIDAD.md (hallazgo #4, decisión del usuario
+ * 2026-10-09): el mismo lote también recoge las `fallida` cuyo
+ * `next_retry_at` ya llegó (ver `ChargeCommission`) — `--all`/
+ * `$minAgeDays` solo afecta a cuánto deben esperar las `abierta`, nunca
+ * adelanta un reintento antes de su fecha programada.
  */
 class ChargeOpenCommissions
 {
@@ -24,20 +31,43 @@ class ChargeOpenCommissions
         $charged = 0;
 
         CommissionCharge::query()
-            ->where('status', CommissionCharge::ABIERTA)
             ->where('commission_cents', '>', 0)
-            ->where('period_start', '<=', now()->subDays($minAgeDays))
+            ->where(function ($query) use ($minAgeDays) {
+                $query->where(function ($query) use ($minAgeDays) {
+                    $query->where('status', CommissionCharge::ABIERTA)
+                        ->where('period_start', '<=', now()->subDays($minAgeDays));
+                })->orWhere(function ($query) {
+                    $query->where('status', CommissionCharge::FALLIDA)
+                        ->whereNotNull('next_retry_at')
+                        ->where('next_retry_at', '<=', now());
+                });
+            })
             ->with('business')
             ->each(function (CommissionCharge $charge) use (&$charged) {
                 try {
                     app(ChargeCommission::class)->handle($charge);
-                    $charged++;
+
+                    // `ChargeCommission` no lanza excepción cuando Wompi
+                    // simplemente rechaza el cobro (queda `fallida` con
+                    // reintento programado) — solo cuenta como "cobrada"
+                    // si de verdad terminó `pagada`, para que este
+                    // número siga significando lo que dice el mensaje
+                    // del comando ("Comisiones cobradas").
+                    if ($charge->fresh()->status === CommissionCharge::PAGADA) {
+                        $charged++;
+                    }
                 } catch (\InvalidArgumentException $e) {
                     // Sin tarjeta guardada u otra condición previa — ya
                     // queda registrado en el estado de la comisión, no
                     // hace falta interrumpir el resto del lote por un
                     // solo negocio.
                     Log::warning("[Marketplace] Comisión {$charge->id} (negocio {$charge->business_id}) no se pudo cobrar: {$e->getMessage()}");
+                } catch (Throwable $e) {
+                    // Error inesperado (timeout, HTTP 5xx de Wompi...):
+                    // `ChargeCommission` ya programó su propio reintento
+                    // antes de relanzar la excepción — acá solo se evita
+                    // que tumbe el resto del lote.
+                    Log::error("[Marketplace] Error inesperado cobrando la comisión {$charge->id} (negocio {$charge->business_id}): {$e->getMessage()}");
                 }
             });
 

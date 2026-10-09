@@ -17,7 +17,8 @@ use Livewire\Component;
  * nunca ve esto mezclado con el dinero de la venta, que ya está en SU
  * cuenta).
  */
-new #[Title('Ventas')] class extends Component {
+new #[Title('Ventas')] class extends Component
+{
     #[Locked]
     public int $businessId;
 
@@ -52,11 +53,19 @@ new #[Title('Ventas')] class extends Component {
         return $this->business->orders()->with('product')->get();
     }
 
+    /**
+     * También incluye una comisión `fallida` (PR2 de
+     * TODO_VENTAS_RENTABILIDAD.md, hallazgo #4): el negocio puede
+     * reintentarla él mismo en vez de esperar al siguiente reintento
+     * automático o a que alguien del equipo la vea en el panel interno.
+     */
     #[Computed]
     public function openCharge(): ?CommissionCharge
     {
         return $this->business->orders()->exists()
-            ? CommissionCharge::where('business_id', $this->businessId)->where('status', CommissionCharge::ABIERTA)->first()
+            ? CommissionCharge::where('business_id', $this->businessId)
+                ->whereIn('status', [CommissionCharge::ABIERTA, CommissionCharge::FALLIDA])
+                ->first()
             : null;
     }
 
@@ -64,7 +73,9 @@ new #[Title('Ventas')] class extends Component {
     {
         $this->authorize('update', $this->business);
 
-        $charge = CommissionCharge::where('business_id', $this->businessId)->where('status', CommissionCharge::ABIERTA)->first();
+        $charge = CommissionCharge::where('business_id', $this->businessId)
+            ->whereIn('status', [CommissionCharge::ABIERTA, CommissionCharge::FALLIDA])
+            ->first();
 
         if (! $charge) {
             return;
@@ -81,6 +92,34 @@ new #[Title('Ventas')] class extends Component {
         unset($this->openCharge);
 
         Flux::toast(variant: 'success', text: __('Cobro de comisión enviado.'));
+    }
+
+    /**
+     * Antes vivía como `match` directo en la plantilla — Pint no puede
+     * ver el uso de `Order::*` dentro de la sección Blade de un SFC
+     * (solo analiza el bloque de apertura PHP de arriba), así que ese
+     * `use` terminaba marcado como "no usado" y en riesgo de que `pint`
+     * (sin `--test`) lo borrara en un commit futuro. Moverlo acá
+     * también es más fácil de probar.
+     */
+    public function orderStatusColor(Order $order): string
+    {
+        return match ($order->status) {
+            Order::PAGADO => 'green',
+            Order::RECHAZADO => 'red',
+            Order::REEMBOLSADO => 'zinc',
+            default => 'amber',
+        };
+    }
+
+    public function orderStatusLabel(Order $order): string
+    {
+        return match ($order->status) {
+            Order::PAGADO => __('Pagado'),
+            Order::RECHAZADO => __('Rechazado'),
+            Order::REEMBOLSADO => __('Reembolsado'),
+            default => __('Pendiente'),
+        };
     }
 }; ?>
 
@@ -101,15 +140,31 @@ new #[Title('Ventas')] class extends Component {
     @endif
 
     @if ($this->openCharge && $this->openCharge->commission_cents > 0)
-        <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-            <flux:text class="font-semibold">{{ __('Comisión pendiente de cobro') }}</flux:text>
+        <div @class([
+            'rounded-2xl border p-5',
+            'border-zinc-200 dark:border-zinc-800' => $this->openCharge->status !== CommissionCharge::FALLIDA,
+            'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950' => $this->openCharge->status === CommissionCharge::FALLIDA,
+        ])>
+            <flux:text class="font-semibold">
+                {{ $this->openCharge->status === CommissionCharge::FALLIDA ? __('El último cobro de comisión falló') : __('Comisión pendiente de cobro') }}
+            </flux:text>
             <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 {{ trans_choice(':count venta|:count ventas', $this->openCharge->orders_count, ['count' => $this->openCharge->orders_count]) }}
                 · {{ __('Comisión: $:amount', ['amount' => number_format($this->openCharge->commission_cents / 100, 0, ',', '.')]) }}
             </flux:text>
-            <flux:text class="mt-1 text-xs text-zinc-400">
-                {{ __('Se cobra automáticamente cada lunes — también puedes adelantarlo.') }}
-            </flux:text>
+            @if ($this->openCharge->status === CommissionCharge::FALLIDA)
+                <flux:text class="mt-1 text-xs text-red-700 dark:text-red-300">
+                    @if ($this->openCharge->next_retry_at)
+                        {{ __('Volveremos a intentarlo automáticamente el :date — o puedes reintentarlo ahora.', ['date' => $this->openCharge->next_retry_at->translatedFormat('d \d\e F')]) }}
+                    @else
+                        {{ __('Ya no se reintentará solo. Revisa tu tarjeta guardada y vuelve a intentarlo.') }}
+                    @endif
+                </flux:text>
+            @else
+                <flux:text class="mt-1 text-xs text-zinc-400">
+                    {{ __('Se cobra automáticamente cada lunes — también puedes adelantarlo.') }}
+                </flux:text>
+            @endif
             <flux:button size="sm" class="mt-3" wire:click="chargeNow" wire:confirm="{{ __('¿Cobrar ya la comisión acumulada a tu tarjeta guardada?') }}">
                 {{ __('Cobrar ahora') }}
             </flux:button>
@@ -128,16 +183,8 @@ new #[Title('Ventas')] class extends Component {
                     </div>
                     <div class="text-right">
                         <flux:text class="font-semibold">${{ number_format($order->amount_cents / 100, 0, ',', '.') }}</flux:text>
-                        <flux:badge size="sm" :color="match ($order->status) {
-                            Order::PAGADO => 'green',
-                            Order::RECHAZADO => 'red',
-                            default => 'amber',
-                        }">
-                            {{ match ($order->status) {
-                                Order::PAGADO => __('Pagado'),
-                                Order::RECHAZADO => __('Rechazado'),
-                                default => __('Pendiente'),
-                            } }}
+                        <flux:badge size="sm" :color="$this->orderStatusColor($order)">
+                            {{ $this->orderStatusLabel($order) }}
                         </flux:badge>
                     </div>
                 </div>

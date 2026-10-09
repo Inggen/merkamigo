@@ -257,9 +257,24 @@ Las 6 decisiones de la versión anterior de esta sección ya se revisaron con el
 
 ---
 
-## 9. Siguientes pasos
+## 9. PR2 — seguridad/conciliación de cobros (cerrado 2026-10-09)
 
-- Correr `php artisan test --parallel`, `./vendor/bin/pint --test`, `./vendor/bin/phpstan analyse` y `npm run build` sobre esta misma rama antes de fusionar cada PR siguiente, para confirmar que el estado descrito arriba sigue siendo el real al momento de cerrar el PR (regla 0 / P0.5). Ya se corrió la suite completa al cerrar PR1: 1183 pruebas pasaron; la única falla (`MerkapuntosPageTest`) es ajena a este PR — viene de cambios de diseño sin commitear en `rewards-banner.blade.php`/`premia/show.blade.php` de una tarea anterior, no de nada auditado aquí.
-- **PR 2 (seguridad/conciliación de cobros):** hallazgos #1, #2, #3, #4 y #9 de la matriz, más las decisiones ya tomadas #1 (quitar texto de trial), #2 (reversar comisión) y #3 (reintentar comisión fallida) de esta sección. Ninguno requiere ya ninguna decisión comercial pendiente.
-- **PR 3 (checkout de invitado + `buyer_user_id`):** decisión #6 de esta sección, más el hallazgo #11 (inventario) si se habilita invitado para productos físicos.
-- **PR 4 (asistente IA mensual + recompra bloqueada + claridad comercial):** decisiones #4 y #5 de esta sección. Requiere antes definir con Comercial/Legal el plazo y texto del aviso de migración (§8, punto 4) y actualizar `Merkamigo_estrategia_de_ventas.md` para que el equipo de ventas deje de presentarlo como pago único.
+Ataca los hallazgos #1, #2, #3, #4 y #9 de la matriz (§7) y las decisiones #1 (trial), #2 (reversar comisión) y #3 (reintentar comisión fallida) de §8. Solo cambios aditivos (migraciones nuevas, sin tocar datos existentes) y de solo-lectura en `/admin`; nada de lo decidido en §8 sobre el asistente IA (PR4) se tocó aquí.
+
+- **Hallazgo #1 (condición de carrera webhook/retorno):** `ApplyApprovedOrder` ahora hace todo el ciclo leer-decidir-escribir dentro de una transacción con `lockForUpdate()` sobre el pedido — el segundo proceso en llegar espera al primero y su propia guarda de idempotencia lo detiene. `AccrueCommission` suma una defensa propia (no vuelve a sumar un pedido que ya tiene `commission_charge_id`) para cualquier llamador futuro que no pase por ese lock.
+- **Hallazgo #3 / decisión #2 (reversar comisión por reembolso):** nuevo estado `Order::REEMBOLSADO` (migración aditiva al enum) para distinguir "nunca se aprobó" de "se aprobó y luego se revirtió" — solo esta segunda transición dispara `ReverseCommission`, que resta el pedido del `CommissionCharge` SOLO si sigue `abierta` (si ya se está cobrando o ya se cobró, se registra en el log para revisión manual, tal como se decidió).
+- **Hallazgo #4 / decisión #3 (comisión fallida sin reintento):** `ChargeCommission` ahora acepta reintentar una comisión `fallida` con el backoff decidido (2, 5 y 10 días — `ChargeCommission::RETRY_BACKOFF_DAYS`); agotados los tres reintentos, queda marcada para revisión manual (`CommissionCharge::needsManualAttention()`). También se cerró el hueco de que un error inesperado de Wompi (timeout, 5xx) dejara la comisión congelada en `pendiente_cobro` para siempre — cualquier excepción ahora también programa un reintento. De paso se corrigió que el contador "Comisiones cobradas" del comando semanal contaba cualquier intento que no lanzara excepción, no solo los que de verdad terminaron `pagada`.
+- **Hallazgo #2 (sin panel de conciliación):** dos recursos nuevos de solo lectura en `/admin` → `Cobro`: **Comisiones de marketplace** (`CommissionChargeResource`, con la acción "Cobrar ahora" solo para superadmin) y **Pedidos (marketplace)** (`OrderResource`), ambos restringidos a admin/superadmin. La página "Ventas" que ya tenía el negocio también se actualizó para dejarlo reintentar su propia comisión fallida, no solo cobrar la que está abierta.
+- **Decisión #1 (trial de 14 días):** **pendiente todavía** — no se tocó `/planes-y-precios` en este PR (es un cambio de copy sin dependencia técnica de los demás; se deja para el PR de claridad comercial, PR4, junto con las decisiones del asistente IA).
+- **Hallazgo #9 (`auto.key`/`auto.crt` en el repo):** se dejaron de rastrear (`git rm --cached` + entrada en `.gitignore`) sin borrarlos del disco ni del histórico de git. **Sigue pendiente**, fuera del alcance de este repositorio: confirmar si son credenciales reales y, si lo son, rotarlas/revocarlas con acceso al origen real (Herd, hosting, etc.) — esto no se puede resolver solo con un commit.
+
+**Verificación:** `php artisan test --parallel` → 1203 pruebas pasaron, 1 falla ajena a este PR (`MerkapuntosPageTest`, ver nota de PR1 — cambios de diseño sin commitear de una tarea anterior, no tocados aquí). `./vendor/bin/pint --test` y `./vendor/bin/phpstan analyse` limpios sobre todos los archivos de este PR. No se corrió `npm run build` porque PR2 no toca CSS/JS compilado.
+
+**Nota de concurrencia:** al cerrar este PR había cambios sin commitear de otra tarea en curso en el mismo repositorio (notificaciones push, registro por teléfono, mensajería) — no se tocaron ni se incluyeron en los commits de PR2.
+
+---
+
+## 10. Siguientes pasos
+
+- **PR 3 (checkout de invitado + `buyer_user_id`):** decisión #6 de §8, más el hallazgo #11 (inventario) si se habilita invitado para productos físicos.
+- **PR 4 (asistente IA mensual + recompra bloqueada + claridad comercial):** decisiones #1 (trial), #4 y #5 de §8. Requiere antes definir con Comercial/Legal el plazo y texto del aviso de migración (§8, punto 4) y actualizar `Merkamigo_estrategia_de_ventas.md` para que el equipo de ventas deje de presentarlo como pago único.

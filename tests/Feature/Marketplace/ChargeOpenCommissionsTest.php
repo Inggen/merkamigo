@@ -120,4 +120,85 @@ class ChargeOpenCommissionsTest extends TestCase
 
         $this->assertSame(CommissionCharge::PAGADA, $recent->fresh()->status);
     }
+
+    /**
+     * PR2 de TODO_VENTAS_RENTABILIDAD.md (hallazgo #4, decisión del
+     * usuario 2026-10-09 "reintentar automático con backoff"): un cobro
+     * rechazado queda `fallida` con el primer reintento programado a 2
+     * días — el mismo lote NO debe volver a tocarla antes de esa fecha.
+     */
+    public function test_a_declined_charge_is_scheduled_for_retry_and_not_picked_up_before_its_date(): void
+    {
+        Http::fake(['*/transactions' => Http::response(['data' => ['id' => 'com-1', 'status' => 'DECLINED']], 200)]);
+
+        $charge = $this->openCharge('Negocio Rechazado', periodStartDaysAgo: 10);
+
+        $count = app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+
+        $this->assertSame(0, $count);
+        $charge->refresh();
+        $this->assertSame(CommissionCharge::FALLIDA, $charge->status);
+        $this->assertSame(1, $charge->retry_count);
+        $this->assertTrue($charge->next_retry_at->isSameDay(now()->addDays(2)));
+
+        // Correr el lote otra vez de inmediato no debe reintentarla —
+        // todavía no llegó la fecha programada.
+        $secondCount = app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+        $this->assertSame(0, $secondCount);
+    }
+
+    public function test_a_failed_charge_past_its_retry_date_is_retried_and_can_succeed(): void
+    {
+        // `Http::fake()` llamado dos veces NO sobrescribe la regla
+        // anterior para el mismo patrón de URL — para que cada llamada
+        // a `chargePaymentSource` reciba una respuesta distinta hay que
+        // encadenarlas con `Http::sequence()`, igual que ya hace
+        // `test_min_age_zero_charges_everything_open_regardless_of_age`.
+        Http::fake(['*/transactions' => Http::sequence()
+            ->push(['data' => ['id' => 'com-1', 'status' => 'DECLINED']])
+            ->push(['data' => ['id' => 'com-2', 'status' => 'APPROVED']]),
+        ]);
+        $charge = $this->openCharge('Negocio Reintento', periodStartDaysAgo: 10);
+        app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+        $this->assertSame(CommissionCharge::FALLIDA, $charge->fresh()->status);
+
+        $this->travel(3)->days();
+
+        $count = app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+
+        $this->assertSame(1, $count);
+        $this->assertSame(CommissionCharge::PAGADA, $charge->fresh()->status);
+    }
+
+    public function test_after_exhausting_every_retry_the_charge_needs_manual_attention_and_stops_being_picked_up(): void
+    {
+        Http::fake(['*/transactions' => Http::sequence()
+            ->push(['data' => ['id' => 'com-1', 'status' => 'DECLINED']])
+            ->push(['data' => ['id' => 'com-2', 'status' => 'DECLINED']])
+            ->push(['data' => ['id' => 'com-3', 'status' => 'DECLINED']])
+            ->push(['data' => ['id' => 'com-4', 'status' => 'DECLINED']]),
+        ]);
+        $charge = $this->openCharge('Negocio Sin Suerte', periodStartDaysAgo: 10);
+
+        // Backoff: 2, 5 y 10 días — tres reintentos antes de agotarse.
+        app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+        $this->travel(2)->days();
+        app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+        $this->travel(5)->days();
+        app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+        $this->travel(10)->days();
+        app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+
+        $charge->refresh();
+        $this->assertSame(CommissionCharge::FALLIDA, $charge->status);
+        $this->assertSame(4, $charge->retry_count);
+        $this->assertNull($charge->next_retry_at);
+        $this->assertTrue($charge->needsManualAttention());
+
+        // Ya agotó los reintentos automáticos — ni avanzando más tiempo
+        // el lote vuelve a tocarla sola.
+        $this->travel(30)->days();
+        $count = app(ChargeOpenCommissions::class)->handle(minAgeDays: 7);
+        $this->assertSame(0, $count);
+    }
 }

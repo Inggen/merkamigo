@@ -27,6 +27,14 @@ class Order extends Model
 
     public const CANCELADO = 'cancelado';
 
+    /**
+     * Pagado y luego revertido en Wompi (`VOIDED` después de `APPROVED`)
+     * — distinto de `RECHAZADO` (nunca llegó a aprobarse). Ver
+     * `ReverseCommission`: solo este estado dispara la reversa de la
+     * comisión ya acumulada.
+     */
+    public const REEMBOLSADO = 'reembolsado';
+
     protected $fillable = [
         'business_id',
         'product_id',
@@ -114,5 +122,10 @@ class Order extends Model
     public function isPaid(): bool
     {
         return $this->status === self::PAGADO;
+    }
+
+    public function isRefunded(): bool
+    {
+        return $this->status === self::REEMBOLSADO;
     }
 }
