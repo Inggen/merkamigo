@@ -20,18 +20,20 @@
     x-init="start()"
     x-on:mouseenter="stop()"
     x-on:mouseleave="start()"
-    class="group overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+    class="group relative overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-white shadow-sm dark:border-rose-900/40 dark:from-rose-950/30 dark:via-zinc-900 dark:to-zinc-900"
     aria-label="{{ __('Recompensas destacadas') }}"
 >
-    <div class="flex items-center justify-between gap-3 px-4 pb-3 pt-4">
+    <flux:icon.gift class="pointer-events-none absolute -right-3 -top-3 size-24 rotate-12 text-rose-100 dark:text-rose-900/40" variant="solid" />
+
+    <div class="relative z-10 flex items-center justify-between gap-3 px-4 pb-3 pt-4">
         <div class="flex min-w-0 items-center gap-2 text-brand-600 dark:text-brand-300">
             <flux:icon.gift class="size-5 shrink-0" variant="solid" />
-            <p class="text-sm font-bold leading-tight">{{ __('También te puede interesar') }}</p>
+            <p class="text-sm font-bold leading-tight">{{ __('Acumula puntos y gana') }}</p>
         </div>
         <flux:link :href="route('premia.index')" wire:navigate class="shrink-0 text-xs">{{ __('Ver todas') }}</flux:link>
     </div>
 
-    <div class="relative px-4">
+    <div class="relative z-10 px-4">
         @foreach ($rewardPages as $pageIndex => $rewards)
             <div
                 x-show="active === {{ $pageIndex }}"
@@ -90,7 +92,7 @@
     </div>
 
     @if ($rewardPages->count() > 1)
-        <div class="flex justify-center gap-1.5 py-3" aria-label="{{ __('Seleccionar grupo de recompensas') }}">
+        <div class="relative z-10 flex justify-center gap-1.5 py-3" aria-label="{{ __('Seleccionar grupo de recompensas') }}">
             @foreach ($rewardPages as $pageIndex => $rewards)
                 <button
                     type="button"

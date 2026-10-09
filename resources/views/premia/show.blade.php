@@ -183,17 +183,26 @@
                     El saldo queda junto al resumen del premio para que el
                     cliente compare de inmediato sus puntos con el costo.
                 --}}
-                <div class="relative overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-white p-5 dark:border-rose-900/40 dark:from-rose-950/30 dark:via-zinc-900 dark:to-zinc-900">
-                    <flux:icon.gift class="pointer-events-none absolute -right-3 -top-3 size-24 rotate-12 text-rose-100 dark:text-rose-900/40" variant="solid" />
+                <div class="relative overflow-hidden rounded-2xl border border-rose-200 bg-white p-3 pt-9 shadow-sm dark:border-rose-900/50 dark:bg-zinc-950">
+                    <div class="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-br from-red-500 via-brand-600 to-brand-800 dark:from-red-700 dark:via-brand-800 dark:to-brand-950"></div>
+                    <div class="pointer-events-none absolute -left-10 -right-10 top-20 h-20 rounded-[50%] bg-white dark:bg-zinc-950"></div>
 
-                    <div class="relative">
+                    <div class="relative overflow-hidden rounded-2xl border border-rose-100 bg-white/95 p-5 shadow-lg shadow-brand-900/10 backdrop-blur-sm dark:border-rose-900/40 dark:bg-zinc-900/95">
+                        <flux:icon.sparkles class="pointer-events-none absolute right-5 top-4 size-6 text-rose-200 dark:text-rose-900" variant="solid" />
+                        <flux:icon.star class="pointer-events-none absolute right-24 top-16 size-5 text-rose-100 dark:text-rose-950" variant="solid" />
+
                         @auth
-                            <p class="flex items-center gap-1.5 text-sm font-semibold text-rose-600 dark:text-rose-300">
-                                <flux:icon.star class="size-4" variant="solid" />
+                            <p class="flex items-center gap-2 pr-20 text-sm font-bold text-brand-700 dark:text-rose-300">
+                                <flux:icon.star class="size-5" variant="solid" />
                                 {{ __('Tus Merkapuntos') }}
                             </p>
-                            <p class="mt-1 text-4xl font-black text-zinc-950 dark:text-white">{{ number_format($customerPoints ?? 0, 0, ',', '.') }}</p>
-                            <p class="mt-1 flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+                            <p class="mt-1 pr-20 text-5xl font-black tracking-tight text-brand-700 dark:text-rose-300">{{ number_format($customerPoints ?? 0, 0, ',', '.') }}</p>
+
+                            <div class="absolute right-5 top-12 flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-brand-700 text-white shadow-lg shadow-brand-700/25 ring-4 ring-rose-50 dark:ring-rose-950/60">
+                                <flux:icon.gift class="size-9" variant="solid" />
+                            </div>
+
+                            <p class="mt-2 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                                 <flux:icon.sparkles class="size-4 text-brand-500" variant="solid" />
                                 {{ __('Este premio cuesta :points puntos', ['points' => $reward->points_cost]) }}
                             </p>
@@ -206,19 +215,21 @@
                                 <flux:icon.arrow-right class="size-3" variant="outline" />
                             </flux:link>
                         @else
-                            <p class="flex items-center gap-1.5 text-2xl font-bold text-brand-600 dark:text-brand-300">
-                                <flux:icon.sparkles class="size-6" variant="solid" />
-                                {{ __(':points Merkapuntos', ['points' => $reward->points_cost]) }}
+                            <p class="flex items-center gap-2 text-sm font-bold text-brand-700 dark:text-rose-300">
+                                <flux:icon.star class="size-5" variant="solid" />
+                                {{ __('Merkapuntos') }}
                             </p>
+                            <p class="mt-1 text-5xl font-black tracking-tight text-brand-700 dark:text-rose-300">{{ number_format($reward->points_cost, 0, ',', '.') }}</p>
+                            <span class="sr-only">{{ __(':points Merkapuntos', ['points' => $reward->points_cost]) }}</span>
                         @endauth
 
                         @if ($available === 0)
-                            <flux:button class="mt-4 w-full" variant="ghost" disabled>{{ __('Agotado') }}</flux:button>
+                            <flux:button class="mt-5 w-full" variant="ghost" disabled>{{ __('Agotado') }}</flux:button>
                         @else
-                            <flux:button :href="route('premia.redeem', $reward)" class="mt-4 w-full" variant="primary" icon="gift">
+                            <flux:button :href="route('premia.redeem', $reward)" class="mt-5 w-full !rounded-xl" variant="primary" icon="gift">
                                 {{ auth()->check() ? __('Canjear mis puntos') : __('Inicia sesión para canjear') }}
                             </flux:button>
-                            <flux:text class="mt-2 text-center text-xs text-zinc-400">
+                            <flux:text class="mt-3 text-center text-xs leading-5 text-zinc-400">
                                 {{ __('Se reservan tus puntos al confirmar; el negocio valida la entrega.') }}
                             </flux:text>
                         @endif
