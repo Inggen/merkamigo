@@ -7,6 +7,7 @@ use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
+use App\Domain\Identity\Models\SocialAccount;
 use App\Domain\Marketplace\Models\Order;
 use App\Domain\Social\Actions\CalculateLiveControlMetrics;
 use App\Domain\Social\Actions\ManageLiveIntroVideo;
@@ -16,6 +17,7 @@ use App\Domain\Social\Models\LiveStream;
 use App\Domain\Social\Notifications\LiveStarted;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
+use App\Support\YouTube\YouTubeLiveClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -710,6 +712,48 @@ class LiveCommerceTest extends TestCase
         $draft = $this->draftLive($business);
         $this->post(route('streaming.whep', $draft), [], ['CONTENT_TYPE' => 'application/sdp'], 'offer-sdp')
             ->assertNotFound();
+    }
+
+    public function test_youtube_permission_creates_an_encrypted_rtmp_destination(): void
+    {
+        Http::fake(function ($request) {
+            if (str_ends_with(parse_url($request->url(), PHP_URL_PATH), '/liveBroadcasts/bind')) {
+                return Http::response(['id' => 'broadcast-123']);
+            }
+
+            if (str_ends_with(parse_url($request->url(), PHP_URL_PATH), '/liveBroadcasts')) {
+                return Http::response(['id' => 'broadcast-123']);
+            }
+
+            return Http::response([
+                'id' => 'youtube-stream-123',
+                'cdn' => ['ingestionInfo' => [
+                    'ingestionAddress' => 'rtmp://a.rtmp.youtube.com/live2',
+                    'streamName' => 'secret-youtube-key',
+                ]],
+            ]);
+        });
+
+        $business = $this->publishedBusiness();
+        $stream = $this->draftLive($business);
+        $account = SocialAccount::create([
+            'user_id' => $business->organization->owner->id,
+            'provider' => 'google',
+            'provider_user_id' => 'google-owner',
+            'email' => $business->organization->owner->email,
+            'access_token' => 'google-access-token',
+            'refresh_token' => 'google-refresh-token',
+            'token_expires_at' => now()->addHour(),
+            'scopes' => [YouTubeLiveClient::SCOPE],
+        ]);
+
+        $destination = app(YouTubeLiveClient::class)->createDestination($stream, $account);
+
+        $this->assertSame('youtube', $destination->provider);
+        $this->assertSame('rtmp://a.rtmp.youtube.com/live2', $destination->rtmp_url);
+        $this->assertSame('secret-youtube-key', $destination->stream_key);
+        $this->assertNotSame('secret-youtube-key', $destination->getRawOriginal('stream_key'));
+        Http::assertSentCount(3);
     }
 
     private function draftLive(Business $business): LiveStream

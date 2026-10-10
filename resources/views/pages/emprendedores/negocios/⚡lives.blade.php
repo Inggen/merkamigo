@@ -259,6 +259,17 @@ new #[Title('En vivo')] class extends Component
 }; ?>
 
 <section wire:poll.5s="syncSignals" class="w-full space-y-6">
+    @if (session('youtube_success'))
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+            {{ session('youtube_success') }}
+        </div>
+    @endif
+    @if (session('youtube_error'))
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+            {{ session('youtube_error') }}
+        </div>
+    @endif
+
     <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
             <flux:heading size="xl" class="!text-3xl !font-bold !tracking-tight">{{ __('Live Commerce') }}</flux:heading>
@@ -393,7 +404,12 @@ new #[Title('En vivo')] class extends Component
                     <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <div><p class="text-sm font-semibold">{{ __('Salidas a redes sociales') }}</p><p class="text-xs text-zinc-500">{{ __('Merkamigo conserva la señal principal y envía una copia a cada destino habilitado.') }}</p></div>
-                            <flux:button size="sm" variant="ghost" icon="plus" wire:click="openDestination({{ $stream->id }})">{{ __('Agregar destino') }}</flux:button>
+                            <div class="flex flex-wrap gap-2">
+                                <flux:button size="sm" variant="primary" icon="video-camera" :href="route('emprendedores.negocios.lives.youtube', [$this->business, $stream])">
+                                    {{ $stream->streamingDestinations->contains('provider', 'youtube') ? __('Reconectar YouTube') : __('Conectar YouTube') }}
+                                </flux:button>
+                                <flux:button size="sm" variant="ghost" icon="plus" wire:click="openDestination({{ $stream->id }})">{{ __('Agregar manualmente') }}</flux:button>
+                            </div>
                         </div>
                         @if ($stream->streamingDestinations->isNotEmpty())
                             <div class="mt-3 grid gap-2 sm:grid-cols-2">

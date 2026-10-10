@@ -4,6 +4,10 @@
 
         <x-auth-session-status class="text-center" :status="session('status')" />
 
+        @error('social')
+            <div class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{{ $message }}</div>
+        @enderror
+
         <x-passkey-verify />
 
         <form method="POST" action="{{ route('front.login.store') }}" class="flex flex-col gap-6">
@@ -46,6 +50,8 @@
                 </flux:button>
             </div>
         </form>
+
+        <x-auth.social-buttons />
 
         <div class="space-x-1 text-sm text-center rtl:space-x-reverse text-zinc-600 dark:text-zinc-400">
             <span>{{ __('¿No tienes una cuenta?') }}</span>

@@ -21,6 +21,8 @@
             }
         },
     }"
+    x-cloak
+    x-show="status !== 'granted'"
     {{ $attributes->class($compact ? 'border-t border-zinc-100 px-4 py-3 dark:border-zinc-700' : 'rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900') }}
 >
     <div class="flex gap-3 {{ $compact ? 'items-center justify-between' : 'flex-col sm:flex-row sm:items-center sm:justify-between' }}">

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgentDiscoveryController;
 use App\Http\Controllers\Analytics\MetricsExportController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Billing\CheckoutController;
 use App\Http\Controllers\Billing\PaymentSourceController;
 use App\Http\Controllers\Billing\WompiWebhookController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Streaming\HlsProxyController;
 use App\Http\Controllers\Streaming\WhepProxyController;
 use App\Http\Controllers\Streaming\WhipProxyController;
+use App\Http\Controllers\Streaming\YouTubeDestinationController;
 use App\Http\Controllers\Subscriptions\SubscriptionCheckoutController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\VitrinaController;
@@ -53,6 +55,8 @@ use Laravel\Fortify\Http\Controllers\TwoFactorAuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\VerifyEmailController;
 
 Route::middleware('auth')->group(function () {
+    Route::get('autenticacion/google/youtube/callback', [YouTubeDestinationController::class, 'callback'])
+        ->name('auth.youtube.callback');
     Route::get('/limpiar-cache', function () {
         abort_unless(auth()->user()?->hasAnyPlatformRole(['superadmin']), 403);
 
@@ -225,6 +229,14 @@ Route::middleware('guest')->group(function () {
     Route::post('ingresar', [AuthenticatedSessionController::class, 'store'])->name('front.login.store');
     Route::get('registro', fn () => view('pages::auth.register'))->name('register');
     Route::post('registro', [RegisteredUserController::class, 'store'])->name('front.register.store');
+    Route::get('autenticacion/{provider}', [SocialAuthController::class, 'redirect'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('auth.social.redirect');
+    Route::get('autenticacion/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('auth.social.callback');
+    Route::get('registro/social', [SocialAuthController::class, 'complete'])->name('auth.social.complete');
+    Route::post('registro/social', [SocialAuthController::class, 'store'])->name('auth.social.store');
     Route::get('recuperar-clave', fn () => view('pages::auth.forgot-password'))->name('password.request');
     Route::post('recuperar-clave', [PasswordResetLinkController::class, 'store'])->name('front.password.email');
     Route::get('restablecer-clave/{token}', fn () => view('pages::auth.reset-password'))->name('password.reset');
@@ -435,6 +447,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('reels', 'pages::emprendedores.negocios.reels')->name('reels');
         Route::livewire('lives', 'pages::emprendedores.negocios.lives')->name('lives');
         Route::livewire('lives/{liveStream}/estudio', 'pages::emprendedores.negocios.live-studio')->name('lives.studio');
+        Route::get('lives/{liveStream}/youtube', [YouTubeDestinationController::class, 'redirect'])
+            ->name('lives.youtube');
         Route::post('lives/{liveStream}/estudio/whip', [WhipProxyController::class, 'publish'])
             ->middleware('throttle:20,1')
             ->name('lives.studio.publish');
