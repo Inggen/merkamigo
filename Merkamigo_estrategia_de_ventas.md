@@ -19,11 +19,11 @@ Fuente principal: cinco capturas del panel enviadas por John el 29 de septiembre
 | Negocios | $99.000 | Productos y servicios ilimitados, hasta 5 vitrinas por cuenta, hasta 5 colaboradores, asistente IA y chatbot en la vitrina, transmisiones En vivo, métricas avanzadas (90 días + exportar CSV), destacados en la Plaza hasta 15 días. |
 | Destacar vitrina | $9.900 / $16.900 / $29.900 | Duración de 7 / 14 / 30 días respectivamente. |
 | Destacar contenido | $9.900 / $16.900 / $29.900 | Producto, publicación, estado o live por 7 / 14 / 30 días. El formulario permite municipio, categoría y distancia. |
-| Asistente IA | $49.900 | Chat en la vitrina que responde usando información del negocio y sus productos. Ya incluido en el plan Negocios — no cobrarlo aparte a quien ya lo tenga. |
+| Asistente IA | $49.900/mes | Chat en la vitrina que responde usando información del negocio y sus productos. **Suscripción mensual con cobro automático** a la tarjeta guardada del negocio — se renueva solo cada mes, exige guardar una tarjeta para poder activarlo. Ya incluido en el plan Negocios — no cobrarlo aparte a quien ya lo tenga. |
 | Vitrina asistida | $49.900 | Ayuda del equipo para completar y pulir fotos, descripciones y categorías. |
 | Kit Arranca Bonito | $99.900 | Sesión de fotos básica, vitrina asistida y destacado de 14 días. |
 
-La pantalla de servicios puntuales indica pago único y activación tras confirmación de Wompi. No extender esa condición automáticamente a los planes de suscripción. Las capturas no muestran su periodicidad, renovación, impuestos ni si los siete días se repiten en cada período. Confirmar estas condiciones antes del cobro. El asistente IA ya está incluido en el plan Negocios y no debe cobrarse otra vez por separado a quien ya lo tenga — **Emprendedor ya no lo incluye** (cambio del 30 de septiembre: antes sí lo traía). No asumir que el Kit incluye ningún plan de suscripción.
+La pantalla de servicios puntuales indica pago único y activación tras confirmación de Wompi. No extender esa condición automáticamente a los planes de suscripción. Las capturas no muestran su periodicidad, renovación, impuestos ni si los siete días se repiten en cada período. Confirmar estas condiciones antes del cobro. El asistente IA ya está incluido en el plan Negocios y no debe cobrarse otra vez por separado a quien ya lo tenga — **Emprendedor ya no lo incluye** (cambio del 30 de septiembre: antes sí lo traía). **Cambio del 10 de octubre: el add-on suelto del asistente IA dejó de ser pago único (de por vida) y pasó a suscripción mensual con cobro automático** — ya no es un "servicio puntual" como Vitrina asistida o el Kit; aclarar en la demo que se renueva solo cada mes contra la tarjeta que el negocio guarde, no que es un pago único. Quien lo compró antes de este cambio conserva por ahora su acceso de por vida tal como lo compró — está planeado migrarlo también a mensual, pero con aviso previo que todavía no se ha definido ni enviado; no comunicar nada a esos clientes sobre un cambio de condiciones hasta que exista ese aviso oficial. No asumir que el Kit incluye ningún plan de suscripción.
 
 Colaboradores por plan, ya corregido (antes el plan Gratis mostraba “sin límite”, un error): Básico 1, Emprendedor 3, Negocios 5. Sí se puede usar como motivo de compra frente al plan gratuito.
 
@@ -49,7 +49,7 @@ No leer todas las diapositivas. La presentación apoya la conversación. El anex
 | Colaboradores | Repartir tareas entre personas del negocio (Básico: 1, Emprendedor: 3, Negocios: 5). | Explicar quién mantendría el catálogo y quién respondería. |
 | Destacados | Dar visibilidad adicional dentro de la Plaza durante el plazo indicado. | Mostrar la ubicación real del destacado. No prometer alcance ni visitas. |
 | Copiloto de WhatsApp | Apoyar la preparación de promociones para sus canales. Requiere Emprendedor o Negocios. | Preparar un ejemplo dentro de la herramienta. No afirmar envío automático o masivo si no está comprobado. |
-| Asistente IA | Dar respuestas a visitantes usando información del negocio. **Exclusivo del plan Negocios** (o del add-on suelto de $49.900) — Emprendedor ya no lo incluye. | Probar una consulta real sobre datos ya cargados. Evitar prometer reservas o ventas automáticas. |
+| Asistente IA | Dar respuestas a visitantes usando información del negocio. **Exclusivo del plan Negocios** (o del add-on suelto, $49.900/mes con renovación automática — exige tarjeta guardada) — Emprendedor ya no lo incluye. | Probar una consulta real sobre datos ya cargados. Evitar prometer reservas o ventas automáticas. Si se ofrece el add-on suelto, aclarar que es una suscripción mensual, no un pago único. |
 
 ## Aplicación a Kebero
 
@@ -137,7 +137,7 @@ Estas son funciones de la plataforma observadas en la cuenta de Inggen. Su prese
 | Copiloto | Crear mensajes para vender, responder y mantener activo el negocio. Oportunidades, respuestas rápidas e historial. Requiere Emprendedor o Negocios. | Apoyar la redacción. No se verificó envío automático. |
 | Impulsa tu negocio | Destacados y servicios puntuales con los precios documentados. | Elegir una inversión puntual según necesidad. |
 | Pasaporte de confianza | Solicitud de verificación básica con datos de responsable y documento opcional. | Presentar un negocio identificado. La insignia no garantiza calidad, pago ni entrega. |
-| Chatbot IA | Tono, notas, carga PDF y conversaciones recientes. La pantalla anuncia resumen por correo al terminar conversación. Exclusivo del plan Negocios (o del add-on suelto). | Responder con contexto real del negocio. No se probó respuesta ni correo. |
+| Chatbot IA | Tono, notas, carga PDF y conversaciones recientes. La pantalla anuncia resumen por correo al terminar conversación. Exclusivo del plan Negocios (o del add-on suelto, $49.900/mes con renovación automática). | Responder con contexto real del negocio. No se probó respuesta ni correo. |
 | Compartir y QR | Enlace público y descarga de QR. | Facilitar acceso desde material físico y digital. |
 | Métricas | Períodos 7/30 días para Básico y Emprendedor; 90 días y exportación CSV exclusivos de Negocios. Visitas, clics WhatsApp, contenido, tiempos de Pídelo, embudo y productos. | Observar interés y revisar qué acciones convienen. Los clics WhatsApp no prueban conversaciones o ventas. |
 | Mi stand | Diseño y color en plaza inmersiva. Ubicación y tamaño los asigna Merkamigo. | Otra forma de presentar el negocio cuando tiene espacio asignado. No prometer asignación por contratar el plan. |
@@ -145,6 +145,8 @@ Estas son funciones de la plataforma observadas en la cuenta de Inggen. Su prese
 
 ## Revisión previa a la visita
 
-La página Tu plan de Inggen devuelve TypeError en app/Domain/Billing/Models/Plan.php, línea 67: el método limit() declara retorno ?int, pero recibe un string. Revisar el tipo de los límites guardados y su normalización antes de la demostración comercial. Este documento registra el hallazgo y no modifica producción.
+La página Tu plan de Inggen devolvía TypeError en app/Domain/Billing/Models/Plan.php, línea 67 (`limit()` declaraba retorno `?int` pero recibía un string). **Resuelto el 1 de octubre** — el método ya castea explícitamente a entero. Si vuelve a aparecer un error ahí, ya no es esta causa; hay que diagnosticarlo de nuevo.
+
+**Nota del 10 de octubre:** el add-on del asistente IA pasó a ser una suscripción mensual (ver la tabla de "Oferta actual observada" al inicio) — al demostrarlo, aclarar que se renueva solo cada mes y que necesita una tarjeta guardada, no presentarlo como un pago único.
 
 Priorizar para Kebero una demostración de cinco minutos: vitrina pública, una idea de estado o reel, asistente IA con datos reales y métricas. El stand 3D y Live Commerce pueden mostrarse después si Alfredo expresa interés. El pago del plan y los cobros a sus propios clientes son flujos diferentes y deben explicarse por separado.
