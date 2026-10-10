@@ -310,15 +310,26 @@ Pedido del usuario tras cerrar PR4: "deja el cobro mensual igual de robusto que 
 - **`Merkamigo_estrategia_de_ventas.md` actualizado:** el asistente IA ya no se presenta como pago único en ningún punto del documento — ahora es $49.900/mes con renovación automática, se aclara que exige tarjeta guardada, y queda explícito que los compradores de antes del cambio conservan su acceso de por vida hasta que exista el aviso previo (todavía pendiente de Comercial/Legal) para migrarlos.
 - También se corrigieron, a pedido del usuario, las 6 fallas de prueba que venían arrastrándose desde PR3 — ninguna era de ventas/rentabilidad (ver detalle en los mensajes de commit `5a3c23b3`): dos por un `Notification::fake()` mal ubicado que capturaba el nuevo `StorefrontPublished` de la tarea concurrente, una por el nuevo requisito de teléfono en el registro (cambio deliberado de esa misma tarea), y una por un texto de UI ya rediseñado (`rewards-banner.blade.php`). Se sincronizaron las pruebas con el comportamiento real, sin revertir ninguna regla de negocio ajena.
 
-**Verificación:** `php artisan test --parallel` → **1239 pruebas pasaron, 0 fallas** (primera vez en toda esta rama de trabajo con el run completo en verde). `./vendor/bin/pint --test` limpio. `./vendor/bin/phpstan analyse` limpio salvo el mismo patrón `?->` ya aceptado en `ChargeSubscriptionRenewal`/`ChargeCommission`/`ChargeEntitlementRenewal` (relaciones genuinamente nulables que Larastan no detecta como tales ni con `@property` manual — confirmado en dos intentos separados en esta rama).
-
-**Verificación:** `php artisan test --parallel` → 1230 pruebas pasaron (24 nuevas: `RecurringEntitlementTest`, más casos agregados a `BillingProductCatalogTest`/`PlanesPricingPageTest`). 6 fallas en el run completo, las mismas ya documentadas en PR3 como ajenas a esta rama de trabajo (confirmadas otra vez con `git stash` contra HEAD limpio). `./vendor/bin/pint --test` y `./vendor/bin/phpstan analyse` limpios — la única advertencia nueva (`?->email` en `ChargeEntitlementRenewal`) es el mismo patrón ya aceptado en `ChargeSubscriptionRenewal`/`ChargeCommission`, no un hallazgo nuevo.
+**Verificación (PR4 + §11.1 combinados):** `php artisan test --parallel` → **1239 pruebas pasaron, 0 fallas** (primera vez en toda esta rama de trabajo con el run completo en verde). `./vendor/bin/pint --test` limpio. `./vendor/bin/phpstan analyse` limpio salvo el mismo patrón `?->` ya aceptado en `ChargeSubscriptionRenewal`/`ChargeCommission`/`ChargeEntitlementRenewal` (relaciones genuinamente nulables que Larastan no detecta como tales ni con `@property` manual — confirmado en dos intentos separados en esta rama).
 
 ---
 
-## 12. Siguientes pasos
+## 12. PR5 — dashboard de embudo y rentabilidad (cerrado 2026-10-10)
 
-- **Antes de activar la migración de clientes existentes del asistente IA:** definir con Comercial/Legal el plazo de aviso y su texto exacto (§8 punto 4), y actualizar `Merkamigo_estrategia_de_ventas.md` para que deje de presentarlo como pago único.
-- **PR 5 (dashboard de funnel/rentabilidad):** instrumentar eventos de embudo para el checkout normal de Marketplace (hoy solo existen para Live Commerce, §6) y construir la vista gerencial de GMV/MRR/comisión sobre los datos que PR2 ya deja visibles en `/admin`.
-- **PR 6 (piloto de 20-30 comercios):** operativo, no requiere código — guías, guiones y checklist de onboarding (ver sección "Plan de entrega" del TODO original).
-- **Investigar aparte, no bloqueante para ventas:** las fallas de prueba que aparecieron con el commit `3fff6ead` (`BusinessChatConversationTest`, `SwitchExperienceTest`, `WeeklyReportsAndAlertsTest`) — notificación `StorefrontPublished` inesperada. Pertenecen a la tarea concurrente de notificaciones, no a ventas/rentabilidad.
+Ataca el hallazgo #2 de la matriz (§7, "sin panel interno de conciliación") en su parte de rentabilidad gerencial, y la instrumentación de embudo que §6 dejaba pendiente ("no existe el equivalente al checkout normal de Marketplace").
+
+- **Embudo del checkout de Marketplace:** nuevos tipos de `AnalyticsEvent` — `MARKETPLACE_CHECKOUT_STARTED` (disparado en `CreateOrderCheckout`, justo al crear el pedido) y `MARKETPLACE_PAYMENT_APPROVED`/`MARKETPLACE_PAYMENT_FAILED` (en `ApplyApprovedOrder`, idempotentes igual que el resto de esa acción). El paso de "vista" ya lo cubría `PRODUCTO_VIEW`. **No se inventó un paso "clic en comprar"** distinto de "checkout iniciado": en la UI real el botón del producto va directo a crear el pedido, no hay un clic intermedio que medir por separado.
+- **`RentabilidadOverview`** (widget nuevo en el dashboard de `/admin`, solo admin/superadmin — moderador no lo ve): GMV histórico (pedidos pagados, nunca sumado a la comisión), comisión cobrada/pendiente/que necesita atención (reutiliza los estados que ya dejó visibles PR2), MRR separado en **planes** (suscripciones de pago activas, excluye prueba y plan gratis) y **add-ons** (entitlements recurrentes activos o en gracia, excluye los de por vida), negocios con Wompi conectado, y la conversión de checkout→pago de los últimos 30 días.
+- **Deliberadamente NO construido** (regla 0 del TODO, "no inventar métricas"): CAC, ARPA, churn, margen de contribución y break-even. Todos necesitan costos (pauta, infraestructura, soporte, fotografía/horas) que hoy no se capturan en ningún lugar del sistema — mostrar un número ahí sería inventarlo, no calcularlo. Tampoco se construyeron cohortes semana a semana (el TODO las pide, pero son una vista aparte, más grande, que no bloquea tener ya visibles GMV/comisión/MRR).
+
+**Verificación:** `php artisan test --parallel` → **1249 pruebas pasaron, 0 fallas**. `./vendor/bin/pint --test` limpio. `./vendor/bin/phpstan analyse` limpio salvo los mismos dos patrones `?->` ya aceptados en esta rama (uno nuevo en `RentabilidadOverview` sobre `BusinessEntitlement::sourceBillingProduct`, misma categoría que los anteriores).
+
+---
+
+## 13. Siguientes pasos
+
+Con PR1-PR5 cerrados, de los 6 PR originales del TODO solo queda:
+
+- **PR 6 (piloto de 20-30 comercios):** operativo, no requiere código — guías, guiones, tracking de campañas y checklist de onboarding (ver sección "Plan de entrega" del TODO original). Nada de código bloquea empezarlo.
+- **Antes de activar la migración de clientes existentes del asistente IA a mensual:** definir con Comercial/Legal el plazo de aviso y su texto exacto (§8 punto 4) — el mecanismo técnico ya existe desde PR4/§11.1, falta la decisión comercial para ejecutarlo.
+- **Si se quiere ir más allá de lo que pidió el TODO en P1.4:** cohortes semana a semana, y CAC/ARPA/churn/margen de contribución una vez existan costos reales capturados (pauta, infraestructura, soporte) — ninguno de los dos bloquea el piloto de PR6.

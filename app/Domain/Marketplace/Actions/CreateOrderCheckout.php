@@ -2,6 +2,7 @@
 
 namespace App\Domain\Marketplace\Actions;
 
+use App\Domain\Analytics\Models\AnalyticsEvent;
 use App\Domain\Marketplace\Models\Order;
 use App\Domain\Social\Models\ContentPromotion;
 use App\Domain\Storefronts\Models\Product;
@@ -75,7 +76,7 @@ class CreateOrderCheckout
         $amountCents = $unitPriceCents * $quantity;
         $commissionCents = (int) round($amountCents * (float) config('services.marketplace.commission_rate'));
 
-        return DB::transaction(function () use ($business, $product, $promotion, $buyer, $quantity, $unitPriceCents, $amountCents, $commissionCents, $variant, $guestName, $guestEmail, $guestPhone): Order {
+        $order = DB::transaction(function () use ($business, $product, $promotion, $buyer, $quantity, $unitPriceCents, $amountCents, $commissionCents, $variant, $guestName, $guestEmail, $guestPhone): Order {
             $order = Order::create([
                 'business_id' => $business->id,
                 'product_id' => $product->id,
@@ -103,6 +104,20 @@ class CreateOrderCheckout
 
             return $order;
         });
+
+        // PR5 de TODO_VENTAS_RENTABILIDAD.md (P1.4): primer paso medible
+        // del embudo de Marketplace — en la UI real no hay un clic
+        // "comprar" separado de esto, el botón del producto llega
+        // directo aquí.
+        AnalyticsEvent::create([
+            'business_id' => $business->id,
+            'type' => AnalyticsEvent::MARKETPLACE_CHECKOUT_STARTED,
+            'subject_type' => $order->getMorphClass(),
+            'subject_id' => $order->id,
+            'visitor_hash' => hash('sha256', 'order-checkout|'.$order->id),
+        ]);
+
+        return $order;
     }
 
     public function integritySignature(Order $order): string

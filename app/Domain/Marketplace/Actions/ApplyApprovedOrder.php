@@ -34,7 +34,7 @@ class ApplyApprovedOrder
      */
     public function handle(Order $order, string $wompiStatus, ?string $wompiTransactionId, array $rawResponse = []): Order
     {
-        [$order, $justPaid, $justRefunded] = DB::transaction(function () use ($order, $wompiStatus, $wompiTransactionId, $rawResponse) {
+        [$order, $justPaid, $justRefunded, $justDeclined] = DB::transaction(function () use ($order, $wompiStatus, $wompiTransactionId, $rawResponse) {
             /** @var Order $locked */
             $locked = Order::whereKey($order->id)->lockForUpdate()->first();
 
@@ -56,9 +56,10 @@ class ApplyApprovedOrder
             // vez que un estado final da paso a otro.
             $alreadyFinal = in_array($locked->status, [Order::PAGADO, Order::RECHAZADO, Order::REEMBOLSADO], true);
             $isNewRefund = $wasPaid && $status === Order::REEMBOLSADO;
+            $isNewDecline = ! $alreadyFinal && $status === Order::RECHAZADO;
 
             if ($alreadyFinal && ! $isNewRefund) {
-                return [$locked, false, false];
+                return [$locked, false, false, false];
             }
 
             $locked->update([
@@ -76,7 +77,7 @@ class ApplyApprovedOrder
                 app(ReverseCommission::class)->handle($locked);
             }
 
-            return [$locked->fresh(), $status === Order::PAGADO, $isNewRefund];
+            return [$locked->fresh(), $status === Order::PAGADO, $isNewRefund, $isNewDecline];
         });
 
         if ($justPaid) {
@@ -84,6 +85,19 @@ class ApplyApprovedOrder
                 'business_id' => $order->business_id,
             ]);
             $order->business->members->each(fn ($member) => $member->notify(new OrderPaid($order)));
+
+            // PR5 de TODO_VENTAS_RENTABILIDAD.md (P1.4): embudo del
+            // checkout normal de Marketplace — antes solo existía para
+            // Live Commerce (`LIVE_CHECKOUT_STARTED`/`LIVE_PURCHASE`).
+            // El paso anterior (`MARKETPLACE_CHECKOUT_STARTED`) ya se
+            // registró en `CreateOrderCheckout`.
+            AnalyticsEvent::firstOrCreate([
+                'business_id' => $order->business_id,
+                'type' => AnalyticsEvent::MARKETPLACE_PAYMENT_APPROVED,
+                'subject_type' => $order->getMorphClass(),
+                'subject_id' => $order->id,
+                'visitor_hash' => hash('sha256', 'order-approved|'.$order->id),
+            ]);
 
             // PR3 de TODO_VENTAS_RENTABILIDAD.md: un invitado no tiene
             // cuenta donde ver "Mis compras" — sin este correo no se
@@ -147,6 +161,16 @@ class ApplyApprovedOrder
         if ($justRefunded) {
             app(RecordAuditLog::class)->handle(null, 'order.refunded', $order, [
                 'business_id' => $order->business_id,
+            ]);
+        }
+
+        if ($justDeclined) {
+            AnalyticsEvent::firstOrCreate([
+                'business_id' => $order->business_id,
+                'type' => AnalyticsEvent::MARKETPLACE_PAYMENT_FAILED,
+                'subject_type' => $order->getMorphClass(),
+                'subject_id' => $order->id,
+                'visitor_hash' => hash('sha256', 'order-failed|'.$order->id),
             ]);
         }
 
