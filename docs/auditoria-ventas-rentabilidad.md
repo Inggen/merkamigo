@@ -326,10 +326,36 @@ Ataca el hallazgo #2 de la matriz (§7, "sin panel interno de conciliación") en
 
 ---
 
-## 13. Siguientes pasos
+## 13. Revisión final contra el TODO original (2026-10-10)
+
+Repaso línea por línea del TODO completo (reglas, P0-P2, validaciones transversales) contra lo que PR1-PR5 realmente construyeron, para confirmar qué queda técnicamente pendiente antes de dar por cerrado el trabajo de código. Dos hallazgos **nuevos**, no detectados en las auditorías anteriores:
+
+### 13.1 Nuevo hallazgo — sin protección contra pedidos duplicados por doble clic/reintento
+
+`CreateOrderCheckout::handle()` (y su hermano `CreateLiveOrderCheckout`) no tiene ninguna clave de idempotencia — a diferencia de `CreateEventAttendance`, que sí la tiene (`idempotency_key`). Cada vez que se llega a `GET /productos/{product}/comprar` (doble clic, refresh, reintento de red, dos pestañas) se crea un `Order` y un widget de pago de Wompi **nuevos**. Si el cliente llega a pagar en más de uno, paga de verdad dos veces por la misma compra, y Merkamigo acumula comisión dos veces sobre lo que en realidad fue una sola venta. El propio checklist "Validaciones transversales" del TODO original lo pedía explícitamente ("Cliente registrado e invitado... compran sin doble orden ni login forzoso") y nunca se verificó en ningún PR. Aplica igual al comprador registrado y al invitado (PR3). **No lo arreglé** porque el diseño de la clave de idempotencia es una decisión (¿token por sesión/formulario, o reusar un pedido `pendiente` reciente del mismo comprador+producto?) que no tomé por mi cuenta — es el hallazgo más severo de esta revisión por su impacto financiero directo.
+
+### 13.2 Confirmado como pendiente (ya identificado antes, nunca resuelto en ningún PR)
+
+- **P0.3 — consentimiento de comisión y de renovación de plan siguen acoplados** (§2.3 de este documento): guardar la tarjeta sigue habilitando ambas cosas en un solo paso, sin aceptación separada. El checklist "Validaciones transversales" lo repite ("Renovación voluntaria de plan independiente de consentimiento para cobrar comisión") — sigue sin cumplirse. Se identificó en PR1 y nunca se construyó en PR2-PR5 porque no estaba en el alcance de las decisiones #1/#4/#5 que el usuario escaló.
+- **Sin alerta proactiva al negocio sin método de cobro**: el dashboard de PR5 lo hace visible a Merkamigo, pero nadie le avisa al negocio mismo que necesita agregar una tarjeta — queda "pendiente" en silencio desde su lado.
+- **Atribución UTM inexistente**: cero menciones de `utm_source`/`utm_campaign` en toda la base de código (confirmado por búsqueda). Tanto P0.2 ("conservar atribución UTM") como P1.3 ("probar atribución organic/search/social/QR/direct/paid") lo piden explícitamente.
+- **`/migrar`, `/limpiar-cache`, `/link` siguen siendo GET** — mitigado por auth+rol (PR1), pero nunca migradas a POST/CLI como pide el TODO textualmente.
+- **Reembolso cuando la comisión YA se cobró**: solo se revierte si el cargo sigue `abierta` (decisión explícita del usuario en PR2) — si ya se cobró, solo queda un log de advertencia, sin crédito ni ajuste.
+- **`auto.key`/`auto.crt`**: dejados de rastrear (PR2), pero su rotación real sigue pendiente de alguien con acceso fuera de este repositorio.
+- **Responsive/accesibilidad del checkout de invitado**: nunca se verificó visualmente ni con pruebas automatizadas.
+- Menores, de alcance explícitamente acotado por decisión ya tomada: "order_confirmed" como evento de embudo separado de "payment_approved" (PR5, no se construyó aparte), y asociación opcional de un pedido de invitado a una cuenta registrada después de comprar (PR3, fuera de alcance explícito).
+
+### 13.3 Corregido en esta revisión
+
+- **`npm run build` nunca se corrió para el bundle público (`app-*.css`) durante PR2-PR5** — solo se había reconstruido `theme.css` (admin) al principio de la sesión. Clases nuevas en vistas públicas (ej. `dark:bg-brand-900` en la insignia "Suscripción mensual" de PR4) quedaban ausentes del CSS comitteado, invisibles en producción (que sirve el build estático). Ya corregido y comitteado. **Nota de transparencia**: al momento de correr el build había cambios SIN COMITEAR de otra tarea concurrente (login social) en el árbol de trabajo — Tailwind escanea todos los `.blade.php` en disco sin importar su estado de git, así que el CSS resultante también incluye las clases de esos archivos todavía no comiteados. No es dañino (CSS de más no rompe nada) pero se deja constancia.
+
+---
+
+## 14. Siguientes pasos
 
 Con PR1-PR5 cerrados, de los 6 PR originales del TODO solo queda:
 
-- **PR 6 (piloto de 20-30 comercios):** operativo, no requiere código — guías, guiones, tracking de campañas y checklist de onboarding (ver sección "Plan de entrega" del TODO original). Nada de código bloquea empezarlo.
+- **PR 6 (piloto de 20-30 comercios):** operativo, no requiere código — guías, guiones, tracking de campañas y checklist de onboarding (ver sección "Plan de entrega" del TODO original). Nada de código lo bloquea.
+- **Antes de considerar P0 realmente cerrado:** resolver §13.1 (duplicación de pedidos) y §13.2 (consentimiento acoplado) — ambos eran requisitos explícitos del TODO original, no mejoras nuevas inventadas en esta revisión.
 - **Antes de activar la migración de clientes existentes del asistente IA a mensual:** definir con Comercial/Legal el plazo de aviso y su texto exacto (§8 punto 4) — el mecanismo técnico ya existe desde PR4/§11.1, falta la decisión comercial para ejecutarlo.
 - **Si se quiere ir más allá de lo que pidió el TODO en P1.4:** cohortes semana a semana, y CAC/ARPA/churn/margen de contribución una vez existan costos reales capturados (pauta, infraestructura, soporte) — ninguno de los dos bloquea el piloto de PR6.
