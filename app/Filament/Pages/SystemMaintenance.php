@@ -49,6 +49,8 @@ class SystemMaintenance extends Page
 
     public ?int $lastExitCode = null;
 
+    public string $testEmail = '';
+
     /**
      * Lista cerrada: nunca se recibe el nombre real de un comando desde
      * el navegador. Para agregar una tarea futura se registra aquí.
@@ -107,6 +109,7 @@ class SystemMaintenance extends Page
 
     public function mount(): void
     {
+        $this->testEmail = (string) (auth()->user()?->email ?? '');
         $this->refreshMigrationStatus();
     }
 
@@ -272,6 +275,23 @@ class SystemMaintenance extends Page
         $task = self::COMMANDS[$key];
         $this->executeArtisan($task['label'], $task['command'], $task['arguments']);
         $this->refreshMigrationStatus();
+    }
+
+    public function sendTestEmail(): void
+    {
+        $this->authorizeMaintenance();
+        $this->validate([
+            'testEmail' => ['required', 'email:rfc', 'max:255'],
+        ], [
+            'testEmail.required' => 'Ingresa el correo que recibirá la prueba.',
+            'testEmail.email' => 'Ingresa una dirección de correo válida.',
+        ]);
+
+        $this->executeArtisan(
+            label: 'Enviar correo de prueba',
+            command: 'mail:test',
+            arguments: ['recipient' => trim($this->testEmail)],
+        );
     }
 
     /** @return Collection<int, AuditLog> */

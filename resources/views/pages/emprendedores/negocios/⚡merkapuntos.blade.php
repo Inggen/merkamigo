@@ -34,11 +34,8 @@ use Livewire\WithFileUploads;
  * solo panel con pestañas internas, "sin nuevo sistema de menús profundo"
  * (F3.6). El escáner (F3.2/F3.3/F3.4) identifica el tipo de código
  * automáticamente: `idn_` es un cliente a registrarle una compra, `rdm_`
- * es un canje a entregar. No hay cámara todavía (requeriría una librería
- * JS de lectura de QR que este proyecto no tiene instalada) — el campo de
- * código manual es la alternativa que el propio TODO exige para cuando la
- * cámara no está disponible, así que cubre el caso de uso sin bloquear
- * nada.
+ * es un canje a entregar. La cámara y la galería leen el QR en el
+ * navegador y envían el código detectado directamente a este flujo.
  */
 new #[Title('Merkapuntos')] class extends Component
 {
@@ -1031,13 +1028,49 @@ new #[Title('Merkapuntos')] class extends Component
     @if ($activeTab === 'escaner')
         <div class="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
             @if (! $scanResult)
-                <flux:heading size="lg" class="mb-1">{{ __('Escanear o ingresar código') }}</flux:heading>
-                <flux:text class="mb-4 text-sm text-zinc-500">{{ __('Funciona con el QR de identificación del cliente (para registrar una compra) o con el código de un canje (para entregarlo). Sin lector de cámara por ahora: ingresa el código manualmente.') }}</flux:text>
+                <div
+                    x-data="merkamigoQrImageScanner($wire, {
+                        invalidImage: @js(__('Selecciona una foto válida.')),
+                        imageTooLarge: @js(__('La imagen no puede superar 15 MB.')),
+                        qrNotFound: @js(__('No encontramos un código QR legible. Acerca la cámara, evita reflejos e inténtalo de nuevo.')),
+                        unknownError: @js(__('No pudimos leer la imagen. Inténtalo de nuevo o ingresa el código manualmente.')),
+                    })"
+                >
+                    <flux:heading size="lg" class="mb-1">{{ __('Escanear código QR') }}</flux:heading>
+                    <flux:text class="mb-5 text-sm text-zinc-500">{{ __('Toma una foto del QR del cliente o del canje. Al detectarlo, continuaremos automáticamente con el proceso correspondiente.') }}</flux:text>
 
-                <form wire:submit="scan" class="flex gap-2">
-                    <flux:input wire:model="scanInput" placeholder="idn_... {{ __('o') }} rdm_..." class="flex-1" />
-                    <flux:button type="submit" variant="primary">{{ __('Buscar') }}</flux:button>
-                </form>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <input x-ref="cameraInput" type="file" class="hidden" accept="image/*" capture="environment" x-on:change="decode($event)">
+                        <button type="button" x-on:click="$refs.cameraInput.click()" x-bind:disabled="reading" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-wait disabled:opacity-60">
+                            <flux:icon.camera class="size-5" />
+                            {{ __('Tomar foto del QR') }}
+                        </button>
+
+                        <input x-ref="galleryInput" type="file" class="hidden" accept="image/*" x-on:change="decode($event)">
+                        <button type="button" x-on:click="$refs.galleryInput.click()" x-bind:disabled="reading" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50 disabled:cursor-wait disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                            <flux:icon.photo class="size-5" />
+                            {{ __('Elegir imagen del QR') }}
+                        </button>
+                    </div>
+
+                    <div x-cloak x-show="reading" class="mt-3 flex items-center gap-2 text-sm font-medium text-brand-600">
+                        <flux:icon.loading class="size-4" />
+                        {{ __('Leyendo el código QR…') }}
+                    </div>
+
+                    <p x-cloak x-show="error" x-text="error" role="alert" class="mt-3 text-sm text-red-600 dark:text-red-400"></p>
+
+                    <div class="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                        <span class="h-px flex-1 bg-zinc-200 dark:bg-zinc-700"></span>
+                        {{ __('O usa el código manual') }}
+                        <span class="h-px flex-1 bg-zinc-200 dark:bg-zinc-700"></span>
+                    </div>
+
+                    <form wire:submit="scan" class="flex gap-2">
+                        <flux:input wire:model="scanInput" placeholder="idn_... {{ __('o') }} rdm_..." class="flex-1" />
+                        <flux:button type="submit" variant="primary">{{ __('Continuar') }}</flux:button>
+                    </form>
+                </div>
             @elseif ($scanResult['type'] === 'purchase')
                 <flux:badge color="blue" class="mb-3">{{ __('Cliente identificado') }}</flux:badge>
                 <flux:heading size="lg" class="mb-4">{{ $scanResult['customer_name'] }}</flux:heading>

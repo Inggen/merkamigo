@@ -95,6 +95,10 @@ class MerkapuntosBusinessPanelTest extends TestCase
 
         $component = Livewire::actingAs($owner)
             ->test('pages::emprendedores.negocios.merkapuntos', ['business' => $business])
+            ->set('activeTab', 'escaner')
+            ->assertSee('Tomar foto del QR')
+            ->assertSee('Elegir imagen del QR')
+            ->assertSee('O usa el código manual')
             ->set('scanInput', $token)
             ->call('scan')
             ->assertSet('scanResult.type', 'purchase')

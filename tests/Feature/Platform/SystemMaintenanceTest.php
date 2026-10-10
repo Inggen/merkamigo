@@ -3,12 +3,14 @@
 namespace Tests\Feature\Platform;
 
 use App\Domain\Platform\Models\AuditLog;
+use App\Domain\Platform\Notifications\PlatformTestMail;
 use App\Filament\Pages\SystemMaintenance;
 use App\Models\User;
 use Illuminate\Database\Migrations\MigrationRepositoryInterface;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Mockery\MockInterface;
 use Spatie\Permission\Models\Role;
@@ -58,6 +60,63 @@ class SystemMaintenanceTest extends TestCase
             'action' => 'platform.maintenance_command.executed',
         ]);
         $this->assertSame('view:cache', AuditLog::latest()->first()->metadata['command']);
+    }
+
+    public function test_a_superadmin_can_send_the_branded_test_email_from_maintenance(): void
+    {
+        Notification::fake();
+
+        $superadmin = User::factory()->create([
+            'name' => 'John Administrador',
+            'email' => 'admin@merkamigo.test',
+        ]);
+        $this->assignPlatformRole($superadmin, 'superadmin');
+        $this->actingAs($superadmin);
+
+        Livewire::test(SystemMaintenance::class)
+            ->assertSet('testEmail', 'admin@merkamigo.test')
+            ->set('testEmail', 'prueba@example.com')
+            ->call('sendTestEmail')
+            ->assertHasNoErrors()
+            ->assertSet('lastCommandLabel', 'Enviar correo de prueba')
+            ->assertSet('lastExitCode', 0)
+            ->assertSet('lastOutput', 'Correo de prueba enviado a prueba@example.com.');
+
+        Notification::assertSentOnDemand(PlatformTestMail::class, function (PlatformTestMail $notification, array $channels, object $notifiable): bool {
+            $mail = $notification->toMail($notifiable);
+
+            return $channels === ['mail']
+                && $notifiable->routes['mail'] === 'prueba@example.com'
+                && $mail->subject === 'Correo de prueba de Merkamigo'
+                && $mail->view === [
+                    'html' => 'mail.platform.test',
+                    'text' => 'mail.platform.test-text',
+                ];
+        });
+
+        $execution = AuditLog::latest()->first();
+        $this->assertSame('mail:test', $execution->metadata['command']);
+        $this->assertSame(['recipient'], $execution->metadata['arguments']);
+        $this->assertTrue($execution->metadata['successful']);
+    }
+
+    public function test_the_test_email_requires_a_valid_recipient(): void
+    {
+        Notification::fake();
+
+        $superadmin = User::factory()->create();
+        $this->assignPlatformRole($superadmin, 'superadmin');
+        $this->actingAs($superadmin);
+
+        Livewire::test(SystemMaintenance::class)
+            ->set('testEmail', 'correo-invalido')
+            ->call('sendTestEmail')
+            ->assertHasErrors(['testEmail' => 'email']);
+
+        Notification::assertNothingSent();
+        $this->assertDatabaseMissing('audit_logs', [
+            'action' => 'platform.maintenance_command.executed',
+        ]);
     }
 
     public function test_only_selected_migrations_are_executed_oldest_first(): void
