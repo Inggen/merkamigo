@@ -67,10 +67,14 @@ class WeeklyReportsAndAlertsTest extends TestCase
 
     public function test_weekly_report_is_not_sent_to_businesses_without_any_activity(): void
     {
-        Notification::fake();
-
         $owner = User::factory()->create();
+        // `publishedBusiness()` publica la vitrina, lo que ya dispara su
+        // propio `StorefrontPublished` al dueño — el fake va después para
+        // no capturarlo y que `assertNothingSent()` juzgue solo lo que
+        // hace el código bajo prueba.
         $this->publishedBusiness($owner);
+
+        Notification::fake();
 
         $sent = app(SendWeeklyBusinessReports::class)->handle();
 
@@ -103,11 +107,14 @@ class WeeklyReportsAndAlertsTest extends TestCase
 
     public function test_a_complete_and_active_storefront_is_not_flagged(): void
     {
-        Notification::fake();
-
         $owner = User::factory()->create();
+        // Mismo motivo que la prueba anterior: el fake va después de
+        // publicar, para no capturar el `StorefrontPublished` propio del
+        // montaje.
         $business = $this->publishedBusiness($owner);
         AnalyticsEvent::create(['business_id' => $business->id, 'type' => AnalyticsEvent::VITRINA_VIEW, 'visitor_hash' => 'a']);
+
+        Notification::fake();
 
         $notified = app(DetectIncompleteOrInactiveStorefronts::class)->handle();
 

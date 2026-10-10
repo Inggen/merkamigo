@@ -68,6 +68,11 @@ class SwitchExperienceTest extends TestCase
             ->post(route('front.register.store'), [
                 'name' => 'Nueva Emprendedora',
                 'email' => 'nueva@example.com',
+                // El registro ahora exige correo Y teléfono (ver
+                // ProfileValidationRules::profileRules()) — sin esto la
+                // validación rechazaba la solicitud antes de crear el
+                // usuario, dejando la tabla vacía.
+                'phone' => '+573001234599',
                 'password' => 'password',
                 'password_confirmation' => 'password',
                 'terms' => '1',

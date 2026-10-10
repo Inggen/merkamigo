@@ -160,9 +160,14 @@ class BusinessChatConversationTest extends TestCase
 
     public function test_the_notify_job_skips_when_newer_messages_arrived_since_it_was_dispatched(): void
     {
-        Notification::fake();
-
+        // El fake va DESPUÉS de montar el negocio — `businessWithChatbot()`
+        // publica la vitrina, lo que ya dispara su propio
+        // `StorefrontPublished` al dueño (ajeno a lo que prueba este test);
+        // si el fake estuviera activo antes, `assertNothingSent()` de abajo
+        // fallaría por esa notificación de montaje, no por el job bajo prueba.
         $business = $this->businessWithChatbot();
+
+        Notification::fake();
 
         $conversation = BusinessChatConversation::create([
             'business_id' => $business->id,
@@ -184,9 +189,12 @@ class BusinessChatConversationTest extends TestCase
 
     public function test_the_notify_job_does_not_notify_twice(): void
     {
-        Notification::fake();
-
+        // Mismo motivo que la prueba anterior: el fake va después de
+        // montar el negocio, para no capturar el `StorefrontPublished`
+        // propio de `businessWithChatbot()`.
         $business = $this->businessWithChatbot();
+
+        Notification::fake();
 
         $conversation = BusinessChatConversation::create([
             'business_id' => $business->id,
