@@ -289,9 +289,26 @@ Ataca el hallazgo #11 y la decisión #6 de §8, con el alcance confirmado por el
 
 ---
 
-## 11. Siguientes pasos
+## 11. PR4 — asistente IA mensual, recompra bloqueada y trial retirado (cerrado 2026-10-10)
 
-- **PR 4 (asistente IA mensual + recompra bloqueada + claridad comercial):** decisiones #1 (trial), #4 y #5 de §8. Requiere antes definir con Comercial/Legal el plazo y texto del aviso de migración (§8, punto 4) y actualizar `Merkamigo_estrategia_de_ventas.md` para que el equipo de ventas deje de presentarlo como pago único.
+Ataca las decisiones #1, #4 y #5 de §8.
+
+- **Decisión #1 (trial de 14 días):** retirado el texto de `/planes-y-precios`. El campo `trial_days` se deja intacto en `Plan`/`PlanSeeder` por si se decide activarlo de verdad más adelante — solo se quitó la promesa en la página, no la capacidad del modelo.
+- **Decisión #5 (recompra bloqueada):** `CreatePaymentCheckout` rechaza (como las demás reglas de este action, `InvalidArgumentException`) comprar un add-on tipo `entitlement` que el negocio ya tiene activo, ya sea por su plan (`canUseAiChatbot()`) o por una compra anterior (`hasEntitlement()`). La vista "Impulsa tu negocio" ya ni lo muestra en esos casos — doble defensa (oculto + bloqueado), como se decidió.
+- **Decisión #4 (asistente IA → suscripción mensual):**
+  - `BillingProductSeeder`: `asistente-ia` pasa de `expires_in_days: null` a `30`. **Los entitlements ya otorgados ANTES de este cambio quedan intactos** (siguen de por vida, `expires_at = null`) — migrarlos a mensual requiere el aviso previo que el usuario pidió, y su plazo/texto todavía no está definido con Comercial/Legal (ver punto 4 de §8). Este PR construye el mecanismo técnico, no ejecuta esa migración de clientes ya existentes.
+  - Nuevas `ChargeEntitlementRenewal` y `ProcessEntitlementRenewals` (cron diario, `billing:process-entitlement-renewals`, mismo horario que la renovación de planes) — mismo patrón exacto que `ChargeSubscriptionRenewal`/`ProcessSubscriptionRenewals` (tarjeta guardada del negocio, sondeo de estado final), reutilizando `ApplyBillingProductPurchase::applyEntitlement()` sin duplicar su lógica de extensión de `expires_at`. A diferencia de los planes, **sin periodo de gracia** para esta primera versión: si el cobro falla, el entitlement simplemente vence y se reintenta al día siguiente (mismo criterio de reintento diario que ya usan los planes en gracia) — se documenta como simplificación deliberada, no como omisión.
+  - Un negocio que ya está en el plan Negocios nunca se cobra el add-on por separado, ni al comprarlo ni al renovarlo (mismo criterio que la decisión #5).
+  - **Requiere tarjeta guardada desde el primer pago**: sin eso no habría forma de cobrar el segundo mes. `CreatePaymentCheckout` lo exige antes de dejar pagar, y la vista manda primero a "Tu plan" a guardar una si no hay ninguna.
+- **No construido en este PR** (fuera de alcance explícito): la migración real de compradores existentes a mensual (pendiente del aviso de Comercial/Legal) y cualquier periodo de gracia/dunning para el add-on (los planes sí lo tienen; este PR lo simplifica a diferencia de los planes, ver arriba). Tampoco se actualizó `Merkamigo_estrategia_de_ventas.md` — sigue describiendo el asistente IA como pago único; el equipo comercial necesita saber de este cambio antes de la próxima demostración.
+
+**Verificación:** `php artisan test --parallel` → 1230 pruebas pasaron (24 nuevas: `RecurringEntitlementTest`, más casos agregados a `BillingProductCatalogTest`/`PlanesPricingPageTest`). 6 fallas en el run completo, las mismas ya documentadas en PR3 como ajenas a esta rama de trabajo (confirmadas otra vez con `git stash` contra HEAD limpio). `./vendor/bin/pint --test` y `./vendor/bin/phpstan analyse` limpios — la única advertencia nueva (`?->email` en `ChargeEntitlementRenewal`) es el mismo patrón ya aceptado en `ChargeSubscriptionRenewal`/`ChargeCommission`, no un hallazgo nuevo.
+
+---
+
+## 12. Siguientes pasos
+
+- **Antes de activar la migración de clientes existentes del asistente IA:** definir con Comercial/Legal el plazo de aviso y su texto exacto (§8 punto 4), y actualizar `Merkamigo_estrategia_de_ventas.md` para que deje de presentarlo como pago único.
 - **PR 5 (dashboard de funnel/rentabilidad):** instrumentar eventos de embudo para el checkout normal de Marketplace (hoy solo existen para Live Commerce, §6) y construir la vista gerencial de GMV/MRR/comisión sobre los datos que PR2 ya deja visibles en `/admin`.
 - **PR 6 (piloto de 20-30 comercios):** operativo, no requiere código — guías, guiones y checklist de onboarding (ver sección "Plan de entrega" del TODO original).
-- **Investigar aparte, no bloqueante para ventas:** las 5 fallas de prueba que aparecieron con el commit `3fff6ead` (`BusinessChatConversationTest`, `SwitchExperienceTest`, `WeeklyReportsAndAlertsTest`) — notificación `StorefrontPublished` inesperada. Pertenecen a la tarea concurrente de notificaciones, no a ventas/rentabilidad.
+- **Investigar aparte, no bloqueante para ventas:** las fallas de prueba que aparecieron con el commit `3fff6ead` (`BusinessChatConversationTest`, `SwitchExperienceTest`, `WeeklyReportsAndAlertsTest`) — notificación `StorefrontPublished` inesperada. Pertenecen a la tarea concurrente de notificaciones, no a ventas/rentabilidad.

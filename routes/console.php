@@ -27,6 +27,11 @@ Schedule::command('billing:process-subscription-renewals')->dailyAt('01:00');
 // 4.1 del TODO: baja al plan Gratis tras vencer el periodo pagado o la gracia.
 Schedule::command('billing:apply-plan-downgrades')->dailyAt('02:00');
 
+// PR4 de TODO_VENTAS_RENTABILIDAD.md: renovación mensual de add-ons
+// recurrentes (ej. asistente IA) — mismo horario que la renovación de
+// planes, mismo motivo (tarjeta guardada del negocio).
+Schedule::command('billing:process-entitlement-renewals')->dailyAt('01:30');
+
 // 4.5 del TODO: informe semanal por correo y alertas de vitrina sin completar.
 Schedule::command('analytics:send-weekly-reports')->weekly();
 Schedule::command('analytics:alert-incomplete-storefronts')->weekly();

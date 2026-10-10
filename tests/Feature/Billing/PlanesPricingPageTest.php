@@ -36,6 +36,22 @@ class PlanesPricingPageTest extends TestCase
             ->assertSee('20');
     }
 
+    /**
+     * PR4 de TODO_VENTAS_RENTABILIDAD.md (decisión del usuario
+     * 2026-10-09): el checkout real cobra de inmediato, nunca honra
+     * `trial_days` en este autoservicio — la página ya no debe
+     * prometer un trial que no existe.
+     */
+    public function test_the_pricing_page_no_longer_promises_a_free_trial(): void
+    {
+        $this->seed(PlanSeeder::class);
+
+        $this->get(route('planes-y-precios'))
+            ->assertOk()
+            ->assertDontSee('días de prueba')
+            ->assertDontSee('día de prueba');
+    }
+
     public function test_the_comparison_table_shows_which_plan_includes_each_qualitative_feature(): void
     {
         $this->seed(PlanSeeder::class);
