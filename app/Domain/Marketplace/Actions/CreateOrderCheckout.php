@@ -29,6 +29,19 @@ use InvalidArgumentException;
  * digitales — no existe modelo de inventario todavía para los físicos
  * (hallazgo #11 de la auditoría, docs/auditoria-ventas-rentabilidad.md
  * §3).
+ *
+ * Revisión final del TODO (§13.1): esta acción no tenía ninguna
+ * protección contra pedidos duplicados — `create()` es un GET sin
+ * ningún token de formulario, así que un doble clic, un refresh, dos
+ * pestañas o un reintento de red creaban un `Order` y un widget de
+ * pago de Wompi NUEVOS cada vez, con riesgo real de que el cliente
+ * pagara dos veces por la misma compra. Ahora, antes de crear nada, se
+ * busca un pedido `pendiente` que ya represente esta MISMA intención
+ * de compra (mismo negocio, producto, variante, cantidad, promoción y
+ * comprador/invitado) y se reutiliza en vez de duplicarlo — pero solo
+ * mientras siga `pendiente`: una vez pagado o rechazado, un nuevo
+ * intento sí debe crear un pedido nuevo (volver a comprar después de
+ * un rechazo, o comprar otra vez, tienen que seguir funcionando).
  */
 class CreateOrderCheckout
 {
@@ -76,7 +89,24 @@ class CreateOrderCheckout
         $amountCents = $unitPriceCents * $quantity;
         $commissionCents = (int) round($amountCents * (float) config('services.marketplace.commission_rate'));
 
-        $order = DB::transaction(function () use ($business, $product, $promotion, $buyer, $quantity, $unitPriceCents, $amountCents, $commissionCents, $variant, $guestName, $guestEmail, $guestPhone): Order {
+        [$order, $isNew] = DB::transaction(function () use ($business, $product, $promotion, $buyer, $quantity, $unitPriceCents, $amountCents, $commissionCents, $variant, $guestName, $guestEmail, $guestPhone): array {
+            $existing = Order::query()
+                ->where('business_id', $business->id)
+                ->where('product_id', $product->id)
+                ->where('quantity', $quantity)
+                ->where('content_promotion_id', $promotion?->id)
+                ->where('status', Order::PENDIENTE)
+                ->when($buyer, fn ($query) => $query->where('buyer_user_id', $buyer->id))
+                ->when(! $buyer, fn ($query) => $query->whereNull('buyer_user_id')->where('guest_email', $guestEmail))
+                ->when($variant, fn ($query) => $query->whereHas('items', fn ($q) => $q->where('product_variant_id', $variant->id)))
+                ->when(! $variant, fn ($query) => $query->whereHas('items', fn ($q) => $q->whereNull('product_variant_id')))
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                return [$existing, false];
+            }
+
             $order = Order::create([
                 'business_id' => $business->id,
                 'product_id' => $product->id,
@@ -102,20 +132,25 @@ class CreateOrderCheckout
                 'amount_cents' => $amountCents,
             ]);
 
-            return $order;
+            return [$order, true];
         });
 
         // PR5 de TODO_VENTAS_RENTABILIDAD.md (P1.4): primer paso medible
         // del embudo de Marketplace — en la UI real no hay un clic
         // "comprar" separado de esto, el botón del producto llega
-        // directo aquí.
-        AnalyticsEvent::create([
-            'business_id' => $business->id,
-            'type' => AnalyticsEvent::MARKETPLACE_CHECKOUT_STARTED,
-            'subject_type' => $order->getMorphClass(),
-            'subject_id' => $order->id,
-            'visitor_hash' => hash('sha256', 'order-checkout|'.$order->id),
-        ]);
+        // directo aquí. Solo se registra para un pedido REALMENTE
+        // nuevo — reutilizar uno pendiente no debe inflar el conteo
+        // del embudo cada vez que alguien refresca o reintenta la
+        // misma compra sin resolver.
+        if ($isNew) {
+            AnalyticsEvent::create([
+                'business_id' => $business->id,
+                'type' => AnalyticsEvent::MARKETPLACE_CHECKOUT_STARTED,
+                'subject_type' => $order->getMorphClass(),
+                'subject_id' => $order->id,
+                'visitor_hash' => hash('sha256', 'order-checkout|'.$order->id),
+            ]);
+        }
 
         return $order;
     }

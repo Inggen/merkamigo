@@ -98,6 +98,29 @@ class GuestCheckoutTest extends TestCase
         $this->assertStringContainsString('signature=', $response->json('redirectUrl'));
     }
 
+    /**
+     * Revisión final del TODO (§13.1 de la auditoría): un invitado que
+     * reenvía el mismo formulario (doble clic, refresh) tampoco debe
+     * terminar con dos pedidos.
+     */
+    public function test_a_guest_resubmitting_the_same_form_reuses_the_pending_order(): void
+    {
+        config()->set('services.marketplace.guest_checkout_enabled', true);
+        [$business, $product] = $this->digitalProduct();
+
+        $payload = [
+            'guest_name' => 'Carlos Pérez',
+            'guest_email' => 'carlos@example.com',
+            'guest_phone' => '3001234567',
+        ];
+
+        $first = $this->postJson(route('marketplace.guest.checkout.create', $product), $payload)->assertOk();
+        $second = $this->postJson(route('marketplace.guest.checkout.create', $product), $payload)->assertOk();
+
+        $this->assertSame(1, Order::count());
+        $this->assertSame($first->json('reference'), $second->json('reference'));
+    }
+
     public function test_submitting_guest_checkout_for_a_physical_product_is_rejected_even_if_the_route_is_hit_directly(): void
     {
         config()->set('services.marketplace.guest_checkout_enabled', true);
