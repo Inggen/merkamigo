@@ -172,24 +172,24 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
 <div class="mx-auto max-w-7xl px-6 py-8 lg:px-8">
     <div class="mx-auto max-w-6xl">
         <div
-            class="relative isolate mb-8 aspect-[1916/821] overflow-hidden rounded-3xl bg-cover bg-center"
+            class="relative isolate mb-8 min-h-[230px] overflow-hidden rounded-3xl bg-cover bg-left-top sm:min-h-[280px] lg:min-h-[320px]"
             style="background-image: url('{{ asset('images/backgrounds/fondo_banner_pidelo.webp') }}');"
         >
-            <div class="flex h-full max-w-[55%] flex-col justify-center px-5 sm:max-w-md sm:px-10">
-                <div class="inline-flex w-fit items-center gap-2 rounded-full border border-brand-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-brand-700 shadow-sm sm:px-4 sm:py-2 sm:text-sm">
+            <div class="flex h-full max-w-[260px] flex-col justify-center px-5 py-6 sm:max-w-sm sm:px-8 lg:max-w-md lg:px-10">
+                <div class="inline-flex w-fit items-center gap-2 rounded-full border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 shadow-sm sm:px-4 sm:py-2 sm:text-sm">
                     <flux:icon.shopping-bag class="size-3.5 shrink-0 sm:size-4" variant="outline" />
                     {{ __('Pídelo en Merkamigo') }}
                 </div>
 
-                <flux:heading class="mt-2 text-lg font-black leading-tight tracking-tight text-zinc-950 sm:mt-4 sm:text-3xl lg:text-4xl">
+                <flux:heading class="mt-3 text-2xl font-black leading-tight tracking-tight text-zinc-950 sm:text-3xl lg:text-4xl">
                     {{ __('Cuéntanos') }} <span class="text-brand-600">{{ __('qué necesitas') }}</span>
                 </flux:heading>
-                <flux:text class="mt-1.5 text-xs leading-5 text-zinc-600 sm:mt-3 sm:text-base sm:leading-7">
+                <flux:text class="mt-2 text-sm leading-6 text-zinc-600 sm:mt-3 sm:text-base sm:leading-7">
                     {{ __('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.') }}
                 </flux:text>
 
                 @if ($savedAt)
-                    <div class="mt-2 flex items-center gap-1.5 text-[11px] text-zinc-500 sm:mt-4 sm:text-sm">
+                    <div class="mt-3 flex items-center gap-1.5 text-xs text-zinc-500 sm:text-sm">
                         <flux:icon.check-circle class="size-3.5 shrink-0 sm:size-4" variant="outline" />
                         {{ __('Guardado automáticamente a las :hora', ['hora' => $savedAt]) }}
                     </div>
