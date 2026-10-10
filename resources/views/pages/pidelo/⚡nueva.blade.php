@@ -169,13 +169,17 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
     }
 }; ?>
 
-<div class="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-    <div class="mx-auto max-w-6xl">
-        <div
-            class="relative isolate mb-8 min-h-[230px] overflow-hidden rounded-3xl bg-cover bg-left-top sm:min-h-[280px] lg:min-h-[320px]"
-            style="background-image: url('{{ asset('images/backgrounds/fondo_banner_pidelo.webp') }}');"
-        >
-            <div class="flex h-full max-w-[260px] flex-col justify-center px-5 py-6 sm:max-w-sm sm:px-8 lg:max-w-md lg:px-10">
+<div>
+    {{-- Pedido del usuario: la imagen va al ancho completo del
+         navegador (full-bleed, fuera del contenedor del contenido);
+         el texto adentro sí respeta el mismo ancho/alineación que el
+         resto de la página (mx-auto max-w-7xl), no el ancho total. --}}
+    <div
+        class="relative isolate min-h-[230px] w-full bg-cover bg-left-top sm:min-h-[280px] lg:min-h-[320px]"
+        style="background-image: url('{{ asset('images/backgrounds/fondo_banner_pidelo.webp') }}');"
+    >
+        <div class="mx-auto flex h-full max-w-7xl items-center px-6 py-6 lg:px-8">
+            <div class="max-w-[260px] sm:max-w-sm lg:max-w-md">
                 <div class="inline-flex w-fit items-center gap-2 rounded-full border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 shadow-sm sm:px-4 sm:py-2 sm:text-sm">
                     <flux:icon.shopping-bag class="size-3.5 shrink-0 sm:size-4" variant="outline" />
                     {{ __('Pídelo en Merkamigo') }}
@@ -196,7 +200,10 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
                 @endif
             </div>
         </div>
+    </div>
 
+    <div class="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+    <div class="mx-auto max-w-6xl">
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
             <div>
                 @if (! $previewing)
@@ -443,5 +450,6 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
                 </div>
             </aside>
         </div>
+    </div>
     </div>
 </div>
