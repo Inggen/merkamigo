@@ -17,10 +17,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('commission_charges', function (Blueprint $table) {
-            $table->unsignedTinyInteger('retry_count')->default(0)->after('status');
-            $table->timestamp('next_retry_at')->nullable()->after('retry_count');
-        });
+        if (! Schema::hasColumn('commission_charges', 'retry_count')) {
+            Schema::table('commission_charges', function (Blueprint $table) {
+                $table->unsignedTinyInteger('retry_count')->default(0)->after('status');
+            });
+        }
+
+        if (! Schema::hasColumn('commission_charges', 'next_retry_at')) {
+            Schema::table('commission_charges', function (Blueprint $table) {
+                $table->timestamp('next_retry_at')->nullable()->after('retry_count');
+            });
+        }
     }
 
     public function down(): void

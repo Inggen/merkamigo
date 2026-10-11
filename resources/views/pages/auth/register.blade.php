@@ -1,17 +1,12 @@
 <x-layouts::auth :title="__('Crear cuenta')">
     <div class="flex flex-col gap-6">
+
         <x-auth-header :title="__('Crea tu cuenta')" :description="__('Completa tus datos para empezar a usar Merkamigo')" />
+
+        <x-auth.social-buttons />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
-
-        {{--
-            Pedido del usuario (2026-10-11): mismo orden que /login —
-            Google/Facebook arriba, antes del formulario manual. Este
-            componente trae su propio separador ("o continúa con"), así
-            que solo hubo que moverlo.
-        --}}
-        <x-auth.social-buttons />
 
         <form method="POST" action="{{ route('front.register.store') }}" class="flex flex-col gap-6">
             @csrf
