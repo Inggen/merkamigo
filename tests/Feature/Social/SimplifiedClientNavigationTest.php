@@ -96,6 +96,31 @@ class SimplifiedClientNavigationTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
+    /**
+     * Pedido del usuario (2026-10-11): un visitante que todavía no
+     * inició sesión también debe ver la barra inferior en móvil — antes
+     * solo se mostraba con `@auth`, así que un invitado la perdía por
+     * completo.
+     */
+    public function test_the_mobile_bottom_nav_is_visible_for_a_guest(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-client-bottom-nav', false);
+        $response->assertSee('data-mobile-bottom-nav-reserve', false);
+    }
+
+    public function test_the_mobile_bottom_nav_stays_hidden_for_an_authenticated_business_owner(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+
+        $response = $this->actingAs($owner)->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('data-client-bottom-nav', false);
+    }
+
     public function test_internal_client_pages_use_the_header_without_a_left_sidebar(): void
     {
         $customer = User::factory()->create(['experience' => 'cliente']);

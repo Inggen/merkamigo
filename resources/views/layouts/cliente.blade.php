@@ -63,21 +63,24 @@
 
         @include('partials.public-footer')
 
-        @auth
-            @if (auth()->user()->experience === 'cliente')
-                <div
-                    data-mobile-bottom-nav-reserve
-                    class="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden"
-                    aria-hidden="true"
-                ></div>
-            @endif
-        @endauth
+        {{--
+            Pedido del usuario (2026-10-11): la barra inferior también
+            debe verse en móvil para un visitante que todavía no inició
+            sesión — antes solo se mostraba con @auth, así que un
+            invitado perdía la navegación principal. Se oculta solo para
+            un usuario autenticado con una experiencia distinta a
+            "cliente" (p. ej. un dueño de negocio viendo el sitio
+            público como él mismo, que tiene su propia navegación).
+        --}}
+        @if (! auth()->check() || auth()->user()->experience === 'cliente')
+            <div
+                data-mobile-bottom-nav-reserve
+                class="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden"
+                aria-hidden="true"
+            ></div>
 
-        @auth
-            @if (auth()->user()->experience === 'cliente')
-                <x-cliente-bottom-nav />
-            @endif
-        @endauth
+            <x-cliente-bottom-nav />
+        @endif
 
         @if ($showChatWidget)
             <x-storefront-chat-widget
