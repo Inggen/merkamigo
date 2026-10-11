@@ -123,35 +123,51 @@
                     <div x-show="panel === 'products'" x-cloak x-transition class="mt-4 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/70">
                         <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{{ __('Productos relacionados') }}</p>
                         @if ($this->products->isNotEmpty())
-                            <div class="grid gap-2 sm:grid-cols-2">
-                                @foreach ($this->products as $product)
-                                    <label class="group flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-white p-2 pr-3 transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50 has-[:checked]:ring-2 has-[:checked]:ring-brand-100 dark:border-zinc-700 dark:bg-zinc-900 dark:has-[:checked]:bg-brand-500/10 dark:has-[:checked]:ring-brand-500/20">
-                                        <input type="checkbox" wire:model="productIds" value="{{ $product->id }}" class="sr-only">
-                                        <div class="size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                                            @if ($photo = $product->primaryImage())
-                                                <img src="{{ $photo->url() }}" class="size-full object-cover" alt="{{ $product->name }}">
-                                            @else
-                                                <span class="flex size-full items-center justify-center text-zinc-400"><flux:icon.shopping-bag class="size-5" /></span>
-                                            @endif
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <p class="truncate text-sm font-semibold text-zinc-900 dark:text-white">{{ $product->name }}</p>
-                                            <p class="text-xs font-semibold text-brand-600 dark:text-brand-300">
-                                                @if ($product->hasActivePromo())
-                                                    {{ __('Desde') }} ${{ number_format((float) $product->promo_price, 0, ',', '.') }}
-                                                @elseif ($product->price_type === 'exacto' && $product->price)
-                                                    ${{ number_format((float) $product->price, 0, ',', '.') }}
-                                                @elseif ($product->price_type === 'desde' && $product->price)
-                                                    {{ __('Desde') }} ${{ number_format((float) $product->price, 0, ',', '.') }}
-                                                @elseif ($product->price_type === 'consultar')
-                                                    {{ __('Consultar') }}
+                            @if ($this->products->count() > 6)
+                                <flux:input
+                                    wire:model.live.debounce.250ms="productSearch"
+                                    type="search"
+                                    size="sm"
+                                    icon="magnifying-glass"
+                                    placeholder="{{ __('Buscar producto…') }}"
+                                    class="mb-2"
+                                    aria-label="{{ __('Buscar producto') }}"
+                                />
+                            @endif
+
+                            @if ($this->filteredProducts->isNotEmpty())
+                                <div class="grid max-h-72 grid-cols-2 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-3">
+                                    @foreach ($this->filteredProducts as $product)
+                                        <label class="group flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white p-1.5 transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50 has-[:checked]:ring-2 has-[:checked]:ring-brand-100 dark:border-zinc-700 dark:bg-zinc-900 dark:has-[:checked]:bg-brand-500/10 dark:has-[:checked]:ring-brand-500/20">
+                                            <input type="checkbox" wire:model="productIds" value="{{ $product->id }}" class="sr-only">
+                                            <div class="relative size-9 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800">
+                                                @if ($photo = $product->primaryImage())
+                                                    <img src="{{ $photo->url() }}" class="size-full object-cover" alt="{{ $product->name }}">
+                                                @else
+                                                    <span class="flex size-full items-center justify-center text-zinc-400"><flux:icon.shopping-bag class="size-4" /></span>
                                                 @endif
-                                            </p>
-                                        </div>
-                                        <flux:icon.check-circle class="size-5 shrink-0 text-brand-500 opacity-0 transition group-has-[:checked]:opacity-100" variant="solid" />
-                                    </label>
-                                @endforeach
-                            </div>
+                                                <flux:icon.check-circle class="absolute inset-0 m-auto size-5 scale-0 text-brand-600 opacity-0 drop-shadow transition group-has-[:checked]:scale-100 group-has-[:checked]:opacity-100" variant="solid" />
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-xs font-semibold text-zinc-900 dark:text-white">{{ $product->name }}</p>
+                                                <p class="truncate text-[11px] font-semibold text-brand-600 dark:text-brand-300">
+                                                    @if ($product->hasActivePromo())
+                                                        {{ __('Desde') }} ${{ number_format((float) $product->promo_price, 0, ',', '.') }}
+                                                    @elseif ($product->price_type === 'exacto' && $product->price)
+                                                        ${{ number_format((float) $product->price, 0, ',', '.') }}
+                                                    @elseif ($product->price_type === 'desde' && $product->price)
+                                                        {{ __('Desde') }} ${{ number_format((float) $product->price, 0, ',', '.') }}
+                                                    @elseif ($product->price_type === 'consultar')
+                                                        {{ __('Consultar') }}
+                                                    @endif
+                                                </p>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="p-3 text-center text-sm text-zinc-500">{{ __('Ningún producto coincide con ":busqueda".', ['busqueda' => $productSearch]) }}</p>
+                            @endif
                         @else
                             <div class="flex flex-col items-center gap-3 rounded-xl p-4 text-center">
                                 <p class="text-sm text-zinc-500">{{ __('No tienes productos publicados para etiquetar.') }}</p>

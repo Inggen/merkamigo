@@ -232,6 +232,46 @@ class FeedPostComposerTest extends TestCase
             ->assertDontSee(__('Crear un producto'));
     }
 
+    /**
+     * Un negocio con catálogos grandes (50+ productos) necesita poder
+     * encontrar uno sin desplazarse por toda la lista.
+     */
+    public function test_the_composer_lets_the_owner_search_products_when_the_catalog_is_large(): void
+    {
+        [$owner, $business] = $this->businessFor('Vitrina con catálogo grande', 'publicado');
+        foreach (range(1, 7) as $index) {
+            $business->products()->create([
+                'name' => "Cortina {$index}",
+                'slug' => "cortina-{$index}",
+                'type' => 'producto',
+                'price' => 50000,
+                'price_type' => 'desde',
+                'status' => 'publicado',
+                'is_available' => true,
+            ]);
+        }
+        $business->products()->create([
+            'name' => 'Persiana Enrollable',
+            'slug' => 'persiana-enrollable',
+            'type' => 'producto',
+            'price' => 90000,
+            'price_type' => 'desde',
+            'status' => 'publicado',
+            'is_available' => true,
+        ]);
+        $this->actingAs($owner);
+
+        Livewire::test(FeedPostComposer::class)
+            ->assertSee(__('Buscar producto…'))
+            ->assertSee('Cortina 1')
+            ->assertSee('Persiana Enrollable')
+            ->set('productSearch', 'persiana')
+            ->assertSee('Persiana Enrollable')
+            ->assertDontSee('Cortina 1')
+            ->set('productSearch', 'algo-que-no-existe')
+            ->assertSee(__('Ningún producto coincide con ":busqueda".', ['busqueda' => 'algo-que-no-existe']));
+    }
+
     /** @return array{User, Business} */
     private function businessFor(string $name, string $status): array
     {
