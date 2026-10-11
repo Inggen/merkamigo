@@ -19,8 +19,8 @@
     @include('feed.partials.event-post-card', ['post' => $post])
 @else
 <article class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-    <div class="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-        <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="flex min-w-0 items-center gap-3">
+    <div class="flex flex-wrap items-start gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+        <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="flex min-w-0 flex-1 items-center gap-3">
             <div class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950">
                 @if ($business->logoUrl())
                     <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->name }}" loading="lazy">
@@ -36,33 +36,39 @@
             </div>
         </a>
 
-        <div data-post-badges class="flex flex-wrap items-center justify-start gap-2 sm:justify-center">
-            <span class="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm">
-                <flux:icon :name="$contentIcon" class="size-4" variant="outline" />
-                {{ $contentLabel }}
-            </span>
-            @if ($post->products->isNotEmpty())
-                <span class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-                    <flux:icon.shopping-bag class="size-4" />
-                    {{ trans_choice(':count producto|:count productos', $post->products->count(), ['count' => $post->products->count()]) }}
+        {{-- Badge de tipo de publicación + campana de seguir deben quedar
+             siempre juntos arriba a la derecha (igual que en escritorio),
+             nunca cada uno en su propia fila completa como ocurría en
+             móvil con el grid de una sola columna. --}}
+        <div class="ml-auto flex shrink-0 flex-wrap items-center gap-2 sm:contents">
+            <div data-post-badges class="flex flex-wrap items-center justify-start gap-2 sm:justify-center">
+                <span class="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm">
+                    <flux:icon :name="$contentIcon" class="size-4" variant="outline" />
+                    {{ $contentLabel }}
                 </span>
-            @endif
-            @if ($post->activePromotion)
-                <a href="{{ route('promotions.click', $post->activePromotion) }}" class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-                    <flux:icon.megaphone class="size-4" />
-                    {{ __('Patrocinado') }}
-                </a>
-            @endif
-        </div>
+                @if ($post->products->isNotEmpty())
+                    <span class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                        <flux:icon.shopping-bag class="size-4" />
+                        {{ trans_choice(':count producto|:count productos', $post->products->count(), ['count' => $post->products->count()]) }}
+                    </span>
+                @endif
+                @if ($post->activePromotion)
+                    <a href="{{ route('promotions.click', $post->activePromotion) }}" class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                        <flux:icon.megaphone class="size-4" />
+                        {{ __('Patrocinado') }}
+                    </a>
+                @endif
+            </div>
 
-        <div class="flex items-center justify-end gap-1">
-            <x-owner-edit-link
-                :business="$business"
-                :href="$ownerManagerRoute"
-                :label="$ownerManagerLabel"
-                compact
-            />
-            <livewire:follow-button :business="$business" compact :key="'follow-'.$business->id.'-post-'.$post->id" />
+            <div class="flex items-center justify-end gap-1">
+                <x-owner-edit-link
+                    :business="$business"
+                    :href="$ownerManagerRoute"
+                    :label="$ownerManagerLabel"
+                    compact
+                />
+                <livewire:follow-button :business="$business" compact :key="'follow-'.$business->id.'-post-'.$post->id" />
+            </div>
         </div>
     </div>
 
