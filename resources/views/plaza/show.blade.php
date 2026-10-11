@@ -221,14 +221,14 @@
 
         @if ($products->isNotEmpty())
             <div class="mt-10">
-                <form method="GET" action="{{ $category ? route('buscar', ['municipio' => $municipio->slug, 'categoria' => $category->slug]) : route('buscar', ['municipio' => $municipio->slug]) }}" class="mb-4 flex items-center justify-between gap-3">
+                <form method="GET" action="{{ $category ? route('buscar', ['municipio' => $municipio->slug, 'categoria' => $category->slug]) : route('buscar', ['municipio' => $municipio->slug]) }}" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     @if ($zone)
                         <input type="hidden" name="zona" value="{{ $zone }}">
                     @endif
 
                     <flux:heading size="lg">{{ __('Productos para ti') }}</flux:heading>
 
-                    <div class="flex flex-wrap shrink-0 items-center gap-4">
+                    <div class="flex flex-wrap items-center gap-3 sm:shrink-0 sm:gap-4">
                         <div class="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-300">
                             <input
                                 type="number"
@@ -237,7 +237,7 @@
                                 step="1000"
                                 value="{{ $minPrice }}"
                                 placeholder="{{ __('Precio mín.') }}"
-                                class="w-28 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                                class="w-24 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800 sm:w-28"
                                 onchange="this.form.submit()"
                             >
                             <span>–</span>
@@ -248,7 +248,7 @@
                                 step="1000"
                                 value="{{ $maxPrice }}"
                                 placeholder="{{ __('Precio máx.') }}"
-                                class="w-28 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                                class="w-24 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800 sm:w-28"
                                 onchange="this.form.submit()"
                             >
                         </div>
