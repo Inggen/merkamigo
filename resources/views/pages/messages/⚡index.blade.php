@@ -13,7 +13,23 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-new #[Layout('layouts::cliente', ['showChatWidget' => false, 'showSidebar' => true])] #[Title('Mensajes')] class extends Component
+/**
+ * Pedido del usuario (2026-10-11): en la zona de emprendedores, Mensajes
+ * debe verse con la barra lateral y todo lo demás del panel, igual que
+ * el resto de "Mi negocio" — y el chatbot de Merkamiga se mantiene
+ * visible acá también (pedido explícito del usuario), a diferencia del
+ * `showChatWidget: false` que tenía antes esta página. Antes esta
+ * página forzaba siempre `layouts::cliente` (el header simple de
+ * Vitrinas/Comunidad/...) con un `showSidebar: true` que ese layout ya
+ * no usa — lo quitaron hace tiempo (ver el comentario en
+ * layouts/app.blade.php) y nadie volvió a tocar esta página.
+ * `layouts::app` es el layout compartido por TODO el resto del sitio
+ * para esto: cliente ve el header simple, cualquier otra experiencia
+ * (emprendedor) ve el panel con sidebar — así que cambiar a ese layout
+ * compartido, en vez de inventar una condición propia acá, es lo que
+ * evita que esto se vuelva a desincronizar.
+ */
+new #[Layout('layouts::app')] #[Title('Mensajes')] class extends Component
 {
     use WithFileUploads;
 

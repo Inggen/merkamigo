@@ -41,20 +41,27 @@
              nunca cada uno en su propia fila completa como ocurría en
              móvil con el grid de una sola columna. --}}
         <div class="ml-auto flex shrink-0 flex-wrap items-center gap-2 sm:contents">
-            <div data-post-badges class="flex flex-wrap items-center justify-start gap-2 sm:justify-center">
-                <span class="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm">
-                    <flux:icon :name="$contentIcon" class="size-4" variant="outline" />
+            {{--
+                Pedido del usuario (2026-10-11): los badges de tipo de
+                publicación tenían demasiado protagonismo (píldora
+                sólida, texto grande, sombra) — ahora son más discretos
+                (más chicos, sin relleno sólido ni sombra), a tono con
+                el resto del contenido de la tarjeta.
+            --}}
+            <div data-post-badges class="flex flex-wrap items-center justify-start gap-1.5 sm:justify-center">
+                <span class="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                    <flux:icon :name="$contentIcon" class="size-3.5" variant="outline" />
                     {{ $contentLabel }}
                 </span>
                 @if ($post->products->isNotEmpty())
-                    <span class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-                        <flux:icon.shopping-bag class="size-4" />
+                    <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                        <flux:icon.shopping-bag class="size-3.5" />
                         {{ trans_choice(':count producto|:count productos', $post->products->count(), ['count' => $post->products->count()]) }}
                     </span>
                 @endif
                 @if ($post->activePromotion)
-                    <a href="{{ route('promotions.click', $post->activePromotion) }}" class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-                        <flux:icon.megaphone class="size-4" />
+                    <a href="{{ route('promotions.click', $post->activePromotion) }}" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                        <flux:icon.megaphone class="size-3.5" />
                         {{ __('Patrocinado') }}
                     </a>
                 @endif

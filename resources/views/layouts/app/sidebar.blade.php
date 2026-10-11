@@ -54,12 +54,16 @@
                                 <span class="absolute right-1 top-1 size-2 rounded-full bg-brand-500 ring-2 ring-white dark:ring-zinc-900"></span>
                             @endif
                         </a>
-                        <a href="{{ route('clientes.actividad') }}" wire:navigate class="relative inline-flex size-9 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="{{ __('Actividad') }}">
-                            <flux:icon.bell class="size-5" variant="outline" />
-                            @if (($topbarUnread = auth()->user()->unreadNotifications()->count()) > 0)
-                                <span class="absolute right-1 top-1 size-2 rounded-full bg-brand-500 ring-2 ring-white dark:ring-zinc-900"></span>
-                            @endif
-                        </a>
+                        {{--
+                            Pedido del usuario (2026-10-11): en la zona de
+                            emprendedores la campanita solo navegaba a
+                            "Actividad" — ahora despliega la misma
+                            ventana de notificaciones que ya existe en
+                            cliente (`<livewire:notification-bell>`),
+                            reutilizada tal cual en vez de duplicar su
+                            lógica de marcar-como-leída/redirigir acá.
+                        --}}
+                        <livewire:notification-bell />
                         <x-desktop-user-menu placement="header" />
                     </header>
                 @endif
@@ -158,13 +162,15 @@
             <x-cliente-bottom-nav />
         @endif
 
-        <x-storefront-chat-widget
-            :with-sound="false"
-            character-gif="images/chatbot-merkamiga-IA.gif"
-            character-frame1="images/chatbot-merkamiga-IA-frame1.png"
-            :mode="auth()->user()->experience === 'emprendedor' ? 'emprendedor' : 'general'"
-            :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()"
-        />
+        @if ($showChatWidget ?? true)
+            <x-storefront-chat-widget
+                :with-sound="false"
+                character-gif="images/chatbot-merkamiga-IA.gif"
+                character-frame1="images/chatbot-merkamiga-IA-frame1.png"
+                :mode="auth()->user()->experience === 'emprendedor' ? 'emprendedor' : 'general'"
+                :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()"
+            />
+        @endif
 
         @persist('toast')
             <flux:toast.group>

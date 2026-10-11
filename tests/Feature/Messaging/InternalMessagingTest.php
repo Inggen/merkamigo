@@ -20,8 +20,8 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class InternalMessagingTest extends TestCase
@@ -217,10 +217,13 @@ class InternalMessagingTest extends TestCase
 
         $this->actingAs($customer);
 
+        // Pedido del usuario (2026-10-11): el chatbot de Merkamiga ahora
+        // se mantiene visible en Mensajes (antes esta página lo
+        // ocultaba a propósito).
         $this->get(route('messages.show', $conversation))
             ->assertOk()
             ->assertSee('Enviar')
-            ->assertDontSee('Pregúntale a Merkamigo');
+            ->assertSee('Pregúntale a Merkamigo', false);
 
         Livewire::test('pages::messages.index', ['conversation' => $conversation])
             ->assertSet('conversationId', $conversation->id)
@@ -298,9 +301,40 @@ class InternalMessagingTest extends TestCase
             'context_key' => 'business',
         ]);
 
-        $this->expectException(HttpException::class);
+        // Pedido del usuario (2026-10-11): antes esto lanzaba un
+        // `abort_if` (HttpException) que Livewire no sabía convertir en
+        // un error de formulario y terminaba en una página de error sin
+        // manejar. Ahora es una regla más del Validator, así que la
+        // excepción es la misma que cualquier otra validación fallida.
+        $this->expectException(ValidationException::class);
 
         app(SendBusinessMessage::class)->handle($conversation, $customer, null, null);
+    }
+
+    /**
+     * Mismo caso que arriba pero ejercitado a través del componente de
+     * Livewire — lo que realmente reportó el usuario: enviar sin texto
+     * debía mostrarse como un error normal del formulario, no una
+     * página de error de Laravel sin manejar.
+     */
+    public function test_sending_an_empty_message_from_the_livewire_component_shows_a_form_error_instead_of_crashing(): void
+    {
+        [$owner, $business] = $this->publishedBusiness();
+        $customer = User::factory()->create();
+        $conversation = BusinessConversation::create([
+            'business_id' => $business->id,
+            'customer_user_id' => $customer->id,
+            'context_key' => 'business',
+        ]);
+
+        $this->actingAs($customer);
+
+        Livewire::test('pages::messages.index', ['conversation' => $conversation])
+            ->set('body', '')
+            ->call('send')
+            ->assertHasErrors(['body' => 'required']);
+
+        $this->assertDatabaseMissing('business_messages', ['conversation_id' => $conversation->id]);
     }
 
     public function test_deleting_a_conversation_soft_deletes_it_and_hides_it_from_both_parties(): void

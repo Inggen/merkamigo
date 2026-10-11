@@ -36,13 +36,15 @@
         {{-- Badges de evento + campana de seguir juntos arriba a la
              derecha también en móvil, mismo ajuste que post-card.blade.php. --}}
         <div class="ml-auto flex shrink-0 flex-wrap items-center gap-2 sm:contents">
-            <div class="flex flex-wrap items-center justify-start gap-2 sm:justify-center">
-                <span class="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm">
-                    <flux:icon.calendar-days class="size-4" />
+            {{-- Mismo ajuste que post-card.blade.php: badges más
+                 discretos, sin relleno sólido ni sombra. --}}
+            <div class="flex flex-wrap items-center justify-start gap-1.5 sm:justify-center">
+                <span class="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                    <flux:icon.calendar-days class="size-3.5" />
                     {{ __('Evento') }}
                 </span>
-                <span class="inline-flex max-w-64 items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-                    <flux:icon :name="$categoryIcon" class="size-4 shrink-0" variant="solid" />
+                <span class="inline-flex max-w-64 items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                    <flux:icon :name="$categoryIcon" class="size-3.5 shrink-0" variant="solid" />
                     <span class="truncate">{{ $event->categoryLabel() ?: __('Evento local') }} / {{ $event->title }}</span>
                 </span>
             </div>

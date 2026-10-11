@@ -174,11 +174,22 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
          navegador (full-bleed, fuera del contenedor del contenido);
          el texto adentro sí respeta el mismo ancho/alineación que el
          resto de la página (mx-auto max-w-7xl), no el ancho total. --}}
+    {{-- Pedido del usuario (2026-10-11): mismo efecto parallax sutil que
+         ya tenía el hero de búsqueda de Plaza — el fondo se desplaza
+         apenas al hacer scroll, no el texto encima. Se mantiene el
+         recorte a la izquierda (bg-left-top original) moviendo solo el
+         eje Y del fondo, no el X. --}}
     <div
-        class="relative isolate min-h-[230px] w-full bg-cover bg-left-top sm:min-h-[280px] lg:min-h-[320px]"
-        style="background-image: url('{{ asset('images/backgrounds/fondo_banner_pidelo.webp') }}');"
+        x-data="{ parallaxOffset: 0 }"
+        x-on:scroll.window="parallaxOffset = Math.min(50, Math.max(0, window.scrollY * 0.12))"
+        class="relative isolate min-h-[230px] w-full overflow-hidden sm:min-h-[280px] lg:min-h-[320px]"
     >
-        <div class="mx-auto flex h-full max-w-7xl items-center px-6 py-6 lg:px-8">
+        <div
+            class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
+            x-bind:style="`background-image: url('{{ asset('images/backgrounds/fondo_banner_pidelo.webp') }}'); background-position-x: left; background-position-y: calc(${parallaxOffset}px);`"
+        ></div>
+
+        <div class="relative z-10 mx-auto flex h-full max-w-7xl items-center px-6 py-6 lg:px-8">
             <div class="max-w-[260px] sm:max-w-sm lg:max-w-md">
                 <div class="inline-flex w-fit items-center gap-2 rounded-full border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 shadow-sm sm:px-4 sm:py-2 sm:text-sm">
                     <flux:icon.shopping-bag class="size-3.5 shrink-0 sm:size-4" variant="outline" />

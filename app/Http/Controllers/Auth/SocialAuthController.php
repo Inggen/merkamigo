@@ -22,6 +22,14 @@ class SocialAuthController extends Controller
     {
         $this->ensureSupported($provider);
 
+        if (! $this->isConfigured($provider)) {
+            return to_route('login')->withErrors([
+                'social' => __('El acceso con :provider no está configurado en este entorno. Puedes ingresar con correo y contraseña.', [
+                    'provider' => Str::headline($provider),
+                ]),
+            ]);
+        }
+
         return Socialite::driver($provider)->redirect();
     }
 
@@ -126,5 +134,11 @@ class SocialAuthController extends Controller
     private function ensureSupported(string $provider): void
     {
         abort_unless(in_array($provider, self::PROVIDERS, true), 404);
+    }
+
+    private function isConfigured(string $provider): bool
+    {
+        return filled(config("services.{$provider}.client_id"))
+            && filled(config("services.{$provider}.client_secret"));
     }
 }

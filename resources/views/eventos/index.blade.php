@@ -24,11 +24,31 @@
     :canonical="route('eventos')"
     :schema-graph="$schemaGraph"
 >
+    {{--
+        Pedido del usuario (2026-10-11): mismo efecto parallax sutil que
+        ya tenía el hero de búsqueda de Plaza (`search-hero.blade.php`,
+        único lugar del sitio que ya lo usaba) — el fondo se desplaza
+        apenas al hacer scroll, no el contenido encima.
+    --}}
     <section
-        class="relative isolate min-h-[350px] bg-cover bg-center sm:min-h-[390px]"
-        style="background-image: linear-gradient(90deg, rgba(9, 9, 11, .82) 0%, rgba(9, 9, 11, .52) 38%, rgba(9, 9, 11, .1) 72%), url('{{ asset('images/backgrounds/fondo_banner_eventos.webp') }}');"
+        x-data="{ parallaxOffset: 0 }"
+        x-on:scroll.window="parallaxOffset = Math.min(60, Math.max(0, window.scrollY * 0.15))"
+        class="relative isolate min-h-[410px] sm:min-h-[390px]"
     >
-        <div class="mx-auto flex min-h-[350px] max-w-7xl items-center px-4 pb-16 pt-10 sm:min-h-[390px] sm:px-6 lg:px-8">
+        {{-- El formulario de filtros sobresale a propósito medio cuerpo
+             fuera del hero (`translate-y-1/2` más abajo) — el
+             `overflow-hidden` que contiene el fondo ampliado del
+             parallax NO puede ir en la sección completa (se lo comería),
+             así que vive solo en este envoltorio del tamaño exacto del
+             hero. --}}
+        <div class="absolute inset-0 overflow-hidden">
+            <div
+                class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
+                x-bind:style="`background-image: linear-gradient(90deg, rgba(9, 9, 11, .82) 0%, rgba(9, 9, 11, .52) 38%, rgba(9, 9, 11, .1) 72%), url('{{ asset('images/backgrounds/fondo_banner_eventos.webp') }}'); background-position: center calc(50% + ${parallaxOffset}px);`"
+            ></div>
+        </div>
+
+        <div class="relative z-10 mx-auto flex min-h-[350px] max-w-7xl items-center px-4 pb-16 pt-10 sm:min-h-[390px] sm:px-6 lg:px-8">
             <div class="max-w-2xl text-white">
                 <h1 class="text-4xl font-black tracking-tight drop-shadow-lg sm:text-5xl lg:text-6xl">
                     {{ __('Eventos') }} <span class="text-red-400">{{ __('cerca de ti') }}</span>

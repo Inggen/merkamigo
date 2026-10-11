@@ -17,13 +17,20 @@
         $heroBackground = $municipality?->coverUrl() ?? asset('images/backgrounds/fondo-buscador-principal.webp');
     @endphp
 
+    {{-- Pedido del usuario (2026-10-11): mismo efecto parallax sutil que
+         ya tenía el hero de búsqueda de Plaza. --}}
     <div
-        class="relative overflow-hidden bg-cover bg-center px-6 py-16 text-white"
-        style="background-image: url('{{ $heroBackground }}')"
+        x-data="{ parallaxOffset: 0 }"
+        x-on:scroll.window="parallaxOffset = Math.min(60, Math.max(0, window.scrollY * 0.15))"
+        class="relative isolate overflow-hidden px-6 py-16 text-white"
     >
-        <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
+        <div
+            class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
+            x-bind:style="`background-image: url('{{ $heroBackground }}'); background-position: center calc(50% + ${parallaxOffset}px);`"
+        ></div>
+        <div class="absolute inset-0 z-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
 
-        <div class="relative mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
+        <div class="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
             <h1 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{{ __('Crea tu vitrina digital en cinco minutos') }}</h1>
             <flux:text class="max-w-xl text-lg text-brand-100">
                 {{ __('Muestra tu negocio, sé encontrado por compradores cerca de ti y recibe contactos directo por WhatsApp.') }}

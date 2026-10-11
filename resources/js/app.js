@@ -16,6 +16,47 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// Pedido del usuario (2026-10-11): en móvil, el header y la barra
+// inferior nunca se ven los dos a la vez mientras se hace scroll — al
+// bajar (explorando más contenido) se oculta la barra inferior y
+// aparece el header; al subir (volviendo hacia arriba) se oculta el
+// header y aparece la barra inferior. Cerca del tope de la página
+// ambos vuelven a verse. Un solo store compartido evita que la barra,
+// el header y el chatbot (que se reacomoda cuando la barra se oculta)
+// terminen cada uno con su propia copia de esta lógica — eso fue
+// justo lo que rompió el chatbot la primera vez que se tocó esto.
+document.addEventListener('alpine:init', () => {
+    window.Alpine.store('mobileChrome', {
+        headerVisible: true,
+        bottomNavVisible: true,
+        lastScrollY: 0,
+        update() {
+            const currentY = Math.max(0, window.scrollY);
+
+            if (currentY < 24) {
+                this.headerVisible = true;
+                this.bottomNavVisible = true;
+            } else if (currentY > this.lastScrollY + 4) {
+                // Scroll hacia abajo.
+                this.bottomNavVisible = false;
+                this.headerVisible = true;
+            } else if (currentY < this.lastScrollY - 4) {
+                // Scroll hacia arriba.
+                this.headerVisible = false;
+                this.bottomNavVisible = true;
+            }
+
+            this.lastScrollY = currentY;
+        },
+    });
+});
+
+window.addEventListener(
+    'scroll',
+    () => window.Alpine?.store('mobileChrome')?.update(),
+    { passive: true },
+);
+
 window.merkamigoVideoPlayer = function (options = {}) {
     return {
         playing: false,

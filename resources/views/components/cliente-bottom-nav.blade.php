@@ -34,10 +34,22 @@
     ];
 @endphp
 
+{{--
+    Pedido del usuario (2026-10-11): en móvil, la barra y el header
+    (`cliente-nav.blade.php`) nunca se ven los dos a la vez mientras se
+    hace scroll — al bajar se oculta esta barra y aparece el header; al
+    subir se oculta el header y aparece esta barra. La lógica vive en
+    un store compartido (`$store.mobileChrome`, registrado en
+    resources/js/app.js) en vez de acá, porque el chatbot
+    (`storefront-chat-widget.blade.php`) también necesita saber si esta
+    barra está visible para acomodarse arriba o abajo de ella.
+--}}
 <nav
     data-client-bottom-nav
+    x-data
+    x-bind:class="$store.mobileChrome.bottomNavVisible ? 'translate-y-0' : 'translate-y-full'"
     aria-label="{{ __('Navegación principal móvil') }}"
-    class="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-18px_rgba(0,0,0,0.45)] backdrop-blur md:hidden dark:border-zinc-700 dark:bg-zinc-900/95"
+    class="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-18px_rgba(0,0,0,0.45)] backdrop-blur transition-transform duration-300 ease-out md:hidden dark:border-zinc-700 dark:bg-zinc-900/95"
 >
     <div class="mx-auto grid max-w-lg grid-cols-5 px-2">
         @foreach ($items as $item)

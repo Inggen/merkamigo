@@ -221,45 +221,79 @@
 
         @if ($products->isNotEmpty())
             <div class="mt-10">
-                <form method="GET" action="{{ $category ? route('buscar', ['municipio' => $municipio->slug, 'categoria' => $category->slug]) : route('buscar', ['municipio' => $municipio->slug]) }}" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    @if ($zone)
-                        <input type="hidden" name="zona" value="{{ $zone }}">
-                    @endif
+                {{--
+                    Pedido del usuario (2026-10-11): los filtros se veían
+                    "sueltos" sobre el fondo de la página y el botón "Ver
+                    todos" (antes un `flux:link` de texto) casi no se
+                    notaba. Ahora viven dentro de una tarjeta propia, los
+                    precios van agrupados en un solo campo con ícono (no
+                    dos inputs sueltos), "Solo disponibles" es una
+                    píldora seleccionable (mismo patrón que las tarjetas
+                    de producto del composer) y "Ver todos" es un botón
+                    real, no texto.
+                --}}
+                <div class="mb-5 flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between gap-3">
+                        <flux:heading size="lg">{{ __('Productos para ti') }}</flux:heading>
+                        <flux:button
+                            :href="route('buscar', ['municipio' => $municipio->slug])"
+                            wire:navigate
+                            variant="ghost"
+                            size="sm"
+                            icon-trailing="arrow-right"
+                            class="shrink-0"
+                        >
+                            {{ __('Ver todos') }}
+                        </flux:button>
+                    </div>
 
-                    <flux:heading size="lg">{{ __('Productos para ti') }}</flux:heading>
+                    <form
+                        method="GET"
+                        action="{{ $category ? route('buscar', ['municipio' => $municipio->slug, 'categoria' => $category->slug]) : route('buscar', ['municipio' => $municipio->slug]) }}"
+                        class="flex flex-col gap-3 border-t border-zinc-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center dark:border-zinc-800"
+                    >
+                        @if ($zone)
+                            <input type="hidden" name="zona" value="{{ $zone }}">
+                        @endif
 
-                    <div class="flex flex-wrap items-center gap-3 sm:shrink-0 sm:gap-4">
-                        <div class="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-300">
+                        <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 focus-within:border-brand-300 focus-within:ring-4 focus-within:ring-brand-50 dark:border-zinc-700 dark:bg-zinc-800/60 dark:focus-within:border-brand-500/50 dark:focus-within:ring-brand-500/10">
+                            <flux:icon.banknotes class="size-4 shrink-0 text-zinc-400" variant="outline" />
                             <input
                                 type="number"
                                 name="precio_min"
                                 min="0"
                                 step="1000"
                                 value="{{ $minPrice }}"
-                                placeholder="{{ __('Precio mín.') }}"
-                                class="w-24 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800 sm:w-28"
+                                placeholder="{{ __('Mín.') }}"
+                                class="w-16 border-0 bg-transparent p-0 text-sm text-zinc-700 placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-200 sm:w-20"
                                 onchange="this.form.submit()"
                             >
-                            <span>–</span>
+                            <span class="text-zinc-300 dark:text-zinc-600">–</span>
                             <input
                                 type="number"
                                 name="precio_max"
                                 min="0"
                                 step="1000"
                                 value="{{ $maxPrice }}"
-                                placeholder="{{ __('Precio máx.') }}"
-                                class="w-24 rounded-lg border-zinc-200 text-sm dark:border-zinc-700 dark:bg-zinc-800 sm:w-28"
+                                placeholder="{{ __('Máx.') }}"
+                                class="w-16 border-0 bg-transparent p-0 text-sm text-zinc-700 placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-200 sm:w-20"
                                 onchange="this.form.submit()"
                             >
                         </div>
 
-                        <label class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-                            <input type="checkbox" name="disponibles" value="1" {{ $onlyAvailable ? 'checked' : '' }} onchange="this.form.submit()">
+                        <label class="inline-flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700 dark:border-zinc-700 dark:text-zinc-300 dark:has-[:checked]:bg-brand-500/10 dark:has-[:checked]:text-brand-300">
+                            <input
+                                type="checkbox"
+                                name="disponibles"
+                                value="1"
+                                {{ $onlyAvailable ? 'checked' : '' }}
+                                onchange="this.form.submit()"
+                                class="rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
+                            >
                             {{ __('Solo disponibles') }}
                         </label>
-                        <flux:link :href="route('buscar', ['municipio' => $municipio->slug])" wire:navigate class="text-sm">{{ __('Ver todos →') }}</flux:link>
-                    </div>
-                </form>
+                    </form>
+                </div>
 
                 <livewire:catalog-results
                     type="products"

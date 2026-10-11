@@ -27,6 +27,16 @@ class SocialAuthenticationTest extends TestCase
             ->assertSee('Facebook');
     }
 
+    public function test_social_login_returns_to_login_when_provider_is_not_configured(): void
+    {
+        config()->set('services.google.client_id');
+        config()->set('services.google.client_secret');
+
+        $this->get(route('auth.social.redirect', 'google'))
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('social');
+    }
+
     public function test_existing_user_can_log_in_with_google_and_the_account_is_linked(): void
     {
         $user = User::factory()->create([

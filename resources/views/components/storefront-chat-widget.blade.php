@@ -41,6 +41,7 @@
         x-data="{
             open: false,
             sending: false,
+            aboveMobileBottomNav: @js($aboveMobileBottomNav),
             history: [],
             mode: @js($mode),
             pageName: @js(request()->route()?->getName()),
@@ -217,11 +218,30 @@
             loadFromStorage();
         "
         x-on:wizard-step-changed.window="pageStep = $event.detail.label ?? null"
-        @class([
-            'fixed right-4 z-40 md:bottom-0 md:right-6',
-            'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]' => $aboveMobileBottomNav,
-            'bottom-0' => ! $aboveMobileBottomNav,
-        ])
+        {{--
+            Pedido del usuario (2026-10-11): cuando la barra inferior se
+            oculta por el scroll, el chatbot debe bajar con ella (no
+            quedarse flotando donde estaba) — y volver a subir cuando la
+            barra reaparece. `aboveMobileBottomNav` (prop de la página)
+            dice SI esta página tiene barra con la que acomodarse;
+            `$store.mobileChrome.bottomNavVisible` dice si esa barra
+            está visible en este momento.
+
+            Mensajes (2026-10-11, reportado por el usuario): en
+            escritorio, el botón "Enviar" del panel de conversación
+            también vive pegado a la esquina inferior derecha — justo
+            donde flota este widget — y el chatbot lo tapaba. Se usa
+            `pageName` (ya lo trae este componente para la IA) para
+            levantarlo solo en las rutas de Mensajes, en vez de mover el
+            widget para todo el sitio por el problema de una sola
+            página.
+        --}}
+        x-bind:class="{
+            'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]': aboveMobileBottomNav && $store.mobileChrome.bottomNavVisible,
+            'bottom-0': !(aboveMobileBottomNav && $store.mobileChrome.bottomNavVisible),
+            'md:!bottom-28': pageName && pageName.startsWith('messages.'),
+        }"
+        class="fixed right-4 z-40 transition-[bottom] duration-300 ease-out md:bottom-0 md:right-6"
     >
         <div
             x-show="open"

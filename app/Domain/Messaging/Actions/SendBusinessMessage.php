@@ -17,11 +17,21 @@ class SendBusinessMessage
     public function handle(BusinessConversation $conversation, User $sender, ?string $body, ?UploadedFile $attachment = null): BusinessMessage
     {
         abort_unless($conversation->canBeViewedBy($sender), 403);
-        abort_if(blank($body) && ! $attachment, 422, __('Escribe un mensaje o adjunta una foto.'));
 
+        // Pedido del usuario (2026-10-11): enviar sin texto ni foto
+        // mostraba una página de error de Laravel sin manejar (el
+        // `abort_if` de antes lanzaba una excepción HTTP cruda que
+        // Livewire no sabe convertir en un error del formulario). Ahora
+        // esa misma regla ("hace falta texto o foto") vive en el
+        // Validator, igual que el resto de reglas de `body` — así
+        // Livewire la atrapa solo y la muestra con el `@error('body')`
+        // que ya existía en la vista, sin tocar nada ahí.
         $validated = Validator::make(['body' => $body], [
-            // Sin `required`: un mensaje puede ir solo con foto adjunta.
-            'body' => ['nullable', 'string', 'max:2000', new NoLinks],
+            // Solo obligatorio si no hay foto adjunta: un mensaje puede
+            // ir solo con foto.
+            'body' => [$attachment ? 'nullable' : 'required', 'string', 'max:2000', new NoLinks],
+        ], [
+            'body.required' => __('Escribe un mensaje o adjunta una foto.'),
         ])->validate();
 
         $attachmentPath = $attachment

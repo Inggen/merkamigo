@@ -28,8 +28,18 @@
     ];
 @endphp
 
+{{--
+    Pedido del usuario (2026-10-11): en móvil, el header se oculta al
+    hacer scroll hacia arriba (cuando reaparece la barra inferior) y
+    vuelve a verse al bajar — lógica compartida con la barra inferior
+    vía `$store.mobileChrome` (resources/js/app.js). `md:translate-y-0`
+    fijo deja el header siempre visible en escritorio, donde no hay
+    barra inferior con la que alternar.
+--}}
 <header
-    class="sticky bg-white z-50 top-0 dark:bg-zinc-800"
+    x-data
+    x-bind:class="$store.mobileChrome.headerVisible ? 'translate-y-0' : '-translate-y-full'"
+    class="sticky bg-white z-50 top-0 transition-transform duration-300 ease-out md:translate-y-0 dark:bg-zinc-800"
     style="box-shadow: 0 0 15px rgba(0, 0, 0, .2);"
 >
     <div class="mx-auto grid w-full max-w-[1600px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">

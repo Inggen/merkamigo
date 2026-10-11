@@ -134,6 +134,27 @@ class SimplifiedClientNavigationTest extends TestCase
         $response->assertDontSee('aria-label="Explorar Merkamigo"', false);
     }
 
+    /**
+     * Pedido del usuario (2026-10-11): en la zona de emprendedores,
+     * Mensajes debe verse con la barra lateral y todo lo demás del
+     * panel — antes esta página forzaba siempre el header simple del
+     * cliente para cualquier usuario, sin importar su experiencia.
+     * El chatbot de Merkamiga se mantiene visible acá también (pedido
+     * explícito del usuario).
+     */
+    public function test_entrepreneur_messages_page_uses_the_sidebar_panel_with_the_chatbot(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio con mensajes']);
+
+        $response = $this->actingAs($owner)->get(route('messages.index'));
+
+        $response->assertOk();
+        $response->assertSee('entrepreneur-sidebar', false);
+        $response->assertSee('Oportunidades');
+        $response->assertSee('Pregúntale a Merkamigo', false);
+    }
+
     public function test_mobile_navigation_uses_the_four_primary_sections_and_the_central_pidelo_action(): void
     {
         $customer = User::factory()->create(['experience' => 'cliente']);
@@ -152,19 +173,29 @@ class SimplifiedClientNavigationTest extends TestCase
         $this->assertStringNotContainsString('Perfil', $html);
     }
 
+    /**
+     * El cálculo de qué `bottom` usar ahora pasa a ser reactivo en el
+     * cliente (`x-bind:class`, ver storefront-chat-widget.blade.php) en
+     * vez de decidirse en el servidor con `@class`, así que las dos
+     * clases de posición (`bottom-0` y la que se levanta sobre la
+     * barra) quedan SIEMPRE presentes como texto del propio `x-bind`,
+     * sin importar `$aboveMobileBottomNav` — buscar esa clase en el
+     * HTML ya no distingue el caso. La señal que sí lo distingue es el
+     * valor de `aboveMobileBottomNav` que efectivamente llega al
+     * `x-data`.
+     */
     public function test_mobile_chatbot_stays_above_the_client_navigation(): void
     {
         $html = Blade::render('<x-storefront-chat-widget :above-mobile-bottom-nav="true" />');
 
-        $this->assertStringContainsString('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', $html);
+        $this->assertStringContainsString('aboveMobileBottomNav: true', $html);
     }
 
     public function test_mobile_chatbot_sits_at_the_bottom_when_there_is_no_bottom_nav_to_clear(): void
     {
         $html = Blade::render('<x-storefront-chat-widget />');
 
-        $this->assertStringNotContainsString('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', $html);
-        $this->assertStringContainsString('bottom-0', $html);
+        $this->assertStringContainsString('aboveMobileBottomNav: false', $html);
     }
 
     /**
@@ -183,7 +214,7 @@ class SimplifiedClientNavigationTest extends TestCase
 
         $response->assertOk()
             ->assertSee('data-client-bottom-nav', false)
-            ->assertSee('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', false);
+            ->assertSee('aboveMobileBottomNav: true', false);
     }
 
     public function test_the_chatbot_clears_the_bottom_nav_for_an_authenticated_client(): void
@@ -194,7 +225,7 @@ class SimplifiedClientNavigationTest extends TestCase
 
         $response->assertOk()
             ->assertSee('data-client-bottom-nav', false)
-            ->assertSee('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', false);
+            ->assertSee('aboveMobileBottomNav: true', false);
     }
 
     public function test_the_chatbot_sits_at_the_bottom_for_an_authenticated_business_owner_without_a_bottom_nav(): void
@@ -205,7 +236,7 @@ class SimplifiedClientNavigationTest extends TestCase
 
         $response->assertOk()
             ->assertDontSee('data-client-bottom-nav', false)
-            ->assertDontSee('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', false);
+            ->assertSee('aboveMobileBottomNav: false', false);
     }
 
     public function test_the_left_sidebar_does_not_appear_on_public_pages(): void
