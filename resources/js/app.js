@@ -28,6 +28,8 @@ window.merkamigoVideoPlayer = function (options = {}) {
         controlsTimer: null,
         hls: null,
         source: options.src ?? '',
+        autoplayInView: options.autoplayInView ?? false,
+        visibilityObserver: null,
 
         init() {
             this.$refs.video.muted = this.muted;
@@ -57,11 +59,36 @@ window.merkamigoVideoPlayer = function (options = {}) {
             };
 
             document.addEventListener('fullscreenchange', this.onFullscreenChange);
+
+            // Videos del feed/reels: se reproducen solos (sin sonido, el
+            // navegador no deja autoplay con audio sin gesto del usuario)
+            // mientras estén visibles en pantalla, y se pausan en cuanto
+            // el scroll los saca de vista — igual que Instagram/TikTok.
+            // Cada reproductor observa su propio elemento, así que el
+            // siguiente video arranca solo en cuanto entra a la vista sin
+            // necesidad de coordinarlos entre sí.
+            if (this.autoplayInView && 'IntersectionObserver' in window) {
+                this.visibilityObserver = new IntersectionObserver(
+                    (entries) => {
+                        const entry = entries[entries.length - 1];
+                        if (!entry) return;
+
+                        if (entry.isIntersecting) {
+                            this.$refs.video.play().catch(() => {});
+                        } else {
+                            this.$refs.video.pause();
+                        }
+                    },
+                    { threshold: 0.5 },
+                );
+                this.visibilityObserver.observe(this.$root);
+            }
         },
 
         destroy() {
             window.clearTimeout(this.controlsTimer);
             document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+            this.visibilityObserver?.disconnect();
             this.hls?.destroy();
         },
 

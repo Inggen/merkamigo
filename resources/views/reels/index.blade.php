@@ -23,7 +23,7 @@
                         <div class="relative aspect-[9/16] w-full bg-black">
                             @php $video = $reel->media->first(); @endphp
                             @if ($video)
-                                <x-media.video-player :src="$video->url()" aspect="reel" class="h-full rounded-none shadow-none" loop />
+                                <x-media.video-player :src="$video->url()" aspect="reel" class="h-full rounded-none shadow-none" loop :autoplay-in-view="true" />
                             @endif
 
                             @if ($reel->products->isNotEmpty())

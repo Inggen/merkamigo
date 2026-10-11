@@ -80,7 +80,7 @@
         <div class="mt-3 grid gap-2 overflow-hidden rounded-xl {{ $post->media->count() > 1 ? 'grid-cols-2' : 'grid-cols-1' }}">
             @foreach ($post->media as $media)
                 @if ($media->isVideo())
-                    <x-media.video-player :src="$media->url()" aspect="feed" fit="contain" loop />
+                    <x-media.video-player :src="$media->url()" aspect="feed" fit="contain" loop :autoplay-in-view="true" />
                 @else
                     <img src="{{ $media->url() }}" alt="{{ $media->alt_text }}" class="w-full object-cover {{ $post->media->count() > 1 ? 'aspect-square' : 'aspect-[4/3]' }}" loading="lazy">
                 @endif
