@@ -125,6 +125,7 @@ Route::get('streaming/live/{liveStream:slug}/{asset}', HlsProxyController::class
 
 Route::view('terminos', 'legal.terminos')->name('terminos');
 Route::view('privacidad', 'legal.privacidad')->name('privacidad');
+Route::view('eliminacion-de-datos', 'legal.eliminacion-datos')->name('eliminacion-datos');
 Route::view('reglas-comunidad', 'legal.reglas-comunidad')->name('reglas-comunidad');
 Route::view('como-funciona', 'public.como-funciona')->name('como-funciona');
 Route::get('planes-y-precios', [PlanesController::class, 'index'])->name('planes-y-precios');
