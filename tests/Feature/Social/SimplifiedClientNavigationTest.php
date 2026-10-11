@@ -154,12 +154,58 @@ class SimplifiedClientNavigationTest extends TestCase
 
     public function test_mobile_chatbot_stays_above_the_client_navigation(): void
     {
-        $customer = User::factory()->create(['experience' => 'cliente']);
-
-        $this->actingAs($customer);
-        $html = Blade::render('<x-storefront-chat-widget />');
+        $html = Blade::render('<x-storefront-chat-widget :above-mobile-bottom-nav="true" />');
 
         $this->assertStringContainsString('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', $html);
+    }
+
+    public function test_mobile_chatbot_sits_at_the_bottom_when_there_is_no_bottom_nav_to_clear(): void
+    {
+        $html = Blade::render('<x-storefront-chat-widget />');
+
+        $this->assertStringNotContainsString('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', $html);
+        $this->assertStringContainsString('bottom-0', $html);
+    }
+
+    /**
+     * Bug reportado por el usuario (2026-10-11): el chatbot y la barra
+     * inferior usaban cada uno su propia copia de "¿hay sesión y es
+     * cliente?" — al arreglar la barra para que también se viera con
+     * un invitado, la copia del chatbot quedó desactualizada y lo dejó
+     * tapado por la barra. Ahora ambos usan
+     * `ClientBottomNav::visible()`, así que estas pruebas comprueban
+     * la página completa, no el componente aislado, para que no vuelvan
+     * a desincronizarse sin que una prueba lo note.
+     */
+    public function test_the_chatbot_clears_the_bottom_nav_for_a_guest_on_the_home_page(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk()
+            ->assertSee('data-client-bottom-nav', false)
+            ->assertSee('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', false);
+    }
+
+    public function test_the_chatbot_clears_the_bottom_nav_for_an_authenticated_client(): void
+    {
+        $customer = User::factory()->create(['experience' => 'cliente']);
+
+        $response = $this->actingAs($customer)->get('/');
+
+        $response->assertOk()
+            ->assertSee('data-client-bottom-nav', false)
+            ->assertSee('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', false);
+    }
+
+    public function test_the_chatbot_sits_at_the_bottom_for_an_authenticated_business_owner_without_a_bottom_nav(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+
+        $response = $this->actingAs($owner)->get('/');
+
+        $response->assertOk()
+            ->assertDontSee('data-client-bottom-nav', false)
+            ->assertDontSee('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]', false);
     }
 
     public function test_the_left_sidebar_does_not_appear_on_public_pages(): void

@@ -4,6 +4,7 @@
     'characterGif' => 'images/chatbot-merkamigo-IA.gif',
     'characterFrame1' => 'images/chatbot-merkamigo-IA-frame1.png',
     'mode' => null,
+    'aboveMobileBottomNav' => false,
 ])
 
 {{--
@@ -218,8 +219,8 @@
         x-on:wizard-step-changed.window="pageStep = $event.detail.label ?? null"
         @class([
             'fixed right-4 z-40 md:bottom-0 md:right-6',
-            'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]' => auth()->check() && auth()->user()->experience === 'cliente',
-            'bottom-0' => ! auth()->check() || auth()->user()->experience !== 'cliente',
+            'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]' => $aboveMobileBottomNav,
+            'bottom-0' => ! $aboveMobileBottomNav,
         ])
     >
         <div

@@ -154,7 +154,7 @@
             </div>
         </div>
 
-        @if (auth()->user()->experience === 'cliente')
+        @if (\App\Support\Navigation\ClientBottomNav::visible())
             <x-cliente-bottom-nav />
         @endif
 
@@ -163,6 +163,7 @@
             character-gif="images/chatbot-merkamiga-IA.gif"
             character-frame1="images/chatbot-merkamiga-IA-frame1.png"
             :mode="auth()->user()->experience === 'emprendedor' ? 'emprendedor' : 'general'"
+            :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()"
         />
 
         @persist('toast')

@@ -71,8 +71,14 @@
             un usuario autenticado con una experiencia distinta a
             "cliente" (p. ej. un dueño de negocio viendo el sitio
             público como él mismo, que tiene su propia navegación).
+
+            `ClientBottomNav::visible()` es la única fuente de verdad de
+            esta condición — el chatbot de abajo la usa también para
+            saber si debe levantarse por encima de la barra; tenerla
+            duplicada fue justo lo que rompió el chatbot para invitados
+            la primera vez que se arregló esto acá.
         --}}
-        @if (! auth()->check() || auth()->user()->experience === 'cliente')
+        @if (\App\Support\Navigation\ClientBottomNav::visible())
             <div
                 data-mobile-bottom-nav-reserve
                 class="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden"
@@ -87,6 +93,7 @@
                 :with-sound="false"
                 character-gif="images/chatbot-merkamiga-IA.gif"
                 character-frame1="images/chatbot-merkamiga-IA-frame1.png"
+                :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()"
             />
         @endif
 
