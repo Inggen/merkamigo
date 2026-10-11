@@ -772,252 +772,256 @@ new #[Title('Eventos')] class extends Component
 
     {{-- Agenda: horario, espacios y fechas bloqueadas --}}
     @if ($activeTab === 'agenda')
-        <div class="space-y-5">
-            <div class="entrepreneur-card overflow-hidden">
-                <div class="flex flex-col gap-3 border-b border-zinc-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
-                    <div class="flex items-start gap-3">
-                        <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300">
-                            <flux:icon.calendar-date-range class="size-5" variant="outline" />
-                        </span>
+        <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <div class="min-w-0 space-y-5">
+                <div class="entrepreneur-card overflow-hidden">
+                    <div class="flex flex-col gap-3 border-b border-zinc-100 px-6 py-5 xl:flex-row xl:items-center xl:justify-between dark:border-white/10">
                         <div>
-                            <flux:heading size="lg">{{ __('Fechas bloqueadas') }}</flux:heading>
-                            <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Días en los que no recibes eventos, aunque estén dentro de tu horario habitual.') }}</flux:text>
+                            <flux:heading size="lg">{{ __('Espacios') }}</flux:heading>
+                            <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Muestra visualmente los salones y áreas disponibles para reservar.') }}</flux:text>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <flux:badge size="sm" color="zinc">{{ trans_choice(':count espacio|:count espacios', $this->spaces->count(), ['count' => $this->spaces->count()]) }}</flux:badge>
+                            <flux:button size="sm" variant="primary" icon="plus" wire:click="startNewSpace">{{ __('Crear espacio') }}</flux:button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <flux:badge size="sm" color="zinc">{{ trans_choice(':count fecha|:count fechas', $this->blockedDates->count(), ['count' => $this->blockedDates->count()]) }}</flux:badge>
-                        <flux:button size="sm" variant="primary" icon="plus" wire:click="startNewBlockedDate">{{ __('Agregar fecha') }}</flux:button>
-                    </div>
-                </div>
 
-                <div class="p-6">
-                    @if ($this->blockedDates->isNotEmpty())
-                        <div class="space-y-2">
-                            @foreach ($this->blockedDates as $blocked)
-                                <div class="flex items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50/80 p-3 dark:border-white/10 dark:bg-white/[0.03]">
-                                    <div>
-                                        <p class="font-medium text-zinc-900 dark:text-white">{{ $blocked->date->translatedFormat('d \d\e F \d\e Y') }}</p>
-                                        @if ($blocked->reason)
-                                            <p class="text-xs text-zinc-500">{{ $blocked->reason }}</p>
-                                        @endif
-                                    </div>
-                                    <flux:button size="sm" variant="ghost" icon="trash" wire:click="removeBlockedDate({{ $blocked->id }})" aria-label="{{ __('Quitar bloqueo') }}" />
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-8 text-center dark:border-zinc-700 dark:bg-white/[0.02]">
-                            <flux:icon.calendar-days class="mx-auto size-8 text-zinc-400" variant="outline" />
-                            <p class="mt-2 text-sm font-medium text-zinc-500">{{ __('No tienes fechas bloqueadas.') }}</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <form wire:submit="saveGeneral" class="entrepreneur-card p-6">
-                <div class="mb-5 flex items-start gap-3">
-                    <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300">
-                        <flux:icon.clock class="size-5" variant="outline" />
-                    </span>
-                    <div>
-                        <flux:heading size="lg">{{ __('Horario de atención para eventos') }}</flux:heading>
-                        <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Define los días y horarios en los que recibes eventos.') }}</flux:text>
-                    </div>
-                </div>
-
-                <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach (\App\Domain\Businesses\Models\Business::DAY_LABELS as $day => $label)
-                        <div class="rounded-xl border border-zinc-100 bg-zinc-50/80 p-3 dark:border-white/10 dark:bg-white/[0.03]">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm font-bold text-zinc-800 dark:text-zinc-100">{{ $label }}</span>
-                                <flux:checkbox wire:model.live="weeklySchedule.{{ $day }}.closed" :label="__('Cerrado')" />
+                    <div class="p-6">
+                        @if ($this->spaces->isNotEmpty())
+                            <div class="mb-6 grid gap-4 sm:grid-cols-2">
+                                @foreach ($this->spaces as $space)
+                                    <article class="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-zinc-900">
+                                        <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-brand-100 via-rose-50 to-amber-100 dark:from-brand-950 dark:via-zinc-900 dark:to-amber-950">
+                                            @if ($space->imageUrl())
+                                                <img src="{{ $space->imageUrl() }}" class="size-full object-cover transition duration-500 group-hover:scale-105" alt="{{ $space->name }}">
+                                            @else
+                                                <div class="flex size-full flex-col items-center justify-center text-brand-500/70 dark:text-brand-300/60">
+                                                    <flux:icon.building-office-2 class="size-12" variant="outline" />
+                                                    <span class="mt-2 text-xs font-semibold">{{ __('Sin imagen') }}</span>
+                                                </div>
+                                            @endif
+                                            <div class="absolute right-3 top-3 flex gap-2">
+                                                <flux:button size="sm" variant="filled" icon="pencil-square" wire:click="editSpace({{ $space->id }})" aria-label="{{ __('Editar :name', ['name' => $space->name]) }}" />
+                                                <flux:button size="sm" variant="filled" icon="trash" wire:click="deleteSpace({{ $space->id }})" wire:confirm="{{ __('¿Eliminar este espacio?') }}" aria-label="{{ __('Eliminar :name', ['name' => $space->name]) }}" />
+                                            </div>
+                                        </div>
+                                        <div class="p-4">
+                                            <h3 class="truncate font-black text-zinc-950 dark:text-white">{{ $space->name }}</h3>
+                                            <p class="mt-1 flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+                                                <flux:icon.users class="size-4" variant="outline" />
+                                                {{ $space->capacity ? __('Hasta :capacity personas', ['capacity' => $space->capacity]) : __('Capacidad por definir') }}
+                                            </p>
+                                        </div>
+                                    </article>
+                                @endforeach
                             </div>
+                        @else
+                            <div class="mb-6 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-10 text-center dark:border-zinc-700 dark:bg-white/[0.02]">
+                                <span class="mx-auto inline-flex size-12 items-center justify-center rounded-xl bg-brand-100 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+                                    <flux:icon.photo class="size-6" variant="outline" />
+                                </span>
+                                <h3 class="mt-3 font-bold">{{ __('Agrega tu primer espacio') }}</h3>
+                                <p class="mt-1 text-sm text-zinc-500">{{ __('Incluye una buena fotografía para que tus clientes puedan conocerlo.') }}</p>
+                            </div>
+                        @endif
 
-                            @if (! ($weeklySchedule[$day]['closed'] ?? true))
-                                <div class="mt-3 flex items-center gap-2">
-                                    <input type="time" wire:model="weeklySchedule.{{ $day }}.open" class="min-w-0 flex-1 rounded-lg border-zinc-300 text-sm dark:border-zinc-700 dark:bg-zinc-800">
-                                    <span class="text-xs text-zinc-400">{{ __('a') }}</span>
-                                    <input type="time" wire:model="weeklySchedule.{{ $day }}.close" class="min-w-0 flex-1 rounded-lg border-zinc-300 text-sm dark:border-zinc-700 dark:bg-zinc-800">
-                                </div>
-                            @else
-                                <p class="mt-2 text-xs text-zinc-400">{{ __('No se reciben eventos este día.') }}</p>
-                            @endif
+                    </div>
+                </div>
+
+                {{--
+                    Eventos públicos (Fase 5): formulario, estados
+                    borrador/publicado/finalizado/cancelado, "Publicar en el
+                    feed". `blocks_space` reutiliza el mismo motor de
+                    disponibilidad que las reservas privadas (Fase 3): un
+                    evento público que bloquea espacio impide reservas
+                    solapadas y viceversa.
+                --}}
+                <div class="entrepreneur-card overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-6 py-5 dark:border-white/10">
+                        <div class="flex items-start gap-3">
+                            <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300">
+                                <flux:icon.ticket class="size-5" variant="outline" />
+                            </span>
+                            <div>
+                                <flux:heading size="lg">{{ __('Eventos públicos') }}</flux:heading>
+                                <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Crea experiencias que aparecerán en la agenda pública de Merkamigo.') }}</flux:text>
+                            </div>
                         </div>
-                    @endforeach
-                </div>
-
-                <flux:button type="submit" variant="primary" icon="check" class="mt-5" wire:loading.attr="disabled" wire:target="saveGeneral">
-                    {{ __('Guardar horario') }}
-                </flux:button>
-            </form>
-
-            <div class="entrepreneur-card overflow-hidden">
-                <div class="flex flex-col gap-3 border-b border-zinc-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
-                    <div>
-                        <flux:heading size="lg">{{ __('Espacios') }}</flux:heading>
-                        <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Muestra visualmente los salones y áreas disponibles para reservar.') }}</flux:text>
+                        <div class="flex items-center gap-2">
+                            <flux:badge size="sm" color="zinc">{{ trans_choice(':count evento|:count eventos', $this->publicEvents->count(), ['count' => $this->publicEvents->count()]) }}</flux:badge>
+                            <flux:button size="sm" variant="primary" icon="plus" wire:click="startNewPublicEvent">{{ __('Crear evento') }}</flux:button>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <flux:badge size="sm" color="zinc">{{ trans_choice(':count espacio|:count espacios', $this->spaces->count(), ['count' => $this->spaces->count()]) }}</flux:badge>
-                        <flux:button size="sm" variant="primary" icon="plus" wire:click="startNewSpace">{{ __('Crear espacio') }}</flux:button>
-                    </div>
-                </div>
 
-                <div class="p-6">
-                    @if ($this->spaces->isNotEmpty())
-                        <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            @foreach ($this->spaces as $space)
-                                <article class="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-zinc-900">
-                                    <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-brand-100 via-rose-50 to-amber-100 dark:from-brand-950 dark:via-zinc-900 dark:to-amber-950">
-                                        @if ($space->imageUrl())
-                                            <img src="{{ $space->imageUrl() }}" class="size-full object-cover transition duration-500 group-hover:scale-105" alt="{{ $space->name }}">
+                    <div class="p-6">
+
+                    @unless ($this->business->isOnPaidPlan())
+                        <div class="mb-4 flex items-start gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                            <flux:icon.information-circle class="mt-0.5 size-4 shrink-0" variant="outline" />
+                            <span>
+                                {{ __('En la agenda pública, los eventos de negocios en Emprendedor o Negocios aparecen primero dentro de un mismo día.') }}
+                                <flux:link :href="route('emprendedores.negocios.plan', $this->business)" wire:navigate class="font-medium">{{ __('Ver planes') }}</flux:link>
+                            </span>
+                        </div>
+                    @endunless
+
+                    @if ($this->publicEvents->isEmpty())
+                        <x-states.empty :title="__('Todavía no has creado eventos públicos')" :description="__('Crea tu primer evento para que aparezca en la agenda de Merkamigo.')" />
+                    @else
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            @foreach ($this->publicEvents as $event)
+                                <article id="evento-{{ $event->id }}" class="scroll-mt-24 flex overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:flex-col dark:border-white/10 dark:bg-zinc-900">
+                                    <div class="relative aspect-square w-28 shrink-0 overflow-hidden bg-gradient-to-br from-violet-100 via-rose-50 to-amber-100 sm:aspect-[16/10] sm:w-full dark:from-violet-950 dark:via-zinc-900 dark:to-amber-950">
+                                        @if ($event->coverUrl())
+                                            <img src="{{ $event->coverUrl() }}" class="size-full object-cover" alt="{{ $event->title }}">
                                         @else
-                                            <div class="flex size-full flex-col items-center justify-center text-brand-500/70 dark:text-brand-300/60">
-                                                <flux:icon.building-office-2 class="size-12" variant="outline" />
-                                                <span class="mt-2 text-xs font-semibold">{{ __('Sin imagen') }}</span>
+                                            <div class="flex size-full flex-col items-center justify-center text-violet-500/70 dark:text-violet-300/60">
+                                                <flux:icon.ticket class="size-10" variant="outline" />
+                                                <span class="mt-2 hidden text-xs font-semibold sm:block">{{ __('Sin portada') }}</span>
                                             </div>
                                         @endif
-                                        <div class="absolute right-3 top-3 flex gap-2">
-                                            <flux:button size="sm" variant="filled" icon="pencil-square" wire:click="editSpace({{ $space->id }})" aria-label="{{ __('Editar :name', ['name' => $space->name]) }}" />
-                                            <flux:button size="sm" variant="filled" icon="trash" wire:click="deleteSpace({{ $space->id }})" wire:confirm="{{ __('¿Eliminar este espacio?') }}" aria-label="{{ __('Eliminar :name', ['name' => $space->name]) }}" />
+                                        <div class="absolute left-3 top-3">
+                                            <flux:badge size="sm" :color="match ($event->status) {
+                                                \App\Domain\Events\Models\PublicEvent::PUBLICADO => 'green',
+                                                \App\Domain\Events\Models\PublicEvent::BORRADOR => 'zinc',
+                                                \App\Domain\Events\Models\PublicEvent::FINALIZADO => 'blue',
+                                                \App\Domain\Events\Models\PublicEvent::CANCELADO => 'red',
+                                                default => 'zinc',
+                                            }">
+                                                {{ match ($event->status) {
+                                                    \App\Domain\Events\Models\PublicEvent::PUBLICADO => __('Publicado'),
+                                                    \App\Domain\Events\Models\PublicEvent::BORRADOR => __('Borrador'),
+                                                    \App\Domain\Events\Models\PublicEvent::FINALIZADO => __('Finalizado'),
+                                                    \App\Domain\Events\Models\PublicEvent::CANCELADO => __('Cancelado'),
+                                                    default => $event->status,
+                                                } }}
+                                            </flux:badge>
                                         </div>
                                     </div>
-                                    <div class="p-4">
-                                        <h3 class="truncate font-black text-zinc-950 dark:text-white">{{ $space->name }}</h3>
-                                        <p class="mt-1 flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
-                                            <flux:icon.users class="size-4" variant="outline" />
-                                            {{ $space->capacity ? __('Hasta :capacity personas', ['capacity' => $space->capacity]) : __('Capacidad por definir') }}
-                                        </p>
+
+                                    <div class="flex min-w-0 flex-1 flex-col p-4">
+                                        <div class="min-w-0">
+                                            <h3 class="truncate font-black text-zinc-950 dark:text-white">{{ $event->title }}</h3>
+                                            <p class="mt-1 flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                                <flux:icon.calendar-days class="size-4" variant="outline" />
+                                                {{ $event->starts_at->translatedFormat('d M Y, g:i a') }}
+                                            </p>
+                                            @if ($event->categoryLabel() || $event->location_text)
+                                                <p class="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                                    {{ collect([$event->categoryLabel(), $event->location_text])->filter()->join(' · ') }}
+                                                </p>
+                                            @endif
+                                        </div>
+
+                                        <div class="mt-4 flex flex-wrap items-center gap-2 sm:mt-auto sm:pt-4">
+
+                                        @if (in_array($event->status, [\App\Domain\Events\Models\PublicEvent::BORRADOR, \App\Domain\Events\Models\PublicEvent::PUBLICADO]))
+                                            <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="editPublicEvent({{ $event->id }})">{{ __('Editar') }}</flux:button>
+                                        @endif
+
+                                        @if ($event->status === \App\Domain\Events\Models\PublicEvent::BORRADOR)
+                                            <flux:button size="sm" variant="primary" wire:click="publishPublicEvent({{ $event->id }})">{{ __('Publicar') }}</flux:button>
+                                        @elseif ($event->status === \App\Domain\Events\Models\PublicEvent::PUBLICADO)
+                                            @if (! $event->post)
+                                                <flux:button size="sm" variant="ghost" icon="megaphone" wire:click="publishToFeed({{ $event->id }})">{{ __('Publicar en el feed') }}</flux:button>
+                                            @else
+                                                <flux:badge size="sm" color="zinc" icon="check">{{ __('En el feed') }}</flux:badge>
+                                            @endif
+                                            <flux:button size="sm" variant="ghost" wire:click="cancelPublicEvent({{ $event->id }})" wire:confirm="{{ __('¿Cancelar este evento?') }}">{{ __('Cancelar') }}</flux:button>
+                                        @endif
+
+                                        @if ($event->status === \App\Domain\Events\Models\PublicEvent::BORRADOR)
+                                            <flux:button size="sm" variant="ghost" icon="trash" wire:click="deletePublicEvent({{ $event->id }})" wire:confirm="{{ __('¿Eliminar este evento?') }}" aria-label="{{ __('Eliminar :title', ['title' => $event->title]) }}" />
+                                        @endif
+                                        </div>
                                     </div>
                                 </article>
                             @endforeach
                         </div>
-                    @else
-                        <div class="mb-6 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-10 text-center dark:border-zinc-700 dark:bg-white/[0.02]">
-                            <span class="mx-auto inline-flex size-12 items-center justify-center rounded-xl bg-brand-100 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
-                                <flux:icon.photo class="size-6" variant="outline" />
-                            </span>
-                            <h3 class="mt-3 font-bold">{{ __('Agrega tu primer espacio') }}</h3>
-                            <p class="mt-1 text-sm text-zinc-500">{{ __('Incluye una buena fotografía para que tus clientes puedan conocerlo.') }}</p>
-                        </div>
                     @endif
-
+                    </div>
                 </div>
             </div>
+            <aside class="min-w-0 space-y-5" aria-label="{{ __('Disponibilidad para eventos') }}">
+                <div class="entrepreneur-card overflow-hidden">
+                    <div class="flex flex-col gap-3 border-b border-zinc-100 px-4 py-4 dark:border-white/10">
+                        <div class="flex items-start gap-3">
+                            <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300">
+                                <flux:icon.calendar-date-range class="size-5" variant="outline" />
+                            </span>
+                            <div>
+                                <flux:heading size="lg">{{ __('Fechas bloqueadas') }}</flux:heading>
+                                <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Días en los que no recibes eventos, aunque estén dentro de tu horario habitual.') }}</flux:text>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <flux:badge size="sm" color="zinc">{{ trans_choice(':count fecha|:count fechas', $this->blockedDates->count(), ['count' => $this->blockedDates->count()]) }}</flux:badge>
+                            <flux:button size="sm" variant="primary" icon="plus" wire:click="startNewBlockedDate">{{ __('Agregar fecha') }}</flux:button>
+                        </div>
+                    </div>
 
-            {{--
-                Eventos públicos (Fase 5): formulario, estados
-                borrador/publicado/finalizado/cancelado, "Publicar en el
-                feed". `blocks_space` reutiliza el mismo motor de
-                disponibilidad que las reservas privadas (Fase 3): un
-                evento público que bloquea espacio impide reservas
-                solapadas y viceversa.
-            --}}
-            <div class="entrepreneur-card overflow-hidden">
-                <div class="flex items-center justify-between gap-3 border-b border-zinc-100 px-6 py-5 dark:border-white/10">
-                    <div class="flex items-start gap-3">
-                        <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300">
-                            <flux:icon.ticket class="size-5" variant="outline" />
+                    <div class="p-4">
+                        @if ($this->blockedDates->isNotEmpty())
+                            <div class="space-y-2">
+                                @foreach ($this->blockedDates as $blocked)
+                                    <div class="flex items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50/80 p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                                        <div>
+                                            <p class="font-medium text-zinc-900 dark:text-white">{{ $blocked->date->translatedFormat('d \d\e F \d\e Y') }}</p>
+                                            @if ($blocked->reason)
+                                                <p class="text-xs text-zinc-500">{{ $blocked->reason }}</p>
+                                            @endif
+                                        </div>
+                                        <flux:button size="sm" variant="ghost" icon="trash" wire:click="removeBlockedDate({{ $blocked->id }})" aria-label="{{ __('Quitar bloqueo') }}" />
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-8 text-center dark:border-zinc-700 dark:bg-white/[0.02]">
+                                <flux:icon.calendar-days class="mx-auto size-8 text-zinc-400" variant="outline" />
+                                <p class="mt-2 text-sm font-medium text-zinc-500">{{ __('No tienes fechas bloqueadas.') }}</p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <form wire:submit="saveGeneral" class="entrepreneur-card p-4">
+                    <div class="mb-5 flex items-start gap-3">
+                        <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300">
+                            <flux:icon.clock class="size-5" variant="outline" />
                         </span>
                         <div>
-                            <flux:heading size="lg">{{ __('Eventos públicos') }}</flux:heading>
-                            <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Crea experiencias que aparecerán en la agenda pública de Merkamigo.') }}</flux:text>
+                            <flux:heading size="lg">{{ __('Horario de atención para eventos') }}</flux:heading>
+                            <flux:text class="mt-1 text-sm text-zinc-500">{{ __('Define los días y horarios en los que recibes eventos.') }}</flux:text>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <flux:badge size="sm" color="zinc">{{ trans_choice(':count evento|:count eventos', $this->publicEvents->count(), ['count' => $this->publicEvents->count()]) }}</flux:badge>
-                        <flux:button size="sm" variant="primary" icon="plus" wire:click="startNewPublicEvent">{{ __('Crear evento') }}</flux:button>
-                    </div>
-                </div>
 
-                <div class="p-6">
-
-                @unless ($this->business->isOnPaidPlan())
-                    <div class="mb-4 flex items-start gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                        <flux:icon.information-circle class="mt-0.5 size-4 shrink-0" variant="outline" />
-                        <span>
-                            {{ __('En la agenda pública, los eventos de negocios en Emprendedor o Negocios aparecen primero dentro de un mismo día.') }}
-                            <flux:link :href="route('emprendedores.negocios.plan', $this->business)" wire:navigate class="font-medium">{{ __('Ver planes') }}</flux:link>
-                        </span>
-                    </div>
-                @endunless
-
-                @if ($this->publicEvents->isEmpty())
-                    <x-states.empty :title="__('Todavía no has creado eventos públicos')" :description="__('Crea tu primer evento para que aparezca en la agenda de Merkamigo.')" />
-                @else
-                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        @foreach ($this->publicEvents as $event)
-                            <article id="evento-{{ $event->id }}" class="scroll-mt-24 flex overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:flex-col dark:border-white/10 dark:bg-zinc-900">
-                                <div class="relative aspect-square w-28 shrink-0 overflow-hidden bg-gradient-to-br from-violet-100 via-rose-50 to-amber-100 sm:aspect-[16/10] sm:w-full dark:from-violet-950 dark:via-zinc-900 dark:to-amber-950">
-                                    @if ($event->coverUrl())
-                                        <img src="{{ $event->coverUrl() }}" class="size-full object-cover" alt="{{ $event->title }}">
-                                    @else
-                                        <div class="flex size-full flex-col items-center justify-center text-violet-500/70 dark:text-violet-300/60">
-                                            <flux:icon.ticket class="size-10" variant="outline" />
-                                            <span class="mt-2 hidden text-xs font-semibold sm:block">{{ __('Sin portada') }}</span>
-                                        </div>
-                                    @endif
-                                    <div class="absolute left-3 top-3">
-                                        <flux:badge size="sm" :color="match ($event->status) {
-                                            \App\Domain\Events\Models\PublicEvent::PUBLICADO => 'green',
-                                            \App\Domain\Events\Models\PublicEvent::BORRADOR => 'zinc',
-                                            \App\Domain\Events\Models\PublicEvent::FINALIZADO => 'blue',
-                                            \App\Domain\Events\Models\PublicEvent::CANCELADO => 'red',
-                                            default => 'zinc',
-                                        }">
-                                            {{ match ($event->status) {
-                                                \App\Domain\Events\Models\PublicEvent::PUBLICADO => __('Publicado'),
-                                                \App\Domain\Events\Models\PublicEvent::BORRADOR => __('Borrador'),
-                                                \App\Domain\Events\Models\PublicEvent::FINALIZADO => __('Finalizado'),
-                                                \App\Domain\Events\Models\PublicEvent::CANCELADO => __('Cancelado'),
-                                                default => $event->status,
-                                            } }}
-                                        </flux:badge>
-                                    </div>
+                    <div class="grid gap-2">
+                        @foreach (\App\Domain\Businesses\Models\Business::DAY_LABELS as $day => $label)
+                            <div class="rounded-xl border border-zinc-100 bg-zinc-50/80 p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm font-bold text-zinc-800 dark:text-zinc-100">{{ $label }}</span>
+                                    <flux:checkbox wire:model.live="weeklySchedule.{{ $day }}.closed" :label="__('Cerrado')" />
                                 </div>
 
-                                <div class="flex min-w-0 flex-1 flex-col p-4">
-                                    <div class="min-w-0">
-                                        <h3 class="truncate font-black text-zinc-950 dark:text-white">{{ $event->title }}</h3>
-                                        <p class="mt-1 flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                                            <flux:icon.calendar-days class="size-4" variant="outline" />
-                                            {{ $event->starts_at->translatedFormat('d M Y, g:i a') }}
-                                        </p>
-                                        @if ($event->categoryLabel() || $event->location_text)
-                                            <p class="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
-                                                {{ collect([$event->categoryLabel(), $event->location_text])->filter()->join(' · ') }}
-                                            </p>
-                                        @endif
+                                @if (! ($weeklySchedule[$day]['closed'] ?? true))
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <input type="time" wire:model="weeklySchedule.{{ $day }}.open" class="min-w-0 flex-1 rounded-lg border-zinc-300 text-sm dark:border-zinc-700 dark:bg-zinc-800">
+                                        <span class="text-xs text-zinc-400">{{ __('a') }}</span>
+                                        <input type="time" wire:model="weeklySchedule.{{ $day }}.close" class="min-w-0 flex-1 rounded-lg border-zinc-300 text-sm dark:border-zinc-700 dark:bg-zinc-800">
                                     </div>
-
-                                    <div class="mt-4 flex flex-wrap items-center gap-2 sm:mt-auto sm:pt-4">
-
-                                    @if (in_array($event->status, [\App\Domain\Events\Models\PublicEvent::BORRADOR, \App\Domain\Events\Models\PublicEvent::PUBLICADO]))
-                                        <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="editPublicEvent({{ $event->id }})">{{ __('Editar') }}</flux:button>
-                                    @endif
-
-                                    @if ($event->status === \App\Domain\Events\Models\PublicEvent::BORRADOR)
-                                        <flux:button size="sm" variant="primary" wire:click="publishPublicEvent({{ $event->id }})">{{ __('Publicar') }}</flux:button>
-                                    @elseif ($event->status === \App\Domain\Events\Models\PublicEvent::PUBLICADO)
-                                        @if (! $event->post)
-                                            <flux:button size="sm" variant="ghost" icon="megaphone" wire:click="publishToFeed({{ $event->id }})">{{ __('Publicar en el feed') }}</flux:button>
-                                        @else
-                                            <flux:badge size="sm" color="zinc" icon="check">{{ __('En el feed') }}</flux:badge>
-                                        @endif
-                                        <flux:button size="sm" variant="ghost" wire:click="cancelPublicEvent({{ $event->id }})" wire:confirm="{{ __('¿Cancelar este evento?') }}">{{ __('Cancelar') }}</flux:button>
-                                    @endif
-
-                                    @if ($event->status === \App\Domain\Events\Models\PublicEvent::BORRADOR)
-                                        <flux:button size="sm" variant="ghost" icon="trash" wire:click="deletePublicEvent({{ $event->id }})" wire:confirm="{{ __('¿Eliminar este evento?') }}" aria-label="{{ __('Eliminar :title', ['title' => $event->title]) }}" />
-                                    @endif
-                                    </div>
-                                </div>
-                            </article>
+                                @else
+                                    <p class="mt-2 text-xs text-zinc-400">{{ __('No se reciben eventos este día.') }}</p>
+                                @endif
+                            </div>
                         @endforeach
                     </div>
-                @endif
-                </div>
-            </div>
+
+                    <flux:button type="submit" variant="primary" icon="check" class="mt-5 w-full" wire:loading.attr="disabled" wire:target="saveGeneral">
+                        {{ __('Guardar horario') }}
+                    </flux:button>
+                </form>
+
+            </aside>
         </div>
     @endif
 
@@ -1206,29 +1210,47 @@ new #[Title('Eventos')] class extends Component
     @if ($activeTab === 'checkin')
         <div class="space-y-5">
             <div class="grid grid-cols-3 gap-3">
-                <div class="entrepreneur-card p-4 text-center">
-                    <p class="text-xs text-zinc-500">{{ __('Reservas') }}</p>
-                    <p class="text-xl font-bold text-zinc-900 dark:text-white">{{ $this->attendanceMetrics['reservations'] }}</p>
+                <div class="rounded-2xl bg-brand-600 p-4 text-center text-white shadow-sm">
+                    <p class="text-xs text-white">{{ __('Reservas') }}</p>
+                    <p class="text-xl font-bold text-white">{{ $this->attendanceMetrics['reservations'] }}</p>
                 </div>
-                <div class="entrepreneur-card p-4 text-center">
-                    <p class="text-xs text-zinc-500">{{ __('Pagos en línea') }}</p>
-                    <p class="text-xl font-bold text-zinc-900 dark:text-white">{{ $this->attendanceMetrics['onlinePayments'] }}</p>
+                <div class="rounded-2xl bg-brand-600 p-4 text-center text-white shadow-sm">
+                    <p class="text-xs text-white">{{ __('Pagos en línea') }}</p>
+                    <p class="text-xl font-bold text-white">{{ $this->attendanceMetrics['onlinePayments'] }}</p>
                 </div>
-                <div class="entrepreneur-card p-4 text-center">
-                    <p class="text-xs text-zinc-500">{{ __('Asistieron') }}</p>
-                    <p class="text-xl font-bold text-zinc-900 dark:text-white">{{ $this->attendanceMetrics['attended'] }}</p>
+                <div class="rounded-2xl bg-brand-600 p-4 text-center text-white shadow-sm">
+                    <p class="text-xs text-white">{{ __('Asistieron') }}</p>
+                    <p class="text-xl font-bold text-white">{{ $this->attendanceMetrics['attended'] }}</p>
                 </div>
             </div>
 
             <div class="entrepreneur-card p-5">
                 @if (! $checkinResult)
                     <flux:heading size="lg" class="mb-1">{{ __('Verificar entrada') }}</flux:heading>
-                    <flux:text class="mb-4 text-sm text-zinc-500">{{ __('Escanea o ingresa el código del QR de la entrada del asistente. Sin lector de cámara por ahora: un lector físico conectado como teclado también funciona.') }}</flux:text>
+                    <flux:text class="mb-4 text-sm text-zinc-500">{{ __('Lee el QR de la entrada del asistente para verificar su reserva y registrar el ingreso.') }}</flux:text>
 
-                    <form wire:submit="lookupCheckin" class="flex gap-2">
-                        <flux:input wire:model="checkinInput" placeholder="evt_..." class="flex-1" />
-                        <flux:button type="submit" variant="primary">{{ __('Buscar') }}</flux:button>
-                    </form>
+                    <div
+                        x-data="merkamigoQrImageScanner($wire, {
+                            cameraError: @js(__('No se pudo abrir la cámara. Revisa los permisos o selecciona una imagen del QR.')),
+                            invalidImage: @js(__('Selecciona una imagen válida.')),
+                            imageTooLarge: @js(__('La imagen no debe superar los 15 MB.')),
+                            qrNotFound: @js(__('No se encontró un QR en la imagen.')),
+                            unknownError: @js(__('No se pudo leer la entrada. Inténtalo nuevamente.')),
+                        }, { property: 'checkinInput', action: 'lookupCheckin' })"
+                        class="space-y-4"
+                    >
+                        <div x-show="cameraOpen" x-cloak wire:ignore class="overflow-hidden rounded-xl bg-zinc-950">
+                            <video x-ref="qrVideo" autoplay muted playsinline class="max-h-80 w-full object-contain" aria-label="{{ __('Cámara para leer el QR') }}"></video>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <flux:button type="button" variant="primary" icon="camera" x-on:click="startCamera()" x-bind:disabled="reading || cameraOpen">{{ __('Leer código QR') }}</flux:button>
+                            <flux:button type="button" variant="ghost" x-show="cameraOpen" x-cloak x-on:click="stopCamera()">{{ __('Cerrar cámara') }}</flux:button>
+                            <flux:button type="button" variant="ghost" icon="photo" x-on:click="$refs.qrImage.click()" x-bind:disabled="reading || cameraOpen">{{ __('Leer QR desde imagen') }}</flux:button>
+                            <input x-ref="qrImage" type="file" accept="image/*" class="hidden" x-on:change="decode($event)">
+                        </div>
+                        <p x-show="reading" x-cloak role="status" class="text-sm text-zinc-500">{{ __('Verificando entrada…') }}</p>
+                        <p x-show="error" x-cloak x-text="error" role="alert" class="text-sm text-red-600"></p>
+                    </div>
                 @else
                     @php($attendance = \App\Domain\Events\Models\EventAttendance::with('publicEvent')->find($checkinResult['attendance_id']))
                     @if ($attendance && $attendance->isCheckedIn())

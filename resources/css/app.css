@@ -87,6 +87,16 @@ select:focus[data-flux-control] {
 }
 
 @layer components {
+    .messaging-chat-surface {
+        background-color: #fff8f5;
+        background-image:
+            linear-gradient(rgb(255 248 245 / 50%), rgb(255 248 245 / 50%)),
+            var(--messaging-chat-background);
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+    }
+
     @keyframes live-reaction-rise {
         0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.65) rotate(-8deg); }
         15% { opacity: 1; transform: translate3d(var(--reaction-x, 0), -24px, 0) scale(1.1) rotate(5deg); }

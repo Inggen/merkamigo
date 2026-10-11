@@ -265,7 +265,7 @@ new #[Layout('layouts::app')] #[Title('Mensajes')] class extends Component
                 </div>
             </flux:modal>
 
-            <div class="flex-1 space-y-3 overflow-y-auto bg-zinc-50/70 p-4 dark:bg-zinc-950/40">
+            <div class="messaging-chat-surface flex-1 space-y-3 overflow-y-auto p-4" style="--messaging-chat-background: url('{{ asset('images/backgrounds/fondo_chat_mensajeria.webp') }}')">
                 @forelse ($this->conversation->messages as $message)
                     @php($own = $message->sender_user_id === auth()->id())
                     <div class="flex {{ $own ? 'justify-end' : 'justify-start' }}">

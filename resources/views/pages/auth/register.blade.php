@@ -5,6 +5,14 @@
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
 
+        {{--
+            Pedido del usuario (2026-10-11): mismo orden que /login —
+            Google/Facebook arriba, antes del formulario manual. Este
+            componente trae su propio separador ("o continúa con"), así
+            que solo hubo que moverlo.
+        --}}
+        <x-auth.social-buttons />
+
         <form method="POST" action="{{ route('front.register.store') }}" class="flex flex-col gap-6">
             @csrf
             <!-- Name -->
@@ -98,8 +106,6 @@
                 </flux:button>
             </div>
         </form>
-
-        <x-auth.social-buttons />
 
         <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
             <span>{{ __('¿Ya tienes una cuenta?') }}</span>
