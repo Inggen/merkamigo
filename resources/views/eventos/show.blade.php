@@ -43,7 +43,17 @@
             <span class="truncate font-semibold text-zinc-900 dark:text-white">{{ $event->title }}</span>
         </nav>
 
-        <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        {{--
+            Pedido del usuario (2026-10-11): la columna principal se
+            desbordaba del viewport en móvil. Sin `grid-cols-1` acá, el
+            grid no tenía NINGÚN `grid-template-columns` por debajo de
+            `lg:` (implícito, sin el `minmax(0, …)` que sí traen las
+            variantes `lg:`/`xl:`), así que el tamaño mínimo de
+            contenido de la tarjeta del negocio (dentro de `<main>`)
+            empujaba todo el grid más ancho que la pantalla. `grid-cols-1`
+            agrega ese `minmax(0, 1fr)` también en la base.
+        --}}
+        <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
             <main class="space-y-4">
                 <section class="relative min-h-[28rem] overflow-hidden rounded-2xl bg-zinc-950 shadow-sm md:min-h-[22rem]" aria-labelledby="event-title">
                     @if ($event->coverUrl())

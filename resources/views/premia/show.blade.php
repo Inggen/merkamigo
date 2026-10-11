@@ -56,7 +56,13 @@
             </div>
         @endif
 
-        <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        {{--
+            Mismo arreglo que eventos/show.blade.php: sin `grid-cols-1`
+            acá, no había ningún `minmax(0, …)` por debajo de `lg:`, así
+            que el contenido mínimo de la columna principal desbordaba
+            el grid más ancho que la pantalla en móvil.
+        --}}
+        <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
             <div>
                 <div x-data="{ active: 0 }" class="space-y-3">
                     <div class="relative aspect-[3/2] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
