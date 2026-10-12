@@ -73,6 +73,22 @@ window.merkamigoVideoPlayer = function (options = {}) {
         visibilityObserver: null,
 
         init() {
+            // Pedido del usuario (2026-10-12): el volumen arranca al
+            // 100% por defecto, y si lo baja en un video, los demás
+            // reproductores del sitio deben recordar ese mismo nivel en
+            // vez de volver a empezar en 100% cada vez — una preferencia
+            // simple del visitante, en localStorage, no en la base de
+            // datos (igual que el resto de preferencias de este tipo).
+            try {
+                const storedVolume = window.localStorage.getItem('merkamigo_video_volume');
+                if (storedVolume !== null) {
+                    this.volume = Math.min(1, Math.max(0, parseFloat(storedVolume)));
+                }
+            } catch {
+                // localStorage inaccesible (modo privado) — se queda en
+                // el 100% por defecto de arriba.
+            }
+
             this.$refs.video.muted = this.muted;
             this.$refs.video.volume = this.volume;
             this.duration = this.$refs.video.duration || 0;
@@ -100,6 +116,14 @@ window.merkamigoVideoPlayer = function (options = {}) {
             };
 
             document.addEventListener('fullscreenchange', this.onFullscreenChange);
+
+            // iOS Safari no dispara `fullscreenchange` para el modo de
+            // pantalla completa nativo del <video> (`webkitEnterFullscreen`,
+            // ver toggleFullscreen) — son eventos propios del elemento.
+            this.onWebkitBeginFullscreen = () => { this.fullscreen = true; };
+            this.onWebkitEndFullscreen = () => { this.fullscreen = false; };
+            this.$refs.video.addEventListener('webkitbeginfullscreen', this.onWebkitBeginFullscreen);
+            this.$refs.video.addEventListener('webkitendfullscreen', this.onWebkitEndFullscreen);
 
             // Videos del feed/reels: se reproducen solos (sin sonido, el
             // navegador no deja autoplay con audio sin gesto del usuario)
@@ -129,6 +153,8 @@ window.merkamigoVideoPlayer = function (options = {}) {
         destroy() {
             window.clearTimeout(this.controlsTimer);
             document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+            this.$refs.video.removeEventListener('webkitbeginfullscreen', this.onWebkitBeginFullscreen);
+            this.$refs.video.removeEventListener('webkitendfullscreen', this.onWebkitEndFullscreen);
             this.visibilityObserver?.disconnect();
             this.hls?.destroy();
         },
@@ -153,6 +179,15 @@ window.merkamigoVideoPlayer = function (options = {}) {
             if (!this.muted && this.$refs.video.volume === 0) {
                 this.$refs.video.volume = 1;
                 this.volume = 1;
+                this.persistVolume();
+            }
+        },
+
+        persistVolume() {
+            try {
+                window.localStorage.setItem('merkamigo_video_volume', String(this.volume));
+            } catch {
+                // Igual que en init() — modo privado u otro bloqueo.
             }
         },
 
@@ -161,14 +196,31 @@ window.merkamigoVideoPlayer = function (options = {}) {
             this.$refs.video.volume = this.volume;
             this.muted = this.volume === 0;
             this.$refs.video.muted = this.muted;
+            this.persistVolume();
         },
 
         toggleFullscreen() {
+            // Pedido del usuario (2026-10-12): el botón de pantalla
+            // completa no hacía nada en iPhone. iOS Safari no soporta la
+            // Fullscreen API estándar sobre un <div> que envuelve el
+            // video — `$root.requestFullscreen?.()` ahí simplemente no
+            // existe (u, en algunas versiones, existe pero la rechaza) y
+            // el `?.()`/catch se tragaba el fallo en silencio. Ahí solo
+            // el propio <video> puede entrar a pantalla completa, vía su
+            // API nativa `webkitEnterFullscreen`.
             if (document.fullscreenElement) {
                 document.exitFullscreen();
-            } else {
-                this.$root.requestFullscreen?.();
+                return;
             }
+
+            if (this.$root.requestFullscreen) {
+                this.$root.requestFullscreen().catch(() => {
+                    this.$refs.video.webkitEnterFullscreen?.();
+                });
+                return;
+            }
+
+            this.$refs.video.webkitEnterFullscreen?.();
         },
 
         showControls() {

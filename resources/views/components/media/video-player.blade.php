@@ -68,10 +68,20 @@
         <flux:icon.play class="ms-1 size-7" />
     </button>
 
+    {{--
+        Pedido del usuario (2026-10-12): en iPhone algo se veía
+        superpuesto justo debajo del video, encima del botón de
+        pantalla completa. El degradado anterior se quedaba casi
+        transparente cerca de la fila de controles (`via-black/60` ya
+        casi en el borde) — ahora se mantiene oscuro en toda esa franja
+        (`via-black/85`) en vez de solo cerca del borde inferior, para
+        que nada detrás se alcance a ver ahí ni compita visualmente con
+        los botones.
+    --}}
     <div
         x-show="controlsVisible"
         x-transition.opacity
-        class="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/95 via-black/60 to-transparent px-3 pb-3 pt-14 sm:px-4"
+        class="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/95 via-black/85 to-transparent px-3 pb-3 pt-14 sm:px-4"
     >
         <input
             type="range"

@@ -95,10 +95,24 @@
                     <flux:icon.chevron-down class="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
                 </label>
 
-                <label class="relative block">
+                {{--
+                    Pedido del usuario (2026-10-12): en iPhone el campo se
+                    veía estirado/raro. El ícono superpuesto con padding
+                    (mismo truco que usan los `<select>` de al lado)
+                    funciona bien ahí, pero Safari en iOS renderiza
+                    `<input type="date">` como un control nativo propio
+                    que no respeta ese padding de la misma forma y
+                    termina rompiendo su layout interno. Acá el ícono ya
+                    no se superpone con `absolute`: es un hermano normal
+                    dentro de un contenedor con el borde/sombra, y el
+                    input queda transparente y sin padding propio — el
+                    control nativo recibe una caja simple, sin nada
+                    peleando con su render interno.
+                --}}
+                <label class="flex h-12 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 shadow-sm transition focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-950">
                     <span class="sr-only">{{ __('Filtrar por fecha') }}</span>
-                    <flux:icon.calendar-days class="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-brand-600" variant="outline" />
-                    <input type="date" name="fecha" value="{{ $selectedDate }}" class="h-12 w-full rounded-xl border border-zinc-200 bg-white pl-12 pr-3 text-sm font-medium text-zinc-700 shadow-sm transition focus:border-brand-500 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
+                    <flux:icon.calendar-days class="pointer-events-none size-5 shrink-0 text-brand-600" variant="outline" />
+                    <input type="date" name="fecha" value="{{ $selectedDate }}" class="h-full w-full min-w-0 border-0 bg-transparent p-0 text-sm font-medium text-zinc-700 focus:ring-0 dark:text-zinc-200">
                 </label>
 
                 <flux:button type="submit" variant="primary" icon="magnifying-glass" class="h-12 justify-center px-8">
