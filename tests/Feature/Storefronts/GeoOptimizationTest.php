@@ -75,24 +75,24 @@ class GeoOptimizationTest extends TestCase
         ], $organization['sameAs']);
     }
 
-    public function test_the_footer_only_shows_social_icons_with_a_real_configured_profile(): void
+    /**
+     * Pedido del usuario (2026-10-11): el footer completo
+     * (`partials/public-footer.blade.php`, con los íconos sociales
+     * configurados en Filament) se reemplazó por uno más simple de una
+     * sola franja (`partials/footer-slim.blade.php`) que ya no los
+     * muestra — el footer anterior queda como "plan B" sin usarse por
+     * ahora. Esta prueba ya no verifica el HTML del footer (dejó de
+     * aplicar), pero la señal real para GEO/SEO —el `sameAs` del
+     * schema de Organization— sigue intacta y cubierta arriba por
+     * `test_organization_schema_includes_sameas_only_when_social_profiles_are_configured`.
+     */
+    public function test_the_footer_no_longer_renders_social_icons(): void
     {
-        SiteSetting::current()->update([
-            'social_facebook_url' => null,
-            'social_instagram_url' => null,
-        ]);
-
-        $this->get(route('home'))
-            ->assertOk()
-            ->assertDontSee('href="https://facebook.com"', false)
-            ->assertDontSee('href="https://instagram.com"', false);
-
         SiteSetting::current()->update(['social_facebook_url' => 'https://www.facebook.com/merkamigo']);
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('href="https://www.facebook.com/merkamigo"', false)
-            ->assertDontSee('href="https://instagram.com"', false);
+            ->assertDontSee('href="https://www.facebook.com/merkamigo"', false);
     }
 
     public function test_the_official_merkamigo_social_profiles_are_configured_by_default(): void
@@ -101,11 +101,6 @@ class GeoOptimizationTest extends TestCase
 
         $this->assertSame('https://www.facebook.com/profile.php?id=61592810691144', $settings->social_facebook_url);
         $this->assertSame('https://www.instagram.com/merkamigos/', $settings->social_instagram_url);
-
-        $this->get(route('home'))
-            ->assertOk()
-            ->assertSee('href="https://www.facebook.com/profile.php?id=61592810691144"', false)
-            ->assertSee('href="https://www.instagram.com/merkamigos/"', false);
     }
 
     public function test_the_plaza_page_shows_the_municipality_description_and_uses_it_as_meta_description(): void

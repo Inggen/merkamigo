@@ -7,20 +7,24 @@
 @if ($configured)
 <section
     x-data="{
-        status: window.Notification?.permission ?? 'unavailable',
+        status: window.merkamigoPushNeedsInstall?.() ? 'install-required' : (window.merkamigoPushStatus?.status ?? (window.Notification?.permission === 'denied' ? 'denied' : 'default')),
+        error: window.merkamigoPushStatus?.error ?? '',
         loading: false,
         async enable() {
             this.loading = true;
+            this.error = '';
             try {
                 const result = await window.enableMerkamigoPush();
                 this.status = result.status;
-            } catch (_) {
+            } catch (error) {
                 this.status = 'error';
+                this.error = error.message || @js(__('No se pudieron activar las notificaciones.'));
             } finally {
                 this.loading = false;
             }
         },
     }"
+    x-on:merkamigo-push-status.window="status = $event.detail.status; error = $event.detail.error"
     x-cloak
     x-show="status !== 'granted'"
     {{ $attributes->class($compact ? 'border-t border-zinc-100 px-4 py-3 dark:border-zinc-700' : 'rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900') }}
@@ -39,6 +43,7 @@
             icon="bell-alert"
             size="sm"
             x-on:click="enable"
+            x-show="status !== 'install-required'"
             x-bind:disabled="loading || status === 'granted' || status === 'denied'"
         >
             <span x-show="status === 'granted'">{{ __('Activados') }}</span>
@@ -46,5 +51,8 @@
             <span x-show="status !== 'granted' && status !== 'denied'" x-text="loading ? @js(__('Activando…')) : @js(__('Activar notificaciones'))"></span>
         </flux:button>
     </div>
+    <p x-show="error" x-cloak x-text="error" role="alert" class="mt-2 text-sm text-red-600"></p>
+    <p x-show="status === 'install-required'" x-cloak class="mt-2 text-sm text-zinc-500">{{ __('En iPhone, abre Merkamigo en Safari, pulsa Compartir → Agregar a pantalla de inicio y abre la aplicación desde su icono. Luego activa las notificaciones. Requiere iOS 16.4 o posterior.') }}</p>
+    <p x-show="status === 'unavailable'" x-cloak class="mt-2 text-sm text-zinc-500">{{ __('Este navegador no admite push. En iPhone, abre Merkamigo desde la aplicación instalada en la pantalla de inicio.') }}</p>
 </section>
 @endif

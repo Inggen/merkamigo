@@ -265,7 +265,27 @@ new #[Layout('layouts::app')] #[Title('Mensajes')] class extends Component
                 </div>
             </flux:modal>
 
-            <div class="messaging-chat-surface flex-1 space-y-3 overflow-y-auto p-4" style="--messaging-chat-background: url('{{ asset('images/backgrounds/fondo_chat_mensajeria.webp') }}')">
+            {{--
+                Pedido del usuario (2026-10-11): el chat siempre debe
+                quedar con scroll abajo del todo, mostrando el último
+                mensaje — al entrar, al enviar uno propio, al llegar uno
+                nuevo por el `wire:poll` de abajo, o al cambiar de
+                conversación. Un MutationObserver cubre los cuatro casos
+                a la vez (cualquiera de ellos cambia los hijos de este
+                contenedor), sin depender de adivinar en qué momento
+                exacto Livewire termina de re-renderizar.
+            --}}
+            <div
+                x-data="{
+                    scrollToBottom() {
+                        this.$nextTick(() => { this.$el.scrollTop = this.$el.scrollHeight; });
+                    },
+                }"
+                x-init="
+                    scrollToBottom();
+                    new MutationObserver(() => scrollToBottom()).observe($el, { childList: true, subtree: true });
+                "
+                class="messaging-chat-surface flex-1 space-y-3 overflow-y-auto p-4" style="--messaging-chat-background: url('{{ asset('images/backgrounds/fondo_chat_mensajeria.webp') }}')">
                 @forelse ($this->conversation->messages as $message)
                     @php($own = $message->sender_user_id === auth()->id())
                     <div class="flex {{ $own ? 'justify-end' : 'justify-start' }}">

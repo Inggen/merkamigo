@@ -61,7 +61,7 @@
             {{ $slot }}
         </main>
 
-        @include('partials.public-footer')
+        @include('partials.footer-slim')
 
         {{--
             Pedido del usuario (2026-10-11): la barra inferior también
