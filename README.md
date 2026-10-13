@@ -2,152 +2,323 @@
 
 > Descubre lo local, conecta con tu comunidad.
 
-Merkamigo es una plataforma local que permite a emprendedores crear una vitrina digital sencilla, ser encontrados por compradores cercanos y concretar oportunidades por WhatsApp. La visión completa, el modelo de datos y el backlog por fases están documentados en [`TODO_MERKAMIGO.md`](TODO_MERKAMIGO.md).
+Merkamigo reúne negocios, compradores y comunidades en una plataforma de comercio local. Permite crear vitrinas digitales, vender productos y servicios, publicar contenido, gestionar eventos y reservas, responder solicitudes, conversar con clientes y ofrecer recompensas. Incluye administración interna, una API versionada y experiencias inmersivas municipales.
 
-## Antes de trabajar en este repositorio
+Desarrollado por **Inggen**. Sitio de producción: [merkamigo.com](https://merkamigo.com).
 
-**Paso obligatorio:** revisar `.github/skills/**/SKILL.md` antes de analizar, planear o implementar cualquier tarea. Las habilidades condicionan cómo se debe abordar el diseño, el desarrollo y la seguridad del proyecto.
+**Características revisadas al 13 de octubre de 2026.** Este documento describe las capacidades implementadas en el repositorio. La disponibilidad de cada módulo depende del plan, los permisos, las banderas de activación y las integraciones configuradas; tener código implementado no implica que todos los servicios externos estén habilitados en producción.
 
-Convención: `/.github/skills/{nombre-de-la-habilidad}/SKILL.md`.
+## Características de la plataforma
 
-### Índice de habilidades disponibles
+### Descubrimiento y comunidad local
 
-| Habilidad | Cuándo usarla |
+- Directorio de negocios por municipio, categoría y zona, con búsqueda, filtros y cercanía geográfica.
+- Plazas municipales y páginas públicas de categorías, negocios y productos.
+- Municipio preferido, negocios vistos recientemente y favoritos.
+- Feed comunitario con publicaciones, imágenes y videos, reacciones y comentarios.
+- Seguimiento de negocios y notificaciones de sus novedades.
+- Estados, reels y directorio de transmisiones en vivo.
+- Agenda pública de eventos y catálogo de recompensas Merkamigo Premia.
+- Navegación adaptada a escritorio y móvil, selector de experiencia Cliente/Emprendedor y bienvenida para crear una vitrina.
+
+### Vitrinas y catálogo
+
+- Creación guiada, edición, vista previa, publicación y despublicación de vitrinas.
+- Identidad del negocio, logo, portada, descripción, categoría, ubicación e información de contacto.
+- Gestión de múltiples negocios y colaboradores desde una misma cuenta.
+- Productos y servicios con imágenes, medios, precios, categorías y variantes.
+- Productos digitales con archivos asociados y entrega mediante los flujos de compra autorizados.
+- Duplicación de productos y traslado entre negocios con controles de autorización.
+- Páginas individuales de productos y QR para compartir vitrinas y productos.
+- Contacto por WhatsApp y mensajería interna, con registro de interacciones.
+- Límites de uso y capacidades según el plan y los servicios contratados.
+
+### Mensajería y asistentes de IA
+
+- Conversaciones entre clientes y negocios, envío de mensajes y gestión de conversaciones.
+- Asistente general de Merkamigo y chatbot configurable por negocio.
+- Perfil del asistente, documentos de conocimiento, historial de conversaciones y resúmenes.
+- Generación asistida de descripciones de vitrinas y productos, portadas e imágenes de productos.
+- Textos comerciales para contenido social y sugerencias de contenido para WhatsApp.
+- Configuración de OpenAI y de la base de conocimiento de la plataforma desde administración.
+
+Las funciones de IA requieren credenciales y modelos configurados. La interfaz de transcripción de audio tiene una implementación nula de respaldo; no se presenta como un servicio de transcripción activo.
+
+### Pídelo en Merkamigo
+
+- Publicación de necesidades y solicitudes locales con medios adjuntos y borradores.
+- Ofertas de negocios, consulta de propuestas, preselección y retiro de ofertas.
+- Cierre, cancelación y vencimiento de solicitudes.
+- Oportunidades para emprendedores y métricas del embudo de necesidades y ofertas.
+
+### Ventas, cobros y suscripciones
+
+- Checkout de productos con Wompi, pedidos y detalle de artículos vendidos.
+- Conexión de credenciales Wompi por negocio: el pago del comprador se procesa con la cuenta del negocio.
+- Retornos de checkout y webhooks para aplicar pagos aprobados.
+- Paneles de ventas, pedidos y compras del cliente, incluidos productos digitales.
+- Comisiones de plataforma, acumulación, cobro, reversión y seguimiento administrativo.
+- Checkout de invitados para productos digitales, controlado por `MARKETPLACE_GUEST_CHECKOUT_ENABLED` y desactivado por defecto.
+- Planes de plataforma, cupones, productos de facturación y servicios adicionales.
+- Fuentes de pago, renovación de planes y servicios recurrentes, cancelaciones y aplicación de bajas de plan.
+- Suscripciones de clientes a productos del negocio, periodos de prueba, renovaciones y derechos de acceso.
+
+La configuración de Wompi admite sandbox y producción. Los cobros reales requieren las credenciales correspondientes y las tareas programadas activas.
+
+### Eventos, reservas y check-in
+
+- Agenda y detalle público de eventos, publicación de eventos en el feed.
+- Gestión de espacios, platos, equipos y tarifas para reservas.
+- Horarios de atención, disponibilidad, fechas bloqueadas y cálculo de cotizaciones.
+- Reservas con retención temporal de disponibilidad, pago en línea y liberación por vencimiento.
+- Inscripciones y entradas para eventos públicos, pagos y códigos QR.
+- Check-in con lectura de QR mediante cámara y seguimiento de reservas, pagos y asistentes.
+- Configuración de piloto por negocios mediante `EVENTS_PILOT_MODE` y `EVENTS_PILOT_BUSINESS_IDS`.
+
+### Merkapuntos y Merkamigo Premia
+
+- Adhesión voluntaria de negocios al programa, revisión administrativa y publicación de políticas.
+- Cuentas, movimientos y registro o reversión de compras que otorgan puntos.
+- Identificación del cliente mediante QR y tokens.
+- Recompensas, sugerencias para su cálculo y catálogo público de Premia.
+- Reserva, entrega y cancelación de canjes; liberación de puntos y recursos cuando vence la reserva.
+- Solicitudes con comprobantes de compra y revisión por empleados autorizados.
+- Notificaciones de acumulación de puntos, entrega y liberación de canjes.
+
+El interruptor global `LOYALTY_ENABLED` está desactivado por defecto. El vencimiento de puntos no se considera una capacidad activa; requiere una política e implementación específicas.
+
+### Live Shopping
+
+- Creación y gestión de transmisiones, estudio de emisión y comprobación de señal.
+- Publicación desde navegador u OBS, reproducción web y proxy HLS a través del dominio de la aplicación.
+- Destinos de retransmisión y conexión con YouTube mediante OAuth.
+- Video de introducción, productos durante el live y checkout asociado a la transmisión.
+- Mensajes, reacciones, encuestas, votos, registro de visualizaciones y métricas de control.
+
+La emisión real requiere MediaMTX, FFmpeg y conectividad de streaming. La existencia del estudio y del reproductor no confirma por sí sola la disponibilidad de esa infraestructura.
+
+### Experiencias inmersivas
+
+- Plazas municipales inmersivas y experiencias versionadas.
+- Zonas, stands y asignación de negocios a espacios virtuales.
+- Plantillas de objetos, editor espacial y generación asistida por IA.
+- Elementos de escena, anuncios y contenido de las plazas.
+- Herramientas para generar distribuciones a partir de imágenes y detectar colores de leyendas.
+- Registro de eventos de interacción y auditoría de rendimiento de las experiencias.
+
+### Confianza, soporte y moderación
+
+- Solicitud y revisión de verificación de negocios, con recordatorios de vencimiento.
+- Confirmación de pedidos, finalización, cancelación y disputas.
+- Opiniones, recomendaciones y moderación de recomendaciones.
+- Reportes de negocios, productos y contenido; suspensión y restauración de entidades.
+- Tickets de soporte, resolución administrativa y páginas de ayuda, privacidad y términos.
+- Auditoría de acciones sensibles e impersonación de usuarios para soporte autorizado.
+
+### Métricas y administración
+
+- Visitas, clics de WhatsApp, interacciones sociales, desempeño de productos y promociones.
+- Embudos de conversión, necesidades/ofertas y métricas legibles por negocio.
+- Informes semanales y detección de vitrinas incompletas o inactivas.
+- Panel interno Filament en `/admin`, restringido por roles de plataforma.
+- Gestión de usuarios, negocios, productos, municipios, categorías, planes, pagos, suscripciones, comisiones, reportes y tickets.
+- Administración de experiencias inmersivas, Merkapuntos, configuración del sitio e integraciones.
+
+### Integraciones, SEO y notificaciones
+
+- Registro e ingreso, recuperación de contraseña, verificación de correo y teléfono, doble factor y passkeys.
+- Acceso social con Google y Facebook cuando sus clientes OAuth están configurados.
+- Notificaciones en la plataforma, correo y push mediante Firebase Cloud Messaging HTTP v1.
+- Registro y revocación de dispositivos y preferencias de notificación.
+- Correo mediante transportes Laravel SMTP, incluidos proveedores como Brevo.
+- Google Merchant: feed XML, validación y mapeo de productos, sincronización y conciliación programada.
+- Sitemap, metadatos, URL canónica y datos estructurados.
+- Descubrimiento para agentes mediante `llms.txt`, catálogo de API y documentación OpenAPI.
+- API `/api/v1`, autenticación Sanctum y suscripciones a webhooks salientes.
+
+## Stack técnico
+
+Las versiones PHP de la aplicación están fijadas en `composer.lock`; las dependencias de JavaScript, en `package-lock.json`.
+
+| Capa | Tecnología |
 |---|---|
-| [`diseno-uiux`](.github/skills/diseno-uiux/SKILL.md) | Diseñar o mejorar una pantalla, flujo o sistema de diseño; aplicar accesibilidad y consistencia visual. |
-| [`desarrollo-aplicaciones`](.github/skills/desarrollo-aplicaciones/SKILL.md) | Planear arquitectura, elegir stack, construir un MVP o validar calidad/despliegue de extremo a extremo. |
-| [`revision-seguridad`](.github/skills/revision-seguridad/SKILL.md) | Revisar autenticación, autorización, manejo de secretos, validación de entradas o preparar una auditoría de seguridad. |
-
-Si una tarea involucra más de un dominio (p. ej. una pantalla nueva con lógica de negocio), aplica las habilidades relevantes en conjunto y deja constancia en el resumen del cambio de cuáles se revisaron y cómo condicionaron la implementación.
-
-## Alcance actual
-
-Este repositorio implementa la **fundación técnica de la Fase 0** (0.3 a 0.6 del TODO): repositorio y stack, arquitectura modular, autenticación multinegocio y una base mínima de seguridad. Las decisiones de producto (0.1) y el sitemap/tokens de marca (0.2) están documentados en versión breve en `docs/product/`; el diseño visual completo y el design system con componentes quedan para una sesión de diseño dedicada.
-
-**Fuera de alcance todavía** (ver `TODO_MERKAMIGO.md` secciones 1 y 8): vitrina completa, plaza de municipio, "Pídelo en Merkamigo", pasaporte de confianza, cobros, y la aplicación híbrida. Nada de esto se construye antes de completar y validar las fases anteriores.
-
-## Stack y versiones instaladas
-
-| Capa | Versión instalada |
-|---|---|
-| PHP | 8.4 (mínimo 8.3) |
-| Laravel | 13.23 |
-| Filament | 5.7 (solo panel `/admin` interno) |
-| Livewire | 4.3 |
-| Laravel Fortify | 1.37 (backend de autenticación) |
-| Sanctum | 4.3 |
-| spatie/laravel-permission | 8.3 (con *teams* para roles por negocio) |
-| Tailwind CSS | 4.x |
-| Vite | 8.x (`laravel-vite-plugin` 3.x) |
-| Node.js | 22.x |
-| Base de datos | MySQL 9 (o MariaDB equivalente) |
-| Colas y caché | Redis |
-
-La matriz de compatibilidad validada y las decisiones de arquitectura completas están en [`docs/architecture/decisiones.md`](docs/architecture/decisiones.md). **No combinar Filament 5 con Livewire 3.**
-
-## Requisitos
-
-- PHP 8.3+ (8.4 recomendado) con extensiones estándar de Laravel + `redis`.
-- Composer 2.
-- Node.js 20+ y npm.
-- MySQL 8+/MariaDB o compatible.
-- Redis.
+| Backend | PHP 8.3+ y Laravel 13.23 |
+| Administración | Filament 5.7 |
+| Interfaz | Blade, Livewire 4.3 y Flux 2.15 |
+| Autenticación | Fortify, Sanctum, Socialite y passkeys |
+| Permisos | Spatie Laravel Permission con equipos por negocio |
+| Estilos y compilación | Tailwind CSS 4 y Vite 8 |
+| Base de datos | MySQL/MariaDB; SQLite para pruebas cuando corresponda |
+| Cola y caché | Database por defecto en `.env.example`; Redis configurable |
+| Integraciones | Wompi, Firebase, OpenAI, Google Merchant, YouTube y SMTP |
+| Streaming y QR | MediaMTX/FFmpeg, HLS.js y ZXing |
+| Calidad | Pest, Pint, Larastan/PHPStan y pruebas JavaScript |
 
 ## Instalación local
 
+Requisitos: PHP 8.3+ con las extensiones exigidas por Composer, Composer 2, Node.js compatible con Vite 8 (20.19+ o 22.12+) y una base de datos configurada. Redis es necesario si se elige como almacenamiento de caché o cola.
+
 ```bash
 composer install
-npm install
-
+npm ci
 cp .env.example .env
 php artisan key:generate
-
-# Crear la base de datos "merkamigo" en tu servidor MySQL/MariaDB local
-# y ajustar DB_USERNAME/DB_PASSWORD en .env.
-
-php artisan migrate --seed
-npm run build   # o `npm run dev` durante desarrollo
-
-php artisan app:make-superadmin admin@merkamigo.test
-
-# Hook de calidad local (corre Pint antes de cada commit)
-composer hooks:install
 ```
 
-Si usas [Laravel Herd](https://herd.laravel.com), el proyecto se sirve automáticamente en `https://merkamigo.test` al estar en `~/Herd/merkamigo`.
+Crear la base de datos y completar `DB_*` en `.env`. Después:
 
-Estrategia de ramas, versionado y releases: [`docs/architecture/estrategia-ramas.md`](docs/architecture/estrategia-ramas.md).
+```bash
+php artisan migrate --seed
+php artisan storage:link
+npm run build
+php artisan app:make-superadmin admin@merkamigo.test
+```
 
-## Variables de entorno
+Con Laravel Herd, el directorio del proyecto se sirve en `https://merkamigo.test`. Sin Herd, iniciar `php artisan serve` y ajustar `APP_URL`. Para desarrollo de assets, ejecutar `npm run dev`.
 
-Ver [`.env.example`](.env.example). No contiene secretos: las credenciales de base de datos, Redis, correo, almacenamiento S3-compatible (`AWS_*`) y proveedor de OTP (`SMS_OTP_DRIVER`) se definen localmente por cada entorno. En desarrollo local, `FILESYSTEM_DISK=local` es aceptable temporalmente; **en staging/producción el almacenamiento de fotos, audios y documentos debe ser S3-compatible**, nunca disco local del servidor (ver TODO, sección 2).
+Los trabajos asíncronos y las tareas programadas necesitan sus propios procesos:
 
-## Arquitectura modular
+```bash
+php artisan queue:work --tries=3
+php artisan schedule:work
+```
 
-La lógica de negocio vive fuera de controladores, Livewire y Filament, en `app/Domain/{Módulo}/{Actions,Models,Policies,Events,Jobs,Notifications}`:
+No copiar credenciales de producción a un entorno compartido. En local, `MAIL_MAILER=log` permite revisar correos sin enviarlos y `SMS_OTP_DRIVER=log` registra los OTP sin un proveedor de SMS.
 
-`Identity`, `Businesses`, `Storefronts`, `Discovery`, `Needs`, `Trust`, `WhatsApp`, `Analytics`, `Billing`, `Moderation`, `Platform`.
+## Configuración de integraciones
 
-En esta fase solo tienen lógica implementada `Identity` (registro dual correo/teléfono) y `Businesses`/`Storefronts` (creación de vitrina). El resto de módulos existen como carpetas con la convención lista, a la espera de su fase correspondiente.
+Usar [`.env.example`](.env.example) como base y consultar los archivos de `config/`. Nunca incorporar `.env`, claves privadas o archivos de cuentas de servicio al repositorio.
 
-**Ejemplo de reutilización sin duplicar reglas:** `App\Domain\Storefronts\Actions\CreateStorefront` se invoca desde:
-- una prueba Pest (`tests/Feature/Storefronts/CreateStorefrontTest.php`),
-- un componente Livewire (`resources/views/pages/emprendedores/⚡crear-vitrina.blade.php`),
-- `POST /api/v1/businesses` (`App\Http\Controllers\Api\V1\BusinessController`).
+| Integración | Configuración principal |
+|---|---|
+| Base de datos, cola y caché | `DB_*`, `QUEUE_CONNECTION`, `CACHE_STORE` |
+| Correo | `MAIL_MAILER`, `MAIL_SCHEME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_*` |
+| Firebase | `FCM_PROJECT_ID`, `FCM_CREDENTIALS`, `FIREBASE_WEB_*` |
+| Wompi | `WOMPI_*`; conexión adicional por negocio para marketplace |
+| OpenAI | Configuración administrativa y documentos de conocimiento |
+| OAuth | `GOOGLE_*`, `FACEBOOK_*` y sus URL de retorno |
+| Google Merchant | `GOOGLE_MERCHANT_*` |
+| Streaming | `LIVE_STREAMING_*` y servicios MediaMTX/FFmpeg |
+| Eventos | `EVENTS_PILOT_MODE`, `EVENTS_PILOT_BUSINESS_IDS` |
+| Merkapuntos | `LOYALTY_ENABLED`, `LOYALTY_REDEMPTION_TTL_MINUTES`; ver `config/loyalty.php` |
+| Almacenamiento | `FILESYSTEM_DISK`, `AWS_*` y configuración S3-compatible |
 
-## Separación de capas
+### Correo con Brevo
 
-- **Sitio público y experiencia Clientes/Emprendedores:** Blade + Livewire 4 (`resources/views`, `app/Livewire`).
-- **Administración interna:** Filament 5, panel `/admin`, restringido a roles de plataforma (`moderator`, `admin`, `superadmin`) vía `User::canAccessPanel()`.
-- **API versionada:** `routes/api.php`, prefijo `/api/v1`, autenticación Sanctum, formato de respuesta estándar (`App\Support\Api\ApiResponse` / `ApiError`).
+Se utiliza el transporte SMTP nativo de Laravel; no hace falta un SDK adicional:
 
-## Multinegocio y autorización
+```dotenv
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_USERNAME=USUARIO_SMTP_DE_BREVO
+MAIL_PASSWORD=CLAVE_SMTP_DE_BREVO
+MAIL_FROM_ADDRESS=hola@merkamigo.com
+MAIL_FROM_NAME="Merkamigo"
+```
 
-- `organizations` → `businesses` → `business_memberships` (estado invitado/activo/revocado).
-- Roles por negocio (`owner`, `admin`, `collaborator`) mediante `spatie/laravel-permission` con *teams*, usando `business_id` como team. El middleware `business.team` fija el team activo a partir del parámetro de ruta `{business}`.
-- Roles de plataforma (`moderator`, `admin`, `superadmin`) son roles globales del mismo paquete, con `User::PLATFORM_TEAM_ID` como team explícito (evita ambigüedad con "sin team").
-- `BusinessPolicy` verifica pertenencia; ver pruebas de aislamiento en `tests/Feature/Businesses/BusinessIsolationTest.php`.
-- Toda acción sensible (login, alta de negocio, cambio de rol) se registra en `audit_logs` vía `App\Domain\Platform\Actions\RecordAuditLog`.
+Verificar el remitente y autenticar el dominio en Brevo. Después de cambiar la configuración, limpiar o reconstruir la caché y reiniciar los workers. La autenticación SMTP y la aceptación de un mensaje no equivalen a confirmar su recepción en la bandeja del destinatario.
 
-## Migraciones y seeders
+### Push web y móvil
 
-`php artisan migrate --seed` crea el esquema completo y siembra:
-- Municipios piloto: Cajicá y Zipaquirá (`MunicipalitySeeder`).
-- Categorías iniciales provisionales (`CategorySeeder`), sujetas a ajuste con datos reales del piloto.
+Configurar tanto la cuenta de servicio del backend como el cliente web y su clave VAPID. El JSON privado debe permanecer fuera de `public/`, por ejemplo en `storage/app/private/firebase-service-account.json`.
 
-## Archivos, colas y notificaciones
+El navegador necesita HTTPS, permisos de notificación y el service worker registrado. En iPhone/iPad, el flujo exige abrir la web instalada en la pantalla de inicio en una versión compatible de iOS. Mantener instalado el conjunto completo de dependencias de Composer, incluidas Google Auth y Firebase PHP-JWT, y tener un worker de cola activo.
 
-- Colas y caché sobre Redis (`QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`).
-- Verificación de teléfono: OTP generado en cola; en local se escribe al log (`SMS_OTP_DRIVER=log`) hasta contratar un proveedor real.
-- Almacenamiento de archivos preparado para disco S3-compatible vía `config/filesystems.php`.
+## Arquitectura y autorización
+
+La lógica se organiza en `app/Domain/{Módulo}` con acciones, modelos, políticas, eventos, jobs y notificaciones. Las acciones se reutilizan desde controladores, componentes Livewire, Filament y API para evitar duplicar reglas.
+
+Módulos actuales: `Identity`, `Businesses`, `Storefronts`, `Discovery`, `Needs`, `Trust`, `WhatsApp`, `Analytics`, `Billing`, `Marketplace`, `Subscriptions`, `Messaging`, `Social`, `Events`, `Loyalty`, `Immersive`, `Moderation` y `Platform`.
+
+- **Presentación:** `resources/views`, `resources/css` y `resources/js`; separar reglas de negocio del diseño para permitir personalizar temas.
+- **Administración:** `app/Filament`, con roles `moderator`, `admin` y `superadmin`.
+- **API:** `routes/api.php`, respuestas estandarizadas y Sanctum.
+- **Integraciones:** clientes y contratos en `app/Support`.
+- **Multinegocio:** organizaciones, negocios y membresías; roles `owner`, `admin` y `collaborator` por equipo de negocio.
+- **Autorización:** políticas y middleware `business.team`; auditoría de operaciones sensibles.
+
+## Rutas principales
+
+| Ruta | Uso |
+|---|---|
+| `/` | Comunidad y feed |
+| `/explorar`, `/plaza/{municipio}` | Descubrimiento local |
+| `/m/{negocio}` | Vitrina pública |
+| `/emprendedores/bienvenida`, `/emprendedores` | Bienvenida y panel del emprendedor |
+| `/pidelo` | Necesidades y oportunidades |
+| `/mensajes` | Mensajería |
+| `/eventos` | Agenda pública |
+| `/premia`, `/merkapuntos` | Recompensas y cuenta de puntos |
+| `/reels`, `/en-vivo` | Contenido y transmisiones |
+| `/clientes/pedidos`, `/clientes/compras` | Seguimiento de compras |
+| `/exp/plaza/{municipio}` | Experiencia inmersiva |
+| `/admin` | Administración de plataforma |
+| `/api/v1`, `/docs/api/reference` | API y documentación |
+| `/feeds/google-merchant.xml`, `/sitemap.xml`, `/llms.txt` | Descubrimiento externo |
+
+Los nombres de parámetros son descriptivos; consultar `routes/web.php` para los bindings, restricciones y middleware exactos.
+
+## Operación y despliegue
+
+El servidor web debe apuntar a `public/`. Preparar un respaldo de base de datos y archivos antes de desplegar, instalar las dependencias completas y revisar las migraciones de la release:
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+php artisan migrate --force
+php artisan config:cache
+php artisan view:cache
+php artisan queue:restart
+```
+
+Mantener un worker con Supervisor u otra solución del hosting. En un hosting con cron puede usarse un worker de duración limitada, evitando ejecuciones simultáneas. La cola de trabajos y el scheduler cumplen funciones distintas: ejecutar uno no reemplaza al otro.
+
+```cron
+* * * * * /ruta/php /ruta/merkamigo/artisan schedule:run >> /dev/null 2>&1
+```
+
+`routes/console.php` programa expiraciones de solicitudes, reservas, entradas y canjes; renovación de planes, servicios y suscripciones; cobro de comisiones; informes; limpieza de métricas y sincronización de Google Merchant. Revisar sus horarios y banderas antes de activarlo con datos reales.
+
+Configurar `APP_DEBUG=false`, HTTPS, almacenamiento de medios y backups por entorno. Las notas originales de arquitectura y despliegue describen etapas anteriores; sus pendientes históricos no deben confundirse con el inventario actual de funciones de este README. La disponibilidad de streaming, SMS, almacenamiento externo y entrega de notificaciones debe verificarse en cada entorno.
 
 ## Pruebas y calidad
 
 ```bash
-php artisan test          # o ./vendor/bin/pest
-./vendor/bin/pint         # formato (--test para solo verificar)
+php artisan test
+./vendor/bin/pint --test
 ./vendor/bin/phpstan analyse
+node --test tests/JavaScript/*.test.mjs
 npm run build
 ```
 
-`GET /api/v1/health` verifica conectividad de base de datos, Redis, cola y almacenamiento.
+`composer test` reúne las comprobaciones PHP definidas en `composer.json`. `composer hooks:install` instala el hook local. `npm run audit:immersive` ejecuta la auditoría de experiencias inmersivas.
 
-## Despliegue, backup y rollback
+Las pruebas locales no sustituyen la validación del navegador, webhooks, pagos, emisión de video o recepción real de correo y push en producción.
 
-**Pendiente de definir** en una sesión posterior: no hay todavía entorno de staging/producción, simulacro de backup/restore, ni proveedor de hosting elegido. Ver la lista explícita de pendientes en `docs/architecture/decisiones.md`.
+## Documentación y evolución
 
-## Versionado de `/api/v1`
+- [Plan maestro](TODO_MERKAMIGO.md).
+- [Eventos y reservas](TODO_desarrollo_sistema_eventos_Merkamigo.md).
+- [Merkapuntos](TODO_Merkapuntos.md).
+- [Contenido social](TODO_social.md) y [Live Shopping](TODO_social_live_shopping.md).
+- [Marketplace](TODO-Marketplace-Checkout.md) y [ventas y rentabilidad](TODO_VENTAS_RENTABILIDAD.md).
+- [Planes y servicios](TODO_Merkamigo_Planes_Servicios_v2.md).
+- [Experiencias inmersivas](TODO-Merkamigo-Experiencia-Inmersiva.md).
+- [Google Merchant](docs/google-merchant.md).
+- [Manual de Pídelo](docs/manuales/pidelo-en-merkamigo.md).
+- [Flujos de usuario](docs/ux-flows/README.md), [diseño](docs/design-system/README.md) y [API OpenAPI](docs/api/openapi.yaml).
+- [Decisiones de arquitectura](docs/architecture/decisiones.md) y [estrategia de ramas](docs/architecture/estrategia-ramas.md).
 
-La API nace versionada desde `/api/v1`. Cambios incompatibles requerirán una nueva versión (`/api/v2`); no se introducen breaking changes dentro de `v1` sin período de aviso.
+Los TODO son la fuente de trabajo pendiente de cada módulo. La aplicación híbrida Ionic/Vue/Capacitor continúa como evolución prevista; no se presenta aquí como una aplicación móvil nativa ya entregada.
 
-## Camino hacia la aplicación híbrida
+## Contribución
 
-La Fase 6 (Ionic + Vue 3 + Capacitor, ver TODO) consumirá exclusivamente `/api/v1`. No se duplican reglas de negocio en la futura app: toda la lógica vive en `app/Domain`.
+Revisar las habilidades del repositorio antes de trabajar y aplicar las relevantes al alcance:
 
-## Manual de marca
+- [Desarrollo de aplicaciones](.github/skills/desarrollo-aplicaciones/SKILL.md).
+- [Diseño UI/UX](.github/skills/diseno-uiux/SKILL.md).
+- [Revisión de seguridad](.github/skills/revision-seguridad/SKILL.md).
 
-Colores y tipografías de referencia en [`docs/product/sitemap.md`](docs/product/sitemap.md#tokens-de-marca). El sistema de diseño completo con componentes está pendiente de una sesión de diseño dedicada.
-
-## Contribución y Definition of Done
-
-Antes de dar por terminada una tarea, revisar la sección 9 (Definition of Done) de `TODO_MERKAMIGO.md`. En resumen: habilidades de `.github/skills` revisadas y referenciadas, criterios de aceptación cumplidos, autorización y validación en servidor, pruebas automáticas proporcionales al riesgo, sin fallas de aislamiento entre negocios, sin secretos en logs, documentación y changelog actualizados.
+Usar convenciones de Laravel y Filament, reutilizar acciones de dominio y mantener las soluciones simples. Validar autorización, aislamiento entre negocios y criterios de aceptación; actualizar la documentación del módulo y seguir la Definition of Done del plan maestro.

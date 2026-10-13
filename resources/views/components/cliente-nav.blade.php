@@ -50,8 +50,8 @@
             aria-label="{{ __('Ir al inicio de Merkamigo') }}"
             title="{{ __('Merkamigo') }}"
         >
-            <x-app-logo-icon class="h-10 w-auto" />
-            <x-brand-wordmark size="lg" class="hidden sm:inline" />
+            <x-app-logo-icon class="h-9 w-auto sm:h-10" />
+            <x-brand-wordmark size="lg" />
             <span class="sr-only">{{ __('Merkamigo') }}</span>
         </a>
 

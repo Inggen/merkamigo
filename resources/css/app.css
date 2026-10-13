@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './pages/entrepreneur-welcome.css';
 @plugin '@tailwindcss/typography';
 @import '../../vendor/livewire/flux/dist/flux.css';
 
