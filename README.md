@@ -2,7 +2,7 @@
 
 > Descubre lo local, conecta con tu comunidad.
 
-Merkamigo reúne negocios, compradores y comunidades en una plataforma de comercio local. Permite crear vitrinas digitales, vender productos y servicios, publicar contenido, gestionar eventos y reservas, responder solicitudes, conversar con clientes y ofrecer recompensas. Incluye administración interna, una API versionada y experiencias inmersivas municipales.
+Merkamigo reúne negocios, compradores y comunidades en una plataforma de comercio local. Permite crear vitrinas digitales, vender productos y servicios, publicar contenido, gestionar eventos y reservas, responder solicitudes, conversar con clientes y ofrecer recompensas. Incluye administración interna, una API versionada y experiencias inmersivas municipales. ♥️
 
 Desarrollado por **Inggen**. Sitio de producción: [merkamigo.com](https://merkamigo.com).
 
