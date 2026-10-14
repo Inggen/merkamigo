@@ -2,6 +2,7 @@
 
 namespace App\Support\GoogleMerchant;
 
+use App\Domain\Businesses\Models\Business;
 use App\Domain\Storefronts\Models\Product;
 
 /**
@@ -68,6 +69,19 @@ class GoogleMerchantProductValidator
         }
 
         return $errors;
+    }
+
+    /** @return list<array{label: string, ready: bool, help: string}> */
+    public function businessChecklist(Business $business): array
+    {
+        return [
+            ['label' => 'Conexión de Merkamigo con Google', 'ready' => (bool) config('services.google_merchant.enabled'), 'help' => 'La administración configura la cuenta Merchant y sus credenciales.'],
+            ['label' => 'Negocio habilitado para Google', 'ready' => (bool) $business->google_merchant_enabled, 'help' => 'Si está pendiente, solicita a soporte activar tu negocio para Google Shopping.'],
+            ['label' => 'Vitrina publicada', 'ready' => $business->isPublished(), 'help' => 'Publica tu vitrina para que Google pueda consultar tus productos.'],
+            ['label' => 'Información del negocio', 'ready' => filled($business->name) && filled($business->storefront?->description), 'help' => 'El nombre y la descripción de tu vitrina se reutilizan en el catálogo.'],
+            ['label' => 'Ubicación de la tienda', 'ready' => ! $business->has_physical_location || (filled($business->address) && filled($business->municipality_id)), 'help' => $business->has_physical_location ? 'Completa dirección y municipio. Estos datos no sustituyen la vinculación de tu Perfil de Empresa.' : 'No necesitas inventario local si no tienes una tienda física.'],
+            ['label' => 'Inventario para tiendas físicas', 'ready' => ! $business->has_physical_location || (filled($business->google_business_store_code) && (bool) config('services.google_merchant.local_inventory_enabled')), 'help' => ! $business->has_physical_location ? 'Se usará el catálogo online. No necesitas un código de tienda.' : 'Copia el código real de tu Perfil de Empresa. La administración debe vincular ese perfil a Merchant Center y habilitar el inventario local. Tener un código guardado no confirma esa vinculación.'],
+        ];
     }
 
     public function isEligible(Product $product): bool

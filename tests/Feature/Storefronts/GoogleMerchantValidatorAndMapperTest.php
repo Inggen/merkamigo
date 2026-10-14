@@ -153,6 +153,20 @@ class GoogleMerchantValidatorAndMapperTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
+    public function test_local_destinations_are_excluded_until_the_store_is_ready(): void
+    {
+        config()->set('services.google_merchant.local_inventory_enabled', true);
+        $product = $this->product();
+        $mapper = app(GoogleMerchantProductMapper::class);
+        $this->assertSame(['LOCAL_INVENTORY_ADS', 'FREE_LOCAL_LISTINGS'], $mapper->apiPayload($product)['productAttributes']['excludedDestinations']);
+        $product->business->update(['has_physical_location' => true]);
+        $this->assertCount(2, $mapper->apiPayload($product->fresh(['business', 'media']))['productAttributes']['excludedDestinations']);
+        $product->business->update(['google_business_store_code' => 'real-store']);
+        $this->assertSame([], $mapper->apiPayload($product->fresh(['business', 'media']))['productAttributes']['excludedDestinations']);
+        config()->set('services.google_merchant.local_inventory_enabled', false);
+        $this->assertCount(2, $mapper->apiPayload($product->fresh(['business', 'media']))['productAttributes']['excludedDestinations']);
+    }
+
     private function product(array $overrides = [], bool $withMedia = true): Product
     {
         static $counter = 0;

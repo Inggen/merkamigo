@@ -49,8 +49,18 @@
     @if ($primaryBusiness)
         <flux:sidebar.item icon="building-storefront" :href="route('emprendedores.negocios.vitrina', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.vitrina')" wire:navigate>{{ __('Mi vitrina') }}</flux:sidebar.item>
         <flux:sidebar.item icon="cube" :href="route('emprendedores.negocios.productos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.productos')" wire:navigate>{{ __('Productos') }}</flux:sidebar.item>
-        <flux:sidebar.item icon="sparkles" :href="route('emprendedores.negocios.merkapuntos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.merkapuntos')" wire:navigate>{{ __('Merkapuntos') }}</flux:sidebar.item>
-        <flux:sidebar.item icon="calendar-days" :href="route('emprendedores.negocios.eventos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.eventos')" wire:navigate>{{ __('Eventos') }}</flux:sidebar.item>
+        {{--
+            Pedido del usuario (2026-10-13): Merkapuntos requiere un plan
+            de pago (Emprendedor o Negocios) y Eventos es exclusivo de
+            Negocios — mismo patrón que "En vivo"/"Ventas" más abajo, el
+            ítem simplemente no aparece si el negocio no califica.
+        --}}
+        @if ($primaryBusiness->isOnPaidPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+            <flux:sidebar.item icon="sparkles" :href="route('emprendedores.negocios.merkapuntos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.merkapuntos')" wire:navigate>{{ __('Merkapuntos') }}</flux:sidebar.item>
+        @endif
+        @if ($primaryBusiness->isOnTopPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+            <flux:sidebar.item icon="calendar-days" :href="route('emprendedores.negocios.eventos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.eventos')" wire:navigate>{{ __('Eventos') }}</flux:sidebar.item>
+        @endif
     @else
         <flux:sidebar.item icon="building-storefront" :href="route('emprendedores.crear-vitrina')" :current="request()->routeIs('emprendedores.crear-vitrina')" wire:navigate>{{ __('Crear mi vitrina') }}</flux:sidebar.item>
     @endif

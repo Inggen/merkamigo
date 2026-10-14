@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Events;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
@@ -38,6 +40,14 @@ class EventsBusinessPanelTest extends TestCase
             'category_id' => $category->id,
         ])->business;
         $business->update(['status' => 'publicado']);
+
+        // Eventos es exclusivo del plan Negocios desde el 2026-10-13
+        // (antes abierto a cualquiera) — ver `⚡eventos.blade.php`.
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'negocios'],
+            ['name' => 'Negocios', 'price_cents' => 9900000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 2],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
 
         return [$business->fresh(), $owner];
     }

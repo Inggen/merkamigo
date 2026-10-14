@@ -101,7 +101,7 @@ new #[Title('Tu plan')] class extends Component {
     }
 }; ?>
 
-<section class="mx-auto w-full max-w-3xl space-y-10">
+<section class="mx-auto w-full max-w-6xl space-y-10">
     <div>
         <flux:heading size="xl">{{ __('Tu plan') }}</flux:heading>
         <flux:subheading>{{ __('Consulta tu plan actual, revisa su uso y elige la opción que mejor se adapte a tu negocio.') }}</flux:subheading>
@@ -452,7 +452,7 @@ new #[Title('Tu plan')] class extends Component {
         <flux:heading size="lg">{{ __('Comparar planes') }}</flux:heading>
         <flux:subheading class="mb-3">{{ __('Puedes cambiar de plan cuando lo necesites.') }}</flux:subheading>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-3">
             @foreach ($this->plans as $plan)
                 @php $isCurrent = $plan->id === $this->currentPlan->id; @endphp
                 <div @class([

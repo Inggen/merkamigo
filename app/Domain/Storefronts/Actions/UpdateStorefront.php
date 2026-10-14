@@ -4,6 +4,7 @@ namespace App\Domain\Storefronts\Actions;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant;
 use App\Domain\Storefronts\Models\Storefront;
 use App\Models\User;
 use App\Support\Media\MediaUploader;
@@ -101,6 +102,7 @@ class UpdateStorefront
                 );
             }
 
+            $merchantChanged = $business->isDirty(['name', 'category_id', 'has_physical_location', 'google_business_store_code']);
             $business->save();
 
             if (array_key_exists('payment_method_ids', $validated)) {
@@ -125,7 +127,13 @@ class UpdateStorefront
                 );
             }
 
+            $merchantChanged = $merchantChanged || $storefront->isDirty('description');
             $storefront->save();
+
+            if ($merchantChanged && config('services.google_merchant.enabled')) {
+                $business->products()->where('type', 'producto')->pluck('id')
+                    ->each(fn (int $id) => SyncProductToGoogleMerchant::dispatch($id)->afterCommit());
+            }
 
             app(RecordAuditLog::class)->handle($actor, 'business.updated', $business);
 

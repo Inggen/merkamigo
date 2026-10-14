@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Events;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
@@ -42,6 +44,23 @@ class ReservationEndToEndTest extends TestCase
             'category_id' => $category->id,
         ])->business;
         $business->update(['status' => 'publicado']);
+
+        // Eventos es exclusivo del plan Negocios desde el 2026-10-13
+        // (antes abierto a cualquiera) — ver `⚡eventos.blade.php`.
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'negocios'],
+            ['name' => 'Negocios', 'price_cents' => 9900000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 2],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
+        // `SubscribeToPlan::handle()` ya consultó `activePlan()` del
+        // propio `$business` (para el log de auditoría) ANTES de crear
+        // la suscripción nueva — eso cachea la relación `subscription`
+        // vacía en este objeto. `Livewire::test()` reutiliza este mismo
+        // objeto tal cual para el `mount()` del panel (no vuelve a
+        // consultarlo), así que sin este `fresh()` el panel seguiría
+        // viendo el plan "gratis" aunque la suscripción nueva ya esté
+        // en la base de datos.
+        $business = $business->fresh();
 
         BusinessVerification::create([
             'business_id' => $business->id,

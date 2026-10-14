@@ -52,6 +52,19 @@ class GoogleMerchantSellerPanelTest extends TestCase
         ]);
     }
 
+    public function test_seller_can_find_merchant_setup_and_identifier_help(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Tienda guiada'])->business;
+        $this->actingAs($owner);
+        Livewire::test('pages::emprendedores.negocios.productos', ['business' => $business->id])
+            ->assertSee('Tus productos en Google: configuración y ayuda')
+            ->assertSee('Cómo obtener el código de tienda')
+            ->assertSee('Revisar y sincronizar productos')
+            ->call('openCreate')
+            ->assertSee('Los números del código de barras del empaque');
+    }
+
     public function test_google_status_badge_is_hidden_when_business_has_google_shopping_disabled(): void
     {
         $owner = User::factory()->create();

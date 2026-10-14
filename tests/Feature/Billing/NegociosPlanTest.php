@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * Plan "Negocios" (2026-09-30): tercer nivel por encima de Emprendedor,
- * que a su vez dejó de tener productos ilimitados (ahora tope real de 20).
+ * que a su vez dejó de tener productos ilimitados (ahora tope real de 15).
  * `Business::isOnPaidPlan()` reemplazó la comparación literal del slug
  * 'emprendedor' precisamente para que Negocios herede los mismos perks
  * sin repetir la condición en cada sitio que la usaba. El asistente IA y
@@ -51,7 +51,7 @@ class NegociosPlanTest extends TestCase
         $this->assertTrue($business->fresh()->canUseAiChatbot());
     }
 
-    public function test_creating_more_than_twenty_products_on_the_emprendedor_plan_is_rejected(): void
+    public function test_creating_more_than_fifteen_products_on_the_emprendedor_plan_is_rejected(): void
     {
         $this->seed(PlanSeeder::class);
 
@@ -60,7 +60,7 @@ class NegociosPlanTest extends TestCase
 
         app(SubscribeToPlan::class)->handle($business, Plan::where('slug', 'emprendedor')->firstOrFail(), $owner);
 
-        for ($i = 0; $i < 20; $i++) {
+        for ($i = 0; $i < 15; $i++) {
             app(CreateProduct::class)->handle($business->fresh(), [
                 'name' => "Producto {$i}", 'type' => 'producto', 'price_type' => 'consultar',
             ], [], $owner);
@@ -69,7 +69,7 @@ class NegociosPlanTest extends TestCase
         $this->expectException(PlanLimitException::class);
 
         app(CreateProduct::class)->handle($business->fresh(), [
-            'name' => 'Producto 21', 'type' => 'producto', 'price_type' => 'consultar',
+            'name' => 'Producto 16', 'type' => 'producto', 'price_type' => 'consultar',
         ], [], $owner);
     }
 }

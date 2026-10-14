@@ -128,6 +128,13 @@ new #[Title('Merkapuntos')] class extends Component
 
         $this->authorize('view', $business);
 
+        // Pedido del usuario (2026-10-13): Merkapuntos pasa a requerir un
+        // plan de pago (Emprendedor o Negocios) — antes accesible desde
+        // cualquier plan, incluido Básico. Mismo patrón que el resto de
+        // paneles con `isOnPaidPlan()` (ver `⚡ventas.blade.php`,
+        // `⚡cobros-en-linea.blade.php`, `⚡copiloto.blade.php`).
+        abort_unless($business->isOnPaidPlan() || (Auth::user()?->canBypassPlanGates() ?? false), 403);
+
         $this->businessId = $business->id;
     }
 

@@ -150,6 +150,12 @@ new #[Title('Eventos')] class extends Component
 
         $this->authorize('view', $business);
 
+        // Pedido del usuario (2026-10-13): Eventos pasa a ser exclusivo
+        // del plan Negocios (`isOnTopPlan()`) — antes accesible desde
+        // cualquier plan, incluidos Básico y Emprendedor. Mismo patrón
+        // que `⚡lives.blade.php` ("En vivo").
+        abort_unless($business->isOnTopPlan() || (Auth::user()?->canBypassPlanGates() ?? false), 403);
+
         $this->businessId = $business->id;
 
         $settings = $business->eventSetting;
@@ -854,16 +860,6 @@ new #[Title('Eventos')] class extends Component
                     </div>
 
                     <div class="p-6">
-
-                    @unless ($this->business->isOnPaidPlan())
-                        <div class="mb-4 flex items-start gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                            <flux:icon.information-circle class="mt-0.5 size-4 shrink-0" variant="outline" />
-                            <span>
-                                {{ __('En la agenda pública, los eventos de negocios en Emprendedor o Negocios aparecen primero dentro de un mismo día.') }}
-                                <flux:link :href="route('emprendedores.negocios.plan', $this->business)" wire:navigate class="font-medium">{{ __('Ver planes') }}</flux:link>
-                            </span>
-                        </div>
-                    @endunless
 
                     @if ($this->publicEvents->isEmpty())
                         <x-states.empty :title="__('Todavía no has creado eventos públicos')" :description="__('Crea tu primer evento para que aparezca en la agenda de Merkamigo.')" />

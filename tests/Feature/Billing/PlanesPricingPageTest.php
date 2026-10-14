@@ -30,10 +30,10 @@ class PlanesPricingPageTest extends TestCase
             ->assertSee('$0 COP')
             ->assertSee('$49.900 COP')
             ->assertSee('$99.000 COP')
-            // Ninguno de los 3 planes tiene productos ilimitados hoy — 50
+            // Ninguno de los 3 planes tiene productos ilimitados hoy — 40
             // (Negocios) es el tope más alto.
-            ->assertSee('50')
-            ->assertSee('20');
+            ->assertSee('40')
+            ->assertSee('15');
     }
 
     /**

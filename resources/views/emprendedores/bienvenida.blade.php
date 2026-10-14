@@ -7,8 +7,12 @@
 
 <x-layouts::public :title="__('Crear una vitrina digital')" :description="__('Crea gratis tu vitrina digital en Merkamigo y conecta con personas de tu comunidad.')" :canonical="route('emprendedores.bienvenida')" :schema-graph="$schemaGraph">
     <div class="entrepreneur-welcome">
-        <section class="welcome-hero" aria-labelledby="welcome-title">
-            <img class="welcome-hero-image" src="{{ asset('images/emprendedores/bienvenida-hero.jpg') }}" alt="{{ __('Emprendedora en su pastelería con una vitrina digital') }}" fetchpriority="high">
+        <section class="welcome-hero" aria-labelledby="welcome-title"
+            x-data="{ parallaxOffset: 0, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)') }"
+            x-init="parallaxOffset = reducedMotion.matches ? 0 : Math.min(60, Math.max(0, window.scrollY * 0.15))"
+            x-on:scroll.window.passive="parallaxOffset = reducedMotion.matches ? 0 : Math.min(60, Math.max(0, window.scrollY * 0.15))">
+
+            <img x-bind:style="`transform: translateY(${parallaxOffset}px)`" class="welcome-hero-image" src="{{ asset('images/emprendedores/bienvenida-hero.jpg') }}" alt="{{ __('Emprendedora en su pastelería con una vitrina digital') }}" fetchpriority="high">
             <div class="welcome-container welcome-hero-content">
                 <p class="welcome-eyebrow">{{ __('Compra, vende y apoya lo local') }}</p>
                 <h1 id="welcome-title">{{ __('Tu negocio local,') }}<br><span>{{ __('más cerca de todos') }}</span></h1>

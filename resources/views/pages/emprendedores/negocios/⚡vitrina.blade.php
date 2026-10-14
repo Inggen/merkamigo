@@ -171,6 +171,12 @@ new #[Title('Editar mi vitrina')] class extends Component
     }
 
     #[Computed]
+    public function merchantChecklist(): array
+    {
+        return app(\App\Support\GoogleMerchant\GoogleMerchantProductValidator::class)->businessChecklist($this->business);
+    }
+
+    #[Computed]
     public function business(): Business
     {
         return Business::with('storefront')->findOrFail($this->businessId);
@@ -893,6 +899,7 @@ new #[Title('Editar mi vitrina')] class extends Component
                 <flux:input wire:model.live.debounce.900ms="zone" :label="__('Zona o barrio')" />
                 <flux:input wire:model.live.debounce.900ms="address" :label="__('Dirección (opcional)')" />
 
+                <x-google-merchant-guide :checks="$this->merchantChecklist" />
                 <div class="space-y-2 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
                     <flux:checkbox wire:model.live="has_physical_location" :label="__('Tengo un local físico donde los clientes pueden ver o recoger productos')" />
 
@@ -900,10 +907,10 @@ new #[Title('Editar mi vitrina')] class extends Component
                         <flux:input
                             wire:model.live.debounce.900ms="google_business_store_code"
                             :label="__('Código de tienda de tu Perfil de Empresa de Google (opcional)')"
-                            placeholder="{{ __('Ej: 12345') }}"
+                            placeholder="{{ __('Copia el código asignado a tu tienda en Google') }}"
                         />
                         <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ __('Solo si ya vinculaste tu propio Perfil de Empresa de Google (no el de Merkamigo) a Merchant Center. Déjalo vacío si todavía no lo tienes — no afecta la publicación de tus productos en Google Shopping.') }}
+                            {{ __('Este código identifica tu tienda física en tu Perfil de Empresa de Google; no es el ID de Merchant Center, el código del producto, la dirección ni el enlace de Maps. Abre los ajustes avanzados de tu Perfil de Empresa y copia su código de tienda. Si no existe, configúralo en Google y solicita a soporte vincular ese perfil con Merchant Center. Déjalo vacío mientras tanto: tu catálogo online se gestiona por separado.') }}
                         </flux:text>
 
                         <flux:textarea

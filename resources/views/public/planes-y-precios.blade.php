@@ -30,15 +30,18 @@
     // candados reales del código (`Business::isOnPaidPlan()`/
     // `isOnTopPlan()`, ver `⚡copiloto.blade.php`, `⚡cobros-en-linea.blade.php`,
     // `⚡ventas.blade.php`, `⚡lives.blade.php`, `⚡metricas.blade.php`,
+    // `⚡merkapuntos.blade.php`, `⚡eventos.blade.php`,
     // `Business::canUseAiChatbot()`) — si esos candados cambian, esta tabla
     // hay que actualizarla a mano.
     $qualitativeRows = [
         __('Copiloto de WhatsApp') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
         __('Cobros en línea (Wompi propio)') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
         __('Ver ventas pagadas en línea') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
+        __('Merkapuntos (programa de fidelización)') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
         __('Asistente IA (vitrina, descripciones, fotos, chatbot)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
         __('En vivo (Live Commerce)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
         __('Métricas avanzadas (90 días + exportar CSV)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
+        __('Eventos (agenda pública y reservas)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
     ];
 
     $schemaGraph = [

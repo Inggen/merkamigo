@@ -3,3 +3,30 @@
 @media(min-width:1500px){.welcome-hero{min-height:450px}}
 @media(max-width:1000px){.welcome-hero h1{max-width:55%;font-size:43px}.welcome-intro{max-width:46%;font-size:16px}.welcome-assurances{max-width:55%;gap:10px}.welcome-benefit-grid{gap:14px}.welcome-benefit{padding:15px}.welcome-tools-grid{grid-template-columns:1fr 1.3fr 1fr;gap:15px}.welcome-feature{gap:10px}.welcome-feature .welcome-icon{width:45px;height:45px}.welcome-feature p{font-size:11px}}
 @media(max-width:700px){.welcome-container{width:calc(100% - 36px)}.welcome-hero{min-height:650px;align-items:flex-start}.welcome-hero-image{height:310px;top:auto;bottom:0;object-position:78% center}.welcome-hero-content{padding-top:30px}.welcome-hero h1{max-width:none;font-size:42px}.welcome-intro{max-width:none;font-size:16px}.welcome-assurances{max-width:none;gap:12px;font-size:10px}.welcome-cta{font-size:15px;min-height:48px;padding-inline:24px}.welcome-benefit-grid{grid-template-columns:1fr}.welcome-benefit{min-height:170px}.welcome-benefit-photo{background-position:left center}.welcome-tools{padding-top:30px}.welcome-tools-grid{grid-template-columns:1fr;gap:25px}.welcome-device-preview{grid-row:1;width:min(430px,100%);margin:auto}.welcome-feature-list{gap:18px}.welcome-feature .welcome-icon{width:58px;height:58px}.welcome-feature h3{font-size:15px}.welcome-feature p{font-size:14px}.welcome-bottom-cta{margin-top:24px}.welcome-tools-heading>p:last-child{font-size:14px}}
+
+/* Reserva para el desplazamiento del fondo sin descubrir los bordes. */
+.welcome-hero-image{top:-60px;height:calc(100% + 120px)}
+@media(max-width:700px){.welcome-hero-image{top:auto;bottom:-60px;height:430px}}
+
+/*
+   Pedido del usuario (2026-10-13): "mejora la vista en versión móvil"
+   de /emprendedores/bienvenida. En escritorio la foto trae un degradado
+   claro integrado del lado izquierdo (donde vive todo el texto), así
+   que el texto siempre queda sobre una zona clara. En móvil el diseño
+   original superponía el texto sobre una franja inferior de esa misma
+   foto (posición absoluta, altura fija de 430px arrancando a 280px del
+   tope) — pero la foto ahí NO tiene ese degradado claro, y ni bien el
+   texto crecía un poco más de lo previsto (checklist de confianza, o
+   el párrafo de intro envolviendo una línea de más en un iPhone
+   angosto) terminaba encima de la foto, ilegible. Perseguir a pixel el
+   punto exacto donde debía empezar la imagen para caber cualquier
+   combinación de idioma/ancho/zoom es frágil — en vez de eso, en móvil
+   el texto y la foto ahora van en flujo normal, uno debajo del otro
+   (la foto se reordena visualmente debajo con `order`, sin tocar el
+   HTML): así nunca se superponen sin importar cuánto crezca el texto.
+*/
+@media(max-width:700px){
+    .welcome-hero{flex-direction:column;overflow:visible;min-height:0}
+    .welcome-hero-content{order:1}
+    .welcome-hero-image{order:2;position:relative;inset:auto;top:0;bottom:auto;width:100%;height:240px}
+}
