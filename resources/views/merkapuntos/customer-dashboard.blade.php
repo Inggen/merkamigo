@@ -6,41 +6,53 @@
     $goalAvailable = $goal?->available ?? 0;
     $goalMissing = $goal ? $goal->missing : ($goalReward?->points_cost ?? 0);
     $goalProgress = $goal?->progress ?? 0;
+
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->merkapuntosBannerUrl() ?? asset('images/backgrounds/fondo_merkapuntos_banner.webp');
+    $bannerTitle = $siteSetting->merkapuntos_banner_title ?: __('Tu próxima compra puede acercarte a una recompensa.');
+    $bannerDescription = $siteSetting->merkapuntos_banner_description ?: __('Elige lo que te gustaría disfrutar y empieza a acumular comprando cerca de ti.');
 @endphp
 
 <section class="min-h-screen bg-[#f7f7f5] text-zinc-950 dark:bg-[#101315] dark:text-white">
-    <div class="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
-        <header class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-[0.65rem] font-bold uppercase tracking-[0.34em] text-zinc-500 dark:text-zinc-400">{{ __('Merkamigo Premia') }}</p>
-                <h1 class="mt-1 text-3xl font-black tracking-tight sm:text-4xl">{{ __('Merkapuntos') }}</h1>
-                <p class="mt-1 text-base text-zinc-500 dark:text-zinc-400">{{ __('Tus compras de siempre, con algo más para ti.') }}</p>
-            </div>
+    <section
+        x-data="{ parallaxOffset: 0 }"
+        x-on:scroll.window.passive="parallaxOffset = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : Math.min(60, Math.max(0, window.scrollY * 0.15))"
+        class="relative isolate min-h-[410px] sm:min-h-[390px]"
+        aria-labelledby="merkapuntos-title"
+    >
+        <div class="absolute inset-0 overflow-hidden">
+            <div
+                class="absolute inset-0 scale-110 bg-cover bg-no-repeat will-change-transform"
+                x-bind:style="`background-image: linear-gradient(90deg, rgba(9, 9, 11, .82) 0%, rgba(9, 9, 11, .52) 38%, rgba(9, 9, 11, .1) 72%), url('{{ $bannerImage }}'); background-position: center calc(50% + ${parallaxOffset}px);`"
+            ></div>
+        </div>
 
-            <flux:button variant="primary" icon="qr-code" class="w-full sm:w-auto" x-on:click="$flux.modal('mi-qr').show()">
-                {{ __('Mostrar mi QR') }}
-            </flux:button>
-        </header>
-
-        <div class="relative isolate overflow-hidden rounded-3xl bg-[#2b0b0d] px-6 py-8 text-white shadow-xl shadow-brand-950/15 sm:px-9 lg:min-h-64 lg:px-10 lg:py-9">
-            <img
-                src="{{ asset('images/backgrounds/fondo_merkapuntos_banner.webp') }}"
-                class="absolute inset-0 -z-20 size-full object-cover object-center"
-                alt=""
-                aria-hidden="true"
-            >
-            <span class="absolute inset-0 -z-10 bg-gradient-to-r from-black/60 via-[#5f0b21]/35 to-black/5"></span>
-
-            <div class="max-w-xl">
-                <h2 class="text-3xl font-black leading-tight tracking-tight sm:text-4xl">{{ __('Tu próxima compra puede acercarte a una recompensa.') }}</h2>
-                <p class="mt-3 max-w-md text-base leading-6 text-white/85">{{ __('Elige lo que te gustaría disfrutar y empieza a acumular comprando cerca de ti.') }}</p>
-                <a href="#recompensas" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-100">
-                    {{ __('Descubrir recompensas') }}
-                    <flux:icon.arrow-right class="size-4" variant="outline" />
-                </a>
+        <div class="relative z-10 mx-auto flex min-h-[410px] max-w-7xl items-center px-4 pb-20 pt-10 sm:min-h-[390px] sm:px-6 lg:px-8">
+            <div class="max-w-2xl text-white">
+                <p class="text-[0.65rem] font-bold uppercase tracking-[0.34em] text-white/80">{{ __('Merkamigo Premia') }}</p>
+                <h1 id="merkapuntos-title" class="mt-2 text-4xl font-black tracking-tight drop-shadow-lg sm:text-5xl lg:text-6xl">{{ __('Merkapuntos') }}</h1>
+                <p class="mt-3 text-base text-white/90 sm:text-lg">{{ __('Tus compras de siempre, con algo más para ti.') }}</p>
+                <h2 class="mt-5 max-w-xl text-2xl font-black leading-tight tracking-tight drop-shadow sm:text-3xl">{{ $bannerTitle }}</h2>
+                <p class="mt-3 max-w-xl text-base leading-6 text-white/95 drop-shadow sm:text-lg">{{ $bannerDescription }}</p>
             </div>
         </div>
 
+        <div class="absolute inset-x-0 bottom-0 z-10 translate-y-1/2 px-4 sm:px-6">
+            <div class="mx-auto flex max-w-7xl flex-col gap-3 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700 dark:bg-zinc-900">
+                <a href="#recompensas" class="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-100 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/15">
+                    {{ __('Descubrir recompensas') }}
+                    <flux:icon.arrow-right class="size-4" variant="outline" />
+                </a>
+                <flux:button variant="primary" icon="qr-code" class="w-full sm:w-auto" x-on:click="$flux.modal('mi-qr').show()">
+                    {{ __('Mostrar mi QR') }}
+                </flux:button>
+            </div>
+        </div>
+    </section>
+
+    <div class="mx-auto w-full max-w-7xl px-4 pb-7 pt-24 sm:px-6 sm:pt-16 lg:px-8 lg:pb-9">
         @if ($this->activeRedemptions->isNotEmpty())
             <div class="mt-4 space-y-3">
                 @foreach ($this->activeRedemptions as $redemption)

@@ -16,6 +16,7 @@ class Storefront extends Model
         'cover_path',
         'cover_alt_text',
         'stand_color',
+        'product_view_style',
         'show_posts',
         'show_reels',
         'google_maps_embed_url',

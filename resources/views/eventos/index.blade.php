@@ -1,6 +1,15 @@
 @php
     $pageTitle = __('Eventos cerca de ti');
     $pageDescription = __('Descubre eventos de negocios locales en Merkamigo: música en vivo, talleres, mercados y más.');
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    // Sin nada cargado, se conserva el diseño original (título en dos
+    // colores) — un título personalizado se muestra en un solo color.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->eventosBannerUrl() ?? asset('images/backgrounds/fondo_banner_eventos.webp');
+    $bannerTitle = $siteSetting->eventos_banner_title;
+    $bannerDescription = $siteSetting->eventos_banner_description
+        ?: __('Descubre experiencias de negocios locales: música en vivo, talleres, mercados y más.');
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb([
             ['name' => __('Inicio'), 'url' => route('home')],
@@ -44,17 +53,21 @@
         <div class="absolute inset-0 overflow-hidden">
             <div
                 class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
-                x-bind:style="`background-image: linear-gradient(90deg, rgba(9, 9, 11, .82) 0%, rgba(9, 9, 11, .52) 38%, rgba(9, 9, 11, .1) 72%), url('{{ asset('images/backgrounds/fondo_banner_eventos.webp') }}'); background-position: center calc(50% + ${parallaxOffset}px);`"
+                x-bind:style="`background-image: linear-gradient(90deg, rgba(9, 9, 11, .82) 0%, rgba(9, 9, 11, .52) 38%, rgba(9, 9, 11, .1) 72%), url('{{ $bannerImage }}'); background-position: center calc(50% + ${parallaxOffset}px);`"
             ></div>
         </div>
 
         <div class="relative z-10 mx-auto flex min-h-[350px] max-w-7xl items-center px-4 pb-16 pt-10 sm:min-h-[390px] sm:px-6 lg:px-8">
             <div class="max-w-2xl text-white">
                 <h1 class="text-4xl font-black tracking-tight drop-shadow-lg sm:text-5xl lg:text-6xl">
-                    {{ __('Eventos') }} <span class="text-red-400">{{ __('cerca de ti') }}</span>
+                    @if ($bannerTitle)
+                        {{ $bannerTitle }}
+                    @else
+                        {{ __('Eventos') }} <span class="text-red-400">{{ __('cerca de ti') }}</span>
+                    @endif
                 </h1>
                 <p class="mt-4 max-w-xl text-lg leading-7 text-white/95 drop-shadow sm:text-xl">
-                    {{ __('Descubre experiencias de negocios locales: música en vivo, talleres, mercados y más.') }}
+                    {{ $bannerDescription }}
                 </p>
             </div>
 

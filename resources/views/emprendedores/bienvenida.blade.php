@@ -3,6 +3,13 @@
         ['name' => __('Inicio'), 'url' => route('home')],
         ['name' => __('Crear vitrina')],
     ])];
+
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->bienvenidaBannerUrl() ?? asset('images/emprendedores/bienvenida-hero.jpg');
+    $bannerTitle = $siteSetting->bienvenida_banner_title;
+    $bannerDescription = $siteSetting->bienvenida_banner_description ?: __('Crea tu vitrina digital en minutos, muestra lo que vendes y conecta con personas de tu comunidad.');
 @endphp
 
 <x-layouts::public :title="__('Crear una vitrina digital')" :description="__('Crea gratis tu vitrina digital en Merkamigo y conecta con personas de tu comunidad.')" :canonical="route('emprendedores.bienvenida')" :schema-graph="$schemaGraph">
@@ -12,11 +19,17 @@
             x-init="parallaxOffset = reducedMotion.matches ? 0 : Math.min(60, Math.max(0, window.scrollY * 0.15))"
             x-on:scroll.window.passive="parallaxOffset = reducedMotion.matches ? 0 : Math.min(60, Math.max(0, window.scrollY * 0.15))">
 
-            <img x-bind:style="`transform: translateY(${parallaxOffset}px)`" class="welcome-hero-image" src="{{ asset('images/emprendedores/bienvenida-hero.jpg') }}" alt="{{ __('Emprendedora en su pastelería con una vitrina digital') }}" fetchpriority="high">
+            <img x-bind:style="`transform: translateY(${parallaxOffset}px)`" class="welcome-hero-image" src="{{ $bannerImage }}" alt="{{ __('Emprendedora en su pastelería con una vitrina digital') }}" fetchpriority="high">
             <div class="welcome-container welcome-hero-content">
                 <p class="welcome-eyebrow">{{ __('Compra, vende y apoya lo local') }}</p>
-                <h1 id="welcome-title">{{ __('Tu negocio local,') }}<br><span>{{ __('más cerca de todos') }}</span></h1>
-                <p class="welcome-intro">{{ __('Crea tu vitrina digital en minutos, muestra lo que vendes y conecta con personas de tu comunidad.') }}</p>
+                <h1 id="welcome-title">
+                    @if ($bannerTitle)
+                        {{ $bannerTitle }}
+                    @else
+                        {{ __('Tu negocio local,') }}<br><span>{{ __('más cerca de todos') }}</span>
+                    @endif
+                </h1>
+                <p class="welcome-intro">{{ $bannerDescription }}</p>
                 <a class="welcome-cta" href="{{ url('/emprendedores') }}" wire:navigate>{{ __('Crear mi vitrina gratis') }} <flux:icon.arrow-right class="size-5" /></a>
                 <ul class="welcome-assurances">
                     @foreach (['Fácil de usar', 'Sin costos iniciales', 'Lista en 5 minutos'] as $assurance)

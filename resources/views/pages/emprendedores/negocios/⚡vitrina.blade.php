@@ -102,6 +102,8 @@ new #[Title('Editar mi vitrina')] class extends Component
 
     public ?string $stand_color = null;
 
+    public string $product_view_style = 'classic';
+
     public bool $show_posts = true;
 
     public bool $show_reels = true;
@@ -155,6 +157,7 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->logo_alt_text = $business->logo_alt_text;
         $this->cover_alt_text = $business->storefront?->cover_alt_text;
         $this->stand_color = $business->storefront?->stand_color;
+        $this->product_view_style = $business->storefront?->product_view_style ?? 'classic';
         $this->show_posts = $business->storefront?->show_posts ?? true;
         $this->show_reels = $business->storefront?->show_reels ?? true;
         $this->hours_text = $business->hoursNote() ?? '';
@@ -215,6 +218,7 @@ new #[Title('Editar mi vitrina')] class extends Component
             'logo_alt_text' => ['nullable', 'string', 'max:255'],
             'cover_alt_text' => ['nullable', 'string', 'max:255'],
             'stand_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'product_view_style' => ['required', 'in:classic,elegant'],
             'show_posts' => ['boolean'],
             'show_reels' => ['boolean'],
         ];
@@ -793,6 +797,13 @@ new #[Title('Editar mi vitrina')] class extends Component
             </div>
 
             <div x-show="section === 'contenido'" x-cloak class="space-y-6">
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <flux:select wire:model.live="product_view_style" :label="__('Vista de los productos')">
+                        <flux:select.option value="classic">{{ __('Clásica') }}</flux:select.option>
+                        <flux:select.option value="elegant">{{ __('Elegante') }}</flux:select.option>
+                    </flux:select>
+                    <flux:text class="mt-2 text-sm text-zinc-500">{{ __('Clásica conserva la galería y la información en columnas. Elegante muestra las fotos y el video como fondo, con información y controles sobre una capa de contraste. Se aplica a todos los productos de esta vitrina.') }}</flux:text>
+                </div>
                 <div>
                     <flux:heading size="lg">{{ __('Contenido de la vitrina') }}</flux:heading>
                     <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">

@@ -29,7 +29,7 @@ class UpdateStorefront
 
     private const STOREFRONT_FIELDS = [
         'headline', 'description', 'cover_alt_text', 'stand_color',
-        'show_posts', 'show_reels', 'google_maps_embed_url',
+        'show_posts', 'show_reels', 'google_maps_embed_url', 'product_view_style',
     ];
 
     /**
@@ -62,6 +62,7 @@ class UpdateStorefront
             'payment_method_ids.*' => ['integer', 'exists:payment_methods,id'],
             'headline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
+            'product_view_style' => ['sometimes', 'required', 'in:classic,elegant'],
             'show_posts' => ['sometimes', 'boolean'],
             'show_reels' => ['sometimes', 'boolean'],
             'google_maps_embed_url' => [

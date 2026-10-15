@@ -37,10 +37,6 @@
         :near="$near"
         :radius-km="$radiusKm"
         :show-immersive-cta="$selectedMunicipality !== null"
-        :title="__('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad')"
-        :description="$selectedMunicipality
-            ? __('Mostrando :municipio. Apoya negocios de tu area y encuentra lo que necesitas, cerca de ti.', ['municipio' => $selectedMunicipality->name])
-            : __('Miles de negocios, productos y servicios cerca de ti.')"
     />
 
     <div class="relative z-20 mx-auto -mt-10 max-w-7xl px-6 pb-8">

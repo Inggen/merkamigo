@@ -169,6 +169,15 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
     }
 }; ?>
 
+@php
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->pideloBannerUrl() ?? asset('images/backgrounds/fondo_banner_pidelo.webp');
+    $bannerTitle = $siteSetting->pidelo_banner_title;
+    $bannerDescription = $siteSetting->pidelo_banner_description ?: __('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.');
+@endphp
+
 <div>
     {{-- Pedido del usuario: la imagen va al ancho completo del
          navegador (full-bleed, fuera del contenedor del contenido);
@@ -186,7 +195,7 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
     >
         <div
             class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
-            x-bind:style="`background-image: url('{{ asset('images/backgrounds/fondo_banner_pidelo.webp') }}'); background-position-x: left; background-position-y: calc(${parallaxOffset}px);`"
+            x-bind:style="`background-image: url('{{ $bannerImage }}'); background-position-x: left; background-position-y: calc(${parallaxOffset}px);`"
         ></div>
 
         <div class="relative z-10 mx-auto flex h-full max-w-7xl items-center px-6 py-6 lg:px-8">
@@ -197,10 +206,14 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
                 </div>
 
                 <flux:heading class="mt-3 text-2xl font-black leading-tight tracking-tight text-zinc-950 sm:text-3xl lg:text-4xl">
-                    {{ __('Cuéntanos') }} <span class="text-brand-600">{{ __('qué necesitas') }}</span>
+                    @if ($bannerTitle)
+                        {{ $bannerTitle }}
+                    @else
+                        {{ __('Cuéntanos') }} <span class="text-brand-600">{{ __('qué necesitas') }}</span>
+                    @endif
                 </flux:heading>
                 <flux:text class="mt-2 text-sm leading-6 text-zinc-600 sm:mt-3 sm:text-base sm:leading-7">
-                    {{ __('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.') }}
+                    {{ $bannerDescription }}
                 </flux:text>
 
                 @if ($savedAt)

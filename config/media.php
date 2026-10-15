@@ -212,6 +212,36 @@ return [
         'max_files' => 1,
     ],
 
+    'site_eventos_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_merkapuntos_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_premia_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_pidelo_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_bienvenida_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
     'site_logo' => [
         'mimes' => ['png', 'svg', 'webp'],
         'max_kb' => 1024,

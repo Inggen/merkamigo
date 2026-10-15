@@ -119,7 +119,7 @@
             </div>
 
             <aside class="space-y-3">
-                <section class="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <section class="rounded-2xl border border-rose-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex items-start justify-between gap-3">
                         <h1 class="min-w-0 text-2xl font-bold tracking-tight text-zinc-950 dark:text-white">{{ $reward->title }}</h1>
                         <x-owner-edit-link
@@ -241,69 +241,14 @@
                         @endif
                     </div>
                 </div>
-
-                <div class="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                    <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="mb-3 flex items-center gap-3">
-                        <flux:avatar :src="$business->logoUrl()" :name="$business->name" size="sm" />
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-zinc-900 dark:text-white">
-                                {{ $business->name }}
-                                @if ($business->hasVerifiedBadge())
-                                    <flux:icon.check-badge class="inline size-4 text-brand-600 dark:text-brand-300" variant="solid" />
-                                @endif
-                            </p>
-                            @if ($business->category)
-                                <p class="truncate text-xs text-zinc-500">{{ $business->category->name }}</p>
-                            @endif
-                            @if ($business->municipality)
-                                <p class="flex items-center gap-1 truncate text-xs text-zinc-500">
-                                    <flux:icon.map-pin class="size-3.5 shrink-0" variant="outline" />
-                                    {{ $business->municipality->name }}
-                                </p>
-                            @endif
-                        </div>
-                        <flux:icon.chevron-right class="size-4 shrink-0 text-zinc-300" variant="outline" />
-                    </a>
-
-                    <div class="flex items-center gap-2">
-                        <flux:button :href="route('vitrinas.show', $business)" variant="ghost" class="flex-1" wire:navigate>
-                            {{ __('Ver perfil del negocio') }}
-                        </flux:button>
-                        <livewire:favorite-button :favoritable="$business" :compact="true" :key="'favorite-business-'.$business->id" />
-                        <div x-data="{ shareSupported: typeof navigator !== 'undefined' && !! navigator.share }">
-                            <button
-                                type="button"
-                                x-show="shareSupported"
-                                x-on:click="navigator.share({ title: @js($reward->title), text: @js($reward->title.' · '.$business->name), url: @js(route('premia.show', $reward)) }).catch(() => {})"
-                                class="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300"
-                                aria-label="{{ __('Compartir') }}"
-                            >
-                                <flux:icon.share class="size-4" variant="outline" />
-                            </button>
-                            <button
-                                type="button"
-                                x-show="! shareSupported"
-                                x-cloak
-                                x-on:click="navigator.clipboard.writeText(@js(route('premia.show', $reward))); $flux.toast(@js(__('Enlace copiado')))"
-                                class="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300"
-                                aria-label="{{ __('Copiar enlace') }}"
-                            >
-                                <flux:icon.share class="size-4" variant="outline" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 dark:bg-amber-500/10">
-                        <p class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                            <flux:icon.trophy class="size-4" variant="solid" />
-                            {{ __('Este negocio participa en Merkapuntos') }}
-                        </p>
-                        <p class="mt-1 text-xs leading-5 text-amber-900/75 dark:text-amber-200/80">
-                            {{ __('Acumula puntos con tus compras y canjéalos por productos y beneficios exclusivos.') }}
-                        </p>
-                    </div>
-                </div>
             </aside>
+        </div>
+
+        <div class="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 dark:bg-amber-500/10">
+            <p class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <flux:icon.trophy class="size-4" variant="solid" />
+                {{ __('Acumula puntos con tus compras y canjéalos por productos y beneficios exclusivos.') }}
+            </p>
         </div>
 
         @if ($related->isNotEmpty())
