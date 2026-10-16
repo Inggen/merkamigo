@@ -141,7 +141,16 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->businessId = $business->id;
         $this->name = $business->name;
         $this->whatsapp_number = $business->whatsapp_number;
-        $this->contact_channel = $business->contact_channel ?? 'merkamigo';
+        // Pedido del usuario (2026-10-15): un negocio real en producción
+        // tenía guardado un valor de `contact_channel` que ya no es
+        // válido (de antes de que existiera esta lista cerrada de
+        // opciones) — el autoguardado de CUALQUIER campo de la vitrina
+        // fallaba en silencio porque este valor no pasaba la validación,
+        // sin importar qué campo editara el dueño. `??` solo cubría el
+        // caso NULL, no un valor heredado que ya no es válido.
+        $this->contact_channel = in_array($business->contact_channel, ['merkamigo', 'whatsapp', 'phone', 'external_link'], true)
+            ? $business->contact_channel
+            : 'merkamigo';
         $this->municipality_id = $business->municipality_id;
         $this->additional_municipality_ids = $business->municipalities->pluck('id')->all();
         $this->category_id = $business->category_id;
@@ -303,6 +312,19 @@ new #[Title('Editar mi vitrina')] class extends Component
         $validator = Validator::make($this->only(array_keys($this->rules())), $this->rules());
 
         if ($validator->fails()) {
+            // Pedido del usuario (2026-10-15): este autoguardado fallaba
+            // en silencio (sin log, sin aviso) — así se encontró que un
+            // negocio real en producción tenía un `contact_channel`
+            // heredado que ya no es válido, y bloqueaba el autoguardado
+            // de CUALQUIER campo de la vitrina sin dar ninguna pista. En
+            // vez de tragarnos el error, se lo mostramos al dueño —
+            // generalmente le toca corregir el campo dueño del error
+            // antes de que el campo que sí quería cambiar se guarde.
+            Flux::toast(
+                variant: 'danger',
+                text: __('No se guardó: :error', ['error' => $validator->errors()->first()]),
+            );
+
             return;
         }
 

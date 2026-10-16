@@ -155,6 +155,35 @@ class StorefrontEditorTest extends TestCase
         $this->assertSame('Frase corta autoguardada', $business->fresh()->storefront->headline);
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-10-15): un negocio en
+     * producción tenía guardado un `contact_channel` heredado de antes
+     * de que existiera esta lista cerrada de opciones (`Rule::in`). El
+     * autoguardado valida TODOS los campos juntos en cada edición — con
+     * ese valor inválido cargado, el autoguardado fallaba en silencio
+     * (sin aviso, sin log) para cualquier campo que el dueño editara, no
+     * solo para `contact_channel`. El mount ya protegía contra NULL con
+     * `??`, pero no contra un valor heredado no-NULL que ya no es válido.
+     */
+    public function test_a_legacy_invalid_contact_channel_does_not_block_autosaving_other_fields(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, [
+            'name' => 'Negocio Canal Heredado',
+            'whatsapp_number' => '+573001112233',
+        ])->business;
+        $business->update(['contact_channel' => 'email']);
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.vitrina', ['business' => $business->id])
+            ->assertSet('contact_channel', 'merkamigo')
+            ->set('headline', 'Frase corta autoguardada')
+            ->assertSet('savedAt', fn ($savedAt) => $savedAt !== null);
+
+        $this->assertSame('Frase corta autoguardada', $business->fresh()->storefront->headline);
+    }
+
     public function test_owner_can_set_alt_text_for_the_logo_and_cover(): void
     {
         $owner = User::factory()->create();

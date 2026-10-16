@@ -54,7 +54,7 @@ class ProductViewStyleTest extends TestCase
         $business->storefront->update(['product_view_style' => 'elegant']);
         $this->get($url)->assertOk()->assertSee('elegant-product-hero', false)
             ->assertSee('tests/white.jpg')->assertSee('tests/black.jpg')->assertSee('tests/video.mp4')
-            ->assertSee('Cantidad')->assertSee('Información de pago')->assertSee('Reseñas')
+            ->assertSee('Cantidad')->assertSee('Medios de pago')->assertSee('Reseñas')
             ->assertSee('Aceptamos pago en efectivo.')->assertSee('Ver tienda');
     }
 
