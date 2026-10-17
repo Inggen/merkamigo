@@ -18,6 +18,21 @@
             </div>
         </div>
 
+        {{--
+            Pedido del usuario (2026-10-17): la barra inferior móvil
+            también debe verse en login/registro para quien aún no ha
+            iniciado sesión.
+        --}}
+        @if (\App\Support\Navigation\ClientBottomNav::visible())
+            <div
+                data-mobile-bottom-nav-reserve
+                class="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden"
+                aria-hidden="true"
+            ></div>
+
+            <x-cliente-bottom-nav />
+        @endif
+
         @persist('toast')
             <flux:toast.group>
                 <flux:toast />

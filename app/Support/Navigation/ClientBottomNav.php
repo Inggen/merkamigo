@@ -2,9 +2,6 @@
 
 namespace App\Support\Navigation;
 
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-
 /**
  * Única fuente de verdad de "¿se ve la barra inferior móvil del
  * cliente (Vitrinas/Comunidad/Pídelo/Eventos/Merkapuntos) en esta
@@ -19,13 +16,17 @@ use Illuminate\Support\Facades\Auth;
  * invitado también viera la barra, el chatbot (que tenía su propia
  * copia desactualizada) quedó posicionado como si la barra siguiera
  * oculta para invitados, tapándose con ella.
+ *
+ * Pedido del usuario (2026-10-17): la barra debe verse en móvil para
+ * TODOS — invitados, clientes, emprendedores y quienes todavía no han
+ * elegido experiencia —, en todas las páginas. Por eso ya no depende
+ * de `experience`; se conserva el método como punto único por si en
+ * el futuro alguna página necesita excluirla.
  */
 class ClientBottomNav
 {
     public static function visible(): bool
     {
-        $user = Auth::user();
-
-        return ! $user instanceof User || $user->experience === 'cliente';
+        return true;
     }
 }

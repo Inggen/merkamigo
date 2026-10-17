@@ -78,6 +78,9 @@
             saber si debe levantarse por encima de la barra; tenerla
             duplicada fue justo lo que rompió el chatbot para invitados
             la primera vez que se arregló esto acá.
+
+            Actualización (2026-10-17): ahora se ve para todos en móvil,
+            también emprendedores y usuarios sin experiencia elegida.
         --}}
         @if (\App\Support\Navigation\ClientBottomNav::visible())
             <div

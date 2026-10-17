@@ -111,16 +111,6 @@ class SimplifiedClientNavigationTest extends TestCase
         $response->assertSee('data-mobile-bottom-nav-reserve', false);
     }
 
-    public function test_the_mobile_bottom_nav_stays_hidden_for_an_authenticated_business_owner(): void
-    {
-        $owner = User::factory()->create(['experience' => 'emprendedor']);
-
-        $response = $this->actingAs($owner)->get('/');
-
-        $response->assertOk();
-        $response->assertDontSee('data-client-bottom-nav', false);
-    }
-
     public function test_internal_client_pages_use_the_header_without_a_left_sidebar(): void
     {
         $customer = User::factory()->create(['experience' => 'cliente']);
@@ -228,15 +218,43 @@ class SimplifiedClientNavigationTest extends TestCase
             ->assertSee('aboveMobileBottomNav: true', false);
     }
 
-    public function test_the_chatbot_sits_at_the_bottom_for_an_authenticated_business_owner_without_a_bottom_nav(): void
+    /**
+     * Pedido del usuario (2026-10-17): la barra inferior móvil se ve
+     * para todos — también emprendedores y usuarios sin experiencia
+     * elegida, en sus páginas de panel y en las de login/registro.
+     */
+    public function test_the_chatbot_clears_the_bottom_nav_for_an_authenticated_business_owner(): void
     {
         $owner = User::factory()->create(['experience' => 'emprendedor']);
 
-        $response = $this->actingAs($owner)->get('/');
+        $this->actingAs($owner)->get('/')
+            ->assertOk()
+            ->assertSee('data-client-bottom-nav', false)
+            ->assertSee('aboveMobileBottomNav: true', false);
 
-        $response->assertOk()
-            ->assertDontSee('data-client-bottom-nav', false)
-            ->assertSee('aboveMobileBottomNav: false', false);
+        $this->actingAs($owner)->followingRedirects()->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('data-client-bottom-nav', false);
+    }
+
+    public function test_the_bottom_nav_appears_for_a_user_without_a_chosen_experience(): void
+    {
+        $user = User::factory()->create(['experience' => null]);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('data-client-bottom-nav', false);
+
+        $this->actingAs($user)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('data-client-bottom-nav', false);
+    }
+
+    public function test_the_bottom_nav_appears_for_a_guest_on_the_login_page(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('data-client-bottom-nav', false);
     }
 
     public function test_the_left_sidebar_does_not_appear_on_public_pages(): void
