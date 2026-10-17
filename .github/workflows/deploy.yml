@@ -1,0 +1,82 @@
+# Despliegue automático a Lightsail
+#   develop -> https://pruebas.merkamigo.com  (staging)
+#   main    -> https://merkamigo.com          (production)
+#
+# Guardar como .github/workflows/deploy.yml
+# Requiere el secreto DEPLOY_SSH_KEY (llave privada generada en el servidor).
+name: deploy
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || '100.57.14.74' }}
+      DEPLOY_TARGET: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+          extensions: redis, intl, gd, zip, bcmath
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Composer (producción)
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+
+      - name: Compilar assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Empaquetar
+        run: |
+          tar -czf "$RUNNER_TEMP/release.tar.gz" \
+            --exclude=./.git --exclude=./.github --exclude=./.claude --exclude=./.freebuff \
+            --exclude=./node_modules --exclude=./tests --exclude=./storage \
+            --exclude='./.env' --exclude='./.env.*' --exclude=./auto.key --exclude=./auto.crt \
+            --exclude=./public/hot --exclude='./*.md' \
+            .
+          ls -lh "$RUNNER_TEMP/release.tar.gz"
+
+      - name: Desplegar en ${{ env.DEPLOY_TARGET }}
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "$DEPLOY_HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG51+Cb1lVEIDozdegx1USl4dOv40+EHBEJV+LBnkbZs" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "merkamigo@$DEPLOY_HOST" "$DEPLOY_TARGET" < "$RUNNER_TEMP/release.tar.gz"
+
+      - name: Limpiar llave
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
