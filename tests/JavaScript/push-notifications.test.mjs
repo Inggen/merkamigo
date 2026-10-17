@@ -7,18 +7,18 @@ const source = readFileSync(new URL('../../resources/js/push-notifications.js', 
     .replace("import('firebase/app')", 'Promise.resolve(firebaseApp)')
     .replace("import('firebase/messaging')", 'Promise.resolve(firebaseMessaging)');
 
-function browser({ readyState = 'loading', responseStatus = 201, iphone = false, standalone = false } = {}) {
+function browser({ readyState = 'loading', responseStatus = 201, iphone = false, standalone = false, notificationSupported = true } = {}) {
     const events = new Map();
     const statuses = [];
     let registrations = 0;
     let savedTokens = 0;
     const window = {
         merkamigoPushConfig: { enabled: true, firebase: {}, vapidKey: 'public-key', registerUrl: '/api/v1/devices' },
-        Notification: { permission: 'granted' },
         matchMedia: () => ({ matches: standalone }),
         addEventListener: (name, callback) => events.set(name, callback),
         dispatchEvent: event => statuses.push(event.detail),
     };
+    if (notificationSupported) window.Notification = { permission: 'granted' };
     const context = {
         window,
         Notification: window.Notification,
@@ -76,11 +76,17 @@ test('permission alone does not mark a failed device registration as active', as
 });
 
 
-test('iPhone requires installation before requesting a push token', async () => {
-    const app = browser({ iphone: true });
+// Pedido del usuario (2026-10-17): "Activar notificaciones" debe
+// intentar de verdad la API del navegador en vez de bloquearse antes de
+// intentarlo solo por el user-agent reportar "iPhone" — eso daba un
+// falso bloqueo al simular un iPhone desde las herramientas de
+// desarrollador de un navegador de escritorio, que sigue teniendo
+// soporte real de notificaciones por debajo.
+test('a browser reporting an iPhone user-agent but with real Notification support still registers', async () => {
+    const app = browser({ iphone: true, standalone: false });
     const result = await app.window.enableMerkamigoPush();
-    assert.equal(result.status, 'install-required');
-    assert.equal(app.savedTokens(), 0);
+    assert.equal(result.status, 'granted');
+    assert.equal(app.savedTokens(), 1);
 });
 
 test('installed iPhone can register push', async () => {
@@ -88,4 +94,11 @@ test('installed iPhone can register push', async () => {
     const result = await app.window.enableMerkamigoPush();
     assert.equal(result.status, 'granted');
     assert.equal(app.savedTokens(), 1);
+});
+
+test('a browser without real Notification support is reported unavailable, iPhone or not', async () => {
+    const app = browser({ iphone: true, notificationSupported: false });
+    const result = await app.window.enableMerkamigoPush();
+    assert.equal(result.status, 'unavailable');
+    assert.equal(app.savedTokens(), 0);
 });

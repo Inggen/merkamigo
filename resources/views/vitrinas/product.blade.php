@@ -434,7 +434,25 @@
                         @endif
 
                         <div class="flex min-h-[60vh] items-center justify-center bg-zinc-950/40 p-4 sm:p-8">
-                            <video x-ref="lightboxVideo" x-show="activeType === 'video'" x-bind:src="activeType === 'video' ? activeMedia : null" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain" controls playsinline preload="metadata"></video>
+                            <div x-show="activeType === 'video'" x-ref="lightboxVideo" class="h-[60vh] max-h-[72vh] w-full max-w-3xl">
+                                {{--
+                                    `x-ref` no puede ir en el mismo elemento que el
+                                    `x-data` del reproductor (ver `loadSource` en
+                                    product-view.js): Alpine lo registraría en el
+                                    scope del propio reproductor, no en el de esta
+                                    página, y `$refs.lightboxVideo` quedaría vacío
+                                    para `merkamigoProductView`. Por eso vive en este
+                                    `<div>` envoltorio en vez de en el componente.
+                                --}}
+                                <x-media.video-player
+                                    :src="$productVideo?->url() ?? ''"
+                                    fit="contain"
+                                    aspect="auto"
+                                    :brand="false"
+                                    x-on:merkamigo-load-source="loadSource($event.detail.src, $event.detail)"
+                                    class="h-full w-full rounded-2xl"
+                                />
+                            </div>
                             <img x-show="activeType === 'image'" x-bind:src="activeType === 'image' ? activeMedia : null" x-bind:alt="activeAlt" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain">
                         </div>
 

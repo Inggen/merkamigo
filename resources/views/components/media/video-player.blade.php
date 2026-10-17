@@ -3,7 +3,7 @@
     'poster' => null,
     'autoplay' => false,
     'autoplayInView' => false,
-    'muted' => true,
+    'muted' => false,
     'loop' => false,
     'preload' => 'metadata',
     'fit' => 'contain',
@@ -22,7 +22,7 @@
 @endphp
 
 <div
-    x-data="merkamigoVideoPlayer({ muted: @js($muted), src: @js($src), autoplayInView: @js($autoplayInView) })"
+    x-data="merkamigoVideoPlayer({ muted: @js($muted), src: @js($src), autoplay: @js($autoplay), autoplayInView: @js($autoplayInView) })"
     x-on:mousemove="showControls"
     x-on:mouseleave="playing && (controlsVisible = false)"
     x-on:focusin="controlsVisible = true"
@@ -35,7 +35,6 @@
     <video
         x-ref="video"
         @if ($poster) poster="{{ $poster }}" @endif
-        @if ($autoplay) autoplay @endif
         @if ($muted) muted @endif
         @if ($loop) loop @endif
         preload="{{ $preload }}"

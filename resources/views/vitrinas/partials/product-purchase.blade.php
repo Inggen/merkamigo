@@ -70,11 +70,21 @@
                         @endunless
 
                         @if (! $canPayOnline)
+                            {{--
+                                Pedido del usuario (2026-10-16): "Contactar" al
+                                cliente final debe usar siempre la mensajería
+                                interna de Merkamigo, sin importar qué "Canal de
+                                contacto" haya configurado el negocio (antes
+                                esta ruta podía mandar a WhatsApp, teléfono o un
+                                enlace externo) — por eso la ruta `.internal` en
+                                vez de `vitrinas.contact`, y el texto ya no
+                                promete "Pedir por WhatsApp".
+                            --}}
                             <a
-                                href="{{ route('vitrinas.contact', ['business' => $business, 'context_type' => 'product', 'context_id' => $product->id]) }}"
+                                href="{{ route('vitrinas.contact.internal', ['business' => $business, 'context_type' => 'product', 'context_id' => $product->id]) }}"
                                 class="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-600 px-5 py-4 text-lg font-semibold text-white transition hover:bg-brand-700"
                             >
                                 <flux:icon.chat-bubble-left-right class="size-6" />
-                                {{ $product->isSoldOut() ? __('Consultar disponibilidad') : ($isElegant && $business->contact_channel === 'whatsapp' ? __('Pedir por WhatsApp') : __('Contactar')) }}
+                                {{ $product->isSoldOut() ? __('Consultar disponibilidad') : __('Contactar') }}
                             </a>
                         @endif

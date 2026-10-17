@@ -31,6 +31,7 @@
     </head>
     <body class="min-h-screen bg-mist dark:bg-zinc-900 dark:text-white">
         <x-cliente-nav />
+        <x-app-install />
 
         {{--
             Paridad con `layouts/app/sidebar.blade.php` (2026-10-06): un

@@ -1,6 +1,7 @@
 @php
     $storyItems = $highlightedStories->map(fn ($story) => [
         'image' => $story->imageUrl(),
+        'isVideo' => $story->isVideo(),
         'caption' => $story->caption,
         'productUrl' => $story->product ? route('vitrinas.product', [$business, $story->product]) : null,
     ])->values();
@@ -16,9 +17,16 @@
 
             <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 @foreach ($highlightedStories as $story)
-                    <button type="button" x-on:click="active = {{ $loop->index }}" class="group w-32 shrink-0 snap-start text-left sm:w-40">
-                        <span class="block aspect-[4/5] overflow-hidden rounded-2xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:ring-zinc-700">
-                            <img src="{{ $story->imageUrl() }}" class="size-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $story->caption ?: __('Historia destacada de :business', ['business' => $business->name]) }}" loading="lazy">
+                    <button type="button" x-on:click="active = {{ $loop->index }}" class="group relative w-32 shrink-0 snap-start text-left sm:w-40">
+                        <span class="relative block aspect-[4/5] overflow-hidden rounded-2xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:ring-zinc-700">
+                            @if ($story->isVideo())
+                                <video src="{{ $story->imageUrl() }}" class="size-full object-cover transition duration-300 group-hover:scale-105" muted playsinline preload="metadata"></video>
+                                <span class="absolute inset-0 flex items-center justify-center bg-black/15">
+                                    <flux:icon.play class="size-8 text-white drop-shadow" variant="solid" />
+                                </span>
+                            @else
+                                <img src="{{ $story->imageUrl() }}" class="size-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $story->caption ?: __('Historia destacada de :business', ['business' => $business->name]) }}" loading="lazy">
+                            @endif
                         </span>
                         <span class="mt-2 line-clamp-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $story->caption ?: $business->name }}</span>
                     </button>
@@ -34,7 +42,8 @@
                         <flux:icon.chevron-left class="size-6" />
                     </button>
                     <div class="flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-zinc-950 shadow-2xl">
-                        <img x-bind:src="stories[active]?.image" x-bind:alt="stories[active]?.caption || ''" class="min-h-0 flex-1 object-contain">
+                        <video x-show="stories[active]?.isVideo" x-bind:src="stories[active]?.image" class="min-h-0 flex-1 bg-black object-contain" autoplay controls playsinline></video>
+                        <img x-show="!stories[active]?.isVideo" x-bind:src="stories[active]?.image" x-bind:alt="stories[active]?.caption || ''" class="min-h-0 flex-1 object-contain">
                         <div class="p-4 text-white">
                             <p x-show="stories[active]?.caption" x-text="stories[active]?.caption" class="text-sm"></p>
                             <a x-show="stories[active]?.productUrl" x-bind:href="stories[active]?.productUrl" class="mt-3 inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-900">{{ __('Ver producto') }}</a>

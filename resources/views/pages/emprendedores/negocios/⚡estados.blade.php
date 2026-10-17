@@ -1,37 +1,26 @@
 <?php
 
 use App\Domain\Businesses\Models\Business;
-use App\Domain\Social\Actions\CreateStory;
 use App\Domain\Social\Actions\DeleteStory;
-use App\Domain\Social\Actions\GenerateSocialSalesCopy;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 
 /**
  * "Tu estado" (Fase 3 del TODO social, Sprint 3): crear y listar estados
  * del negocio. Duran 24h — no hay edición, solo crear/eliminar antes de
- * tiempo.
+ * tiempo. El formulario de creación vive en `CreateStoryModal` (pedido
+ * del usuario, 2026-10-16: la misma modal debía poder abrirse también
+ * desde Comunidad) — esta página solo lista y borra.
  */
 new #[Title('Estados')] class extends Component
 {
-    use WithFileUploads;
-
     #[Locked]
     public int $businessId;
-
-    public string $type = 'imagen';
-
-    public ?string $caption = '';
-
-    public $photo;
-
-    public ?int $product_id = null;
 
     public function boot(): void
     {
@@ -63,67 +52,10 @@ new #[Title('Estados')] class extends Component
         return $this->business->activeStories()->with('product')->latest()->get();
     }
 
-    #[Computed]
-    public function availableProducts()
+    #[On('story-created')]
+    public function refreshStories(): void
     {
-        return $this->business->products()->where('status', 'publicado')->orderBy('name')->get();
-    }
-
-    public function save(): void
-    {
-        $this->authorize('update', $this->business);
-
-        if (! $this->photo) {
-            $this->addError('photo', __('Agrega una foto para tu estado.'));
-
-            return;
-        }
-
-        try {
-            app(CreateStory::class)->handle($this->business, [
-                'type' => $this->type,
-                'caption' => $this->caption,
-                'product_id' => $this->product_id,
-            ], $this->photo, Auth::user());
-        } catch (ValidationException $e) {
-            $this->addError('caption', $e->validator->errors()->first());
-
-            return;
-        }
-
-        $this->reset(['caption', 'photo', 'product_id']);
-        $this->type = 'imagen';
-
         unset($this->activeStories);
-
-        Flux::modal('create-story')->close();
-        Flux::toast(variant: 'success', text: __('¡Estado publicado! Estará visible por 24 horas.'));
-    }
-
-    public function removePhoto(): void
-    {
-        $this->reset('photo');
-        $this->resetErrorBag('photo');
-    }
-
-    public function suggestWithAi(): void
-    {
-        $this->authorize('update', $this->business);
-
-        $suggestion = app(GenerateSocialSalesCopy::class)->handle($this->business, 'estado', [
-            'text' => $this->caption,
-            'type' => $this->type,
-            'product_ids' => $this->product_id ? [$this->product_id] : [],
-        ]);
-
-        if (! $suggestion) {
-            Flux::toast(variant: 'warning', text: __('No fue posible generar una sugerencia.'));
-
-            return;
-        }
-
-        $this->caption = $suggestion;
-        Flux::toast(text: __('Borrador generado. Revísalo antes de publicar.'));
     }
 
     public function delete(int $storyId): void
@@ -146,11 +78,7 @@ new #[Title('Estados')] class extends Component
             <flux:heading size="xl" class="!text-3xl !font-bold !tracking-tight">{{ __('Estados') }}</flux:heading>
             <flux:subheading class="mt-1">{{ __('Contenido que dura 24 horas — ideal para promociones del día o novedades rápidas.') }}</flux:subheading>
         </div>
-        <flux:modal.trigger name="create-story">
-            <flux:button variant="primary" icon="plus" class="!justify-center">
-                {{ __('Crear nuevo estado') }}
-            </flux:button>
-        </flux:modal.trigger>
+        <livewire:create-story-modal :business="$this->business" />
     </header>
 
     <section class="entrepreneur-card p-4 sm:p-5">
@@ -176,7 +104,14 @@ new #[Title('Estados')] class extends Component
                         class="group relative h-28 w-full shrink-0 overflow-hidden rounded-xl bg-zinc-950 sm:w-44"
                         aria-label="{{ __('Previsualizar estado') }}"
                     >
-                        <img src="{{ $story->imageUrl() }}" class="size-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $story->caption ?: __('Estado de :business', ['business' => $this->business->name]) }}">
+                        @if ($story->isVideo())
+                            <video src="{{ $story->imageUrl() }}" class="size-full object-cover transition duration-300 group-hover:scale-105" muted playsinline preload="metadata"></video>
+                            <span class="absolute inset-0 flex items-center justify-center bg-black/15">
+                                <flux:icon.play class="size-8 text-white drop-shadow" variant="solid" />
+                            </span>
+                        @else
+                            <img src="{{ $story->imageUrl() }}" class="size-full object-cover transition duration-300 group-hover:scale-105" alt="{{ $story->caption ?: __('Estado de :business', ['business' => $this->business->name]) }}">
+                        @endif
                         <span class="absolute inset-x-2 bottom-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-black/65 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
                             <flux:icon.eye class="size-4" />
                             {{ __('Vista previa') }}
@@ -202,7 +137,12 @@ new #[Title('Estados')] class extends Component
                         </div>
                     </div>
 
-                    <div class="flex shrink-0 gap-2 self-end sm:self-auto">
+                    <div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                        <x-share-icons
+                            :url="$story->product ? route('vitrinas.product', [$this->business, $story->product]) : route('vitrinas.show', $this->business)"
+                            :text="$story->caption ?: $this->business->name"
+                        />
+                        <span class="mx-0.5 h-6 w-px bg-zinc-200 dark:bg-zinc-700"></span>
                         <flux:button type="button" variant="ghost" icon="eye" x-on:click="previewStory = {{ $story->id }}" aria-label="{{ __('Previsualizar estado') }}" />
                         <flux:button type="button" variant="ghost" icon="trash" wire:click="delete({{ $story->id }})" wire:confirm="{{ __('¿Eliminar este estado?') }}" aria-label="{{ __('Eliminar estado') }}" />
                     </div>
@@ -234,7 +174,11 @@ new #[Title('Estados')] class extends Component
                                 </div>
                             </div>
 
-                            <img src="{{ $story->imageUrl() }}" class="min-h-0 flex-1 object-cover" alt="{{ $story->caption ?: __('Vista previa del estado') }}">
+                            @if ($story->isVideo())
+                                <video src="{{ $story->imageUrl() }}" class="min-h-0 flex-1 object-cover" autoplay muted loop playsinline controls></video>
+                            @else
+                                <img src="{{ $story->imageUrl() }}" class="min-h-0 flex-1 object-cover" alt="{{ $story->caption ?: __('Vista previa del estado') }}">
+                            @endif
 
                             <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-5 pb-5 pt-24 text-white">
                                 @if ($story->caption)
@@ -260,118 +204,4 @@ new #[Title('Estados')] class extends Component
         </div>
     </section>
 
-    <flux:modal name="create-story" class="w-full !max-w-6xl">
-        <div class="mb-5">
-            <flux:heading size="lg">{{ __('Crear nuevo estado') }}</flux:heading>
-            <flux:subheading>{{ __('Comparte novedades, promociones o contenido del día. Durará 24 horas.') }}</flux:subheading>
-        </div>
-
-        <form wire:submit="save" class="grid overflow-hidden rounded-2xl border border-zinc-200 lg:grid-cols-2 dark:border-zinc-700">
-            <div class="space-y-4 p-5 lg:border-e lg:border-zinc-200 dark:lg:border-zinc-700">
-                <div class="flex items-center gap-3">
-                    <span class="flex size-7 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">1</span>
-                    <h2 class="font-semibold text-zinc-900 dark:text-white">{{ __('Contenido del estado') }}</h2>
-                </div>
-
-                <flux:select wire:model.live="type" :label="__('Tipo')">
-                    <flux:select.option value="imagen">{{ __('Imagen') }}</flux:select.option>
-                    <flux:select.option value="promocion">{{ __('Promoción') }}</flux:select.option>
-                    <flux:select.option value="producto">{{ __('Producto') }}</flux:select.option>
-                    <flux:select.option value="servicio">{{ __('Servicio') }}</flux:select.option>
-                </flux:select>
-
-                <x-forms.image-upload-field
-                    wire:model="photo"
-                    accept="image/*"
-                    :title="__('Imagen')"
-                    :preview-url="$photo?->temporaryUrl()"
-                    :preview-alt="__('Vista previa del estado')"
-                    remove-action="removePhoto"
-                    :error="$errors->first('photo')"
-                />
-
-                <div>
-                    <div class="flex items-end gap-2">
-                        <flux:input wire:model.live.debounce.300ms="caption" :label="__('Texto (opcional)')" maxlength="280" placeholder="{{ __('Ej: ¡Hoy 20% de descuento!') }}" class="flex-1" />
-                        <flux:button type="button" size="sm" variant="ghost" icon="sparkles" wire:click="suggestWithAi" wire:loading.attr="disabled" class="mb-0.5 shrink-0">
-                            {{ __('Sugerir con IA') }}
-                        </flux:button>
-                    </div>
-                    @error('caption')
-                        <flux:text class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</flux:text>
-                    @enderror
-                </div>
-
-                @if ($this->availableProducts->isNotEmpty())
-                    <flux:select wire:model.live="product_id" :label="__('Vincular producto (opcional)')">
-                        <flux:select.option value="">{{ __('Ninguno') }}</flux:select.option>
-                        @foreach ($this->availableProducts as $product)
-                            <flux:select.option value="{{ $product->id }}">{{ $product->name }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Asocia un producto de tu vitrina para que los usuarios puedan verlo.') }}</p>
-                @endif
-
-                <div class="flex justify-end gap-2 pt-2">
-                    <flux:modal.close>
-                        <flux:button type="button" variant="ghost">{{ __('Cancelar') }}</flux:button>
-                    </flux:modal.close>
-                    <flux:button type="submit" variant="primary" icon="paper-airplane" wire:loading.attr="disabled">
-                        {{ __('Publicar estado') }}
-                    </flux:button>
-                </div>
-            </div>
-
-            @php
-                $selectedProduct = $product_id ? $this->availableProducts->firstWhere('id', (int) $product_id) : null;
-            @endphp
-            <div class="bg-zinc-50 p-5 dark:bg-zinc-900/70">
-                <div class="mb-4 flex items-center gap-3">
-                    <span class="flex size-7 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">2</span>
-                    <div>
-                        <h2 class="font-semibold text-zinc-900 dark:text-white">{{ __('Vista previa') }}</h2>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Así se verá tu estado en la plataforma.') }}</p>
-                    </div>
-                </div>
-
-                <div class="mx-auto w-full max-w-[310px] rounded-[2.5rem] bg-zinc-950 p-2.5 shadow-2xl ring-1 ring-zinc-900/20">
-                    <div class="relative aspect-[9/16] overflow-hidden rounded-[2rem] bg-zinc-800 text-white">
-                        @if ($photo)
-                            <img src="{{ $photo->temporaryUrl() }}" class="absolute inset-0 size-full object-cover" alt="{{ __('Vista previa del estado') }}">
-                        @else
-                            <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-zinc-700 to-zinc-900 px-6 text-center text-white/65">
-                                <flux:icon.photo class="size-12" />
-                                <p class="text-sm">{{ __('Selecciona una imagen para ver la vista previa.') }}</p>
-                            </div>
-                        @endif
-
-                        <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/75 to-transparent px-3 pb-10 pt-3">
-                            <div class="mb-3 h-1 rounded-full bg-white/90"></div>
-                            <div class="flex items-center gap-2">
-                                <div class="flex size-8 items-center justify-center rounded-full bg-white text-xs font-bold text-brand-600">M</div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-xs font-semibold">{{ $this->business->name }}</p>
-                                    <p class="text-[10px] text-white/75">{{ __('hace un momento') }}</p>
-                                </div>
-                                <flux:icon.x-mark class="size-5" />
-                            </div>
-                        </div>
-
-                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-4 pb-4 pt-20">
-                            <p class="min-h-5 text-sm font-medium">{{ $caption ?: __('Tu texto aparecerá aquí…') }}</p>
-                            @if ($selectedProduct)
-                                <span class="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-900">
-                                    <flux:icon.cube class="size-3" /> {{ $selectedProduct->name }}
-                                </span>
-                            @endif
-                            <div class="mt-3 flex items-center gap-2">
-                                <div class="flex-1 rounded-full border border-white/70 px-3 py-1.5 text-xs text-white/75">{{ __('Responder…') }}</div>
-                                <flux:icon.heart class="size-6" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </flux:modal>
 </section>

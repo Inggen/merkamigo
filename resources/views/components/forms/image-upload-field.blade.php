@@ -7,6 +7,11 @@
     'hint' => 'Selecciona una imagen JPG, PNG o WEBP.',
     'previewClass' => 'h-64 w-full rounded-xl object-cover',
     'removeAction' => null,
+    // Pedido del usuario (2026-10-16): mismo campo, pero para video —
+    // evita duplicar el marcado de "adjuntar/quitar" solo por cambiar
+    // <img> por <video>. No aplica a `previewUrls` (galería de varias
+    // fotos): los estados con video son un solo archivo.
+    'isVideo' => false,
 ])
 
 @php($hasPreview = filled($previewUrl) || $previewUrls !== [])
@@ -23,7 +28,11 @@
 
     @if ($previewUrl)
         <div class="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm">
-            <img src="{{ $previewUrl }}" class="{{ $previewClass }}" alt="{{ $previewAlt }}">
+            @if ($isVideo)
+                <video src="{{ $previewUrl }}" class="{{ $previewClass }} bg-zinc-950" controls playsinline muted></video>
+            @else
+                <img src="{{ $previewUrl }}" class="{{ $previewClass }}" alt="{{ $previewAlt }}">
+            @endif
 
             @if ($removeAction)
                 <button
@@ -31,8 +40,8 @@
                     wire:click="{{ $removeAction }}"
                     wire:loading.attr="disabled"
                     wire:target="{{ $removeAction }}"
-                    aria-label="{{ __('Eliminar imagen') }}"
-                    title="{{ __('Eliminar imagen') }}"
+                    aria-label="{{ $isVideo ? __('Eliminar video') : __('Eliminar imagen') }}"
+                    title="{{ $isVideo ? __('Eliminar video') : __('Eliminar imagen') }}"
                     class="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-zinc-900 text-xl leading-none text-white shadow-md transition hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-60"
                 >
                     <span aria-hidden="true">&times;</span>
@@ -65,7 +74,7 @@
         <label class="block cursor-pointer rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/90 p-4 transition hover:border-brand-400 hover:bg-white">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <div class="text-sm font-semibold text-zinc-800">{{ __('Adjuntar imagen') }}</div>
+                    <div class="text-sm font-semibold text-zinc-800">{{ $isVideo ? __('Adjuntar video') : __('Adjuntar imagen') }}</div>
                     <div class="text-xs text-zinc-500">{{ __('Haz clic aquí para elegir un archivo desde tu dispositivo.') }}</div>
                 </div>
 

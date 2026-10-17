@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Social\Actions\RecordStoryView;
 use App\Domain\Social\Models\Story;
@@ -9,6 +10,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -40,6 +42,43 @@ class StoriesRail extends Component
     {
         $this->viewingBusinessId = null;
         $this->viewingIndex = 0;
+    }
+
+    /**
+     * Pedido del usuario (2026-10-16): poder crear un estado desde
+     * Comunidad sin salir del feed, con la misma modal que en la zona de
+     * emprendedores — ver `CreateStoryModal`, embebida aquí cuando el
+     * usuario administra algún negocio.
+     */
+    #[Computed]
+    public function ownBusiness(): ?Business
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return null;
+        }
+
+        // Igual que en `FeedController::canCreateStory()`: `BusinessPolicy::update`
+        // revisa el rol dentro del "team" activo de spatie/laravel-permission,
+        // así que hay que fijarlo a cada negocio candidato antes de preguntar.
+        $business = $user->businesses->first(function (Business $candidate) use ($user) {
+            setPermissionsTeamId($candidate->id);
+            $user->unsetRelation('roles');
+
+            return $user->can('update', $candidate);
+        });
+
+        setPermissionsTeamId(null);
+        $user->unsetRelation('roles');
+
+        return $business;
+    }
+
+    #[On('story-created')]
+    public function refreshAfterStoryCreated(): void
+    {
+        unset($this->businessesWithStories);
     }
 
     public function next(): void

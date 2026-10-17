@@ -37,6 +37,7 @@
     barra inferior con la que alternar.
 --}}
 <header
+    data-app-header
     x-data
     x-bind:class="$store.mobileChrome.headerVisible ? 'translate-y-0' : '-translate-y-full'"
     class="sticky bg-white z-50 top-0 transition-transform duration-300 ease-out md:translate-y-0 dark:bg-zinc-800"

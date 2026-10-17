@@ -68,6 +68,12 @@ return [
         'quality' => 86,
     ],
 
+    'story_video' => [
+        'mimes' => ['mp4', 'webm', 'mov'],
+        'max_kb' => 51200,
+        'max_files' => 1,
+    ],
+
     'storefront_cover' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,

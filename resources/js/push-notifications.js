@@ -61,10 +61,6 @@ async function messagingClient() {
 }
 
 async function registerCurrentBrowser(requestPermission = false) {
-    if (window.merkamigoPushNeedsInstall()) {
-        return { status: 'install-required' };
-    }
-
     if (!window.merkamigoPushConfig?.enabled || !('Notification' in window)) {
         return { status: 'unavailable' };
     }

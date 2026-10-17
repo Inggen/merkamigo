@@ -7,7 +7,6 @@
             </flux:button>
         </div>
 
-        <x-push-notification-settings />
 
         @if ($recentlyViewed->isNotEmpty())
             <div>

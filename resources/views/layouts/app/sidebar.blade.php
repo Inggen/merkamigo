@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
@@ -69,7 +69,7 @@
                 @endif
 
                 <!-- Mobile User Menu -->
-                <flux:header class="lg:hidden">
+                <flux:header data-app-header class="lg:hidden">
                     <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
                     <flux:spacer />
@@ -133,6 +133,7 @@
                         </flux:menu>
                     </flux:dropdown>
                 </flux:header>
+                <x-app-install />
 
                 <div class="{{ auth()->user()->experience === 'cliente' ? 'pb-20 md:pb-0' : '' }}">
                     @if (session(\App\Domain\Platform\Actions\StartUserImpersonation::SESSION_KEY))
