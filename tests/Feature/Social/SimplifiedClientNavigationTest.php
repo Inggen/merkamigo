@@ -11,6 +11,7 @@ use App\Domain\Social\Actions\ManageLiveStream;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Tests\TestCase;
 
 /**
@@ -95,6 +96,31 @@ class SimplifiedClientNavigationTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
+    /**
+     * Pedido del usuario (2026-10-11): un visitante que todavía no
+     * inició sesión también debe ver la barra inferior en móvil — antes
+     * solo se mostraba con `@auth`, así que un invitado la perdía por
+     * completo.
+     */
+    public function test_the_mobile_bottom_nav_is_visible_for_a_guest(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-client-bottom-nav', false);
+        $response->assertSee('data-mobile-bottom-nav-reserve', false);
+    }
+
+    public function test_the_mobile_bottom_nav_stays_hidden_for_an_authenticated_business_owner(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+
+        $response = $this->actingAs($owner)->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('data-client-bottom-nav', false);
+    }
+
     public function test_internal_client_pages_use_the_header_without_a_left_sidebar(): void
     {
         $customer = User::factory()->create(['experience' => 'cliente']);
@@ -104,7 +130,113 @@ class SimplifiedClientNavigationTest extends TestCase
         $response->assertOk();
         $response->assertSee('Vitrinas');
         $response->assertSee('Comunidad');
+        $response->assertSee('data-mobile-bottom-nav-reserve', false);
         $response->assertDontSee('aria-label="Explorar Merkamigo"', false);
+    }
+
+    /**
+     * Pedido del usuario (2026-10-11): en la zona de emprendedores,
+     * Mensajes debe verse con la barra lateral y todo lo demás del
+     * panel — antes esta página forzaba siempre el header simple del
+     * cliente para cualquier usuario, sin importar su experiencia.
+     * El chatbot de Merkamiga se mantiene visible acá también (pedido
+     * explícito del usuario).
+     */
+    public function test_entrepreneur_messages_page_uses_the_sidebar_panel_with_the_chatbot(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+        app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio con mensajes']);
+
+        $response = $this->actingAs($owner)->get(route('messages.index'));
+
+        $response->assertOk();
+        $response->assertSee('entrepreneur-sidebar', false);
+        $response->assertSee('Oportunidades');
+        $response->assertSee('Pregúntale a Merkamigo', false);
+    }
+
+    public function test_mobile_navigation_uses_the_four_primary_sections_and_the_central_pidelo_action(): void
+    {
+        $customer = User::factory()->create(['experience' => 'cliente']);
+
+        $this->actingAs($customer);
+        $html = Blade::render('<x-cliente-bottom-nav />');
+
+        $this->assertStringContainsString('data-client-bottom-nav', $html);
+        $this->assertStringContainsString('Vitrinas', $html);
+        $this->assertStringContainsString('Comunidad', $html);
+        $this->assertStringContainsString('Pídelo', $html);
+        $this->assertStringContainsString('Eventos', $html);
+        $this->assertStringContainsString('Merkapuntos', $html);
+        $this->assertStringNotContainsString('Mensajes', $html);
+        $this->assertStringNotContainsString('Favoritos', $html);
+        $this->assertStringNotContainsString('Perfil', $html);
+    }
+
+    /**
+     * El cálculo de qué `bottom` usar ahora pasa a ser reactivo en el
+     * cliente (`x-bind:class`, ver storefront-chat-widget.blade.php) en
+     * vez de decidirse en el servidor con `@class`, así que las dos
+     * clases de posición (`bottom-0` y la que se levanta sobre la
+     * barra) quedan SIEMPRE presentes como texto del propio `x-bind`,
+     * sin importar `$aboveMobileBottomNav` — buscar esa clase en el
+     * HTML ya no distingue el caso. La señal que sí lo distingue es el
+     * valor de `aboveMobileBottomNav` que efectivamente llega al
+     * `x-data`.
+     */
+    public function test_mobile_chatbot_stays_above_the_client_navigation(): void
+    {
+        $html = Blade::render('<x-storefront-chat-widget :above-mobile-bottom-nav="true" />');
+
+        $this->assertStringContainsString('aboveMobileBottomNav: true', $html);
+    }
+
+    public function test_mobile_chatbot_sits_at_the_bottom_when_there_is_no_bottom_nav_to_clear(): void
+    {
+        $html = Blade::render('<x-storefront-chat-widget />');
+
+        $this->assertStringContainsString('aboveMobileBottomNav: false', $html);
+    }
+
+    /**
+     * Bug reportado por el usuario (2026-10-11): el chatbot y la barra
+     * inferior usaban cada uno su propia copia de "¿hay sesión y es
+     * cliente?" — al arreglar la barra para que también se viera con
+     * un invitado, la copia del chatbot quedó desactualizada y lo dejó
+     * tapado por la barra. Ahora ambos usan
+     * `ClientBottomNav::visible()`, así que estas pruebas comprueban
+     * la página completa, no el componente aislado, para que no vuelvan
+     * a desincronizarse sin que una prueba lo note.
+     */
+    public function test_the_chatbot_clears_the_bottom_nav_for_a_guest_on_the_home_page(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk()
+            ->assertSee('data-client-bottom-nav', false)
+            ->assertSee('aboveMobileBottomNav: true', false);
+    }
+
+    public function test_the_chatbot_clears_the_bottom_nav_for_an_authenticated_client(): void
+    {
+        $customer = User::factory()->create(['experience' => 'cliente']);
+
+        $response = $this->actingAs($customer)->get('/');
+
+        $response->assertOk()
+            ->assertSee('data-client-bottom-nav', false)
+            ->assertSee('aboveMobileBottomNav: true', false);
+    }
+
+    public function test_the_chatbot_sits_at_the_bottom_for_an_authenticated_business_owner_without_a_bottom_nav(): void
+    {
+        $owner = User::factory()->create(['experience' => 'emprendedor']);
+
+        $response = $this->actingAs($owner)->get('/');
+
+        $response->assertOk()
+            ->assertDontSee('data-client-bottom-nav', false)
+            ->assertSee('aboveMobileBottomNav: false', false);
     }
 
     public function test_the_left_sidebar_does_not_appear_on_public_pages(): void

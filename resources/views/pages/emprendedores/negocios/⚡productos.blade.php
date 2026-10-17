@@ -140,6 +140,12 @@ new #[Title('Productos y servicios')] class extends Component
     }
 
     #[Computed]
+    public function merchantChecklist(): array
+    {
+        return app(\App\Support\GoogleMerchant\GoogleMerchantProductValidator::class)->businessChecklist($this->business);
+    }
+
+    #[Computed]
     public function business(): Business
     {
         return Business::findOrFail($this->businessId);
@@ -152,6 +158,28 @@ new #[Title('Productos y servicios')] class extends Component
             ->businesses()
             ->orderBy('name')
             ->get();
+    }
+
+    #[Computed]
+    public function merchantProductChecks(): array
+    {
+        $validator = app(\App\Support\GoogleMerchant\GoogleMerchantProductValidator::class);
+        return $this->products->mapWithKeys(function (Product $product) use ($validator) {
+            $product->setRelation('business', $this->business);
+            return [$product->id => $validator->validate($product)];
+        })->all();
+    }
+
+    public function syncGoogleProducts(): void
+    {
+        $this->authorize('update', $this->business);
+        if (! config('services.google_merchant.enabled') || ! $this->business->google_merchant_enabled) {
+            Flux::toast(__('Solicita a soporte habilitar la conexión con Google.'), variant: 'warning');
+            return;
+        }
+        $this->business->products()->where('type', 'producto')->pluck('id')
+            ->each(fn (int $id) => \App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant::dispatch($id));
+        Flux::toast(__('Revisión encolada. Google puede tardar en procesar y aprobar los productos.'));
     }
 
     #[Computed]
@@ -595,6 +623,9 @@ new #[Title('Productos y servicios')] class extends Component
 }; ?>
 
 <section class="mx-auto w-full max-w-4xl space-y-6">
+    <x-google-merchant-guide :checks="$this->merchantChecklist">
+        <flux:button size="sm" wire:click="syncGoogleProducts" wire:loading.attr="disabled" wire:target="syncGoogleProducts">{{ __('Revisar y sincronizar productos') }}</flux:button>
+    </x-google-merchant-guide>
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div class="space-y-3">
             <div class="flex items-center gap-1.5">
@@ -673,7 +704,7 @@ new #[Title('Productos y servicios')] class extends Component
                         @if ($product->type === 'producto' && $this->business->google_merchant_enabled)
                             @php
                                 $googleStatusMeta = match ($product->google_merchant_status) {
-                                    'publicado' => ['Publicado en Google', 'green'],
+                                    'publicado' => ['Enviado a Google', 'green'],
                                     'pendiente' => ['Pendiente en Google', 'blue'],
                                     'sincronizando' => ['Sincronizando con Google', 'blue'],
                                     'requiere_ajustes' => ['Requiere ajustes para Google', 'yellow'],
@@ -689,6 +720,19 @@ new #[Title('Productos y servicios')] class extends Component
                             >
                                 {{ $googleStatusMeta[0] }}
                             </flux:badge>
+                            @if ($this->merchantProductChecks[$product->id] ?? [])
+                                <ul class="mt-2 list-inside list-disc text-xs text-amber-700 dark:text-amber-300">
+                                    @foreach ($this->merchantProductChecks[$product->id] as $issue)
+                                        <li>{{ __($issue) }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                            @if ($product->google_merchant_last_error)
+                                <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">{{ \App\Support\GoogleMerchant\GoogleMerchantErrorTranslator::translate($product->google_merchant_last_error) }}</p>
+                            @endif
+                            @if ($product->google_merchant_status === 'publicado')
+                                <p class="mt-1 text-xs text-zinc-500">{{ __('Envío recibido. La aprobación y visibilidad dependen de Google.') }}</p>
+                            @endif
                         @endif
 
                         <div class="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2 dark:border-zinc-800">
@@ -838,12 +882,12 @@ new #[Title('Productos y servicios')] class extends Component
                 <div class="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
                     <div class="space-y-1">
                         <flux:text class="font-medium">{{ __('Identificadores para Google Shopping (opcional)') }}</flux:text>
-                        <flux:text class="text-sm text-zinc-500">{{ __('Si tu producto es artesanal, personalizado o único, puedes dejar estos campos vacíos.') }}</flux:text>
+                        <flux:text class="text-sm text-zinc-500">{{ __('Merkamigo genera el ID de Google automáticamente y toma las fotos, el precio, la disponibilidad y la descripción de tu catálogo. GTIN y MPN son identificadores del fabricante: si realmente no existen para tu producto artesanal o personalizado, déjalos vacíos; se informa a Google que no tiene identificadores.') }}</flux:text>
                     </div>
 
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <flux:input wire:model="gtin" :label="__('Código de barras (GTIN)')" placeholder="{{ __('Ej: 7701234567890') }}" />
-                        <flux:input wire:model="mpn" :label="__('Referencia del fabricante (MPN)')" />
+                        <flux:input wire:model="gtin" :description="__('Copia el GTIN real del empaque: 8, 12, 13 o 14 dígitos. Si tu producto no tiene uno, déjalo vacío.')" :label="__('Código de barras (GTIN)')" placeholder="{{ __('Los números del código de barras del empaque') }}" />
+                        <flux:input wire:model="mpn" :label="__('Referencia del fabricante (MPN)')" :description="__('Copia la referencia oficial del fabricante. No uses el ID de Merchant, el código de tienda ni una referencia inventada.')" />
                         <flux:input wire:model="brand" :label="__('Marca (opcional)')" placeholder="{{ __('Si no la llenas, se usa el nombre de tu negocio') }}" />
                         <flux:select wire:model="condition" :label="__('Condición')">
                             <flux:select.option value="nuevo">{{ __('Nuevo') }}</flux:select.option>

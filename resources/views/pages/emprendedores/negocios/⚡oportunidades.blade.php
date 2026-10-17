@@ -376,4 +376,6 @@ new #[Title('Oportunidades cercanas')] class extends Component {
             @endforeach
         </div>
     @endif
+
+    
 </section>

@@ -64,6 +64,8 @@ class GoogleMerchantService
         // Nada relevante cambió desde el último envío exitoso: no llamar
         // a Google (0.7 del TODO de esta integración).
         if ($product->google_merchant_status === 'publicado' && $product->google_merchant_synced_hash === $hash) {
+            $this->syncLocalInventory($product);
+
             return;
         }
 
@@ -221,7 +223,8 @@ class GoogleMerchantService
      * hasta que haya negocios con Perfil de Empresa real vinculado (ver
      * TODO-Google-Merchant.md, post-cierre). Una falla aquí nunca cambia
      * `google_merchant_status` del producto ni bloquea el feed principal
-     * — solo queda en el log para depuración manual.
+     * Los errores permanentes quedan en el log; los temporales se
+     * propagan para reintentar el inventario sin repetir el envío online.
      */
     private function syncLocalInventory(Product $product): void
     {
@@ -239,6 +242,10 @@ class GoogleMerchantService
             Log::info("[GoogleMerchant] Product {$product->id} Business {$product->business_id} Action LOCAL_INVENTORY_SYNC SUCCESS");
         } catch (ConnectionException|RequestException $exception) {
             Log::warning("[GoogleMerchant] Product {$product->id} Action LOCAL_INVENTORY_SYNC FAILED {$exception->getMessage()}");
+
+            if ($exception instanceof ConnectionException || $this->isTemporary($exception)) {
+                throw $exception;
+            }
         }
     }
 

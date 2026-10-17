@@ -4,6 +4,7 @@ namespace App\Domain\Storefronts\Actions;
 
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Platform\Actions\RecordAuditLog;
+use App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant;
 use App\Domain\Storefronts\Models\Storefront;
 use App\Models\User;
 use App\Support\Media\MediaUploader;
@@ -28,7 +29,7 @@ class UpdateStorefront
 
     private const STOREFRONT_FIELDS = [
         'headline', 'description', 'cover_alt_text', 'stand_color',
-        'show_posts', 'show_reels', 'google_maps_embed_url',
+        'show_posts', 'show_reels', 'google_maps_embed_url', 'product_view_style',
     ];
 
     /**
@@ -61,6 +62,7 @@ class UpdateStorefront
             'payment_method_ids.*' => ['integer', 'exists:payment_methods,id'],
             'headline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
+            'product_view_style' => ['sometimes', 'required', 'in:classic,elegant'],
             'show_posts' => ['sometimes', 'boolean'],
             'show_reels' => ['sometimes', 'boolean'],
             'google_maps_embed_url' => [
@@ -101,6 +103,7 @@ class UpdateStorefront
                 );
             }
 
+            $merchantChanged = $business->isDirty(['name', 'category_id', 'has_physical_location', 'google_business_store_code']);
             $business->save();
 
             if (array_key_exists('payment_method_ids', $validated)) {
@@ -125,7 +128,13 @@ class UpdateStorefront
                 );
             }
 
+            $merchantChanged = $merchantChanged || $storefront->isDirty('description');
             $storefront->save();
+
+            if ($merchantChanged && config('services.google_merchant.enabled')) {
+                $business->products()->where('type', 'producto')->pluck('id')
+                    ->each(fn (int $id) => SyncProductToGoogleMerchant::dispatch($id)->afterCommit());
+            }
 
             app(RecordAuditLog::class)->handle($actor, 'business.updated', $business);
 

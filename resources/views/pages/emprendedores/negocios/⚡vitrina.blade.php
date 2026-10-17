@@ -102,6 +102,8 @@ new #[Title('Editar mi vitrina')] class extends Component
 
     public ?string $stand_color = null;
 
+    public string $product_view_style = 'classic';
+
     public bool $show_posts = true;
 
     public bool $show_reels = true;
@@ -139,7 +141,16 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->businessId = $business->id;
         $this->name = $business->name;
         $this->whatsapp_number = $business->whatsapp_number;
-        $this->contact_channel = $business->contact_channel ?? 'merkamigo';
+        // Pedido del usuario (2026-10-15): un negocio real en producción
+        // tenía guardado un valor de `contact_channel` que ya no es
+        // válido (de antes de que existiera esta lista cerrada de
+        // opciones) — el autoguardado de CUALQUIER campo de la vitrina
+        // fallaba en silencio porque este valor no pasaba la validación,
+        // sin importar qué campo editara el dueño. `??` solo cubría el
+        // caso NULL, no un valor heredado que ya no es válido.
+        $this->contact_channel = in_array($business->contact_channel, ['merkamigo', 'whatsapp', 'phone', 'external_link'], true)
+            ? $business->contact_channel
+            : 'merkamigo';
         $this->municipality_id = $business->municipality_id;
         $this->additional_municipality_ids = $business->municipalities->pluck('id')->all();
         $this->category_id = $business->category_id;
@@ -155,6 +166,7 @@ new #[Title('Editar mi vitrina')] class extends Component
         $this->logo_alt_text = $business->logo_alt_text;
         $this->cover_alt_text = $business->storefront?->cover_alt_text;
         $this->stand_color = $business->storefront?->stand_color;
+        $this->product_view_style = $business->storefront?->product_view_style ?? 'classic';
         $this->show_posts = $business->storefront?->show_posts ?? true;
         $this->show_reels = $business->storefront?->show_reels ?? true;
         $this->hours_text = $business->hoursNote() ?? '';
@@ -168,6 +180,12 @@ new #[Title('Editar mi vitrina')] class extends Component
             $defaultSchedule[$day] = ['closed' => false, 'open' => null, 'close' => null];
         }
         $this->schedule = array_replace_recursive($defaultSchedule, $business->hours['schedule'] ?? []);
+    }
+
+    #[Computed]
+    public function merchantChecklist(): array
+    {
+        return app(\App\Support\GoogleMerchant\GoogleMerchantProductValidator::class)->businessChecklist($this->business);
     }
 
     #[Computed]
@@ -209,6 +227,7 @@ new #[Title('Editar mi vitrina')] class extends Component
             'logo_alt_text' => ['nullable', 'string', 'max:255'],
             'cover_alt_text' => ['nullable', 'string', 'max:255'],
             'stand_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'product_view_style' => ['required', 'in:classic,elegant'],
             'show_posts' => ['boolean'],
             'show_reels' => ['boolean'],
         ];
@@ -293,6 +312,19 @@ new #[Title('Editar mi vitrina')] class extends Component
         $validator = Validator::make($this->only(array_keys($this->rules())), $this->rules());
 
         if ($validator->fails()) {
+            // Pedido del usuario (2026-10-15): este autoguardado fallaba
+            // en silencio (sin log, sin aviso) — así se encontró que un
+            // negocio real en producción tenía un `contact_channel`
+            // heredado que ya no es válido, y bloqueaba el autoguardado
+            // de CUALQUIER campo de la vitrina sin dar ninguna pista. En
+            // vez de tragarnos el error, se lo mostramos al dueño —
+            // generalmente le toca corregir el campo dueño del error
+            // antes de que el campo que sí quería cambiar se guarde.
+            Flux::toast(
+                variant: 'danger',
+                text: __('No se guardó: :error', ['error' => $validator->errors()->first()]),
+            );
+
             return;
         }
 
@@ -787,6 +819,13 @@ new #[Title('Editar mi vitrina')] class extends Component
             </div>
 
             <div x-show="section === 'contenido'" x-cloak class="space-y-6">
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <flux:select wire:model.live="product_view_style" :label="__('Vista de los productos')">
+                        <flux:select.option value="classic">{{ __('Clásica') }}</flux:select.option>
+                        <flux:select.option value="elegant">{{ __('Elegante') }}</flux:select.option>
+                    </flux:select>
+                    <flux:text class="mt-2 text-sm text-zinc-500">{{ __('Clásica conserva la galería y la información en columnas. Elegante muestra las fotos y el video como fondo, con información y controles sobre una capa de contraste. Se aplica a todos los productos de esta vitrina.') }}</flux:text>
+                </div>
                 <div>
                     <flux:heading size="lg">{{ __('Contenido de la vitrina') }}</flux:heading>
                     <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -893,6 +932,7 @@ new #[Title('Editar mi vitrina')] class extends Component
                 <flux:input wire:model.live.debounce.900ms="zone" :label="__('Zona o barrio')" />
                 <flux:input wire:model.live.debounce.900ms="address" :label="__('Dirección (opcional)')" />
 
+                <x-google-merchant-guide :checks="$this->merchantChecklist" />
                 <div class="space-y-2 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
                     <flux:checkbox wire:model.live="has_physical_location" :label="__('Tengo un local físico donde los clientes pueden ver o recoger productos')" />
 
@@ -900,10 +940,10 @@ new #[Title('Editar mi vitrina')] class extends Component
                         <flux:input
                             wire:model.live.debounce.900ms="google_business_store_code"
                             :label="__('Código de tienda de tu Perfil de Empresa de Google (opcional)')"
-                            placeholder="{{ __('Ej: 12345') }}"
+                            placeholder="{{ __('Copia el código asignado a tu tienda en Google') }}"
                         />
                         <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ __('Solo si ya vinculaste tu propio Perfil de Empresa de Google (no el de Merkamigo) a Merchant Center. Déjalo vacío si todavía no lo tienes — no afecta la publicación de tus productos en Google Shopping.') }}
+                            {{ __('Este código identifica tu tienda física en tu Perfil de Empresa de Google; no es el ID de Merchant Center, el código del producto, la dirección ni el enlace de Maps. Abre los ajustes avanzados de tu Perfil de Empresa y copia su código de tienda. Si no existe, configúralo en Google y solicita a soporte vincular ese perfil con Merchant Center. Déjalo vacío mientras tanto: tu catálogo online se gestiona por separado.') }}
                         </flux:text>
 
                         <flux:textarea

@@ -13,6 +13,7 @@ use App\Models\User;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
@@ -39,6 +40,8 @@ class FeedPostComposer extends Component
 
     /** @var array<int, int|string> */
     public array $productIds = [];
+
+    public string $productSearch = '';
 
     public function mount(): void
     {
@@ -72,6 +75,32 @@ class FeedPostComposer extends Component
             ->where('status', 'publicado')
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Un negocio con catálogos grandes (50+ productos) no cabe en un
+     * panel sin filtrar — el buscador solo se muestra en la plantilla
+     * cuando hay más de un puñado de productos, pero el filtrado vive
+     * acá para que, con o sin caja de búsqueda visible, el mismo
+     * criterio decida qué se pinta.
+     *
+     * @return Collection<int, Product>
+     */
+    #[Computed]
+    public function filteredProducts(): Collection
+    {
+        $search = trim($this->productSearch);
+
+        if ($search === '') {
+            return $this->products();
+        }
+
+        return $this->products()
+            ->filter(fn (Product $product): bool => str_contains(
+                Str::lower($product->name),
+                Str::lower($search),
+            ))
+            ->values();
     }
 
     /** @return Collection<int, PublicEvent> */
@@ -112,8 +141,8 @@ class FeedPostComposer extends Component
 
     public function updatedBusinessId(): void
     {
-        $this->reset(['photos', 'video', 'eventId', 'rewardId', 'productIds']);
-        unset($this->selectedBusiness, $this->products, $this->events, $this->rewards);
+        $this->reset(['photos', 'video', 'eventId', 'rewardId', 'productIds', 'productSearch']);
+        unset($this->selectedBusiness, $this->products, $this->filteredProducts, $this->events, $this->rewards);
     }
 
     public function appendEmoji(string $emoji): void
@@ -284,7 +313,7 @@ class FeedPostComposer extends Component
 
     private function published(): void
     {
-        $this->reset(['body', 'photos', 'video', 'eventId', 'rewardId', 'productIds']);
+        $this->reset(['body', 'photos', 'video', 'eventId', 'rewardId', 'productIds', 'productSearch']);
         Flux::toast(variant: 'success', text: __('Tu publicación ya está en el muro.'));
 
         $this->redirectRoute('home', navigate: true);

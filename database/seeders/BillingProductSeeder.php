@@ -75,14 +75,25 @@ class BillingProductSeeder extends Seeder
             ],
         );
 
+        // PR4 de TODO_VENTAS_RENTABILIDAD.md (decisión del usuario
+        // 2026-10-09): pasa de pago único "de por vida" (`expires_in_days`
+        // null) a suscripción mensual con cobro automático —
+        // `ProcessEntitlementRenewals` la vuelve a cobrar cada mes contra
+        // la tarjeta guardada del negocio. Los entitlements YA otorgados
+        // antes de este cambio quedan intactos (su `expires_at` sigue en
+        // `null`, de por vida) — migrarlos a mensual requiere primero el
+        // aviso previo que el usuario pidió, todavía sin definir con
+        // Comercial/Legal (ver docs/auditoria-ventas-rentabilidad.md §8
+        // punto 4); este seeder solo cambia la condición para compras
+        // NUEVAS desde ahora.
         BillingProduct::query()->updateOrCreate(
             ['slug' => 'asistente-ia'],
             [
                 'name' => 'Asistente IA para tu vitrina',
-                'description' => 'Un chat con inteligencia artificial en tu vitrina que responde al instante las preguntas de tus visitantes, usando la información real de tu negocio y tus productos.',
+                'description' => 'Un chat con inteligencia artificial en tu vitrina que responde al instante las preguntas de tus visitantes, usando la información real de tu negocio y tus productos. Suscripción mensual, se renueva automáticamente contra tu tarjeta guardada.',
                 'price_cents' => 4990000,
                 'kind' => BillingProduct::ENTITLEMENT,
-                'payload' => ['entitlement_key' => BusinessEntitlement::AI_CHATBOT, 'expires_in_days' => null],
+                'payload' => ['entitlement_key' => BusinessEntitlement::AI_CHATBOT, 'expires_in_days' => 30],
                 'is_active' => true,
             ],
         );

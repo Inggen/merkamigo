@@ -48,7 +48,7 @@ class PlanLimitsTest extends TestCase
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Al Límite'])->business;
 
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 3; $i++) {
             app(CreateProduct::class)->handle($business, [
                 'name' => "Producto {$i}", 'type' => 'producto', 'price_type' => 'consultar',
             ], [], $owner);
@@ -116,7 +116,7 @@ class PlanLimitsTest extends TestCase
             ->assertSee('Plan actual')
             ->assertSee('$49.900 COP')
             ->assertSee('Activo')
-            ->assertSee('Hasta 20 productos y servicios')
+            ->assertSee('Hasta 15 productos y servicios')
             ->assertSee('Uso de tu plan')
             ->assertSee('de 3')
             ->assertSee('2 cupos disponibles')
@@ -156,8 +156,8 @@ class PlanLimitsTest extends TestCase
         $owner = User::factory()->create();
         $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Productos Al Tope'])->business;
 
-        // El plan Básico por defecto trae max_products = 5.
-        for ($i = 0; $i < 5; $i++) {
+        // El plan Básico por defecto trae max_products = 3.
+        for ($i = 0; $i < 3; $i++) {
             app(CreateProduct::class)->handle($business->fresh(), [
                 'name' => "Producto {$i}", 'type' => 'producto', 'price_type' => 'consultar',
             ], [], $owner);

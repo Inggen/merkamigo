@@ -34,7 +34,7 @@
     </flux:dropdown>
 @endif
 
-<flux:sidebar.group :heading="__('General')" expandable class="entrepreneur-nav-group grid">
+<flux:sidebar.group :heading="__('General')" expandable x-data="{ expanded: $persist(true).as('entrepreneur-sidebar-{{ auth()->id() }}-general') }" x-model="expanded" class="entrepreneur-nav-group grid">
     <flux:sidebar.item icon="home" :href="route('emprendedores.home')" :current="request()->routeIs('emprendedores.home')" wire:navigate>{{ __('Inicio') }}</flux:sidebar.item>
     <flux:sidebar.item icon="chat-bubble-left-right" :href="route('messages.index')" :current="request()->routeIs('messages.*')" :badge="($unreadMessages = auth()->user()->unreadBusinessMessagesCount()) > 0 ? $unreadMessages : null" wire:navigate>{{ __('Mensajes') }}</flux:sidebar.item>
     <flux:sidebar.item icon="bell" :href="route('clientes.actividad')" :current="request()->routeIs('clientes.actividad')" :badge="$unread > 0 ? $unread : null" wire:navigate>{{ __('Actividad') }}</flux:sidebar.item>
@@ -45,12 +45,22 @@
 
 <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
 
-<flux:sidebar.group :heading="__('Mi negocio')" expandable class="entrepreneur-nav-group grid">
+<flux:sidebar.group :heading="__('Mi negocio')" expandable x-data="{ expanded: $persist(true).as('entrepreneur-sidebar-{{ auth()->id() }}-business') }" x-model="expanded" class="entrepreneur-nav-group grid">
     @if ($primaryBusiness)
         <flux:sidebar.item icon="building-storefront" :href="route('emprendedores.negocios.vitrina', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.vitrina')" wire:navigate>{{ __('Mi vitrina') }}</flux:sidebar.item>
         <flux:sidebar.item icon="cube" :href="route('emprendedores.negocios.productos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.productos')" wire:navigate>{{ __('Productos') }}</flux:sidebar.item>
-        <flux:sidebar.item icon="sparkles" :href="route('emprendedores.negocios.merkapuntos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.merkapuntos')" wire:navigate>{{ __('Merkapuntos') }}</flux:sidebar.item>
-        <flux:sidebar.item icon="calendar-days" :href="route('emprendedores.negocios.eventos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.eventos')" wire:navigate>{{ __('Eventos') }}</flux:sidebar.item>
+        {{--
+            Pedido del usuario (2026-10-13): Merkapuntos requiere un plan
+            de pago (Emprendedor o Negocios) y Eventos es exclusivo de
+            Negocios — mismo patrón que "En vivo"/"Ventas" más abajo, el
+            ítem simplemente no aparece si el negocio no califica.
+        --}}
+        @if ($primaryBusiness->isOnPaidPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+            <flux:sidebar.item icon="sparkles" :href="route('emprendedores.negocios.merkapuntos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.merkapuntos')" wire:navigate>{{ __('Merkapuntos') }}</flux:sidebar.item>
+        @endif
+        @if ($primaryBusiness->isOnTopPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
+            <flux:sidebar.item icon="calendar-days" :href="route('emprendedores.negocios.eventos', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.eventos')" wire:navigate>{{ __('Eventos') }}</flux:sidebar.item>
+        @endif
     @else
         <flux:sidebar.item icon="building-storefront" :href="route('emprendedores.crear-vitrina')" :current="request()->routeIs('emprendedores.crear-vitrina')" wire:navigate>{{ __('Crear mi vitrina') }}</flux:sidebar.item>
     @endif
@@ -58,7 +68,7 @@
 
 @if ($primaryBusiness)
     <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
-    <flux:sidebar.group :heading="__('Contenido')" expandable class="entrepreneur-nav-group grid">
+    <flux:sidebar.group :heading="__('Contenido')" expandable x-data="{ expanded: $persist(true).as('entrepreneur-sidebar-{{ auth()->id() }}-content') }" x-model="expanded" class="entrepreneur-nav-group grid">
         <flux:sidebar.item icon="rectangle-stack" :href="route('emprendedores.negocios.publicaciones', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.publicaciones')" wire:navigate>{{ __('Publicaciones') }}</flux:sidebar.item>
         <flux:sidebar.item icon="bolt" :href="route('emprendedores.negocios.estados', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.estados')" wire:navigate>{{ __('Estados') }}</flux:sidebar.item>
         <flux:sidebar.item icon="film" :href="route('emprendedores.negocios.reels', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.reels')" wire:navigate>{{ __('Reels') }}</flux:sidebar.item>
@@ -69,14 +79,14 @@
 
     @if ($primaryBusiness->isOnPaidPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
         <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
-        <flux:sidebar.group :heading="__('Ventas')" expandable class="entrepreneur-nav-group grid">
+        <flux:sidebar.group :heading="__('Ventas')" expandable x-data="{ expanded: $persist(true).as('entrepreneur-sidebar-{{ auth()->id() }}-sales') }" x-model="expanded" class="entrepreneur-nav-group grid">
             <flux:sidebar.item icon="shopping-bag" :href="route('emprendedores.negocios.ventas', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.ventas')" wire:navigate>{{ __('Ventas') }}</flux:sidebar.item>
             <flux:sidebar.item icon="credit-card" :href="route('emprendedores.negocios.cobros-en-linea', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.cobros-en-linea')" wire:navigate>{{ __('Cobros en línea') }}</flux:sidebar.item>
         </flux:sidebar.group>
     @endif
 
     <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
-    <flux:sidebar.group :heading="__('Crecimiento')" expandable class="entrepreneur-nav-group grid">
+    <flux:sidebar.group :heading="__('Crecimiento')" expandable x-data="{ expanded: $persist(true).as('entrepreneur-sidebar-{{ auth()->id() }}-growth') }" x-model="expanded" class="entrepreneur-nav-group grid">
         <flux:sidebar.item icon="chart-bar" :href="route('emprendedores.negocios.metricas', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.metricas')" wire:navigate>{{ __('Métricas') }}</flux:sidebar.item>
         @if ($primaryBusiness->isOnPaidPlan() || (auth()->user()?->canBypassPlanGates() ?? false))
             <flux:sidebar.item icon="megaphone" :href="route('emprendedores.negocios.copiloto', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.copiloto')" wire:navigate>{{ __('Promocionar') }}</flux:sidebar.item>
@@ -87,7 +97,7 @@
     </flux:sidebar.group>
 
     <div class="mx-3 my-2 border-t border-zinc-200/80 dark:border-zinc-700"></div>
-    <flux:sidebar.group :heading="__('Configuración')" expandable class="entrepreneur-nav-group grid">
+    <flux:sidebar.group :heading="__('Configuración')" expandable x-data="{ expanded: $persist(true).as('entrepreneur-sidebar-{{ auth()->id() }}-settings') }" x-model="expanded" class="entrepreneur-nav-group grid">
         <flux:sidebar.item icon="credit-card" :href="route('emprendedores.negocios.plan', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.plan')" wire:navigate>{{ __('Tu plan') }}</flux:sidebar.item>
         @if ($primaryBusiness->canUseAiChatbot() || (auth()->user()?->canBypassPlanGates() ?? false))
             <flux:sidebar.item icon="chat-bubble-left-right" :href="route('emprendedores.negocios.chatbot', $primaryBusiness)" :current="request()->routeIs('emprendedores.negocios.chatbot')" wire:navigate>{{ __('Chatbot IA') }}</flux:sidebar.item>

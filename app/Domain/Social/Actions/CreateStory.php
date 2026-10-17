@@ -22,7 +22,7 @@ class CreateStory
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(Business $business, array $data, UploadedFile $photo, User $actor): Story
+    public function handle(Business $business, array $data, UploadedFile $media, User $actor): Story
     {
         $validated = Validator::make($data, [
             'type' => ['required', 'in:imagen,promocion,producto,servicio'],
@@ -36,8 +36,16 @@ class CreateStory
             $productId = $business->products()->whereKey($validated['product_id'])->value('id');
         }
 
-        return DB::transaction(function () use ($business, $validated, $photo, $actor, $productId) {
-            $path = app(MediaUploader::class)->store($photo, 'story_photo', "stories/{$business->id}");
+        return DB::transaction(function () use ($business, $validated, $media, $actor, $productId) {
+            // Pedido del usuario (2026-10-16): estados en video, además
+            // de imagen — mismo patrón que `StoresPostMedia` (sin
+            // columna de tipo propia, la extensión decide el contexto
+            // de `MediaUploader`, que a su vez decide si optimiza como
+            // imagen o solo valida y guarda tal cual como video).
+            $extension = strtolower($media->getClientOriginalExtension() ?: $media->extension() ?: '');
+            $context = in_array($extension, ['mp4', 'webm', 'mov'], true) ? 'story_video' : 'story_photo';
+
+            $path = app(MediaUploader::class)->store($media, $context, "stories/{$business->id}");
 
             $story = $business->stories()->create([
                 'user_id' => $actor->id,

@@ -2,6 +2,18 @@
 
 return [
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/autenticacion/google/callback'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', '/autenticacion/facebook/callback'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
@@ -93,6 +105,12 @@ return [
     */
     'marketplace' => [
         'commission_rate' => (float) env('MARKETPLACE_COMMISSION_RATE', 0.05),
+        // PR3 de TODO_VENTAS_RENTABILIDAD.md (P0.2): detrás de bandera y
+        // apagado por defecto — un invitado solo puede pagar un
+        // producto DIGITAL sin cuenta (ver `CreateOrderCheckout`); no
+        // existe modelo de inventario todavía, así que los productos
+        // físicos siguen exigiendo cuenta sin importar este flag.
+        'guest_checkout_enabled' => (bool) env('MARKETPLACE_GUEST_CHECKOUT_ENABLED', false),
     ],
 
     'live_streaming' => [

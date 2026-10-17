@@ -137,7 +137,11 @@ class FeedController extends Controller
             'activeLive' => $activeLive,
             'promotedProduct' => $promotedProduct,
             'featuredRewards' => $this->featuredRewards($municipality),
-            'hasActiveStories' => $this->hasActiveStories($municipality),
+            // Pedido del usuario (2026-10-16): el dueño de un negocio debe
+            // poder crear un estado desde Comunidad aunque todavía no haya
+            // ninguno activo en el sitio — antes esta tarjeta se ocultaba
+            // por completo y no había dónde darle clic a "Crear".
+            'hasActiveStories' => $this->hasActiveStories($municipality) || $this->canCreateStory(),
         ]);
     }
 
@@ -150,6 +154,33 @@ class FeedController extends Controller
                 fn ($businessQuery) => $businessQuery->servesMunicipality($municipality->id),
             ))
             ->exists();
+    }
+
+    private function canCreateStory(): bool
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return false;
+        }
+
+        // `BusinessPolicy::update` revisa el rol del usuario dentro del
+        // "team" activo de spatie/laravel-permission (ver su propio
+        // comentario) — hay que fijarlo a cada negocio candidato antes
+        // de preguntar, y devolverlo a null al terminar para no dejar un
+        // team "pegado" que afecte otras comprobaciones de esta misma
+        // petición (el feed no pertenece a un solo negocio).
+        $canCreate = $user->businesses->contains(function (Business $business) use ($user) {
+            setPermissionsTeamId($business->id);
+            $user->unsetRelation('roles');
+
+            return $user->can('update', $business);
+        });
+
+        setPermissionsTeamId(null);
+        $user->unsetRelation('roles');
+
+        return $canCreate;
     }
 
     /**

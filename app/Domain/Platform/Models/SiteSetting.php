@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Storage;
  * Configuración general del sitio, editable desde el admin. Empieza con la
  * imagen genérica para compartir en redes (usada cuando una página no trae
  * su propia imagen de Open Graph) y crecerá con más ajustes de plataforma.
+ *
+ * Banners de página (2026-10-14, pedido del usuario): imagen + título +
+ * descripción de Vitrinas, Eventos, Merkapuntos, Merkamigo Premia, Pídelo
+ * y la bienvenida de "Crear vitrina" — todos `nullable`, cada vista cae
+ * de vuelta a su copy/imagen original (`??`) si el admin no cargó nada.
  */
 class SiteSetting extends Model
 {
@@ -29,6 +34,23 @@ class SiteSetting extends Model
         'social_instagram_url',
         'social_tiktok_url',
         'social_whatsapp_url',
+        'vitrinas_hero_title',
+        'vitrinas_hero_description',
+        'eventos_banner_path',
+        'eventos_banner_title',
+        'eventos_banner_description',
+        'merkapuntos_banner_path',
+        'merkapuntos_banner_title',
+        'merkapuntos_banner_description',
+        'premia_banner_path',
+        'premia_banner_title',
+        'premia_banner_description',
+        'pidelo_banner_path',
+        'pidelo_banner_title',
+        'pidelo_banner_description',
+        'bienvenida_banner_path',
+        'bienvenida_banner_title',
+        'bienvenida_banner_description',
     ];
 
     /**
@@ -96,6 +118,31 @@ class SiteSetting extends Model
     public function pideloVideoUrl(): ?string
     {
         return $this->urlFor($this->pidelo_video_path);
+    }
+
+    public function eventosBannerUrl(): ?string
+    {
+        return $this->urlFor($this->eventos_banner_path);
+    }
+
+    public function merkapuntosBannerUrl(): ?string
+    {
+        return $this->urlFor($this->merkapuntos_banner_path);
+    }
+
+    public function premiaBannerUrl(): ?string
+    {
+        return $this->urlFor($this->premia_banner_path);
+    }
+
+    public function pideloBannerUrl(): ?string
+    {
+        return $this->urlFor($this->pidelo_banner_path);
+    }
+
+    public function bienvenidaBannerUrl(): ?string
+    {
+        return $this->urlFor($this->bienvenida_banner_path);
     }
 
     private function urlFor(?string $path): ?string

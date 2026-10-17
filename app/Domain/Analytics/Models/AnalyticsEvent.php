@@ -77,6 +77,19 @@ class AnalyticsEvent extends Model
 
     public const EVENT_RESERVATION_STARTED = 'event_reservation_started';
 
+    // PR5 de TODO_VENTAS_RENTABILIDAD.md (P1.4): embudo del checkout
+    // normal de Marketplace (antes solo existía para Live Commerce,
+    // `LIVE_CHECKOUT_STARTED`/`LIVE_PURCHASE`) — el paso de "vista" ya
+    // lo cubre `PRODUCTO_VIEW`. En la UI real no hay un clic "comprar"
+    // separado de iniciar el checkout (el botón del producto manda
+    // directo a `CreateOrderCheckout`), así que no se inventa un paso
+    // intermedio que no existe.
+    public const MARKETPLACE_CHECKOUT_STARTED = 'marketplace_checkout_started';
+
+    public const MARKETPLACE_PAYMENT_APPROVED = 'marketplace_payment_approved';
+
+    public const MARKETPLACE_PAYMENT_FAILED = 'marketplace_payment_failed';
+
     protected $fillable = ['business_id', 'type', 'subject_type', 'subject_id', 'visitor_hash'];
 
     /**

@@ -134,4 +134,236 @@ class SiteSettingsTest extends TestCase
 
         Livewire::test(SiteSettings::class)->assertForbidden();
     }
+
+    /**
+     * Pedido del usuario (2026-10-14): el título y la descripción del
+     * buscador principal (hasta ahora solo la imagen era editable) y los
+     * mismos tres campos (imagen, título, descripción) para los banners
+     * de Eventos, Merkapuntos, Merkamigo Premia, Pídelo y la bienvenida
+     * de "Crear vitrina" — todos hardcodeados en cada vista hasta hoy.
+     * Un test por banner: cae al copy original sin nada configurado, y
+     * usa lo configurado cuando sí existe.
+     */
+    public function test_the_search_hero_falls_back_to_the_default_title_and_description(): void
+    {
+        $this->get(route('buscar'))
+            ->assertOk()
+            ->assertSee('Descubre lo mejor de tu municipio')
+            ->assertSee('Miles de negocios, productos y servicios cerca de ti.');
+    }
+
+    public function test_the_search_hero_uses_the_configured_title_and_description_when_set(): void
+    {
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm([
+                'vitrinas_hero_title' => 'Título personalizado de vitrinas',
+                'vitrinas_hero_description' => 'Descripción personalizada de vitrinas.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->get(route('buscar'))
+            ->assertOk()
+            ->assertSee('Título personalizado de vitrinas')
+            ->assertSee('Descripción personalizada de vitrinas.')
+            ->assertDontSee('Miles de negocios, productos y servicios cerca de ti.');
+    }
+
+    public function test_the_eventos_banner_falls_back_to_the_default_image_title_and_description(): void
+    {
+        $this->get(route('eventos'))
+            ->assertOk()
+            ->assertSee(asset('images/backgrounds/fondo_banner_eventos.webp'), false)
+            ->assertSee('Eventos')
+            ->assertSee('cerca de ti')
+            ->assertSee('Descubre experiencias de negocios locales: música en vivo, talleres, mercados y más.');
+    }
+
+    public function test_the_eventos_banner_uses_the_configured_image_title_and_description_when_set(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm([
+                'eventos_banner_path' => UploadedFile::fake()->image('eventos-bg.jpg'),
+                'eventos_banner_title' => 'Título personalizado de eventos',
+                'eventos_banner_description' => 'Descripción personalizada de eventos.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $url = SiteSetting::current()->eventosBannerUrl();
+
+        $this->get(route('eventos'))
+            ->assertOk()
+            ->assertSee($url, false)
+            ->assertSee('Título personalizado de eventos')
+            ->assertSee('Descripción personalizada de eventos.')
+            ->assertDontSee('Descubre experiencias de negocios locales: música en vivo, talleres, mercados y más.');
+    }
+
+    public function test_the_merkapuntos_banner_falls_back_to_the_default_image_title_and_description(): void
+    {
+        $customer = User::factory()->create();
+        $this->actingAs($customer);
+
+        $this->get(route('merkapuntos'))
+            ->assertOk()
+            ->assertSee(asset('images/backgrounds/fondo_merkapuntos_banner.webp'), false)
+            ->assertSee('Tu próxima compra puede acercarte a una recompensa.')
+            ->assertSee('Elige lo que te gustaría disfrutar y empieza a acumular comprando cerca de ti.');
+    }
+
+    public function test_the_merkapuntos_banner_uses_the_configured_image_title_and_description_when_set(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm([
+                'merkapuntos_banner_path' => UploadedFile::fake()->image('merkapuntos-bg.jpg'),
+                'merkapuntos_banner_title' => 'Título personalizado de Merkapuntos',
+                'merkapuntos_banner_description' => 'Descripción personalizada de Merkapuntos.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $url = SiteSetting::current()->merkapuntosBannerUrl();
+
+        $customer = User::factory()->create();
+        $this->actingAs($customer);
+
+        $this->get(route('merkapuntos'))
+            ->assertOk()
+            ->assertSee($url, false)
+            ->assertSee('Título personalizado de Merkapuntos')
+            ->assertSee('Descripción personalizada de Merkapuntos.')
+            ->assertDontSee('Tu próxima compra puede acercarte a una recompensa.');
+    }
+
+    public function test_the_premia_banner_falls_back_to_the_default_image_title_and_description(): void
+    {
+        $this->get(route('premia.index'))
+            ->assertOk()
+            ->assertSee(asset('images/backgrounds/fondo_merkapuntos_premia.webp'), false)
+            ->assertSee('Apoyar lo local tiene recompensa');
+    }
+
+    public function test_the_premia_banner_uses_the_configured_image_title_and_description_when_set(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm([
+                'premia_banner_path' => UploadedFile::fake()->image('premia-bg.jpg'),
+                'premia_banner_title' => 'Título personalizado de Premia',
+                'premia_banner_description' => 'Descripción personalizada de Premia.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $url = SiteSetting::current()->premiaBannerUrl();
+
+        $this->get(route('premia.index'))
+            ->assertOk()
+            ->assertSee($url, false)
+            ->assertSee('Título personalizado de Premia')
+            ->assertSee('Descripción personalizada de Premia.')
+            ->assertDontSee('Apoyar lo local tiene recompensa');
+    }
+
+    public function test_the_pidelo_banner_falls_back_to_the_default_image_title_and_description(): void
+    {
+        $owner = User::factory()->create();
+        $this->actingAs($owner);
+
+        $this->get(route('pidelo.nueva'))
+            ->assertOk()
+            ->assertSee(asset('images/backgrounds/fondo_banner_pidelo.webp'), false)
+            ->assertSee('Cuéntanos')
+            ->assertSee('qué necesitas')
+            ->assertSee('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.');
+    }
+
+    public function test_the_pidelo_banner_uses_the_configured_image_title_and_description_when_set(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm([
+                'pidelo_banner_path' => UploadedFile::fake()->image('pidelo-bg.jpg'),
+                'pidelo_banner_title' => 'Título personalizado de Pídelo',
+                'pidelo_banner_description' => 'Descripción personalizada de Pídelo.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $url = SiteSetting::current()->pideloBannerUrl();
+
+        $owner = User::factory()->create();
+        $this->actingAs($owner);
+
+        $this->get(route('pidelo.nueva'))
+            ->assertOk()
+            ->assertSee($url, false)
+            ->assertSee('Título personalizado de Pídelo')
+            ->assertSee('Descripción personalizada de Pídelo.')
+            ->assertDontSee('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.');
+    }
+
+    public function test_the_bienvenida_banner_falls_back_to_the_default_image_title_and_description(): void
+    {
+        $this->get(route('emprendedores.bienvenida'))
+            ->assertOk()
+            ->assertSee(asset('images/emprendedores/bienvenida-hero.jpg'), false)
+            ->assertSee('Tu negocio local,')
+            ->assertSee('más cerca de todos')
+            ->assertSee('Crea tu vitrina digital en minutos, muestra lo que vendes y conecta con personas de tu comunidad.');
+    }
+
+    public function test_the_bienvenida_banner_uses_the_configured_image_title_and_description_when_set(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $this->assignPlatformRole($admin, 'admin');
+        $this->actingAs($admin);
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm([
+                'bienvenida_banner_path' => UploadedFile::fake()->image('bienvenida-bg.jpg'),
+                'bienvenida_banner_title' => 'Título personalizado de bienvenida',
+                'bienvenida_banner_description' => 'Descripción personalizada de bienvenida.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $url = SiteSetting::current()->bienvenidaBannerUrl();
+
+        $this->get(route('emprendedores.bienvenida'))
+            ->assertOk()
+            ->assertSee($url, false)
+            ->assertSee('Título personalizado de bienvenida')
+            ->assertSee('Descripción personalizada de bienvenida.')
+            ->assertDontSee('Crea tu vitrina digital en minutos, muestra lo que vendes y conecta con personas de tu comunidad.');
+    }
 }

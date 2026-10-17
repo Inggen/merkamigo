@@ -187,3 +187,14 @@ El usuario compartió un resumen de una IA de Google (con citas a alertas reales
 ## 6. Cierre
 
 Las 12 fases quedaron completas. Resumen ejecutable de lo construido en esta sesión: 2 migraciones nuevas ejecutadas, 3 clases de soporte nuevas (`GoogleMerchantProductValidator`, `GoogleMerchantService`, `GoogleMerchantErrorTranslator`) + 2 extendidas (`Client`, `Mapper`), 4 eventos de dominio nuevos (primeros de `Product`/`Business` en el proyecto), 2 Jobs nuevos, 1 página Filament nueva + columnas nuevas en 2 tablas existentes, badge + campos opcionales en el panel del emprendedor, JSON-LD enriquecido, comando `google-merchant:sync` extendido con 3 flags nuevos, 29 tests nuevos (todos en verde, ninguno llama a Google real), y esta documentación. Un archivo `google-merchant-y-video-cta-2026-09-14.zip` en la raíz del repo empaqueta todos los archivos tocados en esta sesión (incluye también el trabajo previo de video de fondo en las tarjetas de Inicio) para desplegar manualmente vía cPanel — ver el mensaje de cierre de la conversación para las notas de despliegue (migraciones pendientes de correr en el servidor, credenciales de Google no incluidas por seguridad, `GOOGLE_MERCHANT_ENABLED` debe quedar en `false` hasta completar la progresión de prueba en producción).
+
+### Ayuda al emprendedor y sincronización local — 2026-10-13
+
+- [x] Guía compartida en Vitrina y Productos con requisitos efectivos, ayuda sobre código de tienda, GTIN y MPN y enlace a soporte.
+- [x] Reutilizar datos existentes del catálogo y mostrar problemas de elegibilidad en las tarjetas.
+- [x] Botón autorizado de revisión y sincronización por negocio.
+- [x] Reencolar productos cuando cambian los datos de vitrina relevantes para Merchant.
+- [x] Excluir destinos locales en API y XML mientras falten requisitos, conservando destinos online.
+- [x] Reintentar errores temporales de inventario local sin reenviar el producto online.
+- [x] Diferenciar «Enviado a Google» de aprobación; mantener la vinculación real de Perfiles de Empresa como paso externo.
+- [ ] Desplegar este bloque y reenviar el catálogo existente para que Google procese los nuevos destinos.

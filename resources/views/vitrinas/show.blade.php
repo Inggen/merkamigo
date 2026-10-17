@@ -866,5 +866,5 @@
         @endif
     </div>
 
-    <x-storefront-chat-widget :business="$business" :with-sound="false" />
+    <x-storefront-chat-widget :business="$business" :with-sound="false" :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()" />
 </x-layouts::cliente>

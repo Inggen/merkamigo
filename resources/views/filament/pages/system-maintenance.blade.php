@@ -108,6 +108,45 @@
             </x-filament::section>
 
             <x-filament::section>
+                <x-slot name="heading">{{ __('Correo de prueba') }}</x-slot>
+                <x-slot name="description">{{ __('Comprueba la conexión SMTP enviando inmediatamente la plantilla general de Merkamigo.') }}</x-slot>
+
+                <div class="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <div>
+                        <label for="test-email" class="mb-2 block text-sm font-medium text-zinc-950 dark:text-white">
+                            {{ __('Correo destinatario') }}
+                        </label>
+                        <x-filament::input.wrapper :valid="! $errors->has('testEmail')">
+                            <x-filament::input
+                                id="test-email"
+                                type="email"
+                                wire:model="testEmail"
+                                autocomplete="email"
+                                placeholder="tu@correo.com"
+                            />
+                        </x-filament::input.wrapper>
+                        @error('testEmail')
+                            <p class="mt-2 text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <x-filament::button
+                        wire:click="sendTestEmail"
+                        wire:loading.attr="disabled"
+                        wire:target="sendTestEmail"
+                        icon="heroicon-o-paper-airplane"
+                    >
+                        {{ __('Enviar prueba') }}
+                    </x-filament::button>
+                </div>
+
+                <div class="mt-4 flex items-start gap-2 rounded-xl bg-zinc-50 p-3 text-xs leading-5 text-zinc-500 dark:bg-white/5 dark:text-zinc-400">
+                    <x-filament::icon icon="heroicon-o-information-circle" class="mt-0.5 size-4 shrink-0" />
+                    <p>{{ __('El envío no usa la cola. El resultado aparecerá a la derecha y quedará registrado en la actividad reciente como artisan mail:test.') }}</p>
+                </div>
+            </x-filament::section>
+
+            <x-filament::section>
                 <x-slot name="heading">{{ __('Comandos permitidos') }}</x-slot>
                 <x-slot name="description">{{ __('Acciones frecuentes de despliegue. La herramienta no acepta comandos arbitrarios.') }}</x-slot>
 

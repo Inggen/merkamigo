@@ -178,7 +178,9 @@ new #[Title('Publicaciones')] class extends Component
                             @if ($post->products->isNotEmpty())<span class="inline-flex items-center gap-1"><flux:icon.cube class="size-4" />{{ $post->products->count() }}</span>@endif
                         </div>
                     </div>
-                    <div class="flex shrink-0 gap-2 self-end sm:self-auto">
+                    <div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                        <x-share-icons :url="route('vitrinas.show', $this->business)" :text="$post->body ?: $this->business->name" />
+                        <span class="mx-0.5 h-6 w-px bg-zinc-200 dark:bg-zinc-700"></span>
                         <flux:button type="button" variant="ghost" icon="eye" x-on:click="previewPost = {{ $post->id }}" aria-label="{{ __('Previsualizar publicación') }}" />
                         <flux:button type="button" variant="ghost" icon="trash" wire:click="delete({{ $post->id }})" wire:confirm="{{ __('¿Eliminar esta publicación?') }}" aria-label="{{ __('Eliminar publicación') }}" />
                     </div>

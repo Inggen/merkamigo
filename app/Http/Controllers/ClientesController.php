@@ -117,6 +117,13 @@ class ClientesController extends Controller
         return redirect()->route('clientes.actividad');
     }
 
+    public function eliminarActividad(Request $request, string $notification): RedirectResponse
+    {
+        $request->user()->notifications()->whereKey($notification)->firstOrFail()->delete();
+
+        return redirect()->route('clientes.actividad');
+    }
+
     private function preferredMunicipality(Request $request): ?Municipality
     {
         $slug = $request->cookie('municipio');

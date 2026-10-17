@@ -31,6 +31,7 @@
     </head>
     <body class="min-h-screen bg-mist dark:bg-zinc-900 dark:text-white">
         <x-cliente-nav />
+        <x-app-install />
 
         {{--
             Paridad con `layouts/app/sidebar.blade.php` (2026-10-06): un
@@ -57,23 +58,43 @@
             </div>
         @endif
 
-        <main class="{{ auth()->check() && auth()->user()->experience === 'cliente' ? 'pb-16 md:pb-0' : '' }}">
+        <main>
             {{ $slot }}
         </main>
 
-        @include('partials.public-footer')
+        @include('partials.footer-slim')
 
-        @auth
-            @if (auth()->user()->experience === 'cliente')
-                <x-cliente-bottom-nav />
-            @endif
-        @endauth
+        {{--
+            Pedido del usuario (2026-10-11): la barra inferior también
+            debe verse en móvil para un visitante que todavía no inició
+            sesión — antes solo se mostraba con @auth, así que un
+            invitado perdía la navegación principal. Se oculta solo para
+            un usuario autenticado con una experiencia distinta a
+            "cliente" (p. ej. un dueño de negocio viendo el sitio
+            público como él mismo, que tiene su propia navegación).
+
+            `ClientBottomNav::visible()` es la única fuente de verdad de
+            esta condición — el chatbot de abajo la usa también para
+            saber si debe levantarse por encima de la barra; tenerla
+            duplicada fue justo lo que rompió el chatbot para invitados
+            la primera vez que se arregló esto acá.
+        --}}
+        @if (\App\Support\Navigation\ClientBottomNav::visible())
+            <div
+                data-mobile-bottom-nav-reserve
+                class="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden"
+                aria-hidden="true"
+            ></div>
+
+            <x-cliente-bottom-nav />
+        @endif
 
         @if ($showChatWidget)
             <x-storefront-chat-widget
                 :with-sound="false"
                 character-gif="images/chatbot-merkamiga-IA.gif"
                 character-frame1="images/chatbot-merkamiga-IA-frame1.png"
+                :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()"
             />
         @endif
 

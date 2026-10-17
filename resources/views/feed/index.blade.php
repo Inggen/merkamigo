@@ -36,10 +36,6 @@
 
     <div class="feed-layout mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6">
         <div class="min-w-0">
-            @auth
-                <x-push-notification-settings class="mb-4" />
-            @endauth
-
             @if ($hasActiveStories)
                 <section class="mb-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="mb-3 flex items-center justify-between">

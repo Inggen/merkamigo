@@ -8,9 +8,35 @@
     "theme_color": "#D7352A",
     "icons": [
         {
-            "src": "/images/apple-touch-icon.png",
-            "sizes": "177x177",
-            "type": "image/png"
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ],
+    "id": "/",
+    "scope": "/",
+    "lang": "es",
+    "screenshots": [
+        {
+            "src": "/images/pwa/desktop.png",
+            "sizes": "1440x900",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Descubre negocios y compra local en Merkamigo"
+        },
+        {
+            "src": "/images/pwa/mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Descubre negocios y compra local en Merkamigo"
         }
     ]
 }

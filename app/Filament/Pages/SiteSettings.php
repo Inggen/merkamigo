@@ -5,9 +5,11 @@ namespace App\Filament\Pages;
 use App\Domain\Platform\Models\SiteSetting;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use UnitEnum;
@@ -106,15 +108,6 @@ class SiteSettings extends Page
                     ->directory('site')
                     ->maxSize(config('media.site_footer_background.max_kb')),
 
-                FileUpload::make('main_search_background_path')
-                    ->label('Fondo del buscador principal')
-                    ->helperText('Imagen de fondo detrás del buscador principal del sitio.')
-                    ->image()
-                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
-                    ->disk('public')
-                    ->directory('site')
-                    ->maxSize(config('media.site_main_search_background.max_kb')),
-
                 TextInput::make('meta_pixel_id')
                     ->label('Meta Pixel ID')
                     ->helperText('ID del Pixel de Meta (Facebook) para seguimiento de conversiones. Déjalo vacío para desactivarlo.')
@@ -163,6 +156,132 @@ class SiteSettings extends Page
                     ->directory('site/videos')
                     ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/quicktime'])
                     ->maxSize(config('media.site_pidelo_video.max_kb')),
+
+                Section::make('Banner de Vitrinas (buscador principal)')
+                    ->description('Se ve en Inicio y en Plaza cuando no hay un municipio específico seleccionado. Deja un campo vacío para conservar el texto o la imagen original de esa sección.')
+                    ->components([
+                        FileUpload::make('main_search_background_path')
+                            ->label('Imagen de fondo')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                            ->disk('public')
+                            ->directory('site')
+                            ->maxSize(config('media.site_main_search_background.max_kb')),
+                        TextInput::make('vitrinas_hero_title')
+                            ->label('Título')
+                            ->maxLength(150)
+                            ->placeholder('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad'),
+                        Textarea::make('vitrinas_hero_description')
+                            ->label('Descripción')
+                            ->rows(2)
+                            ->maxLength(300)
+                            ->placeholder('Miles de negocios, productos y servicios cerca de ti.'),
+                    ]),
+
+                Section::make('Banner de Eventos')
+                    ->description('Deja un campo vacío para conservar el texto o la imagen original de esa sección.')
+                    ->components([
+                        FileUpload::make('eventos_banner_path')
+                            ->label('Imagen de fondo')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                            ->disk('public')
+                            ->directory('site')
+                            ->maxSize(config('media.site_eventos_banner.max_kb')),
+                        TextInput::make('eventos_banner_title')
+                            ->label('Título')
+                            ->maxLength(150)
+                            ->placeholder('Eventos cerca de ti'),
+                        Textarea::make('eventos_banner_description')
+                            ->label('Descripción')
+                            ->rows(2)
+                            ->maxLength(300)
+                            ->placeholder('Descubre experiencias de negocios locales: música en vivo, talleres, mercados y más.'),
+                    ]),
+
+                Section::make('Banner de Merkapuntos (clientes con sesión iniciada)')
+                    ->description('Deja un campo vacío para conservar el texto o la imagen original de esa sección.')
+                    ->components([
+                        FileUpload::make('merkapuntos_banner_path')
+                            ->label('Imagen de fondo')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                            ->disk('public')
+                            ->directory('site')
+                            ->maxSize(config('media.site_merkapuntos_banner.max_kb')),
+                        TextInput::make('merkapuntos_banner_title')
+                            ->label('Título')
+                            ->maxLength(150)
+                            ->placeholder('Tu próxima compra puede acercarte a una recompensa.'),
+                        Textarea::make('merkapuntos_banner_description')
+                            ->label('Descripción')
+                            ->rows(2)
+                            ->maxLength(300)
+                            ->placeholder('Elige lo que te gustaría disfrutar y empieza a acumular comprando cerca de ti.'),
+                    ]),
+
+                Section::make('Banner de Merkamigo Premia (catálogo público, sin iniciar sesión)')
+                    ->description('Deja un campo vacío para conservar el texto o la imagen original de esa sección.')
+                    ->components([
+                        FileUpload::make('premia_banner_path')
+                            ->label('Imagen de fondo')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                            ->disk('public')
+                            ->directory('site')
+                            ->maxSize(config('media.site_premia_banner.max_kb')),
+                        TextInput::make('premia_banner_title')
+                            ->label('Título')
+                            ->maxLength(150)
+                            ->placeholder('Apoyar lo local tiene recompensa'),
+                        Textarea::make('premia_banner_description')
+                            ->label('Descripción')
+                            ->rows(2)
+                            ->maxLength(300)
+                            ->placeholder('Descubre negocios adheridos a Merkamigo Premia, acumula Merkapuntos con tus compras verificadas y canjéalos por experiencias, productos y servicios únicos de tu comunidad.'),
+                    ]),
+
+                Section::make('Banner de Pídelo')
+                    ->description('Deja un campo vacío para conservar el texto o la imagen original de esa sección.')
+                    ->components([
+                        FileUpload::make('pidelo_banner_path')
+                            ->label('Imagen de fondo')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                            ->disk('public')
+                            ->directory('site')
+                            ->maxSize(config('media.site_pidelo_banner.max_kb')),
+                        TextInput::make('pidelo_banner_title')
+                            ->label('Título')
+                            ->maxLength(150)
+                            ->placeholder('Cuéntanos qué necesitas'),
+                        Textarea::make('pidelo_banner_description')
+                            ->label('Descripción')
+                            ->rows(2)
+                            ->maxLength(300)
+                            ->placeholder('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.'),
+                    ]),
+
+                Section::make('Banner de "Crear vitrina" (bienvenida a emprendedores)')
+                    ->description('Deja un campo vacío para conservar el texto o la imagen original de esa sección.')
+                    ->components([
+                        FileUpload::make('bienvenida_banner_path')
+                            ->label('Imagen de fondo')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg'])
+                            ->disk('public')
+                            ->directory('site')
+                            ->maxSize(config('media.site_bienvenida_banner.max_kb')),
+                        TextInput::make('bienvenida_banner_title')
+                            ->label('Título')
+                            ->maxLength(150)
+                            ->placeholder('Tu negocio local, más cerca de todos'),
+                        Textarea::make('bienvenida_banner_description')
+                            ->label('Descripción')
+                            ->rows(2)
+                            ->maxLength(300)
+                            ->placeholder('Crea tu vitrina digital en minutos, muestra lo que vendes y conecta con personas de tu comunidad.'),
+                    ]),
             ])
             ->statePath('data');
     }

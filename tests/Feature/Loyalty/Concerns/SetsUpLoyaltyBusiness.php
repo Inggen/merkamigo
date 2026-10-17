@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Loyalty\Concerns;
 
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
@@ -37,6 +39,14 @@ trait SetsUpLoyaltyBusiness
             'category_id' => $category->id,
         ])->business;
         $business->update(['status' => 'publicado']);
+
+        // Merkapuntos requiere un plan de pago desde el 2026-10-13 (antes
+        // abierto a cualquiera) — ver `⚡merkapuntos.blade.php`.
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'emprendedor'],
+            ['name' => 'Emprendedor', 'price_cents' => 4990000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 1],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
 
         $enrollment = app(EnrollBusinessInLoyalty::class)->handle($business, $owner, 'v1', 50_000_00);
         app(PublishLoyaltyPolicy::class)->handle($business, $owner, [

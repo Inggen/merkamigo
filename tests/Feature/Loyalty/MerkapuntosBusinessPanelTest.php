@@ -3,6 +3,8 @@
 namespace Tests\Feature\Loyalty;
 
 use App\Domain\Analytics\Models\AnalyticsEvent;
+use App\Domain\Billing\Actions\SubscribeToPlan;
+use App\Domain\Billing\Models\Plan;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Loyalty\Actions\CreateLoyaltyReward;
@@ -43,6 +45,14 @@ class MerkapuntosBusinessPanelTest extends TestCase
             'category_id' => $category->id,
         ])->business;
         $business->update(['status' => 'publicado']);
+
+        // Merkapuntos requiere un plan de pago desde el 2026-10-13 (antes
+        // abierto a cualquiera) — ver `⚡merkapuntos.blade.php`.
+        $plan = Plan::firstOrCreate(
+            ['slug' => 'emprendedor'],
+            ['name' => 'Emprendedor', 'price_cents' => 4990000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 1],
+        );
+        app(SubscribeToPlan::class)->handle($business, $plan, $owner);
 
         return [$business->fresh(), $owner];
     }
@@ -95,6 +105,10 @@ class MerkapuntosBusinessPanelTest extends TestCase
 
         $component = Livewire::actingAs($owner)
             ->test('pages::emprendedores.negocios.merkapuntos', ['business' => $business])
+            ->set('activeTab', 'escaner')
+            ->assertSee('Tomar foto del QR')
+            ->assertSee('Elegir imagen del QR')
+            ->assertSee('O usa el código manual')
             ->set('scanInput', $token)
             ->call('scan')
             ->assertSet('scanResult.type', 'purchase')

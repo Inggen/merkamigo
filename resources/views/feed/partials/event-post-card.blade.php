@@ -15,8 +15,8 @@
 @endphp
 
 <article data-event-post-card class="overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
-    <header class="grid items-center gap-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-        <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="flex min-w-0 items-center gap-3">
+    <header class="flex flex-wrap items-start gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+        <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="flex min-w-0 flex-1 items-center gap-3">
             <div class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
                 @if ($business->logoUrl())
                     <img src="{{ $business->logoUrl() }}" class="size-full object-cover" alt="{{ $business->name }}" loading="lazy">
@@ -33,25 +33,31 @@
             </div>
         </a>
 
-        <div class="flex flex-wrap items-center justify-start gap-2 sm:justify-center">
-            <span class="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm">
-                <flux:icon.calendar-days class="size-4" />
-                {{ __('Evento') }}
-            </span>
-            <span class="inline-flex max-w-64 items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-                <flux:icon :name="$categoryIcon" class="size-4 shrink-0" variant="solid" />
-                <span class="truncate">{{ $event->categoryLabel() ?: __('Evento local') }} / {{ $event->title }}</span>
-            </span>
-        </div>
+        {{-- Badges de evento + campana de seguir juntos arriba a la
+             derecha también en móvil, mismo ajuste que post-card.blade.php. --}}
+        <div class="ml-auto flex shrink-0 flex-wrap items-center gap-2 sm:contents">
+            {{-- Mismo ajuste que post-card.blade.php: badges más
+                 discretos, sin relleno sólido ni sombra. --}}
+            <div class="flex flex-wrap items-center justify-start gap-1.5 sm:justify-center">
+                <span class="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                    <flux:icon.calendar-days class="size-3.5" />
+                    {{ __('Evento') }}
+                </span>
+                <span class="inline-flex max-w-64 items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                    <flux:icon :name="$categoryIcon" class="size-3.5 shrink-0" variant="solid" />
+                    <span class="truncate">{{ $event->categoryLabel() ?: __('Evento local') }} / {{ $event->title }}</span>
+                </span>
+            </div>
 
-        <div class="flex items-center justify-end gap-2">
-            <x-owner-edit-link
-                :business="$business"
-                :href="route('emprendedores.negocios.eventos', $business).'#evento-'.$event->id"
-                :label="__('Editar evento')"
-                compact
-            />
-            <livewire:follow-button :business="$business" compact :key="'follow-'.$business->id.'-event-post-'.$post->id" />
+            <div class="flex items-center justify-end gap-2">
+                <x-owner-edit-link
+                    :business="$business"
+                    :href="route('emprendedores.negocios.eventos', $business).'#evento-'.$event->id"
+                    :label="__('Editar evento')"
+                    compact
+                />
+                <livewire:follow-button :business="$business" compact :key="'follow-'.$business->id.'-event-post-'.$post->id" />
+            </div>
         </div>
     </header>
 

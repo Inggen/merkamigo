@@ -33,4 +33,5 @@ deployment:
     - cd $DEPLOYPATH && php artisan config:cache
     - cd $DEPLOYPATH && php artisan route:cache
     - cd $DEPLOYPATH && php artisan view:cache
-    - cd $DEPLOYPATH && php artisan migrate --force
+    # Las migraciones se ejecutan de forma selectiva desde Admin > Mantenimiento.
+    # No usar migrate --force en un despliegue automático de producción.

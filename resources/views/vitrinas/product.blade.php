@@ -66,68 +66,21 @@
     og-type="product"
 >
     <div
-        x-data="{
-            tab: 'descripcion',
-            quantity: 1,
+        x-data="merkamigoProductView({
             unitPrice: @js($unitPrice),
-            formatPrice(value) {
-                return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(value);
-            },
-            // Bug real reportado por el usuario: en el navegador de
-            // escritorio los enlaces `https://wa.me/...`,
-            // `facebook.com/sharer/...`, etc. sí abren el diálogo de
-            // compartir esperado, pero en Safari/iOS cada app suele
-            // interceptar esas URLs vía universal links y abrir su feed
-            // normal en vez del compositor de compartir (o, en el caso de
-            // Instagram, ni siquiera existe una URL de compartir — el botón
-            // solo abría instagram.com). El Web Share API nativo
-            // (`navigator.share`) delega en el propio sistema operativo,
-            // que sí sabe abrir el compositor correcto de cada app
-            // instalada — está soportado en todos los navegadores móviles
-            // relevantes (Safari iOS desde 12.2) pero no en la mayoría de
-            // navegadores de escritorio, por eso la fila de íconos por red
-            // se mantiene como respaldo cuando no está disponible.
-            shareSupported: typeof navigator !== 'undefined' && !! navigator.share,
             gallery: @js($galleryItems),
-            activeMedia: @js($gallery->first()?->url() ?? $pageImage),
-            activeAlt: @js($gallery->first()?->alt_text ?? $product->name),
-            activeType: @js($gallery->first()?->type ?? 'image'),
-            lightboxOpen: false,
-            lightboxIndex: 0,
-            setActive(index) {
-                if (! this.gallery[index]) return;
-                this.$refs.lightboxVideo?.pause();
-                this.activeMedia = this.gallery[index].url;
-                this.activeAlt = this.gallery[index].alt;
-                this.activeType = this.gallery[index].type;
-            },
-            openLightbox(index = 0) {
-                this.setActive(index);
-                this.lightboxIndex = index;
-                this.lightboxOpen = true;
-                document.body.classList.add('overflow-hidden');
-            },
-            closeLightbox() {
-                this.$refs.lightboxVideo?.pause();
-                this.lightboxOpen = false;
-                document.body.classList.remove('overflow-hidden');
-            },
-            showPrevious() {
-                if (this.gallery.length === 0) return;
-                this.lightboxIndex = (this.lightboxIndex - 1 + this.gallery.length) % this.gallery.length;
-                this.setActive(this.lightboxIndex);
-            },
-            showNext() {
-                if (this.gallery.length === 0) return;
-                this.lightboxIndex = (this.lightboxIndex + 1) % this.gallery.length;
-                this.setActive(this.lightboxIndex);
-            },
-        }"
+            fallbackImage: @js($pageImage),
+            productName: @js($product->name),
+        })"
         x-on:keydown.escape.window="if (lightboxOpen) closeLightbox()"
         x-on:keydown.arrow-left.window="if (lightboxOpen) showPrevious()"
         x-on:keydown.arrow-right.window="if (lightboxOpen) showNext()"
-        class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+        :class="{ 'elegant-product': @js($isElegant) }"
+        class="{{ $isElegant ? 'elegant-product' : 'mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8' }}"
     >
+        @if ($isElegant)
+            @include('vitrinas.partials.product-elegant')
+        @else
         <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
             <nav class="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400" style="z-index:1!important;">
                 <a href="{{ route('home') }}" class="hover:text-brand-600" wire:navigate>{{ __('Inicio') }}</a>
@@ -145,7 +98,7 @@
                 <x-owner-edit-link
                     :business="$business"
                     :href="route('emprendedores.negocios.productos', $business).'#producto-'.$product->id"
-                    :label="__('Editar producto')"
+                    :label="__('Editar')"
                 />
                 <flux:button
                     type="button"
@@ -274,158 +227,11 @@
                             @endif
                         </div>
 
-                        <div class="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
-                            @if ($product->hasActivePromo())
-                                <span class="mr-2 text-lg font-normal text-zinc-400 line-through">${{ number_format((float) $product->price, 0, ',', '.') }}</span>
-                                ${{ number_format((float) $product->promo_price, 0, ',', '.') }}
-                            @elseif ($product->price_type === 'exacto' && $product->price)
-                                ${{ number_format((float) $product->price, 0, ',', '.') }}
-                            @elseif ($product->price_type === 'desde' && $product->price)
-                                {{ __('Desde') }} ${{ number_format((float) $product->price, 0, ',', '.') }}
-                            @elseif ($product->price_type === 'consultar')
-                                {{ __('Consultar precio') }}
-                            @endif
-
-                            @if ($product->unit)
-                                <span class="text-base font-normal text-zinc-500">/ {{ $product->unit }}</span>
-                            @endif
-                        </div>
-
-                        @if ($product->variants->isNotEmpty())
-                            <div class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                                <h2 class="mb-3 text-sm font-semibold text-zinc-950 dark:text-white">{{ __('Variantes') }}</h2>
-                                <div class="space-y-2 text-sm">
-                                    @foreach ($product->variants as $variant)
-                                        <div class="flex items-center justify-between gap-4 rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-800/70">
-                                            <span>{{ $variant->label }}</span>
-                                            <span class="font-medium text-zinc-800 dark:text-zinc-200">
-                                                @if ($variant->price)
-                                                    ${{ number_format((float) $variant->price, 0, ',', '.') }}
-                                                @elseif ($product->price)
-                                                    ${{ number_format((float) $product->price, 0, ',', '.') }}
-                                                @endif
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-
-                        @unless ($product->isSubscription())
-                            <div class="space-y-3">
-                                <div class="text-sm font-semibold text-zinc-950 dark:text-white">{{ __('Cantidad') }}</div>
-                                <div class="inline-flex items-center rounded-2xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
-                                    <button type="button" x-on:click="quantity = Math.max(1, quantity - 1)" class="inline-flex size-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">-</button>
-                                    <div class="min-w-12 text-center text-lg font-semibold text-zinc-950 dark:text-white" x-text="quantity"></div>
-                                    <button type="button" x-on:click="quantity = quantity + 1" class="inline-flex size-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">+</button>
-                                </div>
-
-                                @if ($hasNumericUnitPrice)
-                                    <div class="flex items-center justify-between text-sm" x-show="quantity > 1">
-                                        <span class="text-zinc-500 dark:text-zinc-400">{{ __('Total') }}</span>
-                                        <span class="font-semibold text-zinc-950 dark:text-white" x-text="'$' + formatPrice(unitPrice * quantity)"></span>
-                                    </div>
-                                @endif
-                            </div>
-
-                            @if ($canPayOnline)
-                                <a
-                                    x-bind:href="`{{ route('marketplace.checkout.create', $product) }}?cantidad=${quantity}&promotion={{ request()->integer('promotion') }}`"
-                                    x-on:click.prevent="window.merkamigoOpenWompiCheckout($el.href)"
-                                    class="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-600 px-5 py-4 text-lg font-semibold text-white transition hover:bg-brand-700"
-                                >
-                                    <flux:icon.credit-card class="size-6" />
-                                    {{ __('Comprar ahora') }}
-                                </a>
-                                <flux:text class="text-center text-xs text-zinc-400">
-                                    {{ __('Pago en línea directo a :business, procesado por Wompi.', ['business' => $business->name]) }}
-                                </flux:text>
-                            @endif
-                        @else
-                            @include('vitrinas.partials.subscribe-form', ['business' => $business, 'product' => $product])
-                        @endunless
-
-                        @if (! $canPayOnline)
-                            <a
-                                href="{{ route('vitrinas.contact', ['business' => $business, 'context_type' => 'product', 'context_id' => $product->id]) }}"
-                                class="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-600 px-5 py-4 text-lg font-semibold text-white transition hover:bg-brand-700"
-                            >
-                                <flux:icon.chat-bubble-left-right class="size-6" />
-                                {{ $product->isSoldOut() ? __('Consultar disponibilidad') : __('Contactar') }}
-                            </a>
-                        @endif
+                        @include('vitrinas.partials.product-purchase')
                     </div>
                 </div>
 
-                <div x-ref="paymentTab" class="overflow-hidden rounded-xl  border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                    <div class="flex flex-wrap gap-6 border-b border-zinc-200 px-5 pt-5 text-sm font-semibold dark:border-zinc-800 sm:px-6">
-                        <button type="button" x-on:click="tab = 'descripcion'" :class="tab === 'descripcion' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Descripción') }}</button>
-                        <button type="button" x-on:click="tab = 'resenas'" :class="tab === 'resenas' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Reseñas') }}{{ $recommendationCount > 0 ? ' ('.$recommendationCount.')' : '' }}</button>
-                        <button type="button" x-on:click="tab = 'pago'" :class="tab === 'pago' ? 'border-brand-600 text-brand-600' : 'border-transparent text-zinc-500 dark:text-zinc-400'" class="border-b-2 pb-4 transition">{{ __('Información de pago') }}</button>
-                    </div>
-
-                    <div class="p-5 sm:p-6">
-                        <div x-show="tab === 'descripcion'">
-                            <div>
-                                <p class="whitespace-pre-line text-base leading-8 text-zinc-600 dark:text-zinc-300">{{ $product->description ?: __('Este producto todavía no tiene descripción detallada.') }}</p>
-                            </div>
-                        </div>
-
-                        <div x-show="tab === 'resenas'" x-cloak>
-                            @if ($recommendations->isEmpty())
-                                <x-states.empty title="{{ __('Todavía no hay reseñas') }}" description="{{ __('Sé el primero en dejar tu opinión sobre este negocio.') }}" />
-                            @else
-                                <div class="space-y-4">
-                                    @foreach ($recommendations as $recommendation)
-                                        <article class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <span class="font-semibold text-zinc-950 dark:text-white">{{ $recommendation->authorUser?->name ?? __('Cliente verificado') }}</span>
-                                                @if ($recommendation->rating)
-                                                    <div class="flex items-center gap-0.5 text-rose-500">
-                                                        @for ($i = 1; $i <= 5; $i++)
-                                                            <flux:icon.star class="size-3.5" :variant="$i <= $recommendation->rating ? 'solid' : 'outline'" />
-                                                        @endfor
-                                                    </div>
-                                                @endif
-                                            </div>
-                                            <p class="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{{ $recommendation->body }}</p>
-                                            @if ($recommendation->business_response)
-                                                <div class="mt-3 rounded-2xl bg-zinc-50 p-3 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                                                    <span class="font-semibold text-zinc-950 dark:text-white">{{ __('Respuesta del negocio:') }}</span>
-                                                    {{ $recommendation->business_response }}
-                                                </div>
-                                            @endif
-                                        </article>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-
-                        <div x-show="tab === 'pago'" x-cloak>
-                            @if ($acceptedPaymentMethods->isNotEmpty() || filled($business->payment_info))
-                                @if ($acceptedPaymentMethods->isNotEmpty())
-                                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                                        @foreach ($acceptedPaymentMethods as $method)
-                                            <div class="flex items-center justify-center rounded-xl border-zinc-200 dark:border-zinc-800" title="{{ $method->name }}">
-                                                @if ($method->logoUrl())
-                                                    <img src="{{ $method->logoUrl() }}" alt="{{ $method->name }}" class="w-auto rounded-xl object-contain">
-                                                @else
-                                                    <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $method->name }}</span>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @endif
-
-                                @if (filled($business->payment_info))
-                                    <p class="whitespace-pre-line text-base leading-8 text-zinc-600 dark:text-zinc-300 {{ $acceptedPaymentMethods->isNotEmpty() ? 'mt-5' : '' }}">{{ $business->payment_info }}</p>
-                                @endif
-                            @else
-                                <x-states.empty title="{{ __('Todavía no hay información de pago') }}" />
-                            @endif
-                        </div>
-                    </div>
-                </div>
+                @include('vitrinas.partials.product-tabs')
 
                 @if ($relatedProducts->isNotEmpty())
                     <div class="space-y-4">
@@ -582,6 +388,8 @@
             </aside>
         </div>
 
+        @endif
+
         @if ($gallery->isNotEmpty())
             <div
                 x-cloak
@@ -626,7 +434,25 @@
                         @endif
 
                         <div class="flex min-h-[60vh] items-center justify-center bg-zinc-950/40 p-4 sm:p-8">
-                            <video x-ref="lightboxVideo" x-show="activeType === 'video'" x-bind:src="activeType === 'video' ? activeMedia : null" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain" controls playsinline preload="metadata"></video>
+                            <div x-show="activeType === 'video'" x-ref="lightboxVideo" class="h-[60vh] max-h-[72vh] w-full max-w-3xl">
+                                {{--
+                                    `x-ref` no puede ir en el mismo elemento que el
+                                    `x-data` del reproductor (ver `loadSource` en
+                                    product-view.js): Alpine lo registraría en el
+                                    scope del propio reproductor, no en el de esta
+                                    página, y `$refs.lightboxVideo` quedaría vacío
+                                    para `merkamigoProductView`. Por eso vive en este
+                                    `<div>` envoltorio en vez de en el componente.
+                                --}}
+                                <x-media.video-player
+                                    :src="$productVideo?->url() ?? ''"
+                                    fit="contain"
+                                    aspect="auto"
+                                    :brand="false"
+                                    x-on:merkamigo-load-source="loadSource($event.detail.src, $event.detail)"
+                                    class="h-full w-full rounded-2xl"
+                                />
+                            </div>
                             <img x-show="activeType === 'image'" x-bind:src="activeType === 'image' ? activeMedia : null" x-bind:alt="activeAlt" class="max-h-[72vh] w-auto max-w-full rounded-2xl object-contain">
                         </div>
 
@@ -664,7 +490,7 @@
         @endif
     </div>
 
-    <x-storefront-chat-widget :business="$business" :with-sound="false" />
+    <x-storefront-chat-widget :business="$business" :with-sound="false" :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()" />
 </x-layouts::cliente>
 
 @push('scripts')

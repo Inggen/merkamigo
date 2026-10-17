@@ -45,6 +45,22 @@ class ClienteLayoutTest extends TestCase
         $response->assertSee('<ui-sidebar', false);
     }
 
+    /**
+     * Pedido del usuario (2026-10-11): la campanita del topbar de
+     * emprendedores solo navegaba a "Actividad" — ahora despliega la
+     * misma ventana de notificaciones que ya existía en cliente
+     * (`<livewire:notification-bell>`), reutilizada tal cual.
+     */
+    public function test_an_emprendedor_sees_the_notification_dropdown_in_the_topbar(): void
+    {
+        $user = User::factory()->create(['experience' => 'emprendedor']);
+
+        $response = $this->actingAs($user)->get(route('clientes.actividad'));
+
+        $response->assertOk();
+        $response->assertSee('aria-label="Notificaciones"', false);
+    }
+
     public function test_a_user_without_an_experience_yet_still_sees_the_sidebar_panel(): void
     {
         $user = User::factory()->create(['experience' => null]);

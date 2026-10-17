@@ -3,7 +3,10 @@
 namespace Tests\Feature\Billing;
 
 use App\Domain\Billing\Models\BillingProduct;
+use App\Domain\Billing\Models\BusinessEntitlement;
 use App\Domain\Billing\Models\Payment;
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Billing\Models\Subscription;
 use App\Domain\Moderation\Models\SupportTicket;
 use App\Domain\Storefronts\Actions\CreateStorefront;
 use App\Models\User;
@@ -138,6 +141,108 @@ class BillingProductCatalogTest extends TestCase
             'user_id' => $owner->id,
             'status' => SupportTicket::PENDIENTE,
         ]);
+    }
+
+    private function aiAssistant(): BillingProduct
+    {
+        return BillingProduct::create([
+            'slug' => 'asistente-ia',
+            'name' => 'Asistente IA para tu vitrina',
+            'description' => 'Chat con IA.',
+            'price_cents' => 4990000,
+            'kind' => BillingProduct::ENTITLEMENT,
+            'payload' => ['entitlement_key' => BusinessEntitlement::AI_CHATBOT, 'expires_in_days' => 30],
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * PR4 de TODO_VENTAS_RENTABILIDAD.md, decisión #5 del usuario
+     * 2026-10-09: nunca ofrecer de nuevo una capacidad que ya se
+     * tiene — ni por plan ni por una compra anterior.
+     */
+    public function test_the_catalog_hides_the_ai_assistant_addon_when_already_covered_by_the_top_plan(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Negocios Catálogo'])->business;
+        $this->aiAssistant();
+
+        $plan = Plan::create([
+            'slug' => 'negocios', 'name' => 'Negocios', 'price_cents' => 9900000,
+            'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 2,
+        ]);
+        Subscription::create(['business_id' => $business->id, 'plan_id' => $plan->id, 'status' => Subscription::ACTIVA]);
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.impulsar', ['business' => $business->id])
+            ->assertDontSee('Asistente IA para tu vitrina');
+    }
+
+    public function test_the_catalog_hides_the_ai_assistant_addon_when_already_purchased(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Ya Lo Tiene'])->business;
+        $this->aiAssistant();
+        BusinessEntitlement::create([
+            'business_id' => $business->id,
+            'key' => BusinessEntitlement::AI_CHATBOT,
+            'expires_at' => now()->addDays(20),
+        ]);
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.impulsar', ['business' => $business->id])
+            ->assertDontSee('Asistente IA para tu vitrina');
+    }
+
+    /**
+     * Decisión #4: un add-on recurrente necesita tarjeta guardada para
+     * poder renovarse — sin una, el botón manda a guardarla primero en
+     * vez de al checkout.
+     */
+    public function test_the_catalog_sends_to_save_a_card_instead_of_checkout_when_the_addon_is_recurring_and_there_is_none(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Sin Tarjeta'])->business;
+        $this->aiAssistant();
+
+        $this->actingAs($owner);
+
+        Livewire::test('pages::emprendedores.negocios.impulsar', ['business' => $business->id])
+            ->assertSee('Guardar tarjeta para activarlo')
+            ->assertSeeHtml(route('emprendedores.negocios.plan', $business))
+            ->assertDontSeeHtml(route('emprendedores.negocios.impulsar.checkout', ['business' => $business, 'billingProduct' => BillingProduct::where('slug', 'asistente-ia')->first()]));
+    }
+
+    public function test_starting_checkout_for_an_entitlement_already_active_via_plan_is_rejected(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Rechazo Plan'])->business;
+        $product = $this->aiAssistant();
+
+        $plan = Plan::create([
+            'slug' => 'negocios', 'name' => 'Negocios', 'price_cents' => 9900000,
+            'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 2,
+        ]);
+        Subscription::create(['business_id' => $business->id, 'plan_id' => $plan->id, 'status' => Subscription::ACTIVA]);
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.negocios.impulsar.checkout', ['business' => $business, 'billingProduct' => $product]))
+            ->assertRedirect()
+            ->assertSessionHasErrors('coupon');
+    }
+
+    public function test_starting_checkout_for_a_recurring_addon_without_a_saved_card_is_rejected(): void
+    {
+        $owner = User::factory()->create();
+        $business = app(CreateStorefront::class)->handle($owner, ['name' => 'Negocio Rechazo Tarjeta'])->business;
+        $product = $this->aiAssistant();
+
+        $this->actingAs($owner)
+            ->get(route('emprendedores.negocios.impulsar.checkout', ['business' => $business, 'billingProduct' => $product]))
+            ->assertRedirect()
+            ->assertSessionHasErrors('coupon');
     }
 
     public function test_someone_who_cannot_manage_the_business_cannot_start_a_checkout_for_a_billing_product(): void

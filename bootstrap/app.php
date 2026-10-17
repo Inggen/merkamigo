@@ -19,6 +19,32 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Bug reportado por el usuario (2026-10-13): al "Entrar como" un
+        // usuario desde el admin, la sesión se perdía al navegar a otra
+        // sección en producción (nunca en local) — pedía autenticarse de
+        // nuevo. Causa real: esta app no confiaba en NINGÚN proxy para
+        // los headers `X-Forwarded-*`, así que si el hosting tiene
+        // cualquier capa delante de PHP que termine el SSL (típico en
+        // hosting compartido), Laravel ve la petición como HTTP interno
+        // aunque el navegador use HTTPS. Con `session.secure` sin fijar
+        // (`SESSION_SECURE_COOKIE` no está en el .env), Laravel decide el
+        // flag `Secure` de la cookie según esa detección — si varía entre
+        // peticiones, el navegador puede llegar a rechazar en silencio un
+        // `Set-Cookie` sin `Secure` cuando ya tenía uno con `Secure`
+        // puesto (así lo exige la propia especificación de cookies), y
+        // justo eso es lo que pasa en `StartUserImpersonation` al
+        // regenerar el ID de sesión (`session->migrate(true)`): el
+        // navegador se queda con la cookie VIEJA, que para ese punto ya
+        // fue invalidada en el servidor — de ahí que la siguiente página
+        // se vea como si nunca hubiera iniciado sesión. `trustProxies('*')`
+        // es la práctica estándar para este tipo de hosting, donde no se
+        // conoce (ni es fija) la IP del proxy que hace la terminación SSL.
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO
+            | Request::HEADER_X_FORWARDED_AWS_ELB);
+
         $middleware->append(NegotiateMarkdown::class);
         $middleware->append(SecurityHeaders::class);
 

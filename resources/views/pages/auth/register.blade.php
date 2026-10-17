@@ -1,6 +1,9 @@
 <x-layouts::auth :title="__('Crear cuenta')">
     <div class="flex flex-col gap-6">
+
         <x-auth-header :title="__('Crea tu cuenta')" :description="__('Completa tus datos para empezar a usar Merkamigo')" />
+
+        <x-auth.social-buttons />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
@@ -22,9 +25,10 @@
             <!-- Email Address -->
             <flux:input
                 name="email"
-                :label="__('Correo electrónico (opcional si agregas un teléfono)')"
+                :label="__('Correo electrónico')"
                 :value="old('email')"
                 type="email"
+                required
                 autocomplete="email"
                 placeholder="email@example.com"
             />
@@ -32,15 +36,16 @@
             <!-- Phone -->
             <flux:input
                 name="phone"
-                :label="__('Teléfono (opcional si agregas un correo)')"
+                :label="__('Teléfono')"
                 :value="old('phone')"
                 type="tel"
+                required
                 autocomplete="tel"
                 placeholder="+57 300 000 0000"
             />
 
             <flux:text class="-mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-                {{ __('Ingresa al menos un correo o un teléfono para acceder a tu cuenta.') }}
+                {{ __('Usaremos tu correo y teléfono para enviarte información importante de tu cuenta.') }}
             </flux:text>
 
             <!-- Password -->

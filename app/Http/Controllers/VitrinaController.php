@@ -113,6 +113,7 @@ class VitrinaController extends Controller
         app(RegisterStoreView::class)->handle($business, $product, $request);
 
         return view('vitrinas.product', [
+            'isElegant' => $business->storefront?->product_view_style === 'elegant',
             'business' => $business,
             'product' => $product->load(['media', 'variants']),
             'relatedProducts' => $relatedProducts,

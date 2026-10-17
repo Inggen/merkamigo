@@ -43,7 +43,17 @@
             <span class="truncate font-semibold text-zinc-900 dark:text-white">{{ $event->title }}</span>
         </nav>
 
-        <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        {{--
+            Pedido del usuario (2026-10-11): la columna principal se
+            desbordaba del viewport en móvil. Sin `grid-cols-1` acá, el
+            grid no tenía NINGÚN `grid-template-columns` por debajo de
+            `lg:` (implícito, sin el `minmax(0, …)` que sí traen las
+            variantes `lg:`/`xl:`), así que el tamaño mínimo de
+            contenido de la tarjeta del negocio (dentro de `<main>`)
+            empujaba todo el grid más ancho que la pantalla. `grid-cols-1`
+            agrega ese `minmax(0, 1fr)` también en la base.
+        --}}
+        <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
             <main class="space-y-4">
                 <section class="relative min-h-[28rem] overflow-hidden rounded-2xl bg-zinc-950 shadow-sm md:min-h-[22rem]" aria-labelledby="event-title">
                     @if ($event->coverUrl())
@@ -54,16 +64,13 @@
                     <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/10"></div>
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                    <div class="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 p-5 sm:p-7">
-                        @if ($event->categoryLabel())
-                            <span class="inline-flex items-center rounded-full border border-white/60 bg-black/25 px-4 py-2 text-xs font-semibold text-white backdrop-blur">
-                                {{ $event->categoryLabel() }}
-                            </span>
-                        @else
-                            <span></span>
-                        @endif
-
-                        <div class="flex items-center gap-2">
+                    <div class="absolute inset-x-0 top-0 z-10 flex justify-end p-5 sm:p-7">
+                        <div class="flex flex-wrap items-center justify-end gap-2">
+                            @if ($event->categoryLabel())
+                                <span class="inline-flex items-center rounded-full border border-white/60 bg-black/25 px-4 py-2 text-xs font-semibold text-white backdrop-blur">
+                                    {{ $event->categoryLabel() }}
+                                </span>
+                            @endif
                             <button
                                 type="button"
                                 x-data

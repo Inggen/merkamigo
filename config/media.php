@@ -68,6 +68,12 @@ return [
         'quality' => 86,
     ],
 
+    'story_video' => [
+        'mimes' => ['mp4', 'webm', 'mov'],
+        'max_kb' => 51200,
+        'max_files' => 1,
+    ],
+
     'storefront_cover' => [
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_kb' => 5120,
@@ -207,6 +213,36 @@ return [
     ],
 
     'site_main_search_background' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_eventos_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_merkapuntos_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_premia_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_pidelo_banner' => [
+        'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
+        'max_kb' => 5120,
+        'max_files' => 1,
+    ],
+
+    'site_bienvenida_banner' => [
         'mimes' => ['png', 'svg', 'webp', 'jpg', 'jpeg'],
         'max_kb' => 5120,
         'max_files' => 1,

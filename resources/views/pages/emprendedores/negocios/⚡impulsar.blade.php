@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Billing\Models\BillingProduct;
+use App\Domain\Billing\Models\BusinessEntitlement;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
@@ -115,10 +116,37 @@ new #[Title('Impulsa tu negocio')] class extends Component
         })->all();
     }
 
+    /**
+     * PR4 de TODO_VENTAS_RENTABILIDAD.md (decisión #5 del usuario
+     * 2026-10-09): nunca ofrecer de nuevo una capacidad que el negocio
+     * ya tiene activa, ya sea por su plan o por una compra anterior —
+     * `CreatePaymentCheckout` es la defensa real si alguien llega al
+     * checkout de otra forma, esto es solo para no mostrarle la
+     * tarjeta de compra cuando no tiene sentido.
+     */
     #[Computed]
     public function otherProducts()
     {
-        return $this->products->where('kind', '!=', BillingProduct::DESTACADO)->values();
+        return $this->products
+            ->where('kind', '!=', BillingProduct::DESTACADO)
+            ->reject(function (BillingProduct $product) {
+                $key = $product->payload['entitlement_key'] ?? null;
+
+                return $key === BusinessEntitlement::AI_CHATBOT && $this->business->canUseAiChatbot();
+            })
+            ->values();
+    }
+
+    /**
+     * Un add-on recurrente (`expires_in_days` no nulo en su payload)
+     * necesita una tarjeta guardada para poder renovarse el mes
+     * siguiente — si el negocio todavía no tiene una, se le manda
+     * primero a guardarla en "Tu plan" en vez de al checkout, donde
+     * `CreatePaymentCheckout` lo rechazaría de todos modos.
+     */
+    public function needsSavedCardFor(BillingProduct $product): bool
+    {
+        return filled($product->payload['expires_in_days'] ?? null) && ! $this->business->hasAutoRenewCard();
     }
 
     #[Computed]
@@ -349,15 +377,29 @@ new #[Title('Impulsa tu negocio')] class extends Component
                                 <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                                     {{ __('Todo incluido') }}
                                 </span>
+                            @elseif (filled($product->payload['expires_in_days'] ?? null))
+                                <span class="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-800 dark:bg-brand-900 dark:text-brand-200">
+                                    {{ __('Suscripción mensual') }}
+                                </span>
                             @endif
 
-                            <flux:button
-                                size="sm"
-                                variant="primary"
-                                :href="route('emprendedores.negocios.impulsar.checkout', ['business' => $this->business, 'billingProduct' => $product])"
-                            >
-                                {{ $buttonLabel }}
-                            </flux:button>
+                            @if ($this->needsSavedCardFor($product))
+                                <flux:button
+                                    size="sm"
+                                    variant="primary"
+                                    :href="route('emprendedores.negocios.plan', $this->business)"
+                                >
+                                    {{ __('Guardar tarjeta para activarlo') }}
+                                </flux:button>
+                            @else
+                                <flux:button
+                                    size="sm"
+                                    variant="primary"
+                                    :href="route('emprendedores.negocios.impulsar.checkout', ['business' => $this->business, 'billingProduct' => $product])"
+                                >
+                                    {{ $buttonLabel }}
+                                </flux:button>
+                            @endif
                         </div>
                     </div>
                 @endforeach

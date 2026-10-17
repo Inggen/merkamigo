@@ -66,7 +66,9 @@ class MerkapuntosPageTest extends TestCase
             ->assertOk()
             ->assertSeeInOrder([
                 'feed-right-sidebar',
-                __('También te puede interesar'),
+                // Antes "También te puede interesar" — el banner del
+                // sidebar se rediseñó y cambió el texto.
+                __('Acumula puntos y gana'),
                 __('Negocios cerca de ti'),
             ], false)
             ->assertSee('window.setInterval', false)
