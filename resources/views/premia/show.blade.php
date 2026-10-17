@@ -56,7 +56,13 @@
             </div>
         @endif
 
-        <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        {{--
+            Mismo arreglo que eventos/show.blade.php: sin `grid-cols-1`
+            acá, no había ningún `minmax(0, …)` por debajo de `lg:`, así
+            que el contenido mínimo de la columna principal desbordaba
+            el grid más ancho que la pantalla en móvil.
+        --}}
+        <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_400px]">
             <div>
                 <div x-data="{ active: 0 }" class="space-y-3">
                     <div class="relative aspect-[3/2] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
@@ -113,7 +119,7 @@
             </div>
 
             <aside class="space-y-3">
-                <section class="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <section class="rounded-2xl border border-rose-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                     <div class="flex items-start justify-between gap-3">
                         <h1 class="min-w-0 text-2xl font-bold tracking-tight text-zinc-950 dark:text-white">{{ $reward->title }}</h1>
                         <x-owner-edit-link
@@ -183,17 +189,26 @@
                     El saldo queda junto al resumen del premio para que el
                     cliente compare de inmediato sus puntos con el costo.
                 --}}
-                <div class="relative overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-white p-5 dark:border-rose-900/40 dark:from-rose-950/30 dark:via-zinc-900 dark:to-zinc-900">
-                    <flux:icon.gift class="pointer-events-none absolute -right-3 -top-3 size-24 rotate-12 text-rose-100 dark:text-rose-900/40" variant="solid" />
+                <div class="relative overflow-hidden rounded-2xl border border-rose-200 bg-white p-3 pt-9 shadow-sm dark:border-rose-900/50 dark:bg-zinc-950">
+                    <div class="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-br from-red-500 via-brand-600 to-brand-800 dark:from-red-700 dark:via-brand-800 dark:to-brand-950"></div>
+                    <div class="pointer-events-none absolute -left-10 -right-10 top-20 h-20 rounded-[50%] bg-white dark:bg-zinc-950"></div>
 
-                    <div class="relative">
+                    <div class="relative overflow-hidden rounded-2xl border border-rose-100 bg-white/95 p-5 shadow-lg shadow-brand-900/10 backdrop-blur-sm dark:border-rose-900/40 dark:bg-zinc-900/95">
+                        <flux:icon.sparkles class="pointer-events-none absolute right-5 top-4 size-6 text-rose-200 dark:text-rose-900" variant="solid" />
+                        <flux:icon.star class="pointer-events-none absolute right-24 top-16 size-5 text-rose-100 dark:text-rose-950" variant="solid" />
+
                         @auth
-                            <p class="flex items-center gap-1.5 text-sm font-semibold text-rose-600 dark:text-rose-300">
-                                <flux:icon.star class="size-4" variant="solid" />
+                            <p class="flex items-center gap-2 pr-20 text-sm font-bold text-brand-700 dark:text-rose-300">
+                                <flux:icon.star class="size-5" variant="solid" />
                                 {{ __('Tus Merkapuntos') }}
                             </p>
-                            <p class="mt-1 text-4xl font-black text-zinc-950 dark:text-white">{{ number_format($customerPoints ?? 0, 0, ',', '.') }}</p>
-                            <p class="mt-1 flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+                            <p class="mt-1 pr-20 text-5xl font-black tracking-tight text-brand-700 dark:text-rose-300">{{ number_format($customerPoints ?? 0, 0, ',', '.') }}</p>
+
+                            <div class="absolute right-5 top-12 flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-brand-700 text-white shadow-lg shadow-brand-700/25 ring-4 ring-rose-50 dark:ring-rose-950/60">
+                                <flux:icon.gift class="size-9" variant="solid" />
+                            </div>
+
+                            <p class="mt-2 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                                 <flux:icon.sparkles class="size-4 text-brand-500" variant="solid" />
                                 {{ __('Este premio cuesta :points puntos', ['points' => $reward->points_cost]) }}
                             </p>
@@ -206,87 +221,34 @@
                                 <flux:icon.arrow-right class="size-3" variant="outline" />
                             </flux:link>
                         @else
-                            <p class="flex items-center gap-1.5 text-2xl font-bold text-brand-600 dark:text-brand-300">
-                                <flux:icon.sparkles class="size-6" variant="solid" />
-                                {{ __(':points Merkapuntos', ['points' => $reward->points_cost]) }}
+                            <p class="flex items-center gap-2 text-sm font-bold text-brand-700 dark:text-rose-300">
+                                <flux:icon.star class="size-5" variant="solid" />
+                                {{ __('Merkapuntos') }}
                             </p>
+                            <p class="mt-1 text-5xl font-black tracking-tight text-brand-700 dark:text-rose-300">{{ number_format($reward->points_cost, 0, ',', '.') }}</p>
+                            <span class="sr-only">{{ __(':points Merkapuntos', ['points' => $reward->points_cost]) }}</span>
                         @endauth
 
                         @if ($available === 0)
-                            <flux:button class="mt-4 w-full" variant="ghost" disabled>{{ __('Agotado') }}</flux:button>
+                            <flux:button class="mt-5 w-full" variant="ghost" disabled>{{ __('Agotado') }}</flux:button>
                         @else
-                            <flux:button :href="route('premia.redeem', $reward)" class="mt-4 w-full" variant="primary" icon="gift">
+                            <flux:button :href="route('premia.redeem', $reward)" class="mt-5 w-full !rounded-xl" variant="primary" icon="gift">
                                 {{ auth()->check() ? __('Canjear mis puntos') : __('Inicia sesión para canjear') }}
                             </flux:button>
-                            <flux:text class="mt-2 text-center text-xs text-zinc-400">
+                            <flux:text class="mt-3 text-center text-xs leading-5 text-zinc-400">
                                 {{ __('Se reservan tus puntos al confirmar; el negocio valida la entrega.') }}
                             </flux:text>
                         @endif
                     </div>
                 </div>
-
-                <div class="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                    <a href="{{ route('vitrinas.show', $business) }}" wire:navigate class="mb-3 flex items-center gap-3">
-                        <flux:avatar :src="$business->logoUrl()" :name="$business->name" size="sm" />
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-zinc-900 dark:text-white">
-                                {{ $business->name }}
-                                @if ($business->hasVerifiedBadge())
-                                    <flux:icon.check-badge class="inline size-4 text-brand-600 dark:text-brand-300" variant="solid" />
-                                @endif
-                            </p>
-                            @if ($business->category)
-                                <p class="truncate text-xs text-zinc-500">{{ $business->category->name }}</p>
-                            @endif
-                            @if ($business->municipality)
-                                <p class="flex items-center gap-1 truncate text-xs text-zinc-500">
-                                    <flux:icon.map-pin class="size-3.5 shrink-0" variant="outline" />
-                                    {{ $business->municipality->name }}
-                                </p>
-                            @endif
-                        </div>
-                        <flux:icon.chevron-right class="size-4 shrink-0 text-zinc-300" variant="outline" />
-                    </a>
-
-                    <div class="flex items-center gap-2">
-                        <flux:button :href="route('vitrinas.show', $business)" variant="ghost" class="flex-1" wire:navigate>
-                            {{ __('Ver perfil del negocio') }}
-                        </flux:button>
-                        <livewire:favorite-button :favoritable="$business" :compact="true" :key="'favorite-business-'.$business->id" />
-                        <div x-data="{ shareSupported: typeof navigator !== 'undefined' && !! navigator.share }">
-                            <button
-                                type="button"
-                                x-show="shareSupported"
-                                x-on:click="navigator.share({ title: @js($reward->title), text: @js($reward->title.' · '.$business->name), url: @js(route('premia.show', $reward)) }).catch(() => {})"
-                                class="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300"
-                                aria-label="{{ __('Compartir') }}"
-                            >
-                                <flux:icon.share class="size-4" variant="outline" />
-                            </button>
-                            <button
-                                type="button"
-                                x-show="! shareSupported"
-                                x-cloak
-                                x-on:click="navigator.clipboard.writeText(@js(route('premia.show', $reward))); $flux.toast(@js(__('Enlace copiado')))"
-                                class="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:text-brand-600 dark:bg-zinc-800 dark:text-zinc-300"
-                                aria-label="{{ __('Copiar enlace') }}"
-                            >
-                                <flux:icon.share class="size-4" variant="outline" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 dark:bg-amber-500/10">
-                        <p class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                            <flux:icon.trophy class="size-4" variant="solid" />
-                            {{ __('Este negocio participa en Merkapuntos') }}
-                        </p>
-                        <p class="mt-1 text-xs leading-5 text-amber-900/75 dark:text-amber-200/80">
-                            {{ __('Acumula puntos con tus compras y canjéalos por productos y beneficios exclusivos.') }}
-                        </p>
-                    </div>
-                </div>
             </aside>
+        </div>
+
+        <div class="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 dark:bg-amber-500/10">
+            <p class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <flux:icon.trophy class="size-4" variant="solid" />
+                {{ __('Acumula puntos con tus compras y canjéalos por productos y beneficios exclusivos.') }}
+            </p>
         </div>
 
         @if ($related->isNotEmpty())

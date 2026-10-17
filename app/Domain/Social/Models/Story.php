@@ -77,6 +77,17 @@ class Story extends Model
         return Storage::disk('public')->url($this->image_path);
     }
 
+    /**
+     * Pedido del usuario (2026-10-16): estados en video, además de
+     * imagen. Mismo patrón que `PostMedia::isVideo()` — sin columna
+     * aparte, la extensión del archivo ya guardado en `image_path`
+     * basta para decidir si se renderiza como `<video>` o `<img>`.
+     */
+    public function isVideo(): bool
+    {
+        return in_array(strtolower(pathinfo($this->image_path, PATHINFO_EXTENSION)), ['mp4', 'webm', 'mov'], true);
+    }
+
     public function isExpired(): bool
     {
         return $this->expires_at->isPast();

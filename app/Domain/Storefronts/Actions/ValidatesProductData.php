@@ -35,7 +35,7 @@ trait ValidatesProductData
             // Identificadores opcionales para Google Shopping (0.5 del
             // TODO de la integración con Google Merchant): nunca
             // obligatorios, un producto artesanal puede no tenerlos.
-            'gtin' => ['sometimes', 'nullable', 'string', 'max:14'],
+            'gtin' => ['sometimes', 'nullable', 'string', 'regex:/^(?:[0-9]{8}|[0-9]{12}|[0-9]{13}|[0-9]{14})$/'],
             'mpn' => ['sometimes', 'nullable', 'string', 'max:70'],
             'brand' => ['sometimes', 'nullable', 'string', 'max:255'],
             'condition' => ['sometimes', 'in:nuevo,usado,reacondicionado'],

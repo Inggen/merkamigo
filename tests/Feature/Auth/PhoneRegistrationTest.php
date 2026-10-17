@@ -7,13 +7,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 0.5 del TODO: registro por correo y/o teléfono.
+ * El registro exige ambos canales de contacto, aunque el inicio de sesión
+ * continúa aceptando teléfono para las cuentas existentes.
  */
 class PhoneRegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_user_can_register_with_only_a_phone_number(): void
+    public function test_registration_requires_an_email_even_when_a_phone_is_present(): void
     {
         $response = $this->post(route('front.register.store'), [
             'name' => 'Ana Emprendedora',
@@ -23,25 +24,24 @@ class PhoneRegistrationTest extends TestCase
             'terms' => '1',
         ]);
 
-        $response->assertSessionHasNoErrors();
-        $this->assertAuthenticated();
-
-        $this->assertDatabaseHas('users', [
-            'phone' => '+573001234567',
-            'email' => null,
-        ]);
+        $response->assertSessionHasErrors(['email']);
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['phone' => '+573001234567']);
     }
 
-    public function test_registration_fails_without_email_or_phone(): void
+    public function test_registration_requires_a_phone_even_when_an_email_is_present(): void
     {
         $response = $this->post(route('front.register.store'), [
-            'name' => 'Sin Contacto',
+            'name' => 'Sin Teléfono',
+            'email' => 'sin-telefono@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => '1',
         ]);
 
-        $response->assertSessionHasErrors(['email', 'phone']);
+        $response->assertSessionHasErrors(['phone']);
         $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'sin-telefono@example.com']);
     }
 
     public function test_a_user_can_log_in_with_a_phone_number(): void

@@ -18,11 +18,11 @@
     cambiarle.
 --}}
 @if (auth()->user()->experience === 'cliente')
-    <x-layouts::cliente :title="$title ?? null">
+    <x-layouts::cliente :title="$title ?? null" :show-chat-widget="$showChatWidget ?? true">
         {{ $slot }}
     </x-layouts::cliente>
 @else
-    <x-layouts::app.sidebar :title="$title ?? null">
+    <x-layouts::app.sidebar :title="$title ?? null" :show-chat-widget="$showChatWidget ?? true">
         <flux:main :class="auth()->user()->experience === 'emprendedor' ? 'entrepreneur-main' : ''">
             {{ $slot }}
         </flux:main>

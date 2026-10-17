@@ -72,6 +72,7 @@ class GoogleMerchantProductMapper
             'mpn' => $product->mpn,
             'external_seller_id' => $business->externalSellerId(),
             'product_type' => $business->category?->name,
+            'excluded_destinations' => $this->excludedLocalDestinations($business),
         ];
     }
 
@@ -103,6 +104,7 @@ class GoogleMerchantProductMapper
             // identificador real deben declarar explícitamente que no
             // existen, tal como exige Google).
             'identifierExists' => filled($item['gtin']) || filled($item['mpn']),
+            'excludedDestinations' => $item['excluded_destinations'],
         ];
 
         if (filled($item['gtin'])) {
@@ -176,6 +178,16 @@ class GoogleMerchantProductMapper
      * `title`/`description` — se limpian solo para el envío a Google; el
      * nombre/descripción reales del producto en Merkamigo no se tocan.
      */
+    /** @return list<string> */
+    private function excludedLocalDestinations(Business $business): array
+    {
+        return config('services.google_merchant.local_inventory_enabled')
+            && $business->has_physical_location
+            && filled($business->google_business_store_code)
+            ? []
+            : ['LOCAL_INVENTORY_ADS', 'FREE_LOCAL_LISTINGS'];
+    }
+
     private function stripEmoji(string $text): string
     {
         return Emoji::strip($text);

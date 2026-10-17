@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgentDiscoveryController;
 use App\Http\Controllers\Analytics\MetricsExportController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Billing\CheckoutController;
 use App\Http\Controllers\Billing\PaymentSourceController;
 use App\Http\Controllers\Billing\WompiWebhookController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Streaming\HlsProxyController;
 use App\Http\Controllers\Streaming\WhepProxyController;
 use App\Http\Controllers\Streaming\WhipProxyController;
+use App\Http\Controllers\Streaming\YouTubeDestinationController;
 use App\Http\Controllers\Subscriptions\SubscriptionCheckoutController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\VitrinaController;
@@ -53,6 +55,8 @@ use Laravel\Fortify\Http\Controllers\TwoFactorAuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\VerifyEmailController;
 
 Route::middleware('auth')->group(function () {
+    Route::get('autenticacion/google/youtube/callback', [YouTubeDestinationController::class, 'callback'])
+        ->name('auth.youtube.callback');
     Route::get('/limpiar-cache', function () {
         abort_unless(auth()->user()?->hasAnyPlatformRole(['superadmin']), 403);
 
@@ -121,6 +125,7 @@ Route::get('streaming/live/{liveStream:slug}/{asset}', HlsProxyController::class
 
 Route::view('terminos', 'legal.terminos')->name('terminos');
 Route::view('privacidad', 'legal.privacidad')->name('privacidad');
+Route::view('eliminacion-de-datos', 'legal.eliminacion-datos')->name('eliminacion-datos');
 Route::view('reglas-comunidad', 'legal.reglas-comunidad')->name('reglas-comunidad');
 Route::view('como-funciona', 'public.como-funciona')->name('como-funciona');
 Route::get('planes-y-precios', [PlanesController::class, 'index'])->name('planes-y-precios');
@@ -150,6 +155,32 @@ Route::get('pedidos/{order}/retorno', [OrderCheckoutController::class, 'return']
 Route::post('webhooks/wompi/negocios/{business}', [BusinessWompiWebhookController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('webhooks.wompi.negocio');
+
+// Checkout de invitado (PR3 de TODO_VENTAS_RENTABILIDAD.md, P0.2):
+// solo productos digitales, detrás del flag
+// `services.marketplace.guest_checkout_enabled` — ver
+// `OrderCheckoutController::guestCheckoutAvailable()`. `create` (sin
+// sesión) y `createGuest` son públicas a propósito; el resto de este
+// flujo (retorno, confirmación, descarga) solo es alcanzable con el
+// enlace firmado que el invitado recibe por correo o al pagar — nunca
+// adivinable por id, mismo criterio que `eventos/entradas/*`.
+Route::get('productos/{product}/comprar', [OrderCheckoutController::class, 'create'])->name('marketplace.checkout.create');
+Route::post('productos/{product}/comprar-invitado', [OrderCheckoutController::class, 'createGuest'])
+    ->middleware('throttle:10,1')
+    ->name('marketplace.guest.checkout.create');
+// `signed:id` ignora el parámetro `id` al validar la firma — Wompi lo
+// agrega él mismo a `redirect-url` cuando vuelve del pago (igual que ya
+// hace con `marketplace.checkout.return`, sin firmar), así que no puede
+// formar parte del cálculo de la firma original.
+Route::get('pedidos/{order}/retorno-invitado', [OrderCheckoutController::class, 'guestReturn'])
+    ->middleware(['signed:id', 'throttle:30,1'])
+    ->name('marketplace.guest.checkout.return');
+Route::get('pedidos/{order}/confirmacion', [OrderCheckoutController::class, 'guestConfirmation'])
+    ->middleware('signed')
+    ->name('marketplace.guest.confirmation');
+Route::get('pedidos/{order}/descargar-invitado', [OrderCheckoutController::class, 'guestDownload'])
+    ->middleware(['signed', 'throttle:30,1'])
+    ->name('marketplace.guest.download');
 
 // Reservas de eventos (TODO_desarrollo_sistema_eventos_Merkamigo.md,
 // Fase 4/7): mismo criterio que Marketplace arriba — el pago va directo a
@@ -199,6 +230,14 @@ Route::middleware('guest')->group(function () {
     Route::post('ingresar', [AuthenticatedSessionController::class, 'store'])->name('front.login.store');
     Route::get('registro', fn () => view('pages::auth.register'))->name('register');
     Route::post('registro', [RegisteredUserController::class, 'store'])->name('front.register.store');
+    Route::get('autenticacion/{provider}', [SocialAuthController::class, 'redirect'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('auth.social.redirect');
+    Route::get('autenticacion/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('auth.social.callback');
+    Route::get('registro/social', [SocialAuthController::class, 'complete'])->name('auth.social.complete');
+    Route::post('registro/social', [SocialAuthController::class, 'store'])->name('auth.social.store');
     Route::get('recuperar-clave', fn () => view('pages::auth.forgot-password'))->name('password.request');
     Route::post('recuperar-clave', [PasswordResetLinkController::class, 'store'])->name('front.password.email');
     Route::get('restablecer-clave/{token}', fn () => view('pages::auth.reset-password'))->name('password.reset');
@@ -343,6 +382,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('clientes/actividad', [ClientesController::class, 'actividad'])->name('clientes.actividad');
     Route::post('clientes/actividad/{notification}/leida', [ClientesController::class, 'marcarActividadLeida'])
         ->name('clientes.actividad.leida');
+    Route::delete('clientes/actividad/{notification}', [ClientesController::class, 'eliminarActividad'])
+        ->name('clientes.actividad.eliminar');
     Route::livewire('mensajes', 'pages::messages.index')->name('messages.index');
     Route::livewire('mensajes/{conversation}', 'pages::messages.index')->name('messages.show');
 
@@ -363,7 +404,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Marketplace (checkout pagado con Wompi, distinto de "Mis pedidos" /
     // OrderConfirmation, que es una constancia sin pago en línea).
-    Route::get('productos/{product}/comprar', [OrderCheckoutController::class, 'create'])->name('marketplace.checkout.create');
+    // `marketplace.checkout.create` (GET productos/{product}/comprar) se
+    // movió fuera de este grupo `auth` — ver el bloque público de
+    // Marketplace más arriba: un invitado SÍ puede llegar aquí para un
+    // producto digital con el checkout de invitado activado (PR3 de
+    // TODO_VENTAS_RENTABILIDAD.md); si no aplica, el propio controlador
+    // degrada al login igual que antes.
     Route::post('en-vivo/{liveStream:slug}/comprar', [OrderCheckoutController::class, 'createForLive'])
         ->middleware('throttle:10,1')
         ->name('marketplace.live.checkout');
@@ -402,6 +448,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('reels', 'pages::emprendedores.negocios.reels')->name('reels');
         Route::livewire('lives', 'pages::emprendedores.negocios.lives')->name('lives');
         Route::livewire('lives/{liveStream}/estudio', 'pages::emprendedores.negocios.live-studio')->name('lives.studio');
+        Route::get('lives/{liveStream}/youtube', [YouTubeDestinationController::class, 'redirect'])
+            ->name('lives.youtube');
         Route::post('lives/{liveStream}/estudio/whip', [WhipProxyController::class, 'publish'])
             ->middleware('throttle:20,1')
             ->name('lives.studio.publish');

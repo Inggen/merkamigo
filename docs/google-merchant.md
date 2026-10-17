@@ -167,3 +167,19 @@ Recurso aparte del feed de productos online (secciones 1-14): requiere que cada 
 3. El envío de inventario local va colgado del sync normal del producto (`GoogleMerchantService::syncProduct()` → `syncLocalInventory()`), sin comando aparte. Es best-effort: una falla aquí nunca cambia `google_merchant_status` del producto ni bloquea el feed principal, solo queda en el log (`[GoogleMerchant] ... LOCAL_INVENTORY_SYNC FAILED ...`).
 
 **Campos nuevos:** `businesses.has_physical_location` (bool), `businesses.google_business_store_code` (string nullable) — ambos editables por el propio negocio, nunca inferidos.
+
+## Ayuda y automatización del emprendedor (2026-10-13)
+
+En **Mi vitrina → Ubicación** y **Productos**, la ayuda «Tus productos en Google» muestra la configuración efectiva del negocio y de la plataforma. Separa publicación online de inventario para tiendas físicas, enlaza la documentación de Google y permite solicitar asistencia para vincular el Perfil de Empresa.
+
+- Merkamigo genera `offerId` y reutiliza enlace, nombre, descripción, imágenes, precios, ofertas y disponibilidad. El ID de Merchant no debe copiarse en GTIN ni MPN.
+- GTIN corresponde al código de barras real (8, 12, 13 o 14 dígitos); MPN, a la referencia oficial del fabricante. Para productos que realmente no tengan identificadores, se dejan vacíos y se envía `identifierExists=false`.
+- El código de tienda debe coincidir exactamente con el Perfil de Empresa del negocio vinculado a Merchant Center. Marcar «local físico» o agregar un mapa no realiza esa vinculación.
+- Mientras el inventario local esté desactivado, no haya local físico o falte el código, el payload API y el feed XML excluyen `LOCAL_INVENTORY_ADS` y `FREE_LOCAL_LISTINGS`. Se conserva la participación online; Google decide su aprobación.
+- Cambiar nombre, categoría, descripción, local físico o código de tienda encola nuevamente los productos físicos después de confirmar la transacción. Los cambios sin impacto en Merchant no reencolan el catálogo.
+- El botón **Revisar y sincronizar productos** valida los permisos del negocio y encola sus productos. Los problemas de elegibilidad y errores previos se muestran en las tarjetas, sin depender de un tooltip.
+- El badge **Enviado a Google** confirma el envío, no la aprobación. Las fichas locales se intentan incluso si el producto online no cambió; los fallos temporales de inventario local propagan el error para que la cola reintente.
+
+Después de desplegar este cambio, ejecutar `php artisan google-merchant:sync --all` o revisar cada negocio con el botón del panel para que los productos ya enviados reciban la nueva configuración de destinos. Mantener la cola activa. Google puede tardar en volver a procesar el catálogo; validar el diagnóstico en Merchant Center después del envío.
+
+No se vinculan Perfiles de Empresa automáticamente ni se fabrican GTIN o códigos de tienda. La activación global y la habilitación del negocio permanecen bajo administración.

@@ -16,6 +16,16 @@ class AccrueCommission
     public function handle(Order $order): CommissionCharge
     {
         return DB::transaction(function () use ($order) {
+            // Defensa adicional a la del lock en `ApplyApprovedOrder` (su
+            // único llamador hoy): si este pedido ya se acumuló antes, no
+            // volver a sumarlo. Cierra el hallazgo #1 de la auditoría
+            // (condición de carrera webhook/retorno duplicando la
+            // comisión) también para cualquier llamador futuro que no
+            // pase por ese lock.
+            if ($order->commission_charge_id) {
+                return CommissionCharge::findOrFail($order->commission_charge_id);
+            }
+
             $charge = CommissionCharge::query()
                 ->where('business_id', $order->business_id)
                 ->where('status', CommissionCharge::ABIERTA)

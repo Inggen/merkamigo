@@ -19,6 +19,22 @@ use Illuminate\Database\Seeder;
  * pago" de "plan gratuito" debe usar `Business::isOnPaidPlan()`, y el que
  * necesite "solo el plan más alto" debe usar `Business::isOnTopPlan()` —
  * nunca comparar `activePlan()->slug` a mano.
+ *
+ * Actualización (2026-10-13, pedido del usuario): Merkapuntos pasa a
+ * requerir un plan de pago (Emprendedor o Negocios) y Eventos pasa a ser
+ * exclusivo de Negocios — ver el `abort_unless` correspondiente en
+ * `⚡merkapuntos.blade.php` y `⚡eventos.blade.php`. El listado de
+ * `features` de cada plan ahora es ACUMULATIVO (Emprendedor repite todo
+ * lo de Básico, Negocios repite todo lo de Emprendedor) para que la
+ * página de comparar planes se lea como niveles reales, no como extras
+ * sueltos — ver también la migración `2026_10_13_120000_add_
+ * merkapuntos_and_eventos_to_plan_features` para las bases de datos que
+ * ya tenían estas filas sembradas.
+ *
+ * Actualización (2026-10-14, pedido del usuario): tope de productos/
+ * servicios más bajo por plan — Básico 5→3, Emprendedor 20→15, Negocios
+ * 50→40 — ver la migración `2026_10_14_120000_lower_plan_product_
+ * limits` para las bases de datos que ya tenían estas filas sembradas.
  */
 class PlanSeeder extends Seeder
 {
@@ -32,14 +48,14 @@ class PlanSeeder extends Seeder
                 'price_cents' => null,
                 'billing_period' => Plan::MENSUAL,
                 'limits' => [
-                    'max_products' => 5,
+                    'max_products' => 3,
                     'max_members' => 1,
                     'max_featured_days' => 0,
                     'max_storefronts' => 1,
                 ],
                 'features' => [
                     'Vitrina pública en la Plaza',
-                    'Hasta 5 productos o servicios',
+                    'Hasta 3 productos o servicios',
                     '1 colaborador en el equipo',
                     'Recibe y responde solicitudes de "Pídelo en Merkamigo"',
                 ],
@@ -57,15 +73,18 @@ class PlanSeeder extends Seeder
                 'price_cents' => 4990000,
                 'billing_period' => Plan::MENSUAL,
                 'limits' => [
-                    'max_products' => 20,
+                    'max_products' => 15,
                     'max_members' => 3,
                     'max_featured_days' => 7,
                     'max_storefronts' => 2,
                 ],
                 'features' => [
-                    'Hasta 20 productos y servicios',
+                    'Vitrina pública en la Plaza',
+                    'Hasta 15 productos y servicios',
                     'Hasta 2 vitrinas (negocios) en tu cuenta',
                     'Hasta 3 colaboradores en el equipo',
+                    'Recibe y responde solicitudes de "Pídelo en Merkamigo"',
+                    'Merkapuntos: premios y fidelización de clientes',
                     'Copiloto de WhatsApp para promociones',
                     'Cobros en línea con tu propia cuenta Wompi',
                     'Destacados en la Plaza hasta 7 días',
@@ -84,15 +103,21 @@ class PlanSeeder extends Seeder
                 'price_cents' => 9900000,
                 'billing_period' => Plan::MENSUAL,
                 'limits' => [
-                    'max_products' => 50,
+                    'max_products' => 40,
                     'max_members' => 5,
                     'max_featured_days' => 15,
                     'max_storefronts' => 5,
                 ],
                 'features' => [
-                    'Hasta 50 productos y servicios',
+                    'Vitrina pública en la Plaza',
+                    'Hasta 40 productos y servicios',
                     'Hasta 5 vitrinas (negocios) en tu cuenta',
                     'Hasta 5 colaboradores en el equipo',
+                    'Recibe y responde solicitudes de "Pídelo en Merkamigo"',
+                    'Merkapuntos: premios y fidelización de clientes',
+                    'Copiloto de WhatsApp para promociones',
+                    'Cobros en línea con tu propia cuenta Wompi',
+                    'Eventos: agenda pública y reservas',
                     'Asistente IA y chatbot en tu vitrina',
                     'Transmisiones En vivo (Live Commerce)',
                     'Métricas avanzadas: 90 días y exportar CSV',

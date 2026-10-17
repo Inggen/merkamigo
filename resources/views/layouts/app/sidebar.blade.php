@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
@@ -54,18 +54,22 @@
                                 <span class="absolute right-1 top-1 size-2 rounded-full bg-brand-500 ring-2 ring-white dark:ring-zinc-900"></span>
                             @endif
                         </a>
-                        <a href="{{ route('clientes.actividad') }}" wire:navigate class="relative inline-flex size-9 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="{{ __('Actividad') }}">
-                            <flux:icon.bell class="size-5" variant="outline" />
-                            @if (($topbarUnread = auth()->user()->unreadNotifications()->count()) > 0)
-                                <span class="absolute right-1 top-1 size-2 rounded-full bg-brand-500 ring-2 ring-white dark:ring-zinc-900"></span>
-                            @endif
-                        </a>
+                        {{--
+                            Pedido del usuario (2026-10-11): en la zona de
+                            emprendedores la campanita solo navegaba a
+                            "Actividad" — ahora despliega la misma
+                            ventana de notificaciones que ya existe en
+                            cliente (`<livewire:notification-bell>`),
+                            reutilizada tal cual en vez de duplicar su
+                            lógica de marcar-como-leída/redirigir acá.
+                        --}}
+                        <livewire:notification-bell />
                         <x-desktop-user-menu placement="header" />
                     </header>
                 @endif
 
                 <!-- Mobile User Menu -->
-                <flux:header class="lg:hidden">
+                <flux:header data-app-header class="lg:hidden">
                     <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
                     <flux:spacer />
@@ -129,8 +133,9 @@
                         </flux:menu>
                     </flux:dropdown>
                 </flux:header>
+                <x-app-install />
 
-                <div class="{{ auth()->user()->experience === 'cliente' ? 'pb-16 md:pb-0' : '' }}">
+                <div class="{{ auth()->user()->experience === 'cliente' ? 'pb-20 md:pb-0' : '' }}">
                     @if (session(\App\Domain\Platform\Actions\StartUserImpersonation::SESSION_KEY))
                         <div class="col-span-full w-full border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
                             <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -154,16 +159,19 @@
             </div>
         </div>
 
-        @if (auth()->user()->experience === 'cliente')
+        @if (\App\Support\Navigation\ClientBottomNav::visible())
             <x-cliente-bottom-nav />
         @endif
 
-        <x-storefront-chat-widget
-            :with-sound="false"
-            character-gif="images/chatbot-merkamiga-IA.gif"
-            character-frame1="images/chatbot-merkamiga-IA-frame1.png"
-            :mode="auth()->user()->experience === 'emprendedor' ? 'emprendedor' : 'general'"
-        />
+        @if ($showChatWidget ?? true)
+            <x-storefront-chat-widget
+                :with-sound="false"
+                character-gif="images/chatbot-merkamiga-IA.gif"
+                character-frame1="images/chatbot-merkamiga-IA-frame1.png"
+                :mode="auth()->user()->experience === 'emprendedor' ? 'emprendedor' : 'general'"
+                :above-mobile-bottom-nav="\App\Support\Navigation\ClientBottomNav::visible()"
+            />
+        @endif
 
         @persist('toast')
             <flux:toast.group>

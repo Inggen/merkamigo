@@ -1,67 +1,89 @@
 @php
-    $schemaGraph = [
-        \App\Support\Seo\SchemaBuilder::breadcrumb([
-            ['name' => __('Inicio'), 'url' => route('home')],
-            ['name' => __('Crear vitrina')],
-        ]),
-    ];
+    $schemaGraph = [\App\Support\Seo\SchemaBuilder::breadcrumb([
+        ['name' => __('Inicio'), 'url' => route('home')],
+        ['name' => __('Crear vitrina')],
+    ])];
+
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->bienvenidaBannerUrl() ?? asset('images/emprendedores/bienvenida-hero.jpg');
+    $bannerTitle = $siteSetting->bienvenida_banner_title;
+    $bannerDescription = $siteSetting->bienvenida_banner_description ?: __('Crea tu vitrina digital en minutos, muestra lo que vendes y conecta con personas de tu comunidad.');
 @endphp
 
-<x-layouts::public
-    :title="__('Crear una vitrina digital')"
-    :description="__('Crea gratis tu vitrina digital en Merkamigo, publica productos o servicios y recibe contactos por WhatsApp.')"
-    :canonical="route('emprendedores.bienvenida')"
-    :schema-graph="$schemaGraph"
->
-    @php
-        $heroBackground = $municipality?->coverUrl() ?? asset('images/backgrounds/fondo-buscador-principal.webp');
-    @endphp
+<x-layouts::public :title="__('Crear una vitrina digital')" :description="__('Crea gratis tu vitrina digital en Merkamigo y conecta con personas de tu comunidad.')" :canonical="route('emprendedores.bienvenida')" :schema-graph="$schemaGraph">
+    <div class="entrepreneur-welcome">
+        <section class="welcome-hero" aria-labelledby="welcome-title"
+            x-data="{ parallaxOffset: 0, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)') }"
+            x-init="parallaxOffset = reducedMotion.matches ? 0 : Math.min(60, Math.max(0, window.scrollY * 0.15))"
+            x-on:scroll.window.passive="parallaxOffset = reducedMotion.matches ? 0 : Math.min(60, Math.max(0, window.scrollY * 0.15))">
 
-    <div
-        class="relative overflow-hidden bg-cover bg-center px-6 py-16 text-white"
-        style="background-image: url('{{ $heroBackground }}')"
-    >
-        <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-brand-900/60 to-brand-900/30"></div>
-
-        <div class="relative mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
-            <h1 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{{ __('Crea tu vitrina digital en cinco minutos') }}</h1>
-            <flux:text class="max-w-xl text-lg text-brand-100">
-                {{ __('Muestra tu negocio, sé encontrado por compradores cerca de ti y recibe contactos directo por WhatsApp.') }}
-            </flux:text>
-
-            <flux:button variant="primary" :href="url('/emprendedores')" wire:navigate>
-                {{ __('Crear mi vitrina') }}
-            </flux:button>
-
-
-        </div>
-    </div>
-
-    <div class="mx-auto max-w-6xl px-6 py-10">
-        <div class="grid w-full gap-6 text-left sm:grid-cols-3">
-            <div class="flex flex-col items-center gap-2 text-center sm:items-center sm:text-center">
-                <div class="flex size-11 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-950">
-                    <flux:icon.map-pin class="size-5" variant="outline" />
-                </div>
-                <flux:heading size="sm">{{ __('Cercanía') }}</flux:heading>
-                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Conecta con lo que tienes cerca.') }}</flux:text>
+            <img x-bind:style="`transform: translateY(${parallaxOffset}px)`" class="welcome-hero-image" src="{{ $bannerImage }}" alt="{{ __('Emprendedora en su pastelería con una vitrina digital') }}" fetchpriority="high">
+            <div class="welcome-container welcome-hero-content">
+                <p class="welcome-eyebrow">{{ __('Compra, vende y apoya lo local') }}</p>
+                <h1 id="welcome-title">
+                    @if ($bannerTitle)
+                        {{ $bannerTitle }}
+                    @else
+                        {{ __('Tu negocio local,') }}<br><span>{{ __('más cerca de todos') }}</span>
+                    @endif
+                </h1>
+                <p class="welcome-intro">{{ $bannerDescription }}</p>
+                <a class="welcome-cta" href="{{ url('/emprendedores') }}" wire:navigate>{{ __('Crear mi vitrina gratis') }} <flux:icon.arrow-right class="size-5" /></a>
+                <ul class="welcome-assurances">
+                    @foreach (['Fácil de usar', 'Sin costos iniciales', 'Lista en 5 minutos'] as $assurance)
+                        <li><span><flux:icon.check class="size-4" /></span>{{ __($assurance) }}</li>
+                    @endforeach
+                </ul>
             </div>
+        </section>
 
-            <div class="flex flex-col items-center gap-2 text-center sm:items-center sm:text-center">
-                <div class="flex size-11 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-950">
-                    <flux:icon.user-group class="size-5" variant="outline" />
-                </div>
-                <flux:heading size="sm">{{ __('Comunidad') }}</flux:heading>
-                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Apoya negocios locales y genera impacto.') }}</flux:text>
+        <section class="welcome-benefits" aria-label="{{ __('Beneficios para tu negocio') }}">
+            <div class="welcome-container welcome-benefit-grid">
+                @foreach ($benefits as $benefit)
+                    <article class="welcome-benefit welcome-benefit-{{ $loop->index }}">
+                        <div class="welcome-benefit-copy">
+                            <span class="welcome-icon"><x-dynamic-component :component="'flux::icon.'.$benefit['icon']" class="size-8" variant="outline" /></span>
+                            <h2>{{ __($benefit['title']) }}</h2>
+                            <p>{{ __($benefit['description']) }}</p>
+                        </div>
+                        <div class="welcome-benefit-photo" style="background-image: url('{{ asset('images/emprendedores/bienvenida-beneficios.jpg') }}')" aria-hidden="true"></div>
+                    </article>
+                @endforeach
             </div>
+        </section>
 
-            <div class="flex flex-col items-center gap-2 text-center sm:items-center sm:text-center">
-                <div class="flex size-11 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-950">
-                    <flux:icon.eye class="size-5" variant="outline" />
+        <section class="welcome-tools" aria-labelledby="welcome-tools-title">
+            <div class="welcome-container">
+                <header class="welcome-tools-heading">
+                    <p class="welcome-eyebrow">{{ __('Todo en un solo lugar') }}</p>
+                    <h2 id="welcome-tools-title">{{ __('¿Qué puedes hacer en') }} <span>Merka</span>migo?</h2>
+                    <p>{{ __('Herramientas simples y poderosas para mostrar tu negocio, conectar con clientes y hacer crecer tu comunidad.') }}</p>
+                </header>
+                <div class="welcome-tools-grid">
+                    <div class="welcome-feature-list">
+                        @foreach (array_slice($features, 0, 3) as $feature)
+                            @include('emprendedores.partials.welcome-feature')
+                        @endforeach
+                    </div>
+                    <div class="welcome-device-preview" aria-label="{{ __('Vista de las vitrinas de Merkamigo en computador y móvil') }}">
+                        <div class="welcome-laptop">
+                            <div class="welcome-laptop-screen">
+                                <aside><strong><span>Merka</span>migo</strong><p>{{ __('Mi vitrina') }}</p><p>{{ __('Productos') }}</p><p>{{ __('Eventos') }}</p><p>{{ __('Mensajes') }}</p><p>{{ __('Estadísticas') }}</p></aside>
+                                <div class="welcome-demo-store"><h3>{{ __('Mi vitrina') }}</h3><img src="{{ asset('images/emprendedores/bienvenida-hero.jpg') }}" alt="" loading="lazy"><strong>{{ __('Tu negocio') }}</strong><p>{{ __('Productos y servicios para tu comunidad') }}</p><div class="welcome-demo-stats"><span><b>128</b>{{ __('Visitas') }}</span><span><b>24</b>{{ __('Clientes') }}</span><span><b>12</b>{{ __('Mensajes') }}</span></div></div>
+                            </div>
+                        </div>
+                        <div class="welcome-phone"><strong><span>Merka</span>migo</strong><div class="welcome-phone-search">{{ __('Busca negocios cerca…') }}</div><div class="welcome-phone-categories">☕ &nbsp; ♡ &nbsp; ✧</div><h3>{{ __('Negocios cerca de ti') }}</h3><img src="{{ asset('images/emprendedores/bienvenida-hero.jpg') }}" alt="" loading="lazy"><strong>{{ __('Tu negocio') }}</strong><p>{{ __('Hecho en tu comunidad') }}</p><div class="welcome-phone-stars">★★★★★</div><div class="welcome-phone-nav"><flux:icon.home class="size-4" /><flux:icon.magnifying-glass class="size-4" /><flux:icon.chat-bubble-left-right class="size-4" /><flux:icon.user class="size-4" /></div></div>
+                    </div>
+                    <div class="welcome-feature-list">
+                        @foreach (array_slice($features, 3) as $feature)
+                            @include('emprendedores.partials.welcome-feature')
+                        @endforeach
+                    </div>
                 </div>
-                <flux:heading size="sm">{{ __('Visibilidad') }}</flux:heading>
-                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Haz visible tu negocio ante más personas.') }}</flux:text>
+                <div class="welcome-bottom-cta"><a class="welcome-cta" href="{{ url('/emprendedores') }}" wire:navigate>{{ __('Crear mi vitrina gratis') }} <flux:icon.arrow-right class="size-5" /></a></div>
             </div>
-        </div>
+        </section>
     </div>
 </x-layouts::public>

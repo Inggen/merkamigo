@@ -4,14 +4,28 @@ namespace App\Domain\Marketplace\Actions;
 
 use App\Domain\Analytics\Models\AnalyticsEvent;
 use App\Domain\Marketplace\Models\Order;
+use App\Domain\Marketplace\Notifications\GuestOrderPaid;
 use App\Domain\Marketplace\Notifications\OrderPaid;
 use App\Domain\Platform\Actions\RecordAuditLog;
 use App\Domain\Subscriptions\Models\Entitlement;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Aplica el resultado real de un pedido según Wompi — mismo patrón que
  * `ApplyApprovedPayment` (llamado tanto desde el retorno del checkout
  * como desde el webhook del negocio, idempotente).
+ *
+ * PR2 de TODO_VENTAS_RENTABILIDAD.md (hallazgo #1 de la auditoría,
+ * docs/auditoria-ventas-rentabilidad.md §1.2): el retorno del navegador
+ * y el webhook pueden llegar casi al mismo tiempo para el MISMO pedido.
+ * Antes, cada uno leía `$order->status` de su propia copia en memoria
+ * sin bloqueo, así que ambos podían ver "pendiente" y los dos acababan
+ * acumulando la comisión. Ahora todo el ciclo leer-decidir-escribir pasa
+ * dentro de una transacción con `lockForUpdate()`: el segundo proceso en
+ * llegar espera a que el primero termine y ya ve el estado final, así
+ * que su propia guarda de idempotencia (abajo) lo detiene antes de
+ * repetir nada.
  */
 class ApplyApprovedOrder
 {
@@ -20,29 +34,79 @@ class ApplyApprovedOrder
      */
     public function handle(Order $order, string $wompiStatus, ?string $wompiTransactionId, array $rawResponse = []): Order
     {
-        if (in_array($order->status, [Order::PAGADO, Order::RECHAZADO], true)) {
-            return $order;
-        }
+        [$order, $justPaid, $justRefunded, $justDeclined] = DB::transaction(function () use ($order, $wompiStatus, $wompiTransactionId, $rawResponse) {
+            /** @var Order $locked */
+            $locked = Order::whereKey($order->id)->lockForUpdate()->first();
 
-        $status = match ($wompiStatus) {
-            'APPROVED' => Order::PAGADO,
-            'DECLINED', 'ERROR', 'VOIDED' => Order::RECHAZADO,
-            default => Order::PENDIENTE,
-        };
+            $wasPaid = $locked->status === Order::PAGADO;
 
-        $order->update([
-            'status' => $status,
-            'wompi_transaction_id' => $wompiTransactionId,
-            'raw_response' => $rawResponse,
-            'paid_at' => $status === Order::PAGADO ? now() : null,
-        ]);
+            $status = match ($wompiStatus) {
+                'APPROVED' => Order::PAGADO,
+                'DECLINED', 'ERROR' => Order::RECHAZADO,
+                // Un `VOIDED` sobre un pedido que YA estaba pagado es un
+                // reembolso real, no un intento que nunca llegó a
+                // aprobarse — necesita revertir la comisión ya
+                // acumulada (hallazgo #3 de la auditoría, §1.3).
+                'VOIDED' => $wasPaid ? Order::REEMBOLSADO : Order::RECHAZADO,
+                default => Order::PENDIENTE,
+            };
 
-        if ($status === Order::PAGADO) {
-            app(AccrueCommission::class)->handle($order);
+            // Idempotencia: un estado "final" ya aplicado no se repite —
+            // salvo la transición pagado→reembolsado, que es la única
+            // vez que un estado final da paso a otro.
+            $alreadyFinal = in_array($locked->status, [Order::PAGADO, Order::RECHAZADO, Order::REEMBOLSADO], true);
+            $isNewRefund = $wasPaid && $status === Order::REEMBOLSADO;
+            $isNewDecline = ! $alreadyFinal && $status === Order::RECHAZADO;
+
+            if ($alreadyFinal && ! $isNewRefund) {
+                return [$locked, false, false, false];
+            }
+
+            $locked->update([
+                'status' => $status,
+                'wompi_transaction_id' => $wompiTransactionId,
+                'raw_response' => $rawResponse,
+                'paid_at' => $status === Order::PAGADO ? now() : $locked->paid_at,
+            ]);
+
+            if ($status === Order::PAGADO) {
+                app(AccrueCommission::class)->handle($locked);
+            }
+
+            if ($isNewRefund) {
+                app(ReverseCommission::class)->handle($locked);
+            }
+
+            return [$locked->fresh(), $status === Order::PAGADO, $isNewRefund, $isNewDecline];
+        });
+
+        if ($justPaid) {
             app(RecordAuditLog::class)->handle($order->buyer, 'order.paid', $order, [
                 'business_id' => $order->business_id,
             ]);
             $order->business->members->each(fn ($member) => $member->notify(new OrderPaid($order)));
+
+            // PR5 de TODO_VENTAS_RENTABILIDAD.md (P1.4): embudo del
+            // checkout normal de Marketplace — antes solo existía para
+            // Live Commerce (`LIVE_CHECKOUT_STARTED`/`LIVE_PURCHASE`).
+            // El paso anterior (`MARKETPLACE_CHECKOUT_STARTED`) ya se
+            // registró en `CreateOrderCheckout`.
+            AnalyticsEvent::firstOrCreate([
+                'business_id' => $order->business_id,
+                'type' => AnalyticsEvent::MARKETPLACE_PAYMENT_APPROVED,
+                'subject_type' => $order->getMorphClass(),
+                'subject_id' => $order->id,
+                'visitor_hash' => hash('sha256', 'order-approved|'.$order->id),
+            ]);
+
+            // PR3 de TODO_VENTAS_RENTABILIDAD.md: un invitado no tiene
+            // cuenta donde ver "Mis compras" — sin este correo no se
+            // enteraría de que su pago se aprobó ni cómo descargar su
+            // producto digital. Mismo patrón que
+            // `CreateEventAttendance::notifyConfirmed()`.
+            if ($order->isGuestOrder() && filled($order->guest_email)) {
+                Notification::route('mail', $order->guest_email)->notify(new GuestOrderPaid($order));
+            }
 
             if ($order->contentPromotion) {
                 AnalyticsEvent::firstOrCreate([
@@ -68,7 +132,13 @@ class ApplyApprovedOrder
             // — el acceso recurrente vía suscripción se maneja aparte en
             // `Subscriptions\Actions\ChargeSubscriptionPeriod`, que sí
             // sabe hasta cuándo dura el periodo pagado.
-            if ($order->customer_subscription_id === null) {
+            //
+            // `Entitlement.user_id` no acepta null — un invitado (PR3)
+            // no tiene cuenta a la que atarlo, así que no aplica: su
+            // acceso a la descarga es directo contra el pedido pagado
+            // vía enlace firmado (`OrderCheckoutController::guestDownload`),
+            // no contra un `Entitlement`.
+            if ($order->customer_subscription_id === null && ! $order->isGuestOrder()) {
                 $products = $order->items()->with('product')->get()->pluck('product')->filter();
 
                 if ($products->isEmpty()) {
@@ -88,6 +158,22 @@ class ApplyApprovedOrder
             }
         }
 
-        return $order->fresh();
+        if ($justRefunded) {
+            app(RecordAuditLog::class)->handle(null, 'order.refunded', $order, [
+                'business_id' => $order->business_id,
+            ]);
+        }
+
+        if ($justDeclined) {
+            AnalyticsEvent::firstOrCreate([
+                'business_id' => $order->business_id,
+                'type' => AnalyticsEvent::MARKETPLACE_PAYMENT_FAILED,
+                'subject_type' => $order->getMorphClass(),
+                'subject_id' => $order->id,
+                'visitor_hash' => hash('sha256', 'order-failed|'.$order->id),
+            ]);
+        }
+
+        return $order;
     }
 }

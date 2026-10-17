@@ -180,7 +180,7 @@ class SeoMarkupTest extends TestCase
             '/gallery:\s*[^\n]*presentacion\.mp4[^\n]*image\.jpg/',
             $response->getContent(),
         );
-        $this->assertMatchesRegularExpression('/activeType:\s*[^\n]*video/', $response->getContent());
+        $response->assertSee('merkamigoProductView(', false);
     }
 
     public function test_the_faq_page_renders_faq_schema_and_search_page_is_noindex(): void

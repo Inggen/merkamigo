@@ -120,19 +120,63 @@
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
 
-                    @if ($this->products->isNotEmpty())
-                        <div x-show="panel === 'products'" x-cloak x-transition class="mt-4 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/70">
-                            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{{ __('Productos relacionados') }}</p>
-                            <div class="flex flex-wrap gap-2">
-                                @foreach ($this->products as $product)
-                                    <label class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:has-[:checked]:bg-brand-500/10 dark:has-[:checked]:text-brand-300">
-                                        <input type="checkbox" wire:model="productIds" value="{{ $product->id }}" class="rounded border-zinc-300 text-brand-600 focus:ring-brand-500">
-                                        <span>{{ $product->name }}</span>
-                                    </label>
-                                @endforeach
+                    <div x-show="panel === 'products'" x-cloak x-transition class="mt-4 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/70">
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{{ __('Productos relacionados') }}</p>
+                        @if ($this->products->isNotEmpty())
+                            @if ($this->products->count() > 6)
+                                <flux:input
+                                    wire:model.live.debounce.250ms="productSearch"
+                                    type="search"
+                                    size="sm"
+                                    icon="magnifying-glass"
+                                    placeholder="{{ __('Buscar producto…') }}"
+                                    class="mb-2"
+                                    aria-label="{{ __('Buscar producto') }}"
+                                />
+                            @endif
+
+                            @if ($this->filteredProducts->isNotEmpty())
+                                <div class="grid max-h-72 grid-cols-2 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-3">
+                                    @foreach ($this->filteredProducts as $product)
+                                        <label class="group flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white p-1.5 transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50 has-[:checked]:ring-2 has-[:checked]:ring-brand-100 dark:border-zinc-700 dark:bg-zinc-900 dark:has-[:checked]:bg-brand-500/10 dark:has-[:checked]:ring-brand-500/20">
+                                            <input type="checkbox" wire:model="productIds" value="{{ $product->id }}" class="sr-only">
+                                            <div class="relative size-9 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800">
+                                                @if ($photo = $product->primaryImage())
+                                                    <img src="{{ $photo->url() }}" class="size-full object-cover" alt="{{ $product->name }}">
+                                                @else
+                                                    <span class="flex size-full items-center justify-center text-zinc-400"><flux:icon.shopping-bag class="size-4" /></span>
+                                                @endif
+                                                <flux:icon.check-circle class="absolute inset-0 m-auto size-5 scale-0 text-brand-600 opacity-0 drop-shadow transition group-has-[:checked]:scale-100 group-has-[:checked]:opacity-100" variant="solid" />
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-xs font-semibold text-zinc-900 dark:text-white">{{ $product->name }}</p>
+                                                <p class="truncate text-[11px] font-semibold text-brand-600 dark:text-brand-300">
+                                                    @if ($product->hasActivePromo())
+                                                        {{ __('Desde') }} ${{ number_format((float) $product->promo_price, 0, ',', '.') }}
+                                                    @elseif ($product->price_type === 'exacto' && $product->price)
+                                                        ${{ number_format((float) $product->price, 0, ',', '.') }}
+                                                    @elseif ($product->price_type === 'desde' && $product->price)
+                                                        {{ __('Desde') }} ${{ number_format((float) $product->price, 0, ',', '.') }}
+                                                    @elseif ($product->price_type === 'consultar')
+                                                        {{ __('Consultar') }}
+                                                    @endif
+                                                </p>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="p-3 text-center text-sm text-zinc-500">{{ __('Ningún producto coincide con ":busqueda".', ['busqueda' => $productSearch]) }}</p>
+                            @endif
+                        @else
+                            <div class="flex flex-col items-center gap-3 rounded-xl p-4 text-center">
+                                <p class="text-sm text-zinc-500">{{ __('No tienes productos publicados para etiquetar.') }}</p>
+                                <flux:button :href="route('emprendedores.negocios.productos', $this->selectedBusiness)" wire:navigate variant="primary" size="sm" icon="plus">
+                                    {{ __('Crear un producto') }}
+                                </flux:button>
                             </div>
-                        </div>
-                    @endif
+                        @endif
+                    </div>
 
                     <div x-show="panel === 'emoji'" x-cloak x-transition class="mt-4 rounded-2xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
                         <p class="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-500">{{ __('Emoticones') }}</p>
@@ -164,7 +208,12 @@
                                 <span class="min-w-0"><strong class="block truncate text-sm text-zinc-900 dark:text-white">{{ $event->title }}</strong><small class="text-zinc-500">{{ $event->starts_at->translatedFormat('d M Y, g:i a') }}</small></span>
                             </button>
                         @empty
-                            <p class="p-3 text-sm text-zinc-500">{{ __('No tienes eventos próximos disponibles para publicar.') }}</p>
+                            <div class="flex flex-col items-center gap-3 p-3 text-center">
+                                <p class="text-sm text-zinc-500">{{ __('No tienes eventos próximos disponibles para publicar.') }}</p>
+                                <flux:button :href="route('emprendedores.negocios.eventos', $this->selectedBusiness)" wire:navigate variant="primary" size="sm" icon="plus">
+                                    {{ __('Crear un evento') }}
+                                </flux:button>
+                            </div>
                         @endforelse
                     </div>
 
@@ -176,7 +225,12 @@
                                 <span class="min-w-0"><strong class="block truncate text-sm text-zinc-900 dark:text-white">{{ $reward->title }}</strong><small class="font-semibold text-amber-700 dark:text-amber-300">{{ number_format($reward->points_cost, 0, ',', '.') }} {{ __('Merkapuntos') }}</small></span>
                             </button>
                         @empty
-                            <p class="p-3 text-sm text-zinc-500">{{ __('No tienes recompensas activas disponibles para publicar.') }}</p>
+                            <div class="flex flex-col items-center gap-3 p-3 text-center">
+                                <p class="text-sm text-zinc-500">{{ __('No tienes recompensas activas disponibles para publicar.') }}</p>
+                                <flux:button :href="route('emprendedores.negocios.merkapuntos', $this->selectedBusiness)" wire:navigate variant="primary" size="sm" icon="plus">
+                                    {{ __('Crear una recompensa') }}
+                                </flux:button>
+                            </div>
                         @endforelse
                     </div>
                 </div>
@@ -186,9 +240,7 @@
                         <button type="button" x-on:click="panel = panel === 'emoji' ? null : 'emoji'" x-bind:aria-expanded="(panel === 'emoji').toString()" class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-brand-500/40 dark:hover:text-brand-300 sm:text-sm"><flux:icon.face-smile class="size-5 text-amber-500" /><span>{{ __('Emoticón') }}</span></button>
                         <button type="button" x-on:click="panel = panel === 'media' ? null : 'media'" x-bind:aria-expanded="(panel === 'media').toString()" class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-brand-500/40 dark:hover:text-brand-300 sm:text-sm"><flux:icon.photo class="size-5 text-emerald-600" /><span>{{ __('Multimedia') }}</span></button>
 
-                        @if ($this->products->isNotEmpty())
-                            <button type="button" x-on:click="panel = panel === 'products' ? null : 'products'" x-bind:aria-expanded="(panel === 'products').toString()" class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-brand-500/40 dark:hover:text-brand-300 sm:text-sm"><flux:icon.shopping-bag class="size-5 text-orange-600" /><span>{{ __('Producto') }}</span></button>
-                        @endif
+                        <button type="button" x-on:click="panel = panel === 'products' ? null : 'products'" x-bind:aria-expanded="(panel === 'products').toString()" class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-brand-500/40 dark:hover:text-brand-300 sm:text-sm"><flux:icon.shopping-bag class="size-5 text-orange-600" /><span>{{ __('Producto') }}</span></button>
                         <button type="button" x-on:click="panel = panel === 'events' ? null : 'events'" x-bind:aria-expanded="(panel === 'events').toString()" class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-brand-500/40 dark:hover:text-brand-300 sm:text-sm"><flux:icon.calendar-days class="size-5 text-sky-600" /><span>{{ __('Evento') }}</span></button>
                         <button type="button" x-on:click="panel = panel === 'rewards' ? null : 'rewards'" x-bind:aria-expanded="(panel === 'rewards').toString()" class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-brand-500/40 dark:hover:text-brand-300 sm:text-sm"><flux:icon.gift class="size-5 text-fuchsia-600" /><span>{{ __('Recompensa') }}</span></button>
                     </div>

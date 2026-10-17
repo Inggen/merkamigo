@@ -32,6 +32,14 @@ class PlanChangeAffectsRankingTest extends TestCase
             ['name' => 'Negocios', 'price_cents' => 9900000, 'billing_period' => Plan::MENSUAL, 'is_active' => true, 'position' => 2],
         );
 
+        // `eventsReadyBusiness()` suscribe a Negocios por defecto desde el
+        // 2026-10-13 (Eventos pasó a ser exclusivo de ese plan) — este
+        // test necesita que AMBOS negocios empiecen parejos en un plan
+        // más bajo, para poder observar el efecto real de subir de plan.
+        $freePlan = Plan::where('slug', 'gratis')->firstOrFail();
+        app(SubscribeToPlan::class)->handle($basicBusiness, $freePlan, $basicOwner);
+        app(SubscribeToPlan::class)->handle($upgradingBusiness, $freePlan, $upgradingOwner);
+
         $sameDay = now()->addDay()->setTime(10, 0);
 
         $basicEvent = app(ManagePublicEvent::class)->create($basicBusiness, ['title' => 'Básico', 'starts_at' => $sameDay], $basicOwner);

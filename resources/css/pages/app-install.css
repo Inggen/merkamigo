@@ -1,0 +1,9 @@
+.app-install-actions{position:fixed;left:16px;bottom:20px;z-index:45;display:flex;flex-wrap:wrap;gap:8px;max-width:min(440px,calc(100vw - 140px));padding:10px;border:1px solid #ffffff50;border-radius:16px;background:#fffffff2;box-shadow:0 4px 20px #0002;backdrop-filter:blur(10px)}
+.app-install-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:8px 12px;border-radius:10px;background:var(--color-brand-600);color:#fff;font-size:13px;font-weight:600;cursor:pointer}.app-install-button:focus-visible{outline:3px solid var(--color-brand-600);outline-offset:3px}.app-install-button:disabled{opacity:.6;cursor:wait}.app-install-notifications{background:#fff;color:var(--color-brand-600);border:1px solid var(--color-brand-600)}
+@media(max-width:767px){
+.app-install-placement{position:sticky;top:var(--app-install-header-height,0px);z-index:45;background:#fff;transition:top .3s ease-out}
+.app-install-actions{position:static;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;max-width:none;margin:0;padding:5px 10px;border:0;border-radius:0;background:#fff;box-shadow:0 2px 8px #0001;backdrop-filter:none}
+.app-install-button{font-size:12px;min-height:36px;padding:7px 9px;white-space:nowrap}
+.app-install-actions>p{grid-column:1/-1}
+.app-install-actions:has(.app-install-button[style*="display: none"]) {grid-template-columns:1fr}
+}

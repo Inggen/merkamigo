@@ -157,7 +157,11 @@ new #[Title('Reels')] class extends Component
                         <span class="absolute inset-x-2 bottom-2 rounded-full bg-black/65 px-3 py-1.5 text-center text-xs text-white">{{ __('Vista previa') }}</span>
                     </button>
                     <div class="min-w-0 flex-1"><p class="line-clamp-2 font-medium">{{ $reel->body ?: __('Reel sin descripción') }}</p><p class="mt-1 text-xs text-zinc-500">{{ $reel->published_at?->diffForHumans() ?? __('Borrador') }}</p><div class="mt-2 flex gap-4 text-sm text-zinc-500"><span>♥ {{ $reel->reactions_count }}</span><span>○ {{ $reel->comments_count }}</span></div></div>
-                    <div class="flex shrink-0 gap-2 self-end sm:self-auto"><flux:button type="button" variant="ghost" icon="eye" x-on:click="previewReel = {{ $reel->id }}" aria-label="{{ __('Previsualizar reel') }}" /><flux:button type="button" variant="ghost" icon="trash" wire:click="delete({{ $reel->id }})" wire:confirm="{{ __('¿Eliminar este reel?') }}" aria-label="{{ __('Eliminar reel') }}" /></div>
+                    <div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                        <x-share-icons :url="route('vitrinas.show', $this->business)" :text="$reel->body ?: $this->business->name" />
+                        <span class="mx-0.5 h-6 w-px bg-zinc-200 dark:bg-zinc-700"></span>
+                        <flux:button type="button" variant="ghost" icon="eye" x-on:click="previewReel = {{ $reel->id }}" aria-label="{{ __('Previsualizar reel') }}" /><flux:button type="button" variant="ghost" icon="trash" wire:click="delete({{ $reel->id }})" wire:confirm="{{ __('¿Eliminar este reel?') }}" aria-label="{{ __('Eliminar reel') }}" />
+                    </div>
                 </article>
                 <template x-teleport="body">
                     <div x-show="previewReel === {{ $reel->id }}" x-cloak x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3" role="dialog" aria-modal="true">

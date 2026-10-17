@@ -5,7 +5,7 @@
     'categoryId' => null,
     'categorySlug' => null,
     'query' => '',
-    'title' => __('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad'),
+    'title' => null,
     'description' => null,
     'near' => null,
     'radiusKm' => null,
@@ -13,6 +13,14 @@
 ])
 
 @php
+    // Pedido del usuario (2026-10-14): título y descripción de este
+    // banner, editables desde Configuración del sitio en el admin — solo
+    // para el fallback genérico ("Todos" los municipios), no reemplaza
+    // la descripción contextual por municipio/categoría de más abajo.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $title ??= $siteSetting->vitrinas_hero_title
+        ?: __('Descubre lo mejor de tu municipio. Compra local, apoya tu comunidad');
+
     $selectedCategoryId = $categoryId ?? $category?->id;
     $selectedCategorySlug = $categorySlug ?? $category?->slug;
     // Pedido del usuario: el título del hero siempre en dos líneas, una
@@ -21,7 +29,7 @@
     // el primer ". " — si un título personalizado no trae ese patrón, se
     // muestra tal cual, en una sola línea.
     $titleHtml = new \Illuminate\Support\HtmlString(str_replace('. ', ".<br>\n", e($title)));
-    $fallbackBackground = \App\Domain\Platform\Models\SiteSetting::current()->mainSearchBackgroundUrl()
+    $fallbackBackground = $siteSetting->mainSearchBackgroundUrl()
         ?? asset('images/backgrounds/fondo-buscador-principal.webp');
     $allMunicipalitiesLabel = __('Todos');
     $fallbackMedia = ['type' => 'image', 'url' => $fallbackBackground];
@@ -35,7 +43,7 @@
             : __('Mostrando :municipio. Apoya negocios de tu area y encuentra lo que necesitas, cerca de ti.', [
                 'municipio' => $municipality->name,
             ]))
-        : __('Miles de negocios, productos y servicios cerca de ti.');
+        : ($siteSetting->vitrinas_hero_description ?: __('Miles de negocios, productos y servicios cerca de ti.'));
 
     // El fondo del hero debe venir del municipio configurado en admin.
     // No reemplazar por assets inmersivos hardcodeados ni por fondos mock.

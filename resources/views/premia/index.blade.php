@@ -1,6 +1,12 @@
 @php
     $pageTitle = __('Merkapuntos: recompensas por apoyar negocios locales');
     $pageDescription = __('Descubre qué puedes canjear en los negocios de tu municipio con Merkamigo Premia — sin necesidad de registrarte.');
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->premiaBannerUrl() ?? asset('images/backgrounds/fondo_merkapuntos_premia.webp');
+    $bannerTitle = $siteSetting->premia_banner_title ?: __('Apoyar lo local tiene recompensa');
+    $bannerDescription = $siteSetting->premia_banner_description ?: __('Descubre negocios adheridos a Merkamigo Premia, acumula Merkapuntos con tus compras verificadas y canjéalos por experiencias, productos y servicios únicos de tu comunidad.');
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb([
             ['name' => __('Inicio'), 'url' => route('home')],
@@ -17,21 +23,29 @@
 >
     {{-- TODO_Merkapuntos.md, F2.2: catálogo público, navegable sin login.
          Estilo tomado de la referencia "Clientes y recompensas" (mockup) —
-         banner explicativo + pasos + grilla filtrable. --}}
-    <section
-        class="relative isolate overflow-hidden border-b border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950"
-        style="background-image: url('{{ asset('images/backgrounds/fondo_merkapuntos_premia.webp') }}'); background-position: center; background-size: cover;"
-    >
-        <div class="absolute inset-0 -z-10 bg-gradient-to-r from-white/95 via-white/70 to-black/20 dark:from-zinc-950/95 dark:via-zinc-950/70 dark:to-black/35"></div>
+         banner explicativo + pasos + grilla filtrable.
 
-        <div class="mx-auto flex min-h-[300px] max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+         Pedido del usuario (2026-10-11): mismo efecto parallax sutil que
+         ya tenía el hero de búsqueda de Plaza (`search-hero.blade.php`). --}}
+    <section
+        x-data="{ parallaxOffset: 0 }"
+        x-on:scroll.window="parallaxOffset = Math.min(60, Math.max(0, window.scrollY * 0.15))"
+        class="relative isolate overflow-hidden border-b border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950"
+    >
+        <div
+            class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
+            x-bind:style="`background-image: url('{{ $bannerImage }}'); background-position: center calc(50% + ${parallaxOffset}px);`"
+        ></div>
+        <div class="absolute inset-0 z-0 bg-gradient-to-r from-white/95 via-white/70 to-black/20 dark:from-zinc-950/95 dark:via-zinc-950/70 dark:to-black/35"></div>
+
+        <div class="relative z-10 mx-auto flex min-h-[300px] max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
             <div class="grid w-full items-center gap-8 lg:grid-cols-[1.05fr_1fr]">
                 <div class="max-w-2xl">
                     <h1 class="text-3xl font-bold tracking-tight text-zinc-950 dark:text-white sm:text-4xl">
-                        {{ __('Apoyar lo local tiene recompensa') }}
+                        {{ $bannerTitle }}
                     </h1>
                     <p class="mt-3 max-w-xl text-base leading-7 text-zinc-700 dark:text-zinc-200">
-                        {{ __('Descubre negocios adheridos a Merkamigo Premia, acumula Merkapuntos con tus compras verificadas y canjéalos por experiencias, productos y servicios únicos de tu comunidad.') }}
+                        {{ $bannerDescription }}
                     </p>
 
                     <div class="mt-6 flex flex-wrap gap-3">

@@ -96,7 +96,10 @@ class ReelsTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Reel del negocio')
-            ->assertDontSee('Post de texto normal');
+            ->assertDontSee('Post de texto normal')
+            // Pedido del usuario (2026-10-11): igual que en el feed, un
+            // reel visible en /reels se reproduce solo al entrar a vista.
+            ->assertSee('autoplayInView: true', false);
     }
 
     public function test_owner_can_publish_a_reel_from_the_panel(): void

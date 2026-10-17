@@ -13,7 +13,23 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-new #[Layout('layouts::cliente', ['showChatWidget' => false, 'showSidebar' => true])] #[Title('Mensajes')] class extends Component
+/**
+ * Pedido del usuario (2026-10-11): en la zona de emprendedores, Mensajes
+ * debe verse con la barra lateral y todo lo demás del panel, igual que
+ * el resto de "Mi negocio" — y el chatbot de Merkamiga se mantiene
+ * visible acá también (pedido explícito del usuario), a diferencia del
+ * `showChatWidget: false` que tenía antes esta página. Antes esta
+ * página forzaba siempre `layouts::cliente` (el header simple de
+ * Vitrinas/Comunidad/...) con un `showSidebar: true` que ese layout ya
+ * no usa — lo quitaron hace tiempo (ver el comentario en
+ * layouts/app.blade.php) y nadie volvió a tocar esta página.
+ * `layouts::app` es el layout compartido por TODO el resto del sitio
+ * para esto: cliente ve el header simple, cualquier otra experiencia
+ * (emprendedor) ve el panel con sidebar — así que cambiar a ese layout
+ * compartido, en vez de inventar una condición propia acá, es lo que
+ * evita que esto se vuelva a desincronizar.
+ */
+new #[Layout('layouts::app')] #[Title('Mensajes')] class extends Component
 {
     use WithFileUploads;
 
@@ -133,6 +149,11 @@ new #[Layout('layouts::cliente', ['showChatWidget' => false, 'showSidebar' => tr
             ->where('sender_user_id', '!=', Auth::id())
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        Auth::user()->unreadNotifications()
+            ->where('data->type', 'business_message')
+            ->where('data->conversation_id', $conversation->id)
+            ->update(['read_at' => now()]);
     }
 }; ?>
 
@@ -244,7 +265,27 @@ new #[Layout('layouts::cliente', ['showChatWidget' => false, 'showSidebar' => tr
                 </div>
             </flux:modal>
 
-            <div class="flex-1 space-y-3 overflow-y-auto bg-zinc-50/70 p-4 dark:bg-zinc-950/40">
+            {{--
+                Pedido del usuario (2026-10-11): el chat siempre debe
+                quedar con scroll abajo del todo, mostrando el último
+                mensaje — al entrar, al enviar uno propio, al llegar uno
+                nuevo por el `wire:poll` de abajo, o al cambiar de
+                conversación. Un MutationObserver cubre los cuatro casos
+                a la vez (cualquiera de ellos cambia los hijos de este
+                contenedor), sin depender de adivinar en qué momento
+                exacto Livewire termina de re-renderizar.
+            --}}
+            <div
+                x-data="{
+                    scrollToBottom() {
+                        this.$nextTick(() => { this.$el.scrollTop = this.$el.scrollHeight; });
+                    },
+                }"
+                x-init="
+                    scrollToBottom();
+                    new MutationObserver(() => scrollToBottom()).observe($el, { childList: true, subtree: true });
+                "
+                class="messaging-chat-surface flex-1 space-y-3 overflow-y-auto p-4" style="--messaging-chat-background: url('{{ asset('images/backgrounds/fondo_chat_mensajeria.webp') }}')">
                 @forelse ($this->conversation->messages as $message)
                     @php($own = $message->sender_user_id === auth()->id())
                     <div class="flex {{ $own ? 'justify-end' : 'justify-start' }}">

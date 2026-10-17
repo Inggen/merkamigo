@@ -213,6 +213,33 @@ class PostsTest extends TestCase
     }
 
     /**
+     * Pedido del usuario (2026-10-11): un reel visible en el feed debe
+     * reproducirse solo (sin sonido) y pausarse al salir de vista —
+     * ver `resources/js/app.js` (`merkamigoVideoPlayer`). Esta prueba
+     * no puede ejercitar el IntersectionObserver del navegador, pero sí
+     * confirma que la tarjeta del feed activa esa opción en el
+     * reproductor.
+     */
+    public function test_a_video_post_in_the_feed_opts_the_player_into_autoplay_when_visible(): void
+    {
+        Storage::fake('public');
+
+        $business = $this->publishedBusiness();
+        $owner = $business->organization->owner;
+        app(CreatePost::class)->handle($business, [
+            'type' => 'video',
+            'body' => 'Reel en el feed',
+        ], [UploadedFile::fake()->create('reel.mp4', 2048, 'video/mp4')], $owner);
+
+        $response = $this->withCookie('municipio', $business->municipality->slug)
+            ->get(route('home'));
+
+        $response->assertOk()
+            ->assertSee('Reel en el feed')
+            ->assertSee('autoplayInView: true', false);
+    }
+
+    /**
      * Decisión del usuario (sesión 15 sep 2026): el feed social es ahora
      * Inicio. Pedido del usuario (2026-10-06): `/feed` dejó de ser una
      * ruta propia — ahora es solo un redirect a `/`, ver `routes/web.php`.

@@ -74,6 +74,13 @@ class NotificationBell extends Component
         unset($this->notifications, $this->unreadCount);
     }
 
+    public function delete(string $notificationId): void
+    {
+        Auth::user()->notifications()->whereKey($notificationId)->delete();
+
+        unset($this->notifications, $this->unreadCount);
+    }
+
     public function render(): View
     {
         return view('livewire.notification-bell');

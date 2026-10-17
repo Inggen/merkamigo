@@ -153,7 +153,22 @@ class EmprendedoresController extends Controller
             ? Municipality::where('slug', $slug)->where('is_active', true)->first()
             : null;
 
-        return view('emprendedores.bienvenida', ['municipality' => $municipality]);
+        return view('emprendedores.bienvenida', [
+            'municipality' => $municipality,
+            'benefits' => [
+                ['title' => 'Cercanía', 'description' => 'Conecta con personas que están cerca de ti.', 'icon' => 'map-pin'],
+                ['title' => 'Comunidad', 'description' => 'Haz parte de una red que apoya lo local.', 'icon' => 'user-group'],
+                ['title' => 'Crecimiento', 'description' => 'Gana visibilidad y recibe más clientes.', 'icon' => 'chart-bar'],
+            ],
+            'features' => [
+                ['title' => 'Vitrina digital', 'description' => 'Muestra tus productos y servicios de forma profesional.', 'icon' => 'building-storefront'],
+                ['title' => 'Catálogo completo', 'description' => 'Publica fotos, descripciones, precios y categorías.', 'icon' => 'photo'],
+                ['title' => 'Eventos y reservas', 'description' => 'Gestiona tus eventos, clases o servicios con reservas en línea.', 'icon' => 'calendar-days'],
+                ['title' => 'Mensajería interna', 'description' => 'Recibe y responde clientes directamente en la plataforma.', 'icon' => 'chat-bubble-left-right'],
+                ['title' => 'Promociones y cupones', 'description' => 'Atrae más clientes con ofertas especiales.', 'icon' => 'megaphone'],
+                ['title' => 'Estadísticas', 'description' => 'Conoce tu rendimiento y toma mejores decisiones.', 'icon' => 'chart-bar'],
+            ],
+        ]);
     }
 
     /**

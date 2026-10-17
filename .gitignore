@@ -13,6 +13,14 @@
 /storage/*.key
 /storage/pail
 /vendor
+# PR2 de TODO_VENTAS_RENTABILIDAD.md (hallazgo #9 de la auditoría,
+# docs/auditoria-ventas-rentabilidad.md §5.1): llave privada y
+# certificado reales estaban comiteados en la raíz del repo desde el
+# 21 sep. Se deja de rastrearlos acá (no se borran del disco ni del
+# histórico de git); si son credenciales reales, siguen pendientes de
+# rotar/revocar por quien tenga acceso seguro a su origen.
+/auto.key
+/auto.crt
 .env
 .env.backup
 .env.production

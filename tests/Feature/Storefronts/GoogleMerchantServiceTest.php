@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Storefronts;
 
+use App\Domain\Businesses\Models\BusinessMembership;
 use App\Domain\Discovery\Models\Category;
 use App\Domain\Discovery\Models\Municipality;
 use App\Domain\Storefronts\Actions\CreateProduct;
 use App\Domain\Storefronts\Actions\CreateStorefront;
+use App\Domain\Storefronts\Actions\UpdateStorefront;
 use App\Domain\Storefronts\Jobs\DeleteProductFromGoogleMerchant;
 use App\Domain\Storefronts\Jobs\SyncProductToGoogleMerchant;
 use App\Domain\Storefronts\Models\Product;
@@ -17,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -175,6 +178,40 @@ class GoogleMerchantServiceTest extends TestCase
         $this->assertSame(5, $deleteJob->tries);
         $this->assertNotEmpty($syncJob->backoff());
         $this->assertNotEmpty($deleteJob->backoff());
+    }
+
+    public function test_local_inventory_is_retried_without_resending_the_online_product(): void
+    {
+        config()->set('services.google_merchant.local_inventory_enabled', true);
+        Http::fake([
+            '*productInputs:insert*' => Http::response(['name' => 'online'], 200),
+            '*localInventories:insert*' => Http::sequence()->push([], 503)->push([], 503)->push(['name' => 'local'], 200),
+        ]);
+        $product = $this->product();
+        $product->business->update(['has_physical_location' => true, 'google_business_store_code' => 'real-store']);
+        $service = app(GoogleMerchantService::class);
+        try {
+            $service->syncProduct($product->fresh(['business.storefront', 'business.category', 'media']));
+            $this->fail('A temporary inventory failure must trigger a queue retry.');
+        } catch (RequestException $exception) {
+            $this->assertSame(503, $exception->response->status());
+        }
+        $service->syncProduct($product->fresh(['business.storefront', 'business.category', 'media']));
+        $this->assertSame('publicado', $product->fresh()->google_merchant_status);
+        Http::assertSentCount(4);
+        $this->assertCount(1, Http::recorded(fn (Request $r) => str_contains($r->url(), 'productInputs:insert')));
+    }
+
+    public function test_store_code_changes_queue_products_but_unrelated_edits_do_not(): void
+    {
+        $product = $this->product();
+        $business = $product->business;
+        $actor = BusinessMembership::where('business_id', $business->id)->firstOrFail()->user;
+        Queue::fake();
+        app(UpdateStorefront::class)->handle($business, ['zone' => 'Centro'], $actor);
+        Queue::assertNothingPushed();
+        app(UpdateStorefront::class)->handle($business, ['google_business_store_code' => 'store-2'], $actor);
+        Queue::assertPushed(SyncProductToGoogleMerchant::class, 1);
     }
 
     private function product(): Product

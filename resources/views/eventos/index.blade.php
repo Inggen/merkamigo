@@ -1,6 +1,15 @@
 @php
     $pageTitle = __('Eventos cerca de ti');
     $pageDescription = __('Descubre eventos de negocios locales en Merkamigo: música en vivo, talleres, mercados y más.');
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    // Sin nada cargado, se conserva el diseño original (título en dos
+    // colores) — un título personalizado se muestra en un solo color.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->eventosBannerUrl() ?? asset('images/backgrounds/fondo_banner_eventos.webp');
+    $bannerTitle = $siteSetting->eventos_banner_title;
+    $bannerDescription = $siteSetting->eventos_banner_description
+        ?: __('Descubre experiencias de negocios locales: música en vivo, talleres, mercados y más.');
     $schemaGraph = [
         \App\Support\Seo\SchemaBuilder::breadcrumb([
             ['name' => __('Inicio'), 'url' => route('home')],
@@ -24,17 +33,41 @@
     :canonical="route('eventos')"
     :schema-graph="$schemaGraph"
 >
+    {{--
+        Pedido del usuario (2026-10-11): mismo efecto parallax sutil que
+        ya tenía el hero de búsqueda de Plaza (`search-hero.blade.php`,
+        único lugar del sitio que ya lo usaba) — el fondo se desplaza
+        apenas al hacer scroll, no el contenido encima.
+    --}}
     <section
-        class="relative isolate min-h-[350px] bg-cover bg-center sm:min-h-[390px]"
-        style="background-image: linear-gradient(90deg, rgba(9, 9, 11, .82) 0%, rgba(9, 9, 11, .52) 38%, rgba(9, 9, 11, .1) 72%), url('{{ asset('images/backgrounds/fondo_banner_eventos.webp') }}');"
+        x-data="{ parallaxOffset: 0 }"
+        x-on:scroll.window="parallaxOffset = Math.min(60, Math.max(0, window.scrollY * 0.15))"
+        class="relative isolate min-h-[410px] sm:min-h-[390px]"
     >
-        <div class="mx-auto flex min-h-[350px] max-w-7xl items-center px-4 pb-16 pt-10 sm:min-h-[390px] sm:px-6 lg:px-8">
+        {{-- El formulario de filtros sobresale a propósito medio cuerpo
+             fuera del hero (`translate-y-1/2` más abajo) — el
+             `overflow-hidden` que contiene el fondo ampliado del
+             parallax NO puede ir en la sección completa (se lo comería),
+             así que vive solo en este envoltorio del tamaño exacto del
+             hero. --}}
+        <div class="absolute inset-0 overflow-hidden">
+            <div
+                class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
+                x-bind:style="`background-image: linear-gradient(90deg, rgba(9, 9, 11, .82) 0%, rgba(9, 9, 11, .52) 38%, rgba(9, 9, 11, .1) 72%), url('{{ $bannerImage }}'); background-position: center calc(50% + ${parallaxOffset}px);`"
+            ></div>
+        </div>
+
+        <div class="relative z-10 mx-auto flex min-h-[350px] max-w-7xl items-center px-4 pb-16 pt-10 sm:min-h-[390px] sm:px-6 lg:px-8">
             <div class="max-w-2xl text-white">
                 <h1 class="text-4xl font-black tracking-tight drop-shadow-lg sm:text-5xl lg:text-6xl">
-                    {{ __('Eventos') }} <span class="text-red-400">{{ __('cerca de ti') }}</span>
+                    @if ($bannerTitle)
+                        {{ $bannerTitle }}
+                    @else
+                        {{ __('Eventos') }} <span class="text-red-400">{{ __('cerca de ti') }}</span>
+                    @endif
                 </h1>
                 <p class="mt-4 max-w-xl text-lg leading-7 text-white/95 drop-shadow sm:text-xl">
-                    {{ __('Descubre experiencias de negocios locales: música en vivo, talleres, mercados y más.') }}
+                    {{ $bannerDescription }}
                 </p>
             </div>
 
@@ -75,10 +108,24 @@
                     <flux:icon.chevron-down class="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
                 </label>
 
-                <label class="relative block">
+                {{--
+                    Pedido del usuario (2026-10-12): en iPhone el campo se
+                    veía estirado/raro. El ícono superpuesto con padding
+                    (mismo truco que usan los `<select>` de al lado)
+                    funciona bien ahí, pero Safari en iOS renderiza
+                    `<input type="date">` como un control nativo propio
+                    que no respeta ese padding de la misma forma y
+                    termina rompiendo su layout interno. Acá el ícono ya
+                    no se superpone con `absolute`: es un hermano normal
+                    dentro de un contenedor con el borde/sombra, y el
+                    input queda transparente y sin padding propio — el
+                    control nativo recibe una caja simple, sin nada
+                    peleando con su render interno.
+                --}}
+                <label class="flex h-12 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 shadow-sm transition focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-950">
                     <span class="sr-only">{{ __('Filtrar por fecha') }}</span>
-                    <flux:icon.calendar-days class="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-brand-600" variant="outline" />
-                    <input type="date" name="fecha" value="{{ $selectedDate }}" class="h-12 w-full rounded-xl border border-zinc-200 bg-white pl-12 pr-3 text-sm font-medium text-zinc-700 shadow-sm transition focus:border-brand-500 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
+                    <flux:icon.calendar-days class="pointer-events-none size-5 shrink-0 text-brand-600" variant="outline" />
+                    <input type="date" name="fecha" value="{{ $selectedDate }}" class="h-full w-full min-w-0 border-0 bg-transparent p-0 text-sm font-medium text-zinc-700 focus:ring-0 dark:text-zinc-200">
                 </label>
 
                 <flux:button type="submit" variant="primary" icon="magnifying-glass" class="h-12 justify-center px-8">

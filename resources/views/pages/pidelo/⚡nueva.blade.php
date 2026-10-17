@@ -169,29 +169,65 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
     }
 }; ?>
 
-<div class="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-    <div class="mx-auto max-w-6xl">
-        <div class="mb-8">
-            <div class="inline-flex items-center gap-2 rounded-full border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-700 shadow-sm">
-                <flux:icon.shopping-bag class="size-4" variant="outline" />
-                {{ __('Pídelo en Merkamigo') }}
-            </div>
+@php
+    // Pedido del usuario (2026-10-14): banner (imagen, título y
+    // descripción) editable desde Configuración del sitio en el admin.
+    $siteSetting = \App\Domain\Platform\Models\SiteSetting::current();
+    $bannerImage = $siteSetting->pideloBannerUrl() ?? asset('images/backgrounds/fondo_banner_pidelo.webp');
+    $bannerTitle = $siteSetting->pidelo_banner_title;
+    $bannerDescription = $siteSetting->pidelo_banner_description ?: __('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.');
+@endphp
 
-            <flux:heading class="mt-4 text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
-                {{ __('Cuéntanos qué necesitas') }}
-            </flux:heading>
-            <flux:text class="mt-3 text-md text-zinc-500 dark:text-zinc-400">
-                {{ __('Compártelo una vez y recibe propuestas de negocios cercanos por acá mismo.') }}
-            </flux:text>
+<div>
+    {{-- Pedido del usuario: la imagen va al ancho completo del
+         navegador (full-bleed, fuera del contenedor del contenido);
+         el texto adentro sí respeta el mismo ancho/alineación que el
+         resto de la página (mx-auto max-w-7xl), no el ancho total. --}}
+    {{-- Pedido del usuario (2026-10-11): mismo efecto parallax sutil que
+         ya tenía el hero de búsqueda de Plaza — el fondo se desplaza
+         apenas al hacer scroll, no el texto encima. Se mantiene el
+         recorte a la izquierda (bg-left-top original) moviendo solo el
+         eje Y del fondo, no el X. --}}
+    <div
+        x-data="{ parallaxOffset: 0 }"
+        x-on:scroll.window="parallaxOffset = Math.min(50, Math.max(0, window.scrollY * 0.12))"
+        class="relative isolate min-h-[230px] w-full overflow-hidden sm:min-h-[280px] lg:min-h-[320px]"
+    >
+        <div
+            class="absolute inset-0 z-0 scale-110 bg-cover bg-no-repeat will-change-transform"
+            x-bind:style="`background-image: url('{{ $bannerImage }}'); background-position-x: left; background-position-y: calc(${parallaxOffset}px);`"
+        ></div>
 
-            @if ($savedAt)
-                <div class="mt-4 flex items-center gap-1.5 text-sm text-zinc-400">
-                    <flux:icon.check-circle class="size-4" variant="outline" />
-                    {{ __('Guardado automáticamente a las :hora', ['hora' => $savedAt]) }}
+        <div class="relative z-10 mx-auto flex h-full max-w-7xl items-center px-6 py-6 lg:px-8">
+            <div class="max-w-[260px] sm:max-w-sm lg:max-w-md">
+                <div class="inline-flex w-fit items-center gap-2 rounded-full border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 shadow-sm sm:px-4 sm:py-2 sm:text-sm">
+                    <flux:icon.shopping-bag class="size-3.5 shrink-0 sm:size-4" variant="outline" />
+                    {{ __('Pídelo en Merkamigo') }}
                 </div>
-            @endif
-        </div>
 
+                <flux:heading class="mt-3 text-2xl font-black leading-tight tracking-tight text-zinc-950 sm:text-3xl lg:text-4xl">
+                    @if ($bannerTitle)
+                        {{ $bannerTitle }}
+                    @else
+                        {{ __('Cuéntanos') }} <span class="text-brand-600">{{ __('qué necesitas') }}</span>
+                    @endif
+                </flux:heading>
+                <flux:text class="mt-2 text-sm leading-6 text-zinc-600 sm:mt-3 sm:text-base sm:leading-7">
+                    {{ $bannerDescription }}
+                </flux:text>
+
+                @if ($savedAt)
+                    <div class="mt-3 flex items-center gap-1.5 text-xs text-zinc-500 sm:text-sm">
+                        <flux:icon.check-circle class="size-3.5 shrink-0 sm:size-4" variant="outline" />
+                        {{ __('Guardado automáticamente a las :hora', ['hora' => $savedAt]) }}
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+    <div class="mx-auto max-w-6xl">
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
             <div>
                 @if (! $previewing)
@@ -438,5 +474,6 @@ new #[Layout('layouts::cliente', ['showSidebar' => true])] #[Title('Pídelo en M
                 </div>
             </aside>
         </div>
+    </div>
     </div>
 </div>

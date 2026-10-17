@@ -30,15 +30,18 @@
     // candados reales del código (`Business::isOnPaidPlan()`/
     // `isOnTopPlan()`, ver `⚡copiloto.blade.php`, `⚡cobros-en-linea.blade.php`,
     // `⚡ventas.blade.php`, `⚡lives.blade.php`, `⚡metricas.blade.php`,
+    // `⚡merkapuntos.blade.php`, `⚡eventos.blade.php`,
     // `Business::canUseAiChatbot()`) — si esos candados cambian, esta tabla
     // hay que actualizarla a mano.
     $qualitativeRows = [
         __('Copiloto de WhatsApp') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
         __('Cobros en línea (Wompi propio)') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
         __('Ver ventas pagadas en línea') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
+        __('Merkapuntos (programa de fidelización)') => ['gratis' => false, 'emprendedor' => true, 'negocios' => true],
         __('Asistente IA (vitrina, descripciones, fotos, chatbot)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
         __('En vivo (Live Commerce)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
         __('Métricas avanzadas (90 días + exportar CSV)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
+        __('Eventos (agenda pública y reservas)') => ['gratis' => false, 'emprendedor' => false, 'negocios' => true],
     ];
 
     $schemaGraph = [
@@ -97,11 +100,18 @@
                         @endif
                     </div>
 
-                    @if ($plan->trial_days > 0)
-                        <flux:text class="mt-1 text-sm text-brand-600 dark:text-brand-400">
-                            {{ trans_choice('Incluye :count día de prueba|Incluye :count días de prueba', $plan->trial_days, ['count' => $plan->trial_days]) }}
-                        </flux:text>
-                    @endif
+                    {{--
+                        PR4 de TODO_VENTAS_RENTABILIDAD.md (decisión #1
+                        del usuario 2026-10-09): se quita la promesa de
+                        trial — el checkout real cobra de inmediato
+                        (`SubscribeToPlan` solo activa el periodo de
+                        prueba de `trial_days` cuando el cambio de plan
+                        es manual desde /admin, nunca en este
+                        autoservicio) y el guion de ventas tampoco lo
+                        ofrece. El campo `trial_days` se deja intacto en
+                        el modelo/seeder por si se decide activarlo de
+                        verdad más adelante.
+                    --}}
 
                     @if (! empty($plan->features))
                         <ul class="mt-6 space-y-2.5 border-t border-zinc-100 pt-6 dark:border-zinc-800">

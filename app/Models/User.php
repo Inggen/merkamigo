@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Domain\Businesses\Models\Business;
 use App\Domain\Discovery\Models\Favorite;
 use App\Domain\Discovery\Models\RecentlyViewedBusiness;
+use App\Domain\Identity\Models\SocialAccount;
 use App\Domain\Identity\Models\UserDevice;
 use App\Domain\Loyalty\Models\LoyaltyAccount;
 use App\Domain\Loyalty\Models\LoyaltyIdentityToken;
@@ -67,6 +68,12 @@ class User extends Authenticatable implements FilamentUser, PasskeyUser
     use HasApiTokens, HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     public const PLATFORM_TEAM_ID = 0;
+
+    /** @return HasMany<SocialAccount, $this> */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
 
     /**
      * Get the attributes that should be cast.
