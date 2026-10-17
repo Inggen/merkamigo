@@ -76,7 +76,13 @@ return new class extends Migration
                 $table->json('raw_response')->nullable();
                 $table->timestamps();
 
-                $table->index(['event_attendance_id', 'status']);
+                // Nombre explícito: el autogenerado supera el límite de 64 caracteres de MySQL.
+                $table->index(['event_attendance_id', 'status'], 'eapa_attendance_status_idx');
+            });
+        } elseif (! Schema::hasIndex('event_attendance_payment_attempts', 'eapa_attendance_status_idx')) {
+            // Recuperación: un despliegue anterior creó la tabla pero falló al crear el índice.
+            Schema::table('event_attendance_payment_attempts', function (Blueprint $table) {
+                $table->index(['event_attendance_id', 'status'], 'eapa_attendance_status_idx');
             });
         }
     }

@@ -17,6 +17,16 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Recuperación: un despliegue anterior alcanzó a crear la tabla pero falló
+        // al crear el índice (nombre demasiado largo). En ese caso solo se agrega.
+        if (Schema::hasTable('business_chat_conversations')) {
+            Schema::table('business_chat_conversations', function (Blueprint $table) {
+                $table->index(['business_id', 'visitor_hash', 'last_message_at'], 'bcc_business_visitor_last_msg_idx');
+            });
+
+            return;
+        }
+
         Schema::create('business_chat_conversations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
@@ -28,7 +38,8 @@ return new class extends Migration
             $table->timestamp('notified_at')->nullable();
             $table->timestamps();
 
-            $table->index(['business_id', 'visitor_hash', 'last_message_at']);
+            // Nombre explícito: el autogenerado supera el límite de 64 caracteres de MySQL.
+            $table->index(['business_id', 'visitor_hash', 'last_message_at'], 'bcc_business_visitor_last_msg_idx');
         });
     }
 
